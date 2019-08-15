@@ -12,8 +12,7 @@ module Process = struct
   let genspio id script =
     let script_content =
       Format.asprintf "%a" Genspio.Compile.To_slow_flow.Script.pp_posix
-        (Genspio.Compile.To_slow_flow.compile script)
-    in
+        (Genspio.Compile.To_slow_flow.compile script) in
     let command = ["sh"] in
     make_in_session id (`Process_group_script script_content) command
 
@@ -53,8 +52,7 @@ open Process
 
 let output_path t process which =
   let sanitize =
-    String.map ~f:(function '\'' | '/' | '"' -> '_' | other -> other)
-  in
+    String.map ~f:(function '\'' | '/' | '"' -> '_' | other -> other) in
   Paths.root t
   // ( "output"
      // sanitize process.Process.id
@@ -72,7 +70,7 @@ let ef_procesess state processes =
            desc_list (af "P:%s" process.id)
              [ desc (af "out") (atom (output_path state process `Stdout))
              ; desc (af "err") (atom (output_path state process `Stderr))
-             ; desc (af "pid") (af "%d" lwt#pid) ] )))
+             ; desc (af "pid") (af "%d" lwt#pid) ])))
 
 let unix_status_to_string (p : Unix.process_status) =
   match p with
@@ -103,11 +101,10 @@ let ef ?(all = false) state =
                       | `Process_group -> af "process-group"
                       | `Process_group_script _ -> af "shell-script" ) ] )
               :: prev
-          | _, _ -> prev )
+          | _, _ -> prev)
         (State.processes state) []
       |> List.sort ~compare:(fun (a, _) (b, _) -> String.compare a b)
-      |> List.map ~f:snd
-    in
+      |> List.map ~f:snd in
     label (af "Processes:") (list all_procs))
 
 let start t process =
@@ -129,8 +126,7 @@ let start t process =
           >>= fun () ->
           Lwt_unix.(
             openfile f [O_CREAT; O_WRONLY; O_APPEND] 0o600 >|= unix_file_descr))
-      ()
-  in
+      () in
   open_file (output_path t process `Stdout)
   >>= fun stdout ->
   open_file (output_path t process `Stderr)
@@ -154,9 +150,8 @@ let start t process =
               process.Process.id
               ( List.map actual_command ~f:(sprintf "%S")
               |> String.concat ~sep:"; " )
-              sep
-          in
-          Lwt_io.write chan msg ) )
+              sep in
+          Lwt_io.write chan msg))
     ()
   >>= fun () ->
   let proc =
@@ -191,7 +186,7 @@ let kill _t {lwt; process} =
           ( try Unix.kill pid signal with
           | Unix.Unix_error (Unix.ESRCH, _, _) -> ()
           | e -> raise e ) ;
-          Lwt.return () )
+          Lwt.return ())
         ()
   | `Docker name -> (
       Lwt_exception.catch Lwt_unix.system (sprintf "docker kill %s" name)
@@ -213,13 +208,13 @@ let wait_all t =
   State.all_processes t
   >>= fun all ->
   List.fold all ~init:(return ()) ~f:(fun prevm one ->
-      prevm >>= fun () -> wait t one >>= fun _ -> return () )
+      prevm >>= fun () -> wait t one >>= fun _ -> return ())
 
 let kill_all t =
   State.all_processes t
   >>= fun all ->
   List.fold all ~init:(return ()) ~f:(fun prevm one ->
-      prevm >>= fun () -> kill t one )
+      prevm >>= fun () -> kill t one)
 
 let find_process_by_id ?(only_running = false) t ~f =
   State.all_processes t
@@ -227,7 +222,7 @@ let find_process_by_id ?(only_running = false) t ~f =
   return
     (List.filter all ~f:(fun {process= {id; _}; lwt} ->
          if only_running && not (lwt#state = Lwt_process.Running) then false
-         else f id ))
+         else f id))
 
 let cmds = ref 0
 
@@ -247,8 +242,7 @@ let run_cmdf state fmt =
           let stream = Lwt_io.read_lines inchan in
           Lwt_stream.to_list stream
           >>= fun l -> Lwt_io.close inchan >>= fun () -> return l)
-      ()
-  in
+      () in
   ksprintf
     (fun s ->
       let id = fresh_id state "cmd" ~seed:s in
@@ -268,7 +262,7 @@ let run_cmdf state fmt =
            method err = err_lines
 
            method status = status
-        end) )
+        end))
     fmt
 
 let run_async_cmdf state f fmt =
@@ -280,7 +274,7 @@ let run_async_cmdf state f fmt =
       >>= fun (proc_state, proc) ->
       f proc
       >>= fun res ->
-      wait state proc_state >>= fun status -> return (status, res) )
+      wait state proc_state >>= fun status -> return (status, res))
     fmt
 
 let run_successful_cmdf state fmt =
@@ -290,7 +284,7 @@ let run_successful_cmdf state fmt =
       >>= fun res ->
       Process_result.Error.fail_if_non_zero res
         (sprintf "Shell command: %S" cmd)
-      >>= fun () -> return res )
+      >>= fun () -> return res)
     fmt
 
 let run_genspio state name genspio =

@@ -10,7 +10,7 @@ module Run_command = struct
               (Console.say state
                  EF.(
                    custom (fun ppf -> Attached_result.pp ppf result ~pp_error)))
-            >>= fun () -> die 2 ) )
+            >>= fun () -> die 2))
 
   let term ~pp_error () =
     Cmdliner.Term.pure (fun (state, run) -> or_hard_fail state run ~pp_error)
@@ -40,8 +40,7 @@ let cli_state ?default_interactivity ?(disable_interactivity = false) ~name ()
       method pauser = pauser
 
       method operations_log = ops
-    end
-  in
+    end in
   let open Cmdliner in
   Term.(
     pure state $ Console.cli_term ()

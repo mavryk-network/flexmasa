@@ -45,7 +45,7 @@ let call t ~path args =
                 ~var:(str "TEZOS_EVENTS_CONFIG")
                 (ksprintf str "unix-files://%s?level-at-least=%s"
                    (path // "events") level_at_least) ]
-        | _other -> assert false )
+        | _other -> assert false)
     @ [ exec ["mkdir"; "-p"; path]
       ; write_stdout
           ~path:(path // "last-cmd" |> str)
@@ -59,7 +59,7 @@ let cli_term kind prefix =
       { kind
       ; binary
       ; unix_files_sink= Some Unix_files_sink.all_info
-      ; environment= [] } )
+      ; environment= [] })
   $ Arg.(
       value
       & opt (some string) None

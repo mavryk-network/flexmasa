@@ -1,8 +1,8 @@
-(** Wrapper around the [tezos-admin-client] application. *)
 open Internal_pervasives
+(** Wrapper around the [tezos-admin-client] application. *)
 
-(** [t] is very similar to {!Tezos_client.t}. *)
 type t = private {id: string; port: int; exec: Tezos_executable.t}
+(** [t] is very similar to {!Tezos_client.t}. *)
 
 val of_client : exec:Tezos_executable.t -> Tezos_client.t -> t
 val of_node : exec:Tezos_executable.t -> Tezos_node.t -> t

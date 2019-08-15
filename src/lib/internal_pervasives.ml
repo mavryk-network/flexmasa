@@ -388,7 +388,6 @@ end
 module Jqo = struct
   let of_string s = Ezjsonm.from_string s
   let to_string j = Ezjsonm.(to_string (wrap j))
-
   let of_lines l = Ezjsonm.value_from_string (String.concat ~sep:"\n" l)
 
   let field ~k = function

@@ -30,7 +30,7 @@ module Command_error = struct
     Format.fprintf fmt "Admin-command-error:@ %s%s" msg
       (Option.value_map args ~default:"" ~f:(fun l ->
            sprintf " (args: %s)"
-             (List.map ~f:(sprintf "%S") l |> String.concat ~sep:", ") ))
+             (List.map ~f:(sprintf "%S") l |> String.concat ~sep:", ")))
 end
 
 open Command_error
@@ -55,5 +55,5 @@ let inject_protocol admin state ~path =
        | _ :: _ :: hash :: _ when hash.[0] = 'P' -> return hash
        | _ ->
            failf "inject protocol: cannot parse hash of protocol: %s"
-             (String.concat ~sep:", " (List.map ~f:(sprintf "%S") res#out)) )
+             (String.concat ~sep:", " (List.map ~f:(sprintf "%S") res#out)))
   >>= fun hash -> return (res, hash)

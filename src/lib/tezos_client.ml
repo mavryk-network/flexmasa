@@ -24,9 +24,8 @@ let bootstrapped_script t ~state =
   let cmd =
     loop_until_true ~attempts:5 ~sleep:1
       ~on_failed_attempt:(fun _ ->
-        eprintf (str "Bootstrap attempt failed\\n") [] )
-      (succeeds (client_command t ~state ["bootstrapped"]))
-  in
+        eprintf (str "Bootstrap attempt failed\\n") [])
+      (succeeds (client_command t ~state ["bootstrapped"])) in
   seq
     [ exec ["mkdir"; "-p"; base_dir ~state t]
     ; if_seq cmd ~t:[eprintf (str "Node Bootstrapped\\n") []] ]
@@ -99,7 +98,7 @@ module Command_error = struct
     Format.fprintf fmt "Client-command-error:@ %s%s" msg
       (Option.value_map args ~default:"" ~f:(fun l ->
            sprintf " (args: %s)"
-             (List.map ~f:(sprintf "%S") l |> String.concat ~sep:", ") ))
+             (List.map ~f:(sprintf "%S") l |> String.concat ~sep:", ")))
 end
 
 open Command_error
@@ -125,8 +124,7 @@ let rpc state ~client meth ~path =
   let args =
     match meth with
     | `Get -> ["rpc"; "get"; path]
-    | `Post s -> ["rpc"; "post"; path; "with"; s]
-  in
+    | `Post s -> ["rpc"; "post"; path; "with"; s] in
   successful_client_cmd state ~client args
   >>= fun res ->
   let output = String.concat ~sep:"\n" res#out in
@@ -168,8 +166,7 @@ let find_applied_in_mempool state ~client ~f =
 let mempool_has_operation state ~client ~kind =
   find_applied_in_mempool state ~client ~f:(fun o ->
       Jqo.field o ~k:"contents"
-      |> Jqo.list_exists ~f:(fun op -> Jqo.field op ~k:"kind" = `String kind)
-  )
+      |> Jqo.list_exists ~f:(fun op -> Jqo.field op ~k:"kind" = `String kind))
   >>= fun found_or_not -> return (found_or_not <> None)
 
 let block_has_operation state ~client ~level ~kind =
@@ -183,8 +180,7 @@ let block_has_operation state ~client ~level ~kind =
           Jqo.list_exists olist ~f:(fun o ->
               Jqo.field o ~k:"contents"
               |> Jqo.list_exists ~f:(fun op ->
-                     Jqo.field op ~k:"kind" = `String kind ) ) )
-    in
+                     Jqo.field op ~k:"kind" = `String kind))) in
     say state
       EF.(
         desc
@@ -203,8 +199,7 @@ let block_has_operation state ~client ~level ~kind =
 let get_block_header state ~client block =
   let path =
     sprintf "/chains/main/blocks/%s/header"
-      (match block with `Head -> "head" | `Level i -> Int.to_string i)
-  in
+      (match block with `Head -> "head" | `Level i -> Int.to_string i) in
   rpc state ~client `Get ~path
 
 let list_known_addresses state ~client =
@@ -217,8 +212,7 @@ let list_known_addresses state ~client =
            [ group (rep1 (alt [alnum; char '_']))
            ; str ": "
            ; group (rep1 alnum)
-           ; alt [space; eol; eos] ]))
-  in
+           ; alt [space; eol; eos] ])) in
   return
     (List.filter_map res#out
        ~f:
@@ -254,8 +248,7 @@ module Ledger = struct
              [ group num
              ; str " for the main-chain ("
              ; group (rep1 alnum)
-             ; str ") and "; group num; str " for the test-chain." ]))
-    in
+             ; str ") and "; group num; str " for the test-chain." ])) in
     let matches = Re.exec re (String.concat ~sep:" " res#out) in
     try
       return
@@ -290,8 +283,7 @@ module Ledger = struct
           List.find known_addresses ~f:(fun (_, pkh) -> pkh = pubkey_hash)
         with
         | None -> ""
-        | Some (alias, _) -> alias
-      in
+        | Some (alias, _) -> alias in
       return
         (Tezos_protocol.Account.key_pair name ~pubkey ~pubkey_hash
            ~private_key:uri)
@@ -332,8 +324,7 @@ module Keyed = struct
 
   let bake ?chain state baker msg =
     let chain_arg =
-      Option.value_map chain ~default:[] ~f:(fun c -> ["--chain"; c])
-    in
+      Option.value_map chain ~default:[] ~f:(fun c -> ["--chain"; c]) in
     successful_client_cmd state ~client:baker.client
       ( chain_arg
       @ ["bake"; "for"; baker.key_name; "--force"; "--minimal-timestamp"] )
@@ -367,9 +358,7 @@ module Keyed = struct
     rpc state ~client ~path:"/chains/main/blocks/head/helpers/forge/operations"
       (`Post (Ezjsonm.to_string json))
     >>= fun res ->
-    let operation_bytes =
-      match res with `String s -> s | _ -> assert false
-    in
+    let operation_bytes = match res with `String s -> s | _ -> assert false in
     let bytes_to_sign = "0x03" ^ operation_bytes in
     successful_client_cmd state ~client
       ["sign"; "bytes"; bytes_to_sign; "for"; key_name]
@@ -377,20 +366,17 @@ module Keyed = struct
     let to_decode =
       List.hd_exn sign_res#out
       |> String.chop_prefix_exn ~prefix:"Signature:"
-      |> String.strip
-    in
+      |> String.strip in
     say state EF.(desc (shout "TO DECODE:") (af "%S" to_decode))
     >>= fun () ->
     let decoded =
       Option.value_exn ~message:"base58 dec"
         (Tezos_crypto.Base58.safe_decode to_decode)
-      |> Hex.of_string ?ignore:None |> Hex.show
-    in
+      |> Hex.of_string ?ignore:None |> Hex.show in
     say state EF.(desc (shout "DECODED:") (af "%S" decoded))
     >>= fun () ->
     let actual_signature =
-      String.chop_prefix_exn ~prefix:"09f5cd8612" decoded
-    in
+      String.chop_prefix_exn ~prefix:"09f5cd8612" decoded in
     say state
       EF.(
         desc_list (af "Injecting Operation")

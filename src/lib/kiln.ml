@@ -41,8 +41,7 @@ module Configuration_directory = struct
     >>= fun () ->
     let pwd = Sys.getenv "PWD" in
     let absolutize path =
-      if Filename.is_relative path then pwd // path else path
-    in
+      if Filename.is_relative path then pwd // path else path in
     System.write_file state ~perm:0o777
       (path // "kiln-node-custom-args")
       ~content:
@@ -75,15 +74,14 @@ module Configuration_directory = struct
         Ezjsonm.(
           let absolutize exec =
             let path = Tezos_executable.get exec in
-            absolutize path
-          in
+            absolutize path in
           dict
             [ ("node-path", string (absolutize node_exec))
             ; ("client-path", string (absolutize client_exec))
             ; ( "baker-endorser-paths"
               , list
                   (fun (p, bak, endo) ->
-                    strings [p; absolutize bak; absolutize endo] )
+                    strings [p; absolutize bak; absolutize endo])
                   protocol_execs ) ]
           |> to_string ~minify:false)
     >>= fun () ->
@@ -94,7 +92,7 @@ module Configuration_directory = struct
     let open Cmdliner in
     Term.(
       pure (fun x clean ->
-          Option.map x ~f:(fun (path, p2p_port) -> {path; p2p_port; clean}) )
+          Option.map x ~f:(fun (path, p2p_port) -> {path; p2p_port; clean}))
       $ Arg.(
           value
             (opt

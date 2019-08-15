@@ -24,14 +24,10 @@ module Topology : sig
   type _ t = private
     | Mesh : {size: int} -> node list t
     | Bottleneck :
-        { name: string
-        ; left: 'a network
-        ; right: 'b network }
+        {name: string; left: 'a network; right: 'b network}
         -> ('a * node * 'b) t
     | Net_in_the_middle :
-        { middle: 'm network
-        ; left: 'a network
-        ; right: 'b network }
+        {middle: 'm network; left: 'a network; right: 'b network}
         -> ('a * 'm * 'b) t
 
   and 'a network = {topology: 'a t; name: string}

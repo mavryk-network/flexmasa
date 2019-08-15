@@ -11,8 +11,7 @@ let make with_timestamp color =
   let channel = Lwt_io.stderr in
   let b = Buffer.create 42 in
   let formatter =
-    Format.make_formatter (Buffer.add_substring b) (fun () -> ())
-  in
+    Format.make_formatter (Buffer.add_substring b) (fun () -> ()) in
   let bold = "\027[01m" in
   let red = "\027[31m" in
   let reset = "\027[m" in
@@ -20,8 +19,7 @@ let make with_timestamp color =
     let color_of_tag = function
       | "prompt" -> Some bold
       | "shout" -> Some red
-      | _ -> None
-    in
+      | _ -> None in
     Format.(
       pp_set_formatter_tag_functions formatter
         { mark_open_tag= (fun _ -> "")
@@ -30,11 +28,10 @@ let make with_timestamp color =
             (fun tag ->
               match color_of_tag tag with
               | Some c -> fprintf formatter "%s" c
-              | None -> () )
+              | None -> ())
         ; print_close_tag=
             (fun tag ->
-              if color_of_tag tag <> None then fprintf formatter "%s" reset )
-        } ;
+              if color_of_tag tag <> None then fprintf formatter "%s" reset) } ;
       pp_set_tags formatter true) ) ;
   {color; buffer= b; channel; formatter; with_timestamp}
 
@@ -44,11 +41,9 @@ let cli_term () =
   let guess =
     let dumb =
       try match Sys.getenv "TERM" with "dumb" | "" -> true | _ -> false
-      with Not_found -> true
-    in
+      with Not_found -> true in
     let isatty = try Unix.(isatty stderr) with Unix.Unix_error _ -> false in
-    if (not dumb) && isatty then true else false
-  in
+    if (not dumb) && isatty then true else false in
   Cmdliner.(
     Term.(
       pure make
@@ -63,8 +58,7 @@ let cli_term () =
           let answers = [("none", `N); ("yes", `Y); ("auto", `G)] in
           let doc =
             sprintf "Control terminal colors (%s)."
-              (String.concat ~sep:", " (List.map answers ~f:fst))
-          in
+              (String.concat ~sep:", " (List.map answers ~f:fst)) in
           value & opt (enum answers) `G & info ["color"] ~doc)))
 
 let do_output t =
@@ -77,11 +71,11 @@ let sayf (o : _ Base_state.t) (fmt : Format.formatter -> unit -> unit) :
     (_, _) Asynchronous_result.t =
   let date =
     if o#console.with_timestamp then
-      let date = Tezos_stdlib_unix.Systime_os.now ()
-                 |> Tezos_base.Time.System.to_notation in
+      let date =
+        Tezos_stdlib_unix.Systime_os.now ()
+        |> Tezos_base.Time.System.to_notation in
       sprintf "[%s]" date
-    else ""
-  in
+    else "" in
   let ppf = o#console.formatter in
   Format.(
     pp_open_hvbox ppf 2 ;
@@ -98,11 +92,11 @@ let sayf (o : _ Base_state.t) (fmt : Format.formatter -> unit -> unit) :
 let say (o : _ Base_state.t) ef : (_, _) Asynchronous_result.t =
   let date =
     if o#console.with_timestamp then
-      let date = Tezos_stdlib_unix.Systime_os.now ()
-                 |> Tezos_base.Time.System.to_notation in
+      let date =
+        Tezos_stdlib_unix.Systime_os.now ()
+        |> Tezos_base.Time.System.to_notation in
       sprintf "[%s]" date
-    else ""
-  in
+    else "" in
   let msg = EF.(label (ksprintf prompt "%s%s:" o#application_name date) ef) in
   let fmt = o#console.formatter in
   Format.(
@@ -136,8 +130,7 @@ module Prompt = struct
 
   let command ?(with_defaults = true) state ~commands =
     let commands =
-      if with_defaults then default_commands () @ commands else commands
-    in
+      if with_defaults then default_commands () @ commands else commands in
     let rec loop () =
       say state EF.(af "Please enter command:")
       >>= fun () ->
@@ -148,7 +141,7 @@ module Prompt = struct
       | Ok (List (Atom c :: more)) -> (
         match
           List.find commands ~f:(fun m ->
-              List.mem m.commands c ~equal:String.equal )
+              List.mem m.commands c ~equal:String.equal)
         with
         | Some {action; _} -> (
             Asynchronous_result.bind_on_error (action more)
@@ -158,12 +151,12 @@ module Prompt = struct
                     desc (shout "Error in action:")
                       (custom (fun ppf ->
                            Attached_result.pp ppf result (* Error.pp ppf err *)
-                             ~pp_error:(fun fmt -> function
+                             ~pp_error:(fun fmt ->
+                             function
                              | `Lwt_exn _ as e -> Lwt_exception.pp fmt e
                              | `Command_line s ->
-                                 Format.fprintf fmt "Wrong command line: %s" s
-                           ) )))
-                >>= fun () -> return `Loop )
+                                 Format.fprintf fmt "Wrong command line: %s" s))))
+                >>= fun () -> return `Loop)
             >>= function
             | `Loop -> loop ()
             | `Help ->
@@ -175,8 +168,7 @@ module Prompt = struct
                           { default_list with
                             space_after_separator= false
                           ; space_before_closing= false
-                          ; space_after_opening= false }
-                    in
+                          ; space_after_opening= false } in
                     label (haf "Commands:")
                       (list
                          (List.map commands ~f:(fun {commands; doc; _} ->
@@ -184,7 +176,7 @@ module Prompt = struct
                                 ~param:
                                   {default_label with space_after_label= false}
                                 (cmdlist (List.map ~f:(af "%S") commands))
-                                (list [haf "->"; doc]) ))))
+                                (list [haf "->"; doc])))))
                 >>= fun () -> loop ()
             | `Quit -> return () )
         | None ->
@@ -192,7 +184,8 @@ module Prompt = struct
               EF.(
                 desc
                   (ksprintf shout "Error, unknown command: %S" c)
-                  (custom (fun fmt -> Base.Sexp.pp_hum_indent 4 fmt (List more))))
+                  (custom (fun fmt ->
+                       Base.Sexp.pp_hum_indent 4 fmt (List more))))
             >>= fun () -> loop () )
       | Ok other ->
           say state
@@ -207,9 +200,8 @@ module Prompt = struct
               desc (shout "Error: ")
                 (custom (fun fmt ->
                      Parsexp.Parse_error.report fmt ~filename:"<command-line>"
-                       err )))
-          >>= fun () -> loop ()
-    in
+                       err)))
+          >>= fun () -> loop () in
     loop ()
 end
 
@@ -217,8 +209,7 @@ let display_errors_of_command state ?(should_output = false) cmd =
   let outputs () = List.exists cmd#out ~f:(fun s -> String.strip s <> "") in
   let success =
     let unix_success = cmd#status = Lwt_unix.WEXITED 0 in
-    if should_output then unix_success && outputs () else unix_success
-  in
+    if should_output then unix_success && outputs () else unix_success in
   ( if success then return ()
   else
     say state
@@ -226,8 +217,7 @@ let display_errors_of_command state ?(should_output = false) cmd =
         let output l =
           match String.concat ~sep:"\n" l |> String.strip with
           | "" -> af "NONE"
-          | more -> markdown_verbatim more
-        in
+          | more -> markdown_verbatim more in
         desc (shout "Error:")
           (list
              [ haf "Command %s" (Process_result.status_to_string cmd#status)

@@ -9,9 +9,7 @@ module Key : sig
       given strings. *)
   module Of_name : sig
     val pubkey : string -> string
-
     val pubkey_hash : string -> string
-
     val private_key : string -> string
   end
 end
@@ -31,14 +29,12 @@ module Script : sig
     Tz_protocol.Script_repr.expr -> Tz_protocol.Script_repr.expr -> Ezjsonm.t
 
   val original_json : string
-
   val faucet_tz : string
 
   val print :
     Tz_protocol.Script_repr.expr -> Tz_protocol.Script_repr.expr -> unit
 
   val load : origin -> Ezjsonm.t
-
   val test : unit -> unit
 end
 
@@ -50,18 +46,14 @@ module Account : sig
         {name: string; pubkey: string; pubkey_hash: string; private_key: string}
 
   val of_name : string -> t
-
   val of_namef : ('a, unit, string, t) format4 -> 'a
 
   val key_pair :
     string -> pubkey:string -> pubkey_hash:string -> private_key:string -> t
 
   val name : t -> string
-
   val pubkey : t -> string
-
   val pubkey_hash : t -> string
-
   val private_key : t -> string
 end
 
@@ -92,27 +84,16 @@ type t =
 (** [t] wraps bootstrap parameters for sandboxed protocols. *)
 
 val compare : t -> t -> int
-
 val default : unit -> t
-
 val protocol_parameters_json : t -> Ezjsonm.t
-
 val sandbox : t -> string
-
 val protocol_parameters : t -> string
-
 val expected_pow : t -> int
-
 val id : t -> string
-
 val bootstrap_accounts : t -> Account.t list
-
 val dictator_name : t -> string
-
 val dictator_secret_key : t -> string
-
 val sandbox_path : config:< paths: Paths.t ; .. > -> t -> string
-
 val protocol_parameters_path : config:< paths: Paths.t ; .. > -> t -> string
 
 val ensure_script :

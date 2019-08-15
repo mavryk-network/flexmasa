@@ -33,7 +33,7 @@ module Operations = struct
                       [af "→ %s" msg; ocaml_string_list res]
                 | `Bake (n, msg, res) ->
                     desc_list (haf "Node-baked: %S" n)
-                      [af "→ %s" msg; ocaml_string_list res] ))) )
+                      [af "→ %s" msg; ocaml_string_list res]))))
 
   let bake state ~client ~output msg =
     let t = from_state state in

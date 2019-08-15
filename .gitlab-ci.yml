@@ -32,7 +32,7 @@ lint:
   script:
      - bash -c "$SHOW_INFO"
      - opam config exec -- ocamlformat --version
-     - opam config exec -- bash -c 'find ./src/ \( ! -name ".#*" \) \( -name "*.mli" -o -name "*.ml" \) -exec ocamlformat -i {} \;'
+     - opam config exec -- make fmt
      - git diff --exit-code
 
 opam-test:

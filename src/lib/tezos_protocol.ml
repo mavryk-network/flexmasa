@@ -13,8 +13,7 @@ module Key = struct
     let make name =
       let seed =
         Tezos_stdlib.MBytes.of_string
-          (String.concat ~sep:"" (List.init 42 ~f:(fun _ -> name)))
-      in
+          (String.concat ~sep:"" (List.init 42 ~f:(fun _ -> name))) in
       let pkh, pk, sk = Tezos_crypto.Ed25519.generate_key ~seed () in
       {name; pkh; pk; sk}
 
@@ -32,8 +31,7 @@ module Script = struct
   type origin = [`Sandbox_faucet | `String of string]
 
   let exn_tezos msg = function
-    | Ok o ->
-        o
+    | Ok o -> o
     | Error el ->
         Format.kasprintf failwith "Script-error: %s: %a" msg
           Tezos_error_monad.Error_monad.pp_print_error el
@@ -50,27 +48,23 @@ module Script = struct
     | Ok json ->
         let repr =
           Tezos_data_encoding.Data_encoding.Json.destruct
-            Tz_protocol.Script_repr.encoding json
-        in
+            Tz_protocol.Script_repr.encoding json in
         let ( (expr_code :
                 Tz_protocol.Michelson_v1_primitives.prim
                 Tezos_micheline.Micheline.canonical)
             , _ ) =
           Tz_protocol.Script_repr.(force_decode repr.code)
-          |> exn_shell "decoding script-repr"
-        in
+          |> exn_shell "decoding script-repr" in
         let strings_node =
           Tz_protocol.Michelson_v1_primitives.strings_of_prims expr_code
-          |> Tz_protocol.Environment.Micheline.root
-        in
+          |> Tz_protocol.Environment.Micheline.root in
         Format.eprintf ">> %a\n%!" Tezos_micheline.Micheline_printer.print_expr
           (Tezos_micheline.Micheline.map_node
              (fun _ -> Tezos_micheline.Micheline_printer.{comment= None})
              (fun x -> x)
              strings_node) ;
         expr_code
-    | Error e ->
-        Format.kasprintf failwith "JSON-of-string: %s" e
+    | Error e -> Format.kasprintf failwith "JSON-of-string: %s" e
 
   let json_script_repr code storage =
     match
@@ -79,8 +73,7 @@ module Script = struct
         Tz_protocol.Script_repr.
           {code= lazy_expr code; storage= lazy_expr storage}
     with
-    | `O _ as o ->
-        (o : Ezjsonm.t)
+    | `O _ as o -> (o : Ezjsonm.t)
     | _other ->
         Format.kasprintf failwith "JSON-of-script-repr: not a json object"
 
@@ -137,8 +130,7 @@ module Script = struct
     | `Sandbox_faucet ->
         let code = code_of_json_exn original_json in
         json_script_repr code (parse "0")
-    | `String s ->
-        json_script_repr (parse s) (parse "0")
+    | `String s -> json_script_repr (parse s) (parse "0")
 
   let test () =
     let faucet_like =
@@ -174,31 +166,23 @@ module Account = struct
         {name: string; pubkey: string; pubkey_hash: string; private_key: string}
 
   let of_name s = Of_name s
-
   let of_namef fmt = ksprintf of_name fmt
-
   let name = function Of_name n -> n | Key_pair k -> k.name
 
   let key_pair name ~pubkey ~pubkey_hash ~private_key =
     Key_pair {name; pubkey; pubkey_hash; private_key}
 
   let pubkey = function
-    | Of_name n ->
-        Key.Of_name.pubkey n
-    | Key_pair k ->
-        k.pubkey
+    | Of_name n -> Key.Of_name.pubkey n
+    | Key_pair k -> k.pubkey
 
   let pubkey_hash = function
-    | Of_name n ->
-        Key.Of_name.pubkey_hash n
-    | Key_pair k ->
-        k.pubkey_hash
+    | Of_name n -> Key.Of_name.pubkey_hash n
+    | Key_pair k -> k.pubkey_hash
 
   let private_key = function
-    | Of_name n ->
-        Key.Of_name.private_key n
-    | Key_pair k ->
-        k.private_key
+    | Of_name n -> Key.Of_name.private_key n
+    | Key_pair k -> k.private_key
 end
 
 module Voting_period = struct
@@ -213,10 +197,8 @@ module Voting_period = struct
       Tezos_data_encoding.Data_encoding.Json.construct
         Tz_protocol.Alpha_context.Voting_period.kind_encoding p
     with
-    | `String s ->
-        s
-    | _other ->
-        assert false
+    | `String s -> s
+    | _other -> assert false
 end
 
 type t =
@@ -257,14 +239,12 @@ let default () =
 let protocol_parameters_json t : Ezjsonm.t =
   let open Ezjsonm in
   let make_account (account, amount) =
-    strings [Account.pubkey account; sprintf "%Ld" amount]
-  in
+    strings [Account.pubkey account; sprintf "%Ld" amount] in
   let make_contract (deleg, amount, script) =
     dict
       [ ("delegate", string (Account.pubkey_hash deleg))
       ; ("amount", ksprintf string "%d" amount)
-      ; ("script", (Script.load script :> Ezjsonm.value)) ]
-  in
+      ; ("script", (Script.load script :> Ezjsonm.value)) ] in
   dict
     [ ( "bootstrap_accounts"
       , list make_account (t.bootstrap_accounts @ [(t.dictator, 1L)]) )
@@ -285,17 +265,11 @@ let protocol_parameters t =
   Ezjsonm.to_string ~minify:false (protocol_parameters_json t)
 
 let expected_pow t = t.expected_pow
-
 let id t = t.id
-
 let bootstrap_accounts t = List.map ~f:fst t.bootstrap_accounts
-
 let dictator_name {dictator; _} = Account.name dictator
-
 let dictator_secret_key {dictator; _} = Account.private_key dictator
-
 let make_path config t = Paths.root config // sprintf "protocol-%s" (id t)
-
 let sandbox_path ~config t = make_path config t // "sandbox.json"
 
 let protocol_parameters_path ~config t =
@@ -307,8 +281,7 @@ let ensure_script ~config t =
     let path = p ~config t in
     ( Filename.basename path
     , write_stdout ~path:(str path)
-        (feed ~string:(str (string t)) (exec ["cat"])) )
-  in
+        (feed ~string:(str (string t)) (exec ["cat"])) ) in
   check_sequence
     ~verbosity:(`Announce (sprintf "Ensure-protocol-%s" (id t)))
     [ ("directory", exec ["mkdir"; "-p"; make_path config t])
@@ -319,8 +292,7 @@ let ensure t ~config =
   match
     Sys.command (Genspio.Compile.to_one_liner (ensure_script ~config t))
   with
-  | 0 ->
-      return ()
+  | 0 -> return ()
   | _other ->
       Lwt_exception.fail (Failure "sys.command non-zero")
         ~attach:[("location", `String_value "Tezos_protocol.ensure")]
@@ -342,8 +314,7 @@ let cli_term () =
       let id = "default-and-command-line" in
       let bootstrap_accounts =
         add_bootstraps
-        @ if remove_default_bas then [] else def.bootstrap_accounts
-      in
+        @ if remove_default_bas then [] else def.bootstrap_accounts in
       { def with
         id
       ; blocks_per_cycle
