@@ -12,7 +12,7 @@ variables:
       git status &&
       git log --graph  --decorate --all --oneline -n 20
     BUILD_SCRIPT: >
-      opam config exec -- dune build src/test/main.exe
+      opam config exec -- make
     BUILD_DOC: >
       opam config exec -- dune build @doc
 

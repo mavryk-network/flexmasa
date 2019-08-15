@@ -1,0 +1,7 @@
+(executables
+  (names main)
+  (libraries flextesa michokit))
+
+;;(alias
+;; (name runtest)
+;; (action (run %{exe:main.exe})))

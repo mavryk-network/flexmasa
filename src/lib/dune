@@ -1,22 +1,18 @@
 (library
  (name flextesa)
- ;;(public_name tezos-network-sandbox)
- (flags (:standard -safe-string
-                   ;;-open Tezos_protocol_alpha
-                   ;;-open Tezos_client_alpha
-                   ))
+ (public_name flextesa)
+ (flags (:standard -safe-string))
  (libraries
     fmt
     cohttp-lwt-unix
     lwt.unix
     cmdliner
     easy-format
-    tezos-stdlib-unix
     dum
     base
     genspio
     ezjsonm
-    tezos-signer-backends
-    tezos-protocol-alpha
-    tezos-client-alpha))
+    tezos-stdlib-unix
+    tezos-crypto
+    ))
 

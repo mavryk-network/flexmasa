@@ -1,6 +1,4 @@
 open Internal_pervasives
-module Tz_protocol = Tezos_protocol_alpha.Protocol
-module Tz_protocol_client = Tezos_client_alpha
 
 module Key = struct
   module Of_name = struct
@@ -25,138 +23,6 @@ module Key = struct
     let private_key n =
       "unencrypted:" ^ Tezos_crypto.Ed25519.Secret_key.to_b58check (make n).sk
   end
-end
-
-module Script = struct
-  type origin = [`Sandbox_faucet | `String of string]
-
-  let exn_tezos msg = function
-    | Ok o -> o
-    | Error el ->
-        Format.kasprintf failwith "Script-error: %s: %a" msg
-          Tezos_error_monad.Error_monad.pp_print_error el
-
-  let exn_shell msg res =
-    Tz_protocol.Environment.wrap_error res |> exn_tezos msg
-
-  let parse exprs =
-    Tz_protocol_client.Michelson_v1_parser.(
-      (parse_expression exprs |> fst).expanded)
-
-  let code_of_json_exn s =
-    match Tezos_data_encoding.Data_encoding.Json.from_string s with
-    | Ok json ->
-        let repr =
-          Tezos_data_encoding.Data_encoding.Json.destruct
-            Tz_protocol.Script_repr.encoding json in
-        let ( (expr_code :
-                Tz_protocol.Michelson_v1_primitives.prim
-                Tezos_micheline.Micheline.canonical)
-            , _ ) =
-          Tz_protocol.Script_repr.(force_decode repr.code)
-          |> exn_shell "decoding script-repr" in
-        let strings_node =
-          Tz_protocol.Michelson_v1_primitives.strings_of_prims expr_code
-          |> Tz_protocol.Environment.Micheline.root in
-        Format.eprintf ">> %a\n%!" Tezos_micheline.Micheline_printer.print_expr
-          (Tezos_micheline.Micheline.map_node
-             (fun _ -> Tezos_micheline.Micheline_printer.{comment= None})
-             (fun x -> x)
-             strings_node) ;
-        expr_code
-    | Error e -> Format.kasprintf failwith "JSON-of-string: %s" e
-
-  let json_script_repr code storage =
-    match
-      Tezos_data_encoding.Data_encoding.Json.construct
-        Tz_protocol.Script_repr.encoding
-        Tz_protocol.Script_repr.
-          {code= lazy_expr code; storage= lazy_expr storage}
-    with
-    | `O _ as o -> (o : Ezjsonm.t)
-    | _other ->
-        Format.kasprintf failwith "JSON-of-script-repr: not a json object"
-
-  let original_json =
-    (* looks like "./src/bin_client/test/contracts/attic/faucet.tz" *)
-    {json|{ "code":
-          [ { "prim": "parameter",
-              "args": [ { "prim": "key_hash" } ] },
-            { "prim": "storage",
-              "args": [ { "prim": "timestamp" } ] },
-            { "prim": "code",
-              "args":
-              [ [ [ [ { "prim": "DUP" }, { "prim": "CAR" },
-                      { "prim": "DIP", "args": [ [ { "prim": "CDR" } ] ] } ] ],
-                  { "prim": "SWAP" },
-                  { "prim": "PUSH", "args": [ { "prim": "int" }, { "int": "300" } ] },
-                  { "prim": "ADD", "annots": [ "@FIVE_MINUTES_LATER" ] },
-                  { "prim": "NOW" },
-                  [ [ { "prim": "COMPARE" }, { "prim": "GE" } ],
-                    { "prim": "IF",
-                      "args":
-                      [ [],
-                        [ [ { "prim": "UNIT" },
-                            { "prim": "FAILWITH" } ] ] ] } ],
-                  { "prim": "IMPLICIT_ACCOUNT" },
-                  { "prim": "PUSH", "args": [ { "prim": "mutez" }, { "int": "1000000" } ] },
-                  { "prim": "UNIT" },
-                  { "prim": "TRANSFER_TOKENS" },
-                  { "prim": "NIL", "args": [ { "prim": "operation" } ] },
-                  { "prim": "SWAP" },
-                  { "prim": "CONS" },
-                  { "prim": "DIP", "args": [ [ { "prim": "NOW" } ] ] },
-                  { "prim": "PAIR" } ] ] } ],
-          "storage": { "int": "0" } }|json}
-
-  let faucet_tz =
-    (* exactly "./src/bin_client/test/contracts/attic/faucet.tz" *)
-    {tz|
-{ parameter key_hash ;
-  storage timestamp ;
-  code { UNPAIR ; SWAP ;
-         PUSH int 300 ; ADD @FIVE_MINUTES_LATER ;
-         NOW ; ASSERT_CMPGE ;
-         IMPLICIT_ACCOUNT ; PUSH mutez 1000000 ; UNIT ; TRANSFER_TOKENS ;
-         NIL operation ; SWAP ; CONS ; DIP { NOW } ; PAIR } }
-|tz}
-
-  let print code storage =
-    let json_repr = json_script_repr code storage in
-    Format.eprintf "script-repr: %s\n%!" (Ezjsonm.to_string json_repr) ;
-    ()
-
-  let load : origin -> _ = function
-    | `Sandbox_faucet ->
-        let code = code_of_json_exn original_json in
-        json_script_repr code (parse "0")
-    | `String s -> json_script_repr (parse s) (parse "0")
-
-  let test () =
-    let faucet_like =
-      {mich| {parameter key_hash ;
-  storage timestamp ;
-  code { { { DUP ; CAR ; DIP { CDR } } } ;
-         SWAP ;
-         PUSH int 300 ;
-         ADD @FIVE_MINUTES_LATER ;
-         NOW ;
-         { { COMPARE ; GE } ; IF {} { { UNIT ; FAILWITH } } } ;
-         IMPLICIT_ACCOUNT ;
-         PUSH mutez 1000000 ;
-         UNIT ;
-         TRANSFER_TOKENS ;
-         NIL operation ;
-         SWAP ;
-         CONS ;
-         DIP { NOW } ;
-         PAIR }} |mich}
-    in
-    print (parse faucet_like) (parse "0") ;
-    let original = code_of_json_exn original_json in
-    print original (parse "0") ;
-    (* print (parse faucet_tz) (parse "0") ; *)
-    ()
 end
 
 module Account = struct
@@ -186,26 +52,22 @@ module Account = struct
 end
 
 module Voting_period = struct
-  type t = Tz_protocol.Alpha_context.Voting_period.kind =
-    | Proposal
-    | Testing_vote
-    | Testing
-    | Promotion_vote
+  type t = [`Proposal | `Testing_vote | `Testing | `Promotion_vote]
 
   let to_string (p : t) =
-    match
-      Tezos_data_encoding.Data_encoding.Json.construct
-        Tz_protocol.Alpha_context.Voting_period.kind_encoding p
-    with
-    | `String s -> s
-    | _other -> assert false
+    (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)
+    match p with
+    | `Promotion_vote -> "promotion_vote"
+    | `Testing_vote -> "testing_vote"
+    | `Proposal -> "proposal"
+    | `Testing -> "testing"
 end
 
 type t =
   { id: string
   ; bootstrap_accounts: (Account.t * Int64.t) list
   ; dictator: Account.t
-  ; bootstrap_contracts: (Account.t * int * Script.origin) list
+        (* ; bootstrap_contracts: (Account.t * int * Script.origin) list *)
   ; expected_pow: int
   ; name: string (* e.g. alpha *)
   ; hash: string
@@ -225,7 +87,7 @@ let default () =
       List.init 4 ~f:(fun n ->
           (Account.of_namef "bootacc-%d" n, 4_000_000_000_000L))
   ; dictator
-  ; bootstrap_contracts= [(dictator, 10_000_000, `Sandbox_faucet)]
+    (* ; bootstrap_contracts= [(dictator, 10_000_000, `Sandbox_faucet)] *)
   ; expected_pow= 1
   ; name= "alpha"
   ; hash= "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
@@ -240,15 +102,16 @@ let protocol_parameters_json t : Ezjsonm.t =
   let open Ezjsonm in
   let make_account (account, amount) =
     strings [Account.pubkey account; sprintf "%Ld" amount] in
-  let make_contract (deleg, amount, script) =
-    dict
+  (* let make_contract (deleg, amount, script) = dict
       [ ("delegate", string (Account.pubkey_hash deleg))
       ; ("amount", ksprintf string "%d" amount)
       ; ("script", (Script.load script :> Ezjsonm.value)) ] in
+  *)
   dict
     [ ( "bootstrap_accounts"
-      , list make_account (t.bootstrap_accounts @ [(t.dictator, 1L)]) )
-    ; ("bootstrap_contracts", list make_contract t.bootstrap_contracts)
+      , list make_account (t.bootstrap_accounts @ [(t.dictator, 10_000_000L)])
+      )
+      (* ; ("bootstrap_contracts", list make_contract t.bootstrap_contracts) *)
     ; ("time_between_blocks", list (ksprintf string "%d") t.time_between_blocks)
     ; ("blocks_per_roll_snapshot", int t.blocks_per_roll_snapshot)
     ; ("blocks_per_voting_period", int t.blocks_per_voting_period)
