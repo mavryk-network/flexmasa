@@ -1,7 +1,6 @@
 (** Create and manipulate bootstrap-parameters and accounts. *)
 
 open Internal_pervasives
-module Tz_protocol = Tezos_protocol_alpha.Protocol
 
 (** Manipulate public/private key pairs. *)
 module Key : sig
@@ -12,30 +11,6 @@ module Key : sig
     val pubkey_hash : string -> string
     val private_key : string -> string
   end
-end
-
-(** Create and transform Michelson programs. *)
-module Script : sig
-  type origin = [`Sandbox_faucet | `String of string]
-
-  val parse : string -> Tz_protocol.Alpha_context.Script.expr
-
-  val code_of_json_exn :
-       string
-    -> Tz_protocol.Michelson_v1_primitives.prim
-       Tezos_micheline.Micheline.canonical
-
-  val json_script_repr :
-    Tz_protocol.Script_repr.expr -> Tz_protocol.Script_repr.expr -> Ezjsonm.t
-
-  val original_json : string
-  val faucet_tz : string
-
-  val print :
-    Tz_protocol.Script_repr.expr -> Tz_protocol.Script_repr.expr -> unit
-
-  val load : origin -> Ezjsonm.t
-  val test : unit -> unit
 end
 
 (** An account is a named key-pair. *)
@@ -58,11 +33,7 @@ module Account : sig
 end
 
 module Voting_period : sig
-  type t = Tz_protocol.Alpha_context.Voting_period.kind =
-    | Proposal
-    | Testing_vote
-    | Testing
-    | Promotion_vote
+  type t = [`Proposal | `Testing_vote | `Testing | `Promotion_vote]
 
   val to_string : t -> string
 end
@@ -71,7 +42,7 @@ type t =
   { id: string
   ; bootstrap_accounts: (Account.t * Int64.t) list
   ; dictator: Account.t
-  ; bootstrap_contracts: (Account.t * int * Script.origin) list
+        (* ; bootstrap_contracts: (Account.t * int * Script.origin) list *)
   ; expected_pow: int
   ; name: string
   ; hash: string

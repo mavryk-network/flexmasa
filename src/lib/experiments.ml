@@ -19,7 +19,9 @@ module More_fmt = struct
         string ppf (String.make 45 '`'))
 
   let tag tag ppf f =
-    Format.pp_open_tag ppf tag ; f ppf ; Format.pp_close_tag ppf ()
+    Format.pp_open_tag ppf tag ;
+    (f ppf : unit) ;
+    Format.pp_close_tag ppf ()
 
   let shout = tag "shout"
 

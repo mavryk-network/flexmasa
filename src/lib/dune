@@ -8,12 +8,11 @@
     lwt.unix
     cmdliner
     easy-format
-    tezos-stdlib-unix
     dum
     base
     genspio
     ezjsonm
-    tezos-signer-backends
-    tezos-protocol-alpha
-    tezos-client-alpha))
+    tezos-stdlib-unix
+    tezos-crypto
+    ))
 
