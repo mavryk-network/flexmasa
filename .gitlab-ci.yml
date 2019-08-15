@@ -1,0 +1,69 @@
+stages:
+  - build
+  - test
+  - doc
+  - deploy
+
+variables:
+    DEFAULT_IMAGE: "smondet/soteredi:T-407"
+    SHOW_INFO: >
+      echo "=========== INFO: ============" &&
+      opam config exec -- ocamlc -version &&
+      git status &&
+      git log --graph  --decorate --all --oneline -n 20
+    BUILD_SCRIPT: >
+      opam config exec -- dune build src/test/main.exe
+    BUILD_DOC: >
+      opam config exec -- dune build @doc
+
+ocaml:4070:
+  image: $DEFAULT_IMAGE
+  stage: build
+  artifacts:
+    paths:
+      - _build/
+  script:
+     - bash -c "$SHOW_INFO"
+     - bash -c "$BUILD_SCRIPT"
+
+lint:
+  image: $DEFAULT_IMAGE
+  stage: test
+  script:
+     - bash -c "$SHOW_INFO"
+     - opam config exec -- ocamlformat --version
+     - opam config exec -- make fmt
+     - git diff --exit-code
+
+opam-test:
+  image: $DEFAULT_IMAGE
+  stage: test
+  artifacts:
+    paths:
+      - _build/
+  script:
+     - bash -c "$SHOW_INFO"
+     - opam config exec -- opam pin add flextesa .
+
+makewebsite:
+  image: $DEFAULT_IMAGE
+  stage: doc
+  artifacts:
+     paths:
+     - testweb
+  script:
+     - bash -c "$SHOW_INFO"
+     - bash -c "$BUILD_DOC"
+     - mkdir -p testweb/api/
+     - cp -r _build/default/_doc/_html/* testweb/api/
+
+pages:
+  image: $DEFAULT_IMAGE
+  stage: deploy
+  script:
+     - cp -r testweb public
+  artifacts:
+     paths:
+     - public
+  only:
+  - master
