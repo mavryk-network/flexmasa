@@ -11,5 +11,5 @@ vendored:
 
 Then:
 
-    dune build src/test/main.exe
+    make
 
