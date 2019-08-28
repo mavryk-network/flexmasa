@@ -1,3 +1,0 @@
-[submodule "vendor/tezos-master"]
-	path = vendor/tezos-master
-	url = https://gitlab.com/tezos/tezos.git
