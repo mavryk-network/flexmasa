@@ -76,18 +76,6 @@ val run_cmdf :
   -> 'a
 (** Run a shell command and wait for its end. *)
 
-val run_async_cmdf :
-     < runner: State.t ; .. >
-  -> (   Lwt_process.process_full
-      -> ('a, ([> `Lwt_exn of exn] as 'b)) Asynchronous_result.t)
-  -> ( 'c
-     , unit
-     , string
-     , (Unix.process_status * 'a, 'b) Asynchronous_result.t )
-     format4
-  -> 'c
-(** Run a shell command and run a function over the process data before waiting for its end. *)
-
 val run_successful_cmdf :
      < paths: Paths.t ; runner: State.t ; .. > Base_state.t
   -> ( 'a
@@ -104,3 +92,30 @@ val run_genspio :
   -> string
   -> 'a Genspio.Language.t
   -> (Lwt_unix.process_status, [> `Lwt_exn of exn]) Asynchronous_result.t
+
+module Async : sig
+  val run_cmdf :
+       < runner: State.t ; .. >
+    -> f:(   State.process_state
+          -> Lwt_process.process_full
+          -> ('a, ([> Lwt_exception.t] as 'b)) Asynchronous_result.t)
+    -> ( 'c
+       , unit
+       , string
+       , (Unix.process_status * 'a, 'b) Asynchronous_result.t )
+       format4
+    -> 'c
+  (** Run a shell command and run a function over the process data before waiting for its end. *)
+
+  val fold_process :
+       Lwt_process.process_full
+    -> init:'a
+    -> f:(   'a
+          -> string
+          -> string
+          -> ( [< `Continue of 'a | `Done of 'a]
+             , ([> Lwt_exception.t] as 'b) )
+             Asynchronous_result.t)
+    -> ('a, 'b) Asynchronous_result.t
+  (** Fold over the output and error-output of a {!Lwt_process.process_full}, and  *)
+end

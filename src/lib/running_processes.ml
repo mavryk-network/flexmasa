@@ -265,18 +265,6 @@ let run_cmdf state fmt =
         end))
     fmt
 
-let run_async_cmdf state f fmt =
-  ksprintf
-    (fun s ->
-      let id = fresh_id state "cmd" ~seed:s in
-      let proc = Process.make_in_session id `Process_group ["sh"; "-c"; s] in
-      start_full state proc
-      >>= fun (proc_state, proc) ->
-      f proc
-      >>= fun res ->
-      wait state proc_state >>= fun status -> return (status, res))
-    fmt
-
 let run_successful_cmdf state fmt =
   ksprintf
     (fun cmd ->
@@ -290,3 +278,45 @@ let run_successful_cmdf state fmt =
 let run_genspio state name genspio =
   let proc = Process.genspio (fresh_id state name ~seed:name) genspio in
   start state proc >>= fun proc -> wait state proc
+
+module Async = struct
+  let run_cmdf state ~f fmt =
+    ksprintf
+      (fun s ->
+        let id = fresh_id state "cmd" ~seed:s in
+        let proc = Process.make_in_session id `Process_group ["sh"; "-c"; s] in
+        start_full state proc
+        >>= fun (proc_state, proc) ->
+        f proc_state proc
+        >>= fun res ->
+        wait state proc_state >>= fun status -> return (status, res))
+      fmt
+
+  let fold_process (process : Lwt_process.process_full) ~init ~f =
+    let out = Lwt_io.read_chars process#stdout in
+    let err = Lwt_io.read_chars process#stderr in
+    let rec go prev_m () =
+      prev_m
+      >>= fun prev ->
+      match (Lwt_stream.get_available out, Lwt_stream.get_available err) with
+      | [], [] -> (
+          Lwt_exception.catch Lwt.choose
+            Lwt.
+              [ (Lwt_stream.peek out >>= fun x -> return (`Left x))
+              ; (Lwt_stream.peek err >>= fun x -> return (`Right x)) ]
+          >>= function
+          | `Left None -> (
+              Lwt_exception.catch Lwt_stream.peek err
+              >>= function
+              | None -> return prev | Some _ -> go (return prev) () )
+          | `Right None -> (
+              Lwt_exception.catch Lwt_stream.peek out
+              >>= function
+              | None -> return prev | Some _ -> go (return prev) () )
+          | _ -> go (return prev) () )
+      | outl, errl -> (
+          f prev (String.of_char_list outl) (String.of_char_list errl)
+          >>= function
+          | `Done n -> return n | `Continue next -> go (return next) () ) in
+    go (return init) ()
+end
