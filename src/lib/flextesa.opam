@@ -18,10 +18,8 @@ depends: [
   "cohttp-lwt-unix"
 ]
 build: [
-  [ "dune" "build" "-p" name "-j" jobs ]
-]
-run-test: [
-  [ "dune" "runtest" "-p" name "-j" jobs ]
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 synopsis:
     "Flexible Tezos Sandboxes: library to run various Tezos network-sandboxes"
