@@ -181,7 +181,8 @@ let kill _t {lwt; process} =
   | `Process_group | `Process_group_script _ ->
       Lwt_exception.catch
         (fun () ->
-          let signal = Sys.sigterm in
+          Dbg.e EF.(wf "Killing %S" process.id) ;
+          let signal = Sys.sigkill in
           let pid = ~-(lwt#pid) (* Assumes “in session” *) in
           ( try Unix.kill pid signal with
           | Unix.Unix_error (Unix.ESRCH, _, _) -> ()
@@ -280,13 +281,14 @@ let run_genspio state name genspio =
   start state proc >>= fun proc -> wait state proc
 
 module Async = struct
-  let run_cmdf state ~f fmt =
+  let run_cmdf ?(id_base = "async-cmd") state ~f fmt =
     ksprintf
       (fun s ->
-        let id = fresh_id state "cmd" ~seed:s in
+        let id = fresh_id state id_base ~seed:s in
         let proc = Process.make_in_session id `Process_group ["sh"; "-c"; s] in
         start_full state proc
         >>= fun (proc_state, proc) ->
+        Dbg.e EF.(wf "Started async: %S" proc_state.process.id) ;
         f proc_state proc
         >>= fun res ->
         wait state proc_state >>= fun status -> return (status, res))

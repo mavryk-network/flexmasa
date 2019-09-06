@@ -95,14 +95,17 @@ val run_genspio :
 
 module Async : sig
   val run_cmdf :
-       < runner: State.t ; .. >
+       ?id_base:string
+    -> < runner: State.t ; .. >
     -> f:(   State.process_state
           -> Lwt_process.process_full
-          -> ('a, ([> Lwt_exception.t] as 'b)) Asynchronous_result.t)
+          -> ( 'return_ok
+             , ([> Lwt_exception.t] as 'error) )
+             Asynchronous_result.t)
     -> ( 'c
        , unit
        , string
-       , (Unix.process_status * 'a, 'b) Asynchronous_result.t )
+       , (Unix.process_status * 'return_ok, 'error) Asynchronous_result.t )
        format4
     -> 'c
   (** Run a shell command and run a function over the process data before waiting for its end. *)

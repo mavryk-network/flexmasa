@@ -290,7 +290,30 @@ module Asynchronous_result = struct
   end
 
   let run_application r =
-    match Lwt_main.run (r () : (_, _) t) with
+    Lwt_main.at_exit
+      Lwt.(
+        fun () ->
+          Dbg.e EF.(wf "Lwt-at-exit: run_application") ;
+          return ()) ;
+    Dbg.e EF.(wf "Sys set_signal") ;
+    (*
+Sys.(
+      set_signal sigint
+        (Signal_handle (fun _ ->
+          Dbg.e EF.(wf "Sys signal_handle") ;
+
+           ))
+    );
+ *)
+    match
+      Lwt_main.run
+        Lwt.(
+          Lwt_unix.yield ()
+          >>= fun () ->
+          Dbg.e EF.(wf "in lwt-main-run") ;
+          r ()
+        )
+    with
     | {result= Ok (); _} -> exit 0
     | {result= Error (`Die ret); _} -> exit ret
 end

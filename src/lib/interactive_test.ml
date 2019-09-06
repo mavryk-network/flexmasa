@@ -454,7 +454,7 @@ module Pauser = struct
       >>= fun () -> Running_processes.wait_all state in
     Sys.catch_break false ;
     let cond = Lwt_condition.create () in
-    let () =
+    let catch_signals () =
       Lwt_unix.on_signal Sys.sigint (fun i ->
           Printf.eprintf
             "\nReceived signal SIGINT (%d), type `q` to quit prompts.\n\n%!" i ;
@@ -465,14 +465,44 @@ module Pauser = struct
             "\nReceived signal SIGTERM (%d), type `q` to quit prompts.\n\n%!" i ;
           Lwt_condition.broadcast cond "TERM")
       |> ignore in
-    let wait () =
+    let wait_on_signals () =
       Lwt_exception.catch Lwt_condition.wait cond
       >>= fun sig_name -> Lwt_exception.fail (Failure sig_name) in
     Dbg.e
       EF.(wf "Running test %s on %s" state#application_name (Paths.root state)) ;
-    let rec protect procedure =
+    let rec protect ~name procedure =
+      catch_signals () ;
+      Dbg.e EF.(wf "protecting %S" name) ;
       Asynchronous_result.bind_on_error
-        ( (try Lwt.pick [procedure (); wait ()] with e -> fail (`Lwt_exn e))
+        ( ( try
+              Dbg.e EF.(wf "protecting: %S in-try" name) ;
+              Lwt.(
+                pick
+                  [ ( procedure ()
+                    >>= fun res ->
+                    match res.Attached_result.result with
+                    | Ok _ ->
+                        Dbg.e EF.(wf "Procedure %s ended: ok" name) ;
+                        return res
+                    | Error (`Lwt_exn Lwt.Canceled) ->
+                        Dbg.e EF.(wf "Procedure %s was cancelled" name) ;
+                        System.sleep 2.
+                        >>= fun _ ->
+                        Dbg.e EF.(wf "Procedure %s slept 2." name) ;
+                        return res
+                    | Error e ->
+                        Dbg.e
+                          EF.(
+                            wf "Procedure %s ended with error %a" name pp_error
+                              e) ;
+                        return res )
+                  ; ( wait_on_signals ()
+                    >>= fun res ->
+                    Dbg.e EF.(wf "Signal-wait %S go woken up" name) ;
+                    return res ) ])
+            with e ->
+              Dbg.e EF.(wf "protecting %S: ocaml-exn: %a" name Exn.pp e) ;
+              fail ~attach:[("protected", `String_value name)] (`Lwt_exn e) )
         >>= fun () ->
         ( match (Interactivity.pause_on_success state, default_end state) with
         | true, _ -> generic state ~force:true EF.[af "Scenario done; pausing"]
@@ -498,16 +528,25 @@ module Pauser = struct
                        "Cannot pause because interactivity broken; killing \
                         everything and quitting."))
           | _ when Interactivity.pause_on_error state ->
-              protect (fun () ->
-                  generic state ~force:true
-                    EF.
-                      [ haf
-                          "Last pause before the test will Kill 'Em All and \
-                           Quit."
-                      ; desc (shout "Error:")
-                          (af "%a"
-                             (fun ppf c -> Attached_result.pp ppf c ~pp_error)
-                             result) ])
+              protect ~name:"Last-pause" (fun () ->
+                  Asynchronous_result.bind_on_result
+                    (generic state ~force:true
+                       EF.
+                         [ haf
+                             "Last pause before the test will Kill 'Em All \
+                              and Quit."
+                         ; desc (shout "Error:")
+                             (af "%a"
+                                (Attached_result.pp ?pp_ok:None ~pp_error)
+                                result) ])
+                    ~f:(function
+                      | Ok () -> return ()
+                      | Error (`Lwt_exn e) ->
+                          Dbg.e EF.(wf "generic pause exn: %a" Exn.pp e) ;
+                          return ()))
+              >>= fun () ->
+              Dbg.e EF.(wf "protect: %S end of pause" name) ;
+              return ()
           | _ ->
               Console.say state
                 EF.(
@@ -517,5 +556,8 @@ module Pauser = struct
           >>= fun () ->
           finish () >>= fun () -> fail error_value ~attach:result.attachments)
     in
-    protect f
+    protect f ~name:"Main-function"
+    >>= fun () ->
+    Dbg.e EF.(wf "Finiching Interactive_test.run_test") ;
+    return ()
 end
