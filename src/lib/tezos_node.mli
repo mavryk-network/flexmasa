@@ -7,6 +7,8 @@ type t = private
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t }
 
+val compare : t -> t -> int
+val equal : t -> t -> bool
 val ef : t -> Easy_format.t
 val pp : Format.formatter -> t -> unit
 

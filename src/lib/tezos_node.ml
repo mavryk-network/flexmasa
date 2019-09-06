@@ -10,6 +10,9 @@ type t =
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t }
 
+let compare a b = Base.String.compare a.id b.id
+let equal a b = Base.String.equal a.id b.id
+
 let ef t =
   EF.(
     desc_list (af "Node:%S" t.id)
@@ -111,7 +114,7 @@ let connections node_list =
 
     let compare a b =
       match (a, b) with
-      | `Duplex (a, b), `Duplex (c, d) when a = d && b = c -> 0
+      | `Duplex (a, b), `Duplex (c, d) when equal a d && equal b c -> 0
       | `Duplex _, _ -> -1
       | _, `Duplex _ -> 1
       | _, _ -> Caml.Pervasives.compare a b
