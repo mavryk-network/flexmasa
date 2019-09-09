@@ -67,18 +67,26 @@ end
 
 (** Debug-display module (non-cooperative output to [stderr]). *)
 module Dbg = struct
+  let on = ref false
+
+  let () =
+    Option.iter (Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
+      | "true" -> on := true
+      | _ -> ())
+
   let e ef =
-    EF.(
-      list ~delimiters:("<DBG|", "|DBG>") ~sep:""
-        ~param:
-          { default_list with
-            separator_style= Some "debug"
-          ; align_closing= true
-          ; space_after_opening= true
-          ; space_before_closing= true }
-        [ef]
-      |> Easy_format.Pretty.to_stderr) ;
-    Printf.eprintf "\n%!"
+    if !on then (
+      EF.(
+        list ~delimiters:("<DBG|", "|DBG>") ~sep:""
+          ~param:
+            { default_list with
+              separator_style= Some "debug"
+            ; align_closing= true
+            ; space_after_opening= true
+            ; space_before_closing= true }
+          [ef]
+        |> Easy_format.Pretty.to_stderr) ;
+      Printf.eprintf "\n%!" )
 
   let i (e : EF.t) = ignore e
   let f f = e (EF.pr f)
@@ -311,8 +319,7 @@ Sys.(
           Lwt_unix.yield ()
           >>= fun () ->
           Dbg.e EF.(wf "in lwt-main-run") ;
-          r ()
-        )
+          r ())
     with
     | {result= Ok (); _} -> exit 0
     | {result= Error (`Die ret); _} -> exit ret
