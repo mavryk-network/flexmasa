@@ -231,7 +231,9 @@ module Commands = struct
               fun json ->
                 match field ~k:"history_mode" json |> get_string with
                 | "archive" -> 1
-                | _ -> field ~k:"save_point" json |> get_int)
+                | _ ->
+                    let sp = field ~k:"save_point" json |> get_int in
+                    Int.max 1 sp)
         >>= fun save_point ->
         let balance block contract =
           let path =
