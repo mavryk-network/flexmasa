@@ -260,8 +260,8 @@ module Commands = struct
                      ( if init = cur then af "%f (unchanged)" (tz cur)
                      else af "%f → %f" (tz init) (tz cur) )))))
 
-  let arbitrary_command_on_clients ?make_admin
-      ?(command_names = ["cc"; "client-command"]) state ~clients =
+  let arbitrary_command_on_all_clients ?make_admin
+      ?(command_names = ["ac"; "all-clients"]) state ~clients =
     Prompt.unit_and_loop
       EF.(
         desc

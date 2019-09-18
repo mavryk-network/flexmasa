@@ -88,7 +88,7 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
         Interactive_test.Commands.(
           all_defaults state ~nodes
           @ [ secret_keys state ~protocol
-            ; arbitrary_command_on_clients state
+            ; arbitrary_command_on_all_clients state
                 ~clients:
                   (List.map nodes ~f:(Tezos_client.of_node ~exec:client_exec))
             ]))

@@ -125,7 +125,7 @@ module Commands : sig
     -> protocol:Tezos_protocol.t
     -> Console.Prompt.item
 
-  val arbitrary_command_on_clients :
+  val arbitrary_command_on_all_clients :
        ?make_admin:(Tezos_client.t -> Tezos_admin_client.t)
     -> ?command_names:string list
     -> < application_name: string
