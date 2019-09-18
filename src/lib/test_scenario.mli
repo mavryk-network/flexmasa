@@ -88,16 +88,19 @@ val network_with_protocol :
   -> ?base_port:int
   -> ?size:int
   -> ?protocol:Tezos_protocol.t
+  -> ?nodes_history_mode_edits:([> `Empty_protocol_list
+                                | `Lwt_exn of exn
+                                | `Sys_error of string
+                                | Process_result.Error.t
+                                | `Too_many_protocols of Tezos_protocol.t list
+                                ]
+                                as
+                                'errors)
+                               Tezos_node.History_modes.edit
   -> < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
   -> node_exec:Tezos_executable.t
   -> client_exec:Tezos_executable.t
-  -> ( Tezos_node.t list * Tezos_protocol.t
-     , [> `Empty_protocol_list
-       | `Lwt_exn of exn
-       | `Sys_error of string
-       | Process_result.Error.t
-       | `Too_many_protocols of Tezos_protocol.t list ] )
-     Asynchronous_result.t
+  -> (Tezos_node.t list * Tezos_protocol.t, 'errors) Asynchronous_result.t
 (** [network_with_protocol] is a wrapper simply starting-up a
     {!Topology.mesh}. *)
 

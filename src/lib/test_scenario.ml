@@ -217,10 +217,12 @@ module Network = struct
 end
 
 let network_with_protocol ?external_peer_ports ?base_port ?(size = 5) ?protocol
-    state ~node_exec ~client_exec =
-  let nodes =
+    ?(nodes_history_mode_edits = return) state ~node_exec ~client_exec =
+  let pre_edit_nodes =
     Topology.build ?base_port ?protocol ~exec:node_exec ?external_peer_ports
       (Topology.mesh "N" size) in
+  nodes_history_mode_edits pre_edit_nodes
+  >>= fun nodes ->
   let protocols =
     List.map ~f:Tezos_node.protocol nodes
     |> List.dedup_and_sort ~compare:Tezos_protocol.compare in

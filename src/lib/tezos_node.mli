@@ -1,3 +1,5 @@
+open Internal_pervasives
+
 type t = private
   { id: string
   ; expected_connections: int
@@ -5,7 +7,8 @@ type t = private
   ; p2p_port: int
   ; peers: int list
   ; exec: Tezos_executable.t
-  ; protocol: Tezos_protocol.t }
+  ; protocol: Tezos_protocol.t
+  ; history_mode: [`Full | `Archive | `Rolling] option }
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
@@ -15,6 +18,7 @@ val pp : Format.formatter -> t -> unit
 val make :
      exec:Tezos_executable.t
   -> ?protocol:Tezos_protocol.t
+  -> ?history_mode:[`Full | `Archive | `Rolling]
   -> string
   -> expected_connections:int
   -> rpc_port:int
@@ -46,3 +50,10 @@ val protocol : t -> Tezos_protocol.t
 
 val connections :
   t list -> [`Duplex of t * t | `From_to of t * t | `Missing of t * int] list
+
+module History_modes : sig
+  type 'a edit = t list -> (t list, 'a) Asynchronous_result.t
+    constraint 'a = [> `Lwt_exn of exn]
+
+  val cmdliner_term : unit -> [> `Lwt_exn of exn] edit Cmdliner.Term.t
+end

@@ -2,14 +2,14 @@ open Internal_pervasives
 open Console
 
 let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
-    ~with_baking ?generate_kiln_config node_exec client_exec baker_exec
-    endorser_exec accuser_exec () =
+    ~nodes_history_mode_edits ~with_baking ?generate_kiln_config node_exec
+    client_exec baker_exec endorser_exec accuser_exec () =
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
       [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
   >>= fun () ->
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
-    ~base_port state ~node_exec ~client_exec
+    ~nodes_history_mode_edits ~base_port state ~node_exec ~client_exec
   >>= fun (nodes, protocol) ->
   Tezos_client.rpc state
     ~client:(Tezos_client.of_node (List.hd_exn nodes) ~exec:client_exec)
@@ -125,12 +125,13 @@ let cmd ~pp_error () =
              endo
              accu
              generate_kiln_config
+             nodes_history_mode_edits
              state
              ->
           let actual_test =
             run state ~size ~base_port ~protocol bnod bcli bak endo accu
-              ~with_baking ?generate_kiln_config ~external_peer_ports
-              ~no_daemons_for in
+              ~nodes_history_mode_edits ~with_baking ?generate_kiln_config
+              ~external_peer_ports ~no_daemons_for in
           (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
     $ Arg.(
         value & opt int 5
@@ -165,6 +166,7 @@ let cmd ~pp_error () =
     $ Tezos_executable.cli_term `Endorser "tezos"
     $ Tezos_executable.cli_term `Accuser "tezos"
     $ Kiln.Configuration_directory.cli_term ()
+    $ Tezos_node.History_modes.cmdliner_term ()
     $ Test_command_line.cli_state ~name:"mininet" () )
     (let doc = "Small network sandbox with bakers, endorsers, and accusers." in
      let man : Manpage.block list =
