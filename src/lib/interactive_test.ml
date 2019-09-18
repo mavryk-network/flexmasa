@@ -16,7 +16,10 @@ module Commands = struct
 
   module Sexp_options = struct
     let option_doc pattern doc = EF.(desc (haf "`%s`:" pattern) doc)
-    let option_list_doc l = EF.(desc_list (wf "Options:") l)
+
+    let option_list_doc = function
+      | [] -> EF.(wf "(no-options)")
+      | l -> EF.(desc_list (wf "Options:") l)
 
     let port_number_doc _ ~default_port =
       option_doc "(port <int>)"
@@ -263,7 +266,7 @@ module Commands = struct
                      else af "%f → %f" (tz init) (tz cur) )))))
 
   let arbitrary_command_on_all_clients ?make_admin
-      ?(command_names = ["ac"; "all-clients"]) state ~clients =
+      ?(command_names = ["atc"; "all-clients"]) state ~clients =
     Prompt.unit_and_loop
       EF.(
         desc
@@ -276,13 +279,16 @@ module Commands = struct
                    ( List.map more ~f:(fun c -> c.Tezos_client.id)
                    |> String.concat ~sep:", " ) ))
           Sexp_options.(
-            option_list_doc
-              [ option_doc "(only <name1> <name2>)"
-                  (wf "Restrict the clients by name")
-              ; option_doc "(admin)"
-                  (wf "Use the admin-client instead%s"
-                     (match make_admin with None -> " (DISABLED)" | _ -> ""))
-              ]))
+            let only_opt =
+              option_doc "(only <name1> <name2>)"
+                (wf "Restrict the clients by name") in
+            ( (match clients with [_] -> [] | _ -> [only_opt])
+            @
+            match make_admin with
+            | None -> []
+            | _ -> [option_doc "(admin)" (wf "Use the admin-client instead.")]
+            )
+            |> option_list_doc))
       command_names
       (fun sexps ->
         let args =
@@ -358,6 +364,21 @@ module Commands = struct
                                else "s" )
                                (String.concat ~sep:", " clients))
                             (markdown_verbatim res)))) ]))
+
+  let arbitrary_commands_for_each_client ?make_admin
+      ?(make_command_names = fun i -> [sprintf "c%d" i; sprintf "client-%d" i])
+      state ~clients =
+    List.mapi clients ~f:(fun i c ->
+        arbitrary_command_on_all_clients state ?make_admin ~clients:[c]
+          ~command_names:(make_command_names i))
+
+  let arbitrary_commands_for_each_and_all_clients ?make_admin
+      ?make_individual_command_names ?all_clients_command_names state ~clients
+      =
+    arbitrary_command_on_all_clients state ?make_admin ~clients
+      ?command_names:all_clients_command_names
+    :: arbitrary_commands_for_each_client state ?make_admin ~clients
+         ?make_command_names:make_individual_command_names
 
   let all_defaults state ~nodes =
     let default_port = (List.hd_exn nodes).Tezos_node.rpc_port in

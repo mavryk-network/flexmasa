@@ -136,6 +136,29 @@ module Commands : sig
     -> clients:Tezos_client.t list
     -> Console.Prompt.item
 
+  val arbitrary_commands_for_each_client :
+       ?make_admin:(Tezos_client.t -> Tezos_admin_client.t)
+    -> ?make_command_names:(int -> string list)
+    -> < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> clients:Tezos_client.t list
+    -> Console.Prompt.item list
+
+  val arbitrary_commands_for_each_and_all_clients :
+       ?make_admin:(Tezos_client.t -> Tezos_admin_client.t)
+    -> ?make_individual_command_names:(int -> string list)
+    -> ?all_clients_command_names:string list
+    -> < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> clients:Tezos_client.t list
+    -> Console.Prompt.item list
+
   val all_defaults :
        < application_name: string
        ; console: Console.t
