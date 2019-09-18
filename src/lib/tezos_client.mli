@@ -16,7 +16,12 @@ val base_dir : t -> state:< paths: Paths.t ; .. > -> string
 (** {3 Build Scripts } *)
 
 val client_command :
-  t -> state:< paths: Paths.t ; .. > -> string list -> unit Genspio.EDSL.t
+     ?wait:string
+  -> client
+  -> state:< paths: Paths.t ; .. >
+  -> string list
+  -> unit Genspio.EDSL.t
+(** Build a tezos-client command, the default [?wait] is ["none"]. *)
 
 val bootstrapped_script :
   t -> state:< paths: Paths.t ; .. > -> unit Genspio.EDSL.t
@@ -70,7 +75,8 @@ module Command_error : sig
 end
 
 val client_cmd :
-     < application_name: string
+     ?wait:string
+  -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
@@ -80,7 +86,8 @@ val client_cmd :
   -> (bool * Process_result.t, [> `Lwt_exn of exn]) Asynchronous_result.t
 
 val successful_client_cmd :
-     < application_name: string
+     ?wait:string
+  -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
