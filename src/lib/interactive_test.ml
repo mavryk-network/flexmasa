@@ -380,6 +380,37 @@ module Commands = struct
     :: arbitrary_commands_for_each_client state ?make_admin ~clients
          ?make_command_names:make_individual_command_names
 
+  let bake_command state ~clients =
+    Prompt.unit_and_loop
+      EF.(
+        wf "Manually bake a block (with %s)."
+          ( match clients with
+          | [] -> "NO CLIENT, this is just wrong"
+          | [one] -> one.Tezos_client.Keyed.client.id
+          | m ->
+              sprintf "one of %s"
+                ( List.mapi m ~f:(fun ith one ->
+                      sprintf "%d: %s" ith one.Tezos_client.Keyed.client.id)
+                |> String.concat ~sep:", " ) ))
+      ["bake"]
+      (fun sexps ->
+        let client =
+          let open Base.Sexp in
+          match sexps with
+          | [] -> List.nth_exn clients 0
+          | [Atom s] -> List.nth_exn clients (Int.of_string s)
+          | _ -> Fmt.kstrf failwith "Wrong command line: %a" pp (List sexps)
+        in
+        Asynchronous_result.bind_on_error
+          (Fmt.kstrf
+             (Tezos_client.Keyed.bake state client)
+             "Command-line baking with client %s (account: %s)"
+             client.Tezos_client.Keyed.client.id
+             client.Tezos_client.Keyed.key_name)
+          ~f:(fun ~result:_ -> function
+            | `Client_command_error (m, _) -> cmdline_fail "Error: %s" m
+            | `Lwt_exn e -> cmdline_fail "Error: %a" Exn.pp e))
+
   let all_defaults state ~nodes =
     let default_port = (List.hd_exn nodes).Tezos_node.rpc_port in
     [ du_sh_root state; processes state

@@ -144,7 +144,8 @@ module Prompt = struct
               List.mem m.commands c ~equal:String.equal)
         with
         | Some {action; _} -> (
-            Asynchronous_result.bind_on_error (action more)
+            Asynchronous_result.bind_on_error
+              (try action more with e -> fail (`Lwt_exn e))
               ~f:(fun ~result _ ->
                 say state
                   EF.(

@@ -159,6 +159,16 @@ module Commands : sig
     -> clients:Tezos_client.t list
     -> Console.Prompt.item list
 
+  val bake_command :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> clients:Tezos_client.Keyed.t list
+    -> Console.Prompt.item
+
   val all_defaults :
        < application_name: string
        ; console: Console.t

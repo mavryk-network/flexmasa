@@ -83,13 +83,21 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
             Running_processes.start state (Tezos_daemon.process daemon ~state)
             >>= fun {process= _; lwt= _} -> return ()))
   else
-    List_sequential.iter keys_and_daemons ~f:(fun (acc, client, _) ->
+    List.fold ~init:(return []) keys_and_daemons
+      ~f:(fun prev_m (acc, client, _) ->
+        prev_m
+        >>= fun prev ->
         Tezos_client.bootstrapped ~state client
         >>= fun () ->
         let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
-        Tezos_client.import_secret_key ~state client key priv
-        >>= fun () -> return ())
-    >>= fun () -> return () )
+        let keyed_client =
+          Tezos_client.Keyed.make client ~key_name:key ~secret_key:priv in
+        Tezos_client.Keyed.initialize state keyed_client
+        >>= fun _ -> return (keyed_client :: prev))
+    >>= fun clients ->
+    Interactive_test.Pauser.add_commands state
+      Interactive_test.Commands.[bake_command state ~clients] ;
+    return () )
   >>= fun () ->
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.(

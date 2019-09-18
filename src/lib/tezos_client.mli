@@ -248,6 +248,7 @@ module Keyed : sig
     -> ( < err: string list ; out: string list ; status: Unix.process_status >
        , [> Command_error.t | `Lwt_exn of exn] )
        Asynchronous_result.t
+  (** Get the keyed-client ready to use (i.e. import the secret key). *)
 
   val bake :
        ?chain:string
