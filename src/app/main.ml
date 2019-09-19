@@ -65,8 +65,7 @@ let () =
         Format.fprintf fmt "%a" Test_scenario.Inconsistency_error.pp e
     | #Process_result.Error.t as e ->
         Format.fprintf fmt "%a" Process_result.Error.pp e
-    | `Lwt_exn _ as e -> Format.fprintf fmt "%a" Lwt_exception.pp e
-    | `Sys_error _ as e -> Format.fprintf fmt "%a" System_error.pp e
+    | #System_error.t as e -> Format.fprintf fmt "%a" System_error.pp e
     | `Client_command_error _ as e -> Tezos_client.Command_error.pp fmt e
     | `Admin_command_error _ as e -> Tezos_admin_client.Command_error.pp fmt e
     | `Waiting_for (msg, `Time_out) ->

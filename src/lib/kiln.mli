@@ -20,7 +20,7 @@ module Configuration_directory : sig
     -> network_string:string
     -> node_exec:Tezos_executable.t
     -> client_exec:Tezos_executable.t
-    -> (unit, [> Lwt_exception.t]) Asynchronous_result.t
+    -> (unit, [> System_error.t]) Asynchronous_result.t
 
   val cli_term : unit -> t option Cmdliner.Term.t
 end

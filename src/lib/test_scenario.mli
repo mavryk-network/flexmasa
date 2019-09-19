@@ -62,7 +62,7 @@ module Network : sig
   val netstat_listening_ports :
        < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
     -> ( (int * [> `Tcp of int * string list]) list
-       , [> `Lwt_exn of exn | Process_result.Error.t] )
+       , [> System_error.t | Process_result.Error.t] )
        Asynchronous_result.t
   (** Call ["netstat"] to find TCP ports already in use. *)
 
@@ -76,8 +76,7 @@ module Network : sig
     -> t
     -> ( unit
        , [> `Empty_protocol_list
-         | `Lwt_exn of exn
-         | `Sys_error of string
+         | System_error.t
          | Process_result.Error.t
          | `Too_many_protocols of Tezos_protocol.t list ] )
        Asynchronous_result.t
@@ -89,8 +88,7 @@ val network_with_protocol :
   -> ?size:int
   -> ?protocol:Tezos_protocol.t
   -> ?nodes_history_mode_edits:([> `Empty_protocol_list
-                                | `Lwt_exn of exn
-                                | `Sys_error of string
+                                | System_error.t
                                 | Process_result.Error.t
                                 | `Too_many_protocols of Tezos_protocol.t list
                                 ]
@@ -116,7 +114,7 @@ module Queries : sig
     -> nodes:Tezos_node.t list
     -> ( (string * [> `Failed | `Level of int | `Null | `Unknown of string])
          list
-       , [> `Lwt_exn of exn] )
+       , [> System_error.t] )
        Asynchronous_result.t
   (** Get the current chain level for all the nodes, returns {i
       node-ID × level } values. *)
@@ -133,7 +131,7 @@ module Queries : sig
     -> Tezos_node.t list
     -> [< `At_least of int | `Equal_to of int]
     -> ( unit
-       , [> `Lwt_exn of exn | `Waiting_for of string * [`Time_out]] )
+       , [> System_error.t | `Waiting_for of string * [`Time_out]] )
        Asynchronous_result.t
   (** Try-sleep-loop waiting for all given nodes to reach a given level. *)
 end

@@ -86,7 +86,7 @@ val ensure_script :
 val ensure :
      t
   -> config:< paths: Paths.t ; .. >
-  -> (unit, [> `Lwt_exn of exn]) Asynchronous_result.t
+  -> (unit, [> System_error.t]) Asynchronous_result.t
 (** Run the script created by [ensure_script], i.e. create the JSON
     bootstrap parameters. *)
 

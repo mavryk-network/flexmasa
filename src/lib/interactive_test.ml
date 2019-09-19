@@ -409,7 +409,8 @@ module Commands = struct
              client.Tezos_client.Keyed.key_name)
           ~f:(fun ~result:_ -> function
             | `Client_command_error (m, _) -> cmdline_fail "Error: %s" m
-            | `Lwt_exn e -> cmdline_fail "Error: %a" Exn.pp e))
+            | #System_error.t as e ->
+                cmdline_fail "Error: %a" System_error.pp e))
 
   let all_defaults state ~nodes =
     let default_port = (List.hd_exn nodes).Tezos_node.rpc_port in
@@ -520,8 +521,9 @@ module Pauser = struct
           Lwt_condition.broadcast cond "TERM")
       |> ignore in
     let wait_on_signals () =
-      Lwt_exception.catch Lwt_condition.wait cond
-      >>= fun sig_name -> Lwt_exception.fail (Failure sig_name) in
+      System_error.catch Lwt_condition.wait cond
+      >>= fun sig_name ->
+      System_error.(fail_fatal (Exception (Failure sig_name))) in
     Dbg.e
       EF.(wf "Running test %s on %s" state#application_name (Paths.root state)) ;
     let rec protect ~name procedure =
@@ -538,7 +540,9 @@ module Pauser = struct
                     | Ok _ ->
                         Dbg.e EF.(wf "Procedure %s ended: ok" name) ;
                         return res
-                    | Error (`Lwt_exn Lwt.Canceled) ->
+                    | Error
+                        (`System_error
+                          (_, System_error.Exception Lwt.Canceled)) ->
                         Dbg.e EF.(wf "Procedure %s was cancelled" name) ;
                         System.sleep 2.
                         >>= fun _ ->
@@ -555,8 +559,9 @@ module Pauser = struct
                     Dbg.e EF.(wf "Signal-wait %S go woken up" name) ;
                     return res ) ])
             with e ->
-              Dbg.e EF.(wf "protecting %S: ocaml-exn: %a" name Exn.pp e) ;
-              fail ~attach:[("protected", `String_value name)] (`Lwt_exn e) )
+              System_error.fail_fatalf
+                ~attach:[("protected", `String_value name)]
+                "protecting %S: ocaml-exn: %a" name Exn.pp e )
         >>= fun () ->
         ( match (Interactivity.pause_on_success state, default_end state) with
         | true, _ -> generic state ~force:true EF.[af "Scenario done; pausing"]
@@ -566,14 +571,15 @@ module Pauser = struct
         >>= fun () -> finish () )
         ~f:(fun ~result error_value ->
           ( match error_value with
-          | `Lwt_exn (Failure sigterm) when sigterm = "TERM" ->
+          | `System_error (`Fatal, System_error.Exception (Failure sigterm))
+            when sigterm = "TERM" ->
               Console.say state
                 EF.(
                   desc (shout "Received SIGTERM")
                     (wf
                        "Will not pause because it's the wrong thing to do; \
                         killing everything and quitting."))
-          | `Lwt_exn End_of_file ->
+          | `System_error (`Fatal, System_error.Exception End_of_file) ->
               Console.say state
                 EF.(
                   desc
@@ -595,8 +601,9 @@ module Pauser = struct
                                 result) ])
                     ~f:(function
                       | Ok () -> return ()
-                      | Error (`Lwt_exn e) ->
-                          Dbg.e EF.(wf "generic pause exn: %a" Exn.pp e) ;
+                      | Error (`System_error _ as e) ->
+                          Dbg.e
+                            EF.(wf "generic pause exn: %a" System_error.pp e) ;
                           return ()))
               >>= fun () ->
               Dbg.e EF.(wf "protect: %S end of pause" name) ;

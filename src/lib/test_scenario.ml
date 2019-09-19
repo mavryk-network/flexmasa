@@ -180,8 +180,8 @@ module Network = struct
       List_sequential.iter nodes
         ~f:(fun {Tezos_node.id; rpc_port; p2p_port; _} ->
           let fail s (p, `Tcp (_, row)) =
-            System_error.fail "Node: %S's %s port %d already in use {%s}" id s
-              p
+            System_error.fail_fatalf
+              "Node: %S's %s port %d already in use {%s}" id s p
               (String.concat ~sep:"|" row) in
           let time_wait (_, `Tcp (_, row)) = List.last row = Some "TIME_WAIT" in
           match (taken rpc_port, taken p2p_port) with

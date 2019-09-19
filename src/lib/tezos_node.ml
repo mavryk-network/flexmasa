@@ -161,8 +161,7 @@ let connections node_list =
   Connection_set.elements !res
 
 module History_modes = struct
-  type 'a edit =
-    t list -> (t list, ([> `Lwt_exn of exn] as 'a)) Asynchronous_result.t
+  type 'error edit = t list -> (t list, 'error) Asynchronous_result.t
 
   let cmdliner_term () : _ edit Cmdliner.Term.t =
     let open Cmdliner in
@@ -195,7 +194,8 @@ module History_modes = struct
                      Fmt.kstrf failwith "Prefixes %s match the same node: %s"
                        (String.concat ~sep:", " (List.map more ~f:fst))
                        node.id))
-        with e -> fail (`Lwt_exn e))
+        with Failure s ->
+          System_error.fail_fatalf "Failed to compose history-modes: %s" s)
     $ Arg.(
         value
           (opt_all

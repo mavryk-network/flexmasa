@@ -52,8 +52,7 @@ val connections :
   t list -> [`Duplex of t * t | `From_to of t * t | `Missing of t * int] list
 
 module History_modes : sig
-  type 'a edit = t list -> (t list, 'a) Asynchronous_result.t
-    constraint 'a = [> `Lwt_exn of exn]
+  type 'error edit = t list -> (t list, 'error) Asynchronous_result.t
 
-  val cmdliner_term : unit -> [> `Lwt_exn of exn] edit Cmdliner.Term.t
+  val cmdliner_term : unit -> [> System_error.t] edit Cmdliner.Term.t
 end

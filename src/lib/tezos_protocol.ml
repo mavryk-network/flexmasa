@@ -211,7 +211,7 @@ let ensure t ~config =
   with
   | 0 -> return ()
   | _other ->
-      Lwt_exception.fail (Failure "sys.command non-zero")
+      System_error.fail_fatalf "sys.command non-zero"
         ~attach:[("location", `String_value "Tezos_protocol.ensure")]
 
 let cli_term () =

@@ -304,15 +304,6 @@ module Asynchronous_result = struct
           Dbg.e EF.(wf "Lwt-at-exit: run_application") ;
           return ()) ;
     Dbg.e EF.(wf "Sys set_signal") ;
-    (*
-Sys.(
-      set_signal sigint
-        (Signal_handle (fun _ ->
-          Dbg.e EF.(wf "Sys signal_handle") ;
-
-           ))
-    );
- *)
     match
       Lwt_main.run
         Lwt.(
@@ -329,23 +320,29 @@ include Asynchronous_result.Std
 module List_sequential = Asynchronous_result.List_sequential
 module Loop = Asynchronous_result.Loop
 
-module Lwt_exception = struct
-  type t = [`Lwt_exn of exn]
+module System_error = struct
+  type static = Exception of exn | Message of string
+  type t = [`System_error of [`Fatal] * static]
 
-  let fail ?attach (e : exn) = fail ?attach (`Lwt_exn e : [> t])
+  let fatal e : [> t] = `System_error (`Fatal, e)
+  let fatal_message e : [> t] = `System_error (`Fatal, Message e)
+  let fail_fatal ?attach e = fail ?attach (`System_error (`Fatal, e) : [> t])
 
   let catch ?attach f x =
     Lwt.catch
       (fun () -> Lwt.bind (f x) @@ fun r -> return r)
-      (fun exn -> fail ?attach exn)
+      (fun exn -> fail_fatal ?attach (Exception exn))
 
-  let pp fmt (`Lwt_exn e) =
-    Format.fprintf fmt "LWT-Exception:@ %s" (Printexc.to_string e)
-end
+  let fail_fatalf ?attach fmt =
+    Format.kasprintf (fun e -> fail_fatal ?attach (Message e)) fmt
 
-module System_error = struct
-  let fail ?attach fmt = ksprintf (fun e -> fail ?attach (`Sys_error e)) fmt
-  let pp fmt (`Sys_error e) = Format.fprintf fmt "System-error:@ %s" e
+  let pp fmt (e : [< t]) =
+    match e with
+    | `System_error (`Fatal, e) ->
+        Format.fprintf fmt "@[<2>Fatal-system-error:@ %a@]"
+          (fun ppf -> function Exception e -> Fmt.exn ppf e
+            | Message e -> Fmt.string ppf e)
+          e
 end
 
 (** A wrapper around a structural type describing the result of
@@ -398,17 +395,17 @@ end
 
 (** Some {!Lwt_unix} functions. *)
 module System = struct
-  let sleep f = Lwt_exception.catch Lwt_unix.sleep f
+  let sleep f = System_error.catch Lwt_unix.sleep f
 
   let write_file (_state : _ Base_state.t) ?perm path ~content =
-    Lwt_exception.catch
+    System_error.catch
       (fun () ->
         Lwt_io.with_file ?perm ~mode:Lwt_io.output path (fun out ->
             Lwt_io.write out content))
       ()
 
   let read_file (_state : _ Base_state.t) path =
-    Lwt_exception.catch
+    System_error.catch
       (fun () ->
         Lwt_io.with_file ~mode:Lwt_io.input path (fun out -> Lwt_io.read out))
       ()

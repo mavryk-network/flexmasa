@@ -94,7 +94,7 @@ module Json = struct
           {code= lazy_expr expr; storage= lazy_expr (dummy_storage ())}
     with
     | `O [("code", o); ("storage", _)] -> return (o : Ezjsonm.value)
-    | _other -> System_error.fail "Error with expr->json: this is a bug"
+    | _other -> System_error.fail_fatalf "Error with expr->json: this is a bug"
 end
 
 let run ?output_error_codes state ~input_file ~output_file () =
@@ -102,7 +102,8 @@ let run ?output_error_codes state ~input_file ~output_file () =
   | ".tz" ->
       System.read_file state input_file
       >>= fun content -> Concrete.parse content
-  | other -> System_error.fail "Cannot parse file with extension %S" other )
+  | other ->
+      System_error.fail_fatalf "Cannot parse file with extension %S" other )
   >>= fun expr ->
   let transformed, error_codes = Transform.strip_errors_and_annotations expr in
   ( match Filename.extension output_file with
@@ -114,7 +115,8 @@ let run ?output_error_codes state ~input_file ~output_file () =
       >>= fun json ->
       System.write_file state output_file
         ~content:(Ezjsonm.value_to_string ~minify:false json)
-  | other -> System_error.fail "Don't know what to do with extension %S" other
+  | other ->
+      System_error.fail_fatalf "Don't know what to do with extension %S" other
   )
   >>= fun () ->
   Asynchronous_result.map_option output_error_codes ~f:(fun path ->
@@ -162,8 +164,7 @@ let make ?(command_name = "michokit") () =
   let open Term in
   let pp_error ppf e =
     match e with
-    | `Lwt_exn _ as e -> Lwt_exception.pp ppf e
-    | `Sys_error _ as e -> System_error.pp ppf e
+    | #System_error.t as e -> System_error.pp ppf e
     | `Michelson_parsing _ as mp -> Concrete.Parse_error.pp ppf mp in
   Test_command_line.Run_command.make ~pp_error
     ( pure (fun input_file output_file output_error_codes state ->

@@ -22,7 +22,7 @@ module Commands : sig
     -> string list
     -> (   unit
         -> ( unit
-           , [`Command_line of string | `Lwt_exn of exn] )
+           , [`Command_line of string | System_error.t] )
            Asynchronous_result.t)
     -> Console.Prompt.item
 
@@ -50,7 +50,7 @@ module Commands : sig
     -> port:int
     -> path:string
     -> ( Ezjsonm.value option
-       , [> `Command_line of string | `Lwt_exn of exn] )
+       , [> `Command_line of string | System_error.t] )
        Asynchronous_result.t
 
   val do_jq :
@@ -210,7 +210,7 @@ module Pauser : sig
        ; .. >
     -> ?force:bool
     -> Easy_format.t list
-    -> (unit, [> `Lwt_exn of exn]) Asynchronous_result.t
+    -> (unit, [> System_error.t]) Asynchronous_result.t
   (** Pause the test according to [state#interactivity] (overridden
       with [~force:true]), the pause displays the list of
       {!Easy_format.t}s and prompts the user for commands (see
@@ -224,7 +224,7 @@ module Pauser : sig
        ; runner: Running_processes.State.t
        ; test_interactivity: Interactivity.t
        ; .. >
-    -> (unit -> (unit, ([> `Lwt_exn of exn] as 'errors)) Asynchronous_result.t)
+    -> (unit -> (unit, ([> System_error.t] as 'errors)) Asynchronous_result.t)
     -> pp_error:(Format.formatter -> 'errors -> unit)
     -> unit
     -> (unit, 'errors) Asynchronous_result.t

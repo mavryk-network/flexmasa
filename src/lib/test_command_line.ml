@@ -9,7 +9,7 @@ module Run_command = struct
         bind_on_error (main ()) ~f:(fun ~result _ ->
             Dbg.e EF.(wf "Run_command.or_hard_fail on result") ;
             transform_error
-              ~f:(fun (`Lwt_exn _) -> `Die 3)
+              ~f:(fun _ -> `Die 3)
               (Console.say state
                  EF.(
                    custom (fun ppf -> Attached_result.pp ppf result ~pp_error)))
