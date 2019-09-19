@@ -303,13 +303,12 @@ module Asynchronous_result = struct
         fun () ->
           Dbg.e EF.(wf "Lwt-at-exit: run_application") ;
           return ()) ;
-    Dbg.e EF.(wf "Sys set_signal") ;
     match
       Lwt_main.run
         Lwt.(
           Lwt_unix.yield ()
           >>= fun () ->
-          Dbg.e EF.(wf "in lwt-main-run") ;
+          Dbg.e EF.(wf "Lwt_main.run") ;
           r ())
     with
     | {result= Ok (); _} -> exit 0
@@ -363,7 +362,7 @@ module Process_result = struct
     type t = [`Wrong_status of output * string]
 
     let wrong_status (res : output) msgf =
-      ksprintf (fun msg -> fail (`Wrong_status (res, msg))) msgf
+      ksprintf (fun msg -> fail (`Wrong_status (res, msg) : [> t])) msgf
 
     let pp fmt = function
       | (`Wrong_status (res, msg) : [< t]) ->

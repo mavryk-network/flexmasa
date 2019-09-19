@@ -227,7 +227,7 @@ module Pauser : sig
     -> (unit -> (unit, ([> System_error.t] as 'errors)) Asynchronous_result.t)
     -> pp_error:(Format.formatter -> 'errors -> unit)
     -> unit
-    -> (unit, 'errors) Asynchronous_result.t
+    -> (unit, [> System_error.t | `Die of int]) Asynchronous_result.t
   (** Run a test-scenario and deal with potential errors according
       to [state#test_interactivity]. *)
 end

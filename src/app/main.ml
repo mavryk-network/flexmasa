@@ -71,7 +71,7 @@ let () =
     | `Waiting_for (msg, `Time_out) ->
         Format.fprintf fmt "WAITING-FOR “%s”: Time-out" msg
     | `Precheck_failure _ as p -> Helpers.System_dependencies.Error.pp fmt p
-  in
+    | `Die _ -> () in
   let help = Term.(ret (pure (`Help (`Auto, None))), info "flextesa") in
   Term.exit
     (Term.eval_choice
