@@ -26,6 +26,16 @@ ocaml:4070:
      - bash -c "$SHOW_INFO"
      - bash -c "$BUILD_SCRIPT"
 
+with-vendored-tezos:
+  image: $DEFAULT_IMAGE
+  stage: build
+  artifacts:
+    paths:
+      - _build/
+  script:
+     - bash -c "$SHOW_INFO"
+     - opam config exec -- make vendors
+     - bash -c "$BUILD_SCRIPT"
 lint:
   image: $DEFAULT_IMAGE
   stage: test
