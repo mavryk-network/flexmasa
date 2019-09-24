@@ -19,12 +19,12 @@ val cli_term : unit -> t Cmdliner.Term.t
 val say :
      < application_name: string ; console: t ; .. >
   -> Easy_format.t
-  -> (unit, [> `Lwt_exn of exn]) Asynchronous_result.t
+  -> (unit, [> System_error.t]) Asynchronous_result.t
 
 val sayf :
      < application_name: string ; console: t ; .. >
   -> (Format.formatter -> unit -> unit)
-  -> (unit, [> `Lwt_exn of exn]) Asynchronous_result.t
+  -> (unit, [> System_error.t]) Asynchronous_result.t
 
 (** Create interactive prompts. *)
 module Prompt : sig
@@ -34,7 +34,7 @@ module Prompt : sig
     ; action:
            Sexplib0.Sexp.t list
         -> ( [`Help | `Loop | `Quit]
-           , [`Command_line of string | `Lwt_exn of exn] )
+           , [`Command_line of string | System_error.t] )
            Asynchronous_result.t }
 
   val item :
@@ -42,7 +42,7 @@ module Prompt : sig
     -> string list
     -> (   Sexplib0.Sexp.t list
         -> ( [`Help | `Loop | `Quit]
-           , [`Command_line of string | `Lwt_exn of exn] )
+           , [`Command_line of string | System_error.t] )
            Asynchronous_result.t)
     -> item
   (** [item description command_aliases action] creates a command
@@ -57,7 +57,7 @@ module Prompt : sig
     -> string list
     -> (   Sexplib0.Sexp.t list
         -> ( unit
-           , [`Command_line of string | `Lwt_exn of exn] )
+           , [`Command_line of string | System_error.t] )
            Asynchronous_result.t)
     -> item
 
@@ -68,7 +68,7 @@ module Prompt : sig
        ?with_defaults:bool
     -> < application_name: string ; console: t ; .. >
     -> commands:item list
-    -> (unit, [> `Lwt_exn of exn]) Asynchronous_result.t
+    -> (unit, [> System_error.t]) Asynchronous_result.t
   (** Prompt for a command among [~commnands]. *)
 end
 
@@ -76,5 +76,5 @@ val display_errors_of_command :
      < application_name: string ; console: t ; .. >
   -> ?should_output:bool
   -> < err: string list ; out: string list ; status: Unix.process_status ; .. >
-  -> (bool, [> `Lwt_exn of exn]) Asynchronous_result.t
+  -> (bool, [> System_error.t]) Asynchronous_result.t
 (** Display the results of a command if it fails (see {!Process_result.t}). *)

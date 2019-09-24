@@ -5,12 +5,12 @@ open Internal_pervasives
 (** Make {!Cmdliner} commands from {!Asynchronous_result} functions. *)
 module Run_command : sig
   val make :
-       pp_error:(Format.formatter -> ([> ] as 'a) -> unit)
+       pp_error:(Format.formatter -> ([> ] as 'errors) -> unit)
     -> ( < application_name: string ; console: Console.t ; .. >
-       * (unit -> (unit, 'a) Asynchronous_result.t) )
+       * (unit -> (unit, 'errors) Asynchronous_result.t) )
        Cmdliner.Term.t
-    -> 'b
-    -> unit Cmdliner.Term.t * 'b
+    -> Cmdliner.Term.info
+    -> unit Cmdliner.Term.t * Cmdliner.Term.info
 end
 
 val cli_state :

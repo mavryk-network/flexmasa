@@ -21,7 +21,7 @@ if ! [ -f src/scripts/ensure-vendors.sh ] ; then
     exit 1
 fi
 
-tezos_commit=830a60ff4c5834ae0cc3fc4175930237509c3c91
+tezos_commit=c059d66e6f908228024344a830829b8a1c12ddaf
 
 say "Vendoring tezos @ %10s" "$tezos_commit"
 
@@ -34,6 +34,8 @@ fi
 
 (
     cd local-vendor/tezos-master/
+    git pull
     git checkout "$tezos_commit"
+    echo "(data_only_dirs flextesa-lib) ;; Unvendored flextesa" > vendors/dune
 )
 

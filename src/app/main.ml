@@ -65,14 +65,13 @@ let () =
         Format.fprintf fmt "%a" Test_scenario.Inconsistency_error.pp e
     | #Process_result.Error.t as e ->
         Format.fprintf fmt "%a" Process_result.Error.pp e
-    | `Lwt_exn _ as e -> Format.fprintf fmt "%a" Lwt_exception.pp e
-    | `Sys_error _ as e -> Format.fprintf fmt "%a" System_error.pp e
+    | #System_error.t as e -> Format.fprintf fmt "%a" System_error.pp e
     | `Client_command_error _ as e -> Tezos_client.Command_error.pp fmt e
     | `Admin_command_error _ as e -> Tezos_admin_client.Command_error.pp fmt e
     | `Waiting_for (msg, `Time_out) ->
         Format.fprintf fmt "WAITING-FOR “%s”: Time-out" msg
     | `Precheck_failure _ as p -> Helpers.System_dependencies.Error.pp fmt p
-  in
+    | `Die _ -> () in
   let help = Term.(ret (pure (`Help (`Auto, None))), info "flextesa") in
   Term.exit
     (Term.eval_choice
