@@ -83,6 +83,58 @@ module Counter_log = struct
     |> String.concat ~sep:"\n"
 end
 
+module Netstat = struct
+  let check_version state =
+    Running_processes.run_cmdf state "netstat --version"
+    >>= fun version_res ->
+    match version_res#status with
+    | Unix.WEXITED 0 ->
+        (* This is a linux-ish netstat: *)
+        return `Fine
+    | _ -> return `Not_right
+
+  let netstat_dash_nut state =
+    check_version state
+    >>= function
+    | `Fine ->
+        Running_processes.run_cmdf state "netstat -nut"
+        >>= fun res ->
+        Process_result.Error.fail_if_non_zero res "netstat -nut command"
+        >>= fun () ->
+        let rows =
+          List.filter_mapi res#out ~f:(fun idx line ->
+              match
+                String.split line ~on:' '
+                |> List.filter_map ~f:(fun s ->
+                       match String.strip s with "" -> None | s -> Some s)
+              with
+              | ("tcp" | "tcp6") :: _ as row -> Some (`Tcp (idx, row))
+              | _ -> Some (`Wrong (idx, line))) in
+        return rows
+    | `Not_right ->
+        Console.say state
+          EF.(
+            desc (shout "Warning:")
+              (wf
+                 "This does not look like a linux-netstat; port-availability \
+                  checks are hence disabled."))
+        >>= fun () -> return []
+
+  let all_listening_ports rows =
+    List.filter_map rows ~f:(function
+      | `Tcp (_, _ :: _ :: _ :: addr :: _) as row -> (
+        match String.split addr ~on:':' with
+        | [_; port] -> ( try Some (Int.of_string port, row) with _ -> None )
+        | _ -> None )
+      | _ -> None)
+
+  let used_listening_ports state =
+    netstat_dash_nut state
+    >>= fun rows ->
+    let all_used = all_listening_ports rows in
+    return all_used
+end
+
 module System_dependencies = struct
   module Error = struct
     type t = [`Precheck_failure of string]
@@ -109,6 +161,11 @@ module System_dependencies = struct
         match result#status with
         | Unix.WEXITED 0 -> return prev
         | _ -> return (`Missing_exec (cmd, result) :: prev))
+    >>= fun errors_or_warnings ->
+    Netstat.check_version state
+    >>= (function
+          | `Fine -> return errors_or_warnings
+          | `Not_right -> return (`Wrong_netstat :: errors_or_warnings))
     >>= fun errors_or_warnings ->
     List.fold protocol_paths ~init:(return errors_or_warnings)
       ~f:(fun prev_m path ->
@@ -137,10 +194,114 @@ module System_dependencies = struct
                       (* pp_open_hovbox ppf 0 ; *)
                       pp_print_text ppf
                         (sprintf "Missing executable: `%s`." path)
+                  | `Wrong_netstat ->
+                      pp_print_text ppf "Wrong netstat version."
                   | `Not_a_protocol_path path ->
                       pp_print_text ppf
                         (sprintf "Not a protocol path: `%s`." path) ) ;
                   pp_close_box ppf () ; pp_print_space ppf ()) ;
               pp_close_box ppf ())
+        >>= fun () ->
+        ( if
+          List.exists more ~f:(function
+            | `Wrong_netstat | `Missing_exec ("setsid", _) -> true
+            | _ -> false)
+        then
+          Console.say state
+            EF.(
+              desc (shout "Warning:")
+                (wf
+                   "This does not look like a standard Linux-ish environment. \
+                    If you are on MacOSX, see \
+                    https://gitlab.com/tezos/flextesa/blob/master/README.md#macosx-users "))
+        else return () )
+        >>= fun () ->
+        ( if
+          List.exists more ~f:(function
+            | `Missing_exec ("tezos-node", _)
+              when Sys.file_exists ("." // "tezos-node") ->
+                true
+            | _ -> false)
+        then
+          Console.say state
+            EF.(
+              desc (prompt "Tip:")
+                (wf
+                   "The `tezos-node` executable is missing but there seems to \
+                    be one in the current directory, maybe you can pass \
+                    `./tezos-node` with the right option (see `--help`) or \
+                    simply add `export PATH=.:$PATH` to allow unix tools to \
+                    find it."))
+        else return () )
         >>= fun () -> failf "Error/Warnings were raised during precheck."
+end
+
+module Shell_environement = struct
+  type t = {aliases: (string * string * string) list}
+
+  let make ~aliases = {aliases}
+
+  let build state ~clients =
+    let aliases =
+      List.concat_mapi clients ~f:(fun i c ->
+          let call =
+            List.map ~f:Filename.quote (Tezos_client.client_call state c [])
+          in
+          let cmd exec = String.concat ~sep:" " (exec :: call) in
+          let extra =
+            let help = "Call the tezos-client used by the sandbox." in
+            match Tezos_executable.get c.Tezos_client.exec with
+            | "tezos-client" -> []
+            | f when Filename.is_relative f ->
+                [(sprintf "c%d" i, cmd (Sys.getcwd () // f), help)]
+            | f -> [(sprintf "c%d" i, cmd (Sys.getcwd () // f), help)] in
+          [ ( sprintf "tc%d" i
+            , cmd "tezos-client"
+            , "Call the `tezos-client` from the path." ) ]
+          @ extra) in
+    make ~aliases
+
+  let write state {aliases} ~path =
+    let content =
+      String.concat ~sep:"\n"
+        ( ["# Shell-environment generated by a flextesa-sandbox"]
+        @ List.concat_map aliases ~f:(fun (k, v, doc) ->
+              [ sprintf "echo %s"
+                  (sprintf "Defining alias %s: %s" k doc |> Filename.quote)
+              ; sprintf "alias %s=%s" k (Filename.quote v) ]) ) in
+    System.write_file state path ~content
+
+  let help_command state t ~path =
+    Console.Prompt.unit_and_loop
+      EF.(wf "Show help about the shell-environment.")
+      ["help-env"]
+      (fun _sexps ->
+        Console.sayf state
+          Experiments.More_fmt.(
+            fun ppf () ->
+              let pick_and_alias ppf () =
+                let k, _, _ = List.random_element_exn t.aliases in
+                string ppf k in
+              vertical_box ~indent:2 ppf (fun ppf ->
+                  tag "prompt" ppf (fun ppf -> wf ppf "Shell Environment") ;
+                  cut ppf () ;
+                  wf ppf "* A loadable shell environment is available at `%s`."
+                    path ;
+                  cut ppf () ;
+                  wf ppf
+                    "* It contains %d POSIX-shell aliases (compatible with \
+                     `bash`, etc.)."
+                    (List.length t.aliases) ;
+                  cut ppf () ;
+                  cut ppf () ;
+                  wf ppf "Example:" ;
+                  cut ppf () ;
+                  cut ppf () ;
+                  pf ppf "    . %s" path ;
+                  cut ppf () ;
+                  pf ppf "    %a list known addresses" pick_and_alias () ;
+                  cut ppf () ;
+                  pf ppf "    %a rpc get /chains/main/blocks/head/metadata"
+                    pick_and_alias () ;
+                  cut ppf ())))
 end

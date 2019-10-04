@@ -9,7 +9,8 @@ type t =
     peers: int list
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t
-  ; history_mode: [`Full | `Archive | `Rolling] option }
+  ; history_mode: [`Full | `Archive | `Rolling] option
+  ; single_process: bool }
 
 let compare a b = Base.String.compare a.id b.id
 let equal a b = Base.String.equal a.id b.id
@@ -24,8 +25,8 @@ let ef t =
 let pp fmt t = Easy_format.Pretty.to_formatter fmt (ef t)
 let id t = t.id
 
-let make ~exec ?(protocol = Tezos_protocol.default ()) ?history_mode id
-    ~expected_connections ~rpc_port ~p2p_port peers =
+let make ~exec ?(protocol = Tezos_protocol.default ()) ?(single_process = true)
+    ?history_mode id ~expected_connections ~rpc_port ~p2p_port peers =
   { id
   ; expected_connections
   ; rpc_port
@@ -33,7 +34,8 @@ let make ~exec ?(protocol = Tezos_protocol.default ()) ?history_mode id
   ; peers
   ; exec
   ; protocol
-  ; history_mode }
+  ; history_mode
+  ; single_process }
 
 let make_path p ~config t = Paths.root config // sprintf "node-%s" t.id // p
 
@@ -73,8 +75,7 @@ module Config_file = struct
           ; ("listen-addr", ksprintf string "0.0.0.0:%d" t.p2p_port)
           ; ( "limits"
             , dict
-                [ ("maintenance-idle-time", int 3)
-                ; ("swap-linger", int 2)
+                [ ("maintenance-idle-time", int 3); ("swap-linger", int 2)
                 ; ("connection-timeout", int 2) ] ) ] )
     ; ("log", dict [("output", string (log_output ~config:state t))]) ]
     @ shell
@@ -96,6 +97,7 @@ let run_command t ~config =
     ( flag "private-mode" @ flag "no-bootstrap-peers" @ peers
     @ optf "bootstrap-threshold" "0"
     @ optf "connections" "%d" t.expected_connections
+    @ (if t.single_process then flag "singleprocess" else [])
     @ opt "sandbox" (Tezos_protocol.sandbox_path ~config t.protocol) )
 
 let start_script t ~config =
@@ -115,8 +117,7 @@ let start_script t ~config =
     ; ( "ensure-identity"
       , ensure "node-id"
           ~condition:(file_exists (str (identity_file t ~config)))
-          ~how:[("gen-id", gen_id)] )
-    ; ("start", run_command t ~config) ]
+          ~how:[("gen-id", gen_id)] ); ("start", run_command t ~config) ]
 
 let process config t =
   Running_processes.Process.genspio t.id (start_script t ~config)

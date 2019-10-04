@@ -84,9 +84,12 @@ val ensure_script :
     bootstrap-parameters JSON file. *)
 
 val ensure :
-     t
-  -> config:< paths: Paths.t ; .. >
-  -> (unit, [> System_error.t]) Asynchronous_result.t
+     < application_name: string
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> t
+  -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 (** Run the script created by [ensure_script], i.e. create the JSON
     bootstrap parameters. *)
 

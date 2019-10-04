@@ -8,7 +8,8 @@ type t = private
   ; peers: int list
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t
-  ; history_mode: [`Full | `Archive | `Rolling] option }
+  ; history_mode: [`Full | `Archive | `Rolling] option
+  ; single_process: bool }
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
@@ -18,6 +19,7 @@ val pp : Format.formatter -> t -> unit
 val make :
      exec:Tezos_executable.t
   -> ?protocol:Tezos_protocol.t
+  -> ?single_process:bool
   -> ?history_mode:[`Full | `Archive | `Rolling]
   -> string
   -> expected_connections:int
@@ -25,6 +27,14 @@ val make :
   -> p2p_port:int
   -> int list
   -> t
+(** Create a node value (inert, not started), see 
+   ["tezos-node run --help"] for corresponding parameters.
+
+- [?single_process]: defaults to [true] (for now since multi-process
+  validations still suffers from some bugs).
+- [?history_mode]: defaults to leaving the node's default (i.e. [`Full]).
+ *)
+
 
 val data_dir : config:< paths: Paths.t ; .. > -> t -> string
 val config_file : config:< paths: Paths.t ; .. > -> t -> string

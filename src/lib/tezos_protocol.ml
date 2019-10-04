@@ -132,8 +132,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   *)
   let extra_babylon_stuff_to_put =
     Ezjsonm.
-      [ ("blocks_per_commitment", int 4)
-      ; ("endorsers_per_block", int 32)
+      [ ("blocks_per_commitment", int 4); ("endorsers_per_block", int 32)
       ; ("hard_gas_limit_per_operation", string (Int.to_string 100_000_000_000))
       ; ("hard_gas_limit_per_block", string (Int.to_string 10_000_000_000_000))
       ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
@@ -148,10 +147,8 @@ let protocol_parameters_json t : Ezjsonm.t =
         , string (Int.to_string 10_000_000_000) )
       ; ("cost_per_byte", string (Int.to_string 100))
       ; ("test_chain_duration", string (Int.to_string 1_966_080))
-      ; ("quorum_min", int 3_000)
-      ; ("quorum_max", int 7_000)
-      ; ("min_proposal_quorum", int 500)
-      ; ("initial_endorsers", int 1)
+      ; ("quorum_min", int 3_000); ("quorum_max", int 7_000)
+      ; ("min_proposal_quorum", int 500); ("initial_endorsers", int 1)
       ; ("delay_per_missing_endorsement", string (Int.to_string 1)) ] in
   let common =
     [ ( "bootstrap_accounts"
@@ -205,14 +202,11 @@ let ensure_script ~config t =
     ; file sandbox sandbox_path
     ; file protocol_parameters protocol_parameters_path ]
 
-let ensure t ~config =
-  match
-    Sys.command (Genspio.Compile.to_one_liner (ensure_script ~config t))
-  with
-  | 0 -> return ()
-  | _other ->
-      System_error.fail_fatalf "sys.command non-zero"
-        ~attach:[("location", `String_value "Tezos_protocol.ensure")]
+let ensure state t =
+  Running_processes.run_successful_cmdf state "sh -c %s"
+    ( Genspio.Compile.to_one_liner (ensure_script ~config:state t)
+    |> Filename.quote )
+  >>= fun _ -> return ()
 
 let cli_term () =
   let open Cmdliner in

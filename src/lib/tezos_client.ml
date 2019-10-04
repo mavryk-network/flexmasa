@@ -14,12 +14,15 @@ let base_dir t ~state = Paths.root state // sprintf "Client-base-%s" t.id
 
 open Tezos_executable.Make_cli
 
-let client_command ?(wait = "none") t ~state args =
+let client_call ?(wait = "none") state t args =
+  ("--wait" :: wait :: optf "port" "%d" t.port)
+  @ opt "base-dir" (base_dir ~state t)
+  @ args
+
+let client_command ?wait t ~state args =
   Tezos_executable.call t.exec
     ~path:(base_dir t ~state // "exec-client")
-    ( ("--wait" :: wait :: optf "port" "%d" t.port)
-    @ opt "base-dir" (base_dir ~state t)
-    @ args )
+    (client_call ?wait state t args)
 
 let bootstrapped_script t ~state =
   let open Genspio.EDSL in
@@ -59,10 +62,9 @@ let activate_protocol_script t ~state protocol =
               , client_command t ~state @@ opt "block" "genesis"
                 @ [ "activate"; "protocol"; protocol.Tezos_protocol.hash; "with"
                   ; "fitness"
-                  ; sprintf "%d" protocol.Tezos_protocol.expected_pow
-                  ; "and"; "key"
-                  ; Tezos_protocol.dictator_name protocol
-                  ; "and"; "parameters"
+                  ; sprintf "%d" protocol.Tezos_protocol.expected_pow; "and"
+                  ; "key"; Tezos_protocol.dictator_name protocol; "and"
+                  ; "parameters"
                   ; Tezos_protocol.protocol_parameters_path ~config:state
                       protocol ] ) ] ) ]
 
@@ -211,9 +213,7 @@ let list_known_addresses state ~client =
     Re.(
       compile
         (seq
-           [ group (rep1 (alt [alnum; char '_']))
-           ; str ": "
-           ; group (rep1 alnum)
+           [ group (rep1 (alt [alnum; char '_'])); str ": "; group (rep1 alnum)
            ; alt [space; eol; eos] ])) in
   return
     (List.filter_map res#out
@@ -247,9 +247,7 @@ module Ledger = struct
         let num = rep1 digit in
         compile
           (seq
-             [ group num
-             ; str " for the main-chain ("
-             ; group (rep1 alnum)
+             [ group num; str " for the main-chain ("; group (rep1 alnum)
              ; str ") and "; group num; str " for the test-chain." ])) in
     let matches = Re.exec re (String.concat ~sep:" " res#out) in
     try

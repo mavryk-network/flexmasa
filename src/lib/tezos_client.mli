@@ -15,6 +15,15 @@ val base_dir : t -> state:< paths: Paths.t ; .. > -> string
 
 (** {3 Build Scripts } *)
 
+val client_call :
+     ?wait:string
+  -> < paths: Paths.t ; .. >
+  -> client
+  -> string list
+  -> string list
+(** Build the arguments for a given default tezos-client (not
+    including the executable). *)
+
 val client_command :
      ?wait:string
   -> client
@@ -36,30 +45,30 @@ val activate_protocol_script :
 
 val bootstrapped :
      t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
+  -> state:
+       < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
   -> (unit, [> System_error.t]) Asynchronous_result.t
 (** Wait for the node to be bootstrapped. *)
 
 val import_secret_key :
      t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
+  -> state:
+       < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
   -> string
   -> string
   -> (unit, [> System_error.t]) Asynchronous_result.t
 
 val register_as_delegate :
      t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
+  -> state:
+       < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
   -> string
   -> (unit, [> System_error.t]) Asynchronous_result.t
 
 val activate_protocol :
      t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
+  -> state:
+       < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
   -> Tezos_protocol.t
   -> (unit, [> System_error.t]) Asynchronous_result.t
 

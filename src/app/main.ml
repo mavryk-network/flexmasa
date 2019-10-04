@@ -32,7 +32,7 @@ module Small_utilities = struct
             Flextesa.
               ( state
               , fun () ->
-                  Test_scenario.Network.netstat_listening_ports state
+                  Helpers.Netstat.used_listening_ports state
                   >>= fun ports ->
                   let to_display =
                     List.map ports ~f:(fun (p, _) -> p)

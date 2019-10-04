@@ -8,9 +8,13 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
     ~executables:
       [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
   >>= fun () ->
+  Console.say state EF.(wf "Starting up the network.")
+  >>= fun () ->
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
     ~nodes_history_mode_edits ~base_port state ~node_exec ~client_exec
   >>= fun (nodes, protocol) ->
+  Console.say state EF.(wf "Network started, preparing scenario.")
+  >>= fun () ->
   Tezos_client.rpc state
     ~client:(Tezos_client.of_node (List.hd_exn nodes) ~exec:client_exec)
     `Get ~path:"/chains/main/chain_id"
@@ -99,12 +103,17 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
       Interactive_test.Commands.[bake_command state ~clients] ;
     return () )
   >>= fun () ->
+  let clients = List.map keys_and_daemons ~f:(fun (_, c, _) -> c) in
+  Helpers.Shell_environement.(
+    let path = Paths.root state // "shell.env" in
+    let env = build state ~clients in
+    write state env ~path >>= fun () -> return (help_command state env ~path))
+  >>= fun shell_env_help ->
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.(
-      all_defaults state ~nodes
+      (shell_env_help :: all_defaults state ~nodes)
       @ [secret_keys state ~protocol]
-      @ arbitrary_commands_for_each_and_all_clients state
-          ~clients:(List.map nodes ~f:(Tezos_client.of_node ~exec:client_exec))) ;
+      @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
   Interactive_test.Pauser.generic ~force:true state
     EF.[haf "Sandbox is READY \\o/"]
 
