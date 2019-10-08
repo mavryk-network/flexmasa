@@ -62,9 +62,10 @@ let activate_protocol_script t ~state protocol =
               , client_command t ~state @@ opt "block" "genesis"
                 @ [ "activate"; "protocol"; protocol.Tezos_protocol.hash; "with"
                   ; "fitness"
-                  ; sprintf "%d" protocol.Tezos_protocol.expected_pow; "and"
-                  ; "key"; Tezos_protocol.dictator_name protocol; "and"
-                  ; "parameters"
+                  ; sprintf "%d" protocol.Tezos_protocol.expected_pow
+                  ; "and"; "key"
+                  ; Tezos_protocol.dictator_name protocol
+                  ; "and"; "parameters"
                   ; Tezos_protocol.protocol_parameters_path ~config:state
                       protocol ] ) ] ) ]
 
@@ -213,7 +214,9 @@ let list_known_addresses state ~client =
     Re.(
       compile
         (seq
-           [ group (rep1 (alt [alnum; char '_'])); str ": "; group (rep1 alnum)
+           [ group (rep1 (alt [alnum; char '_']))
+           ; str ": "
+           ; group (rep1 alnum)
            ; alt [space; eol; eos] ])) in
   return
     (List.filter_map res#out
@@ -247,7 +250,9 @@ module Ledger = struct
         let num = rep1 digit in
         compile
           (seq
-             [ group num; str " for the main-chain ("; group (rep1 alnum)
+             [ group num
+             ; str " for the main-chain ("
+             ; group (rep1 alnum)
              ; str ") and "; group num; str " for the test-chain." ])) in
     let matches = Re.exec re (String.concat ~sep:" " res#out) in
     try

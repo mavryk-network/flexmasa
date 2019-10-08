@@ -35,7 +35,6 @@ val make :
 - [?history_mode]: defaults to leaving the node's default (i.e. [`Full]).
  *)
 
-
 val data_dir : config:< paths: Paths.t ; .. > -> t -> string
 val config_file : config:< paths: Paths.t ; .. > -> t -> string
 val identity_file : config:< paths: Paths.t ; .. > -> t -> string

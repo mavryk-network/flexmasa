@@ -75,7 +75,8 @@ module Config_file = struct
           ; ("listen-addr", ksprintf string "0.0.0.0:%d" t.p2p_port)
           ; ( "limits"
             , dict
-                [ ("maintenance-idle-time", int 3); ("swap-linger", int 2)
+                [ ("maintenance-idle-time", int 3)
+                ; ("swap-linger", int 2)
                 ; ("connection-timeout", int 2) ] ) ] )
     ; ("log", dict [("output", string (log_output ~config:state t))]) ]
     @ shell
@@ -117,7 +118,8 @@ let start_script t ~config =
     ; ( "ensure-identity"
       , ensure "node-id"
           ~condition:(file_exists (str (identity_file t ~config)))
-          ~how:[("gen-id", gen_id)] ); ("start", run_command t ~config) ]
+          ~how:[("gen-id", gen_id)] )
+    ; ("start", run_command t ~config) ]
 
 let process config t =
   Running_processes.Process.genspio t.id (start_script t ~config)

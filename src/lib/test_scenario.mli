@@ -81,14 +81,14 @@ val network_with_protocol :
   -> ?base_port:int
   -> ?size:int
   -> ?protocol:Tezos_protocol.t
-  -> ?nodes_history_mode_edits:
-       ([> `Empty_protocol_list
-        | System_error.t
-        | Process_result.Error.t
-        | `Too_many_protocols of Tezos_protocol.t list ]
-        as
-        'errors)
-       Tezos_node.History_modes.edit
+  -> ?nodes_history_mode_edits:([> `Empty_protocol_list
+                                | System_error.t
+                                | Process_result.Error.t
+                                | `Too_many_protocols of Tezos_protocol.t list
+                                ]
+                                as
+                                'errors)
+                               Tezos_node.History_modes.edit
   -> < paths: Paths.t
      ; console: Console.t
      ; runner: Running_processes.State.t
