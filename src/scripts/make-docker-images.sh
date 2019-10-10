@@ -84,7 +84,7 @@ build_interesting_binaries () {
 }
 copy_interesting_binaries () {
     for ib in $interesting_binaries ; do
-        echo "$ib" | sed 's@\([^:]*\):\(.*\)@COPY --from=0 /build/_build/default/\1 /usr/bin/\2@'
+        echo "$ib" | sed 's@\([^:]*\):\(.*\)@COPY --from=0 /rebuild/_build/default/\1 /usr/bin/\2@'
     done
 }
 
@@ -111,6 +111,11 @@ EOF
 make_build_dockerfile () {
     cat > Dockerfile <<EOF
 FROM $setup_image
+RUN sudo mkdir -p /rebuild
+RUN sudo chown -R opam:opam /rebuild
+WORKDIR /rebuild
+ADD --chown=opam:opam . ./
+RUN make vendors
 RUN opam config exec -- make
 EOF
     build_interesting_binaries >> Dockerfile

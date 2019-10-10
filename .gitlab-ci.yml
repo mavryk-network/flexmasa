@@ -111,6 +111,16 @@ docker:run:
     - ./src/scripts/make-docker-images.sh run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
 
+docker:test:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: deploy
+  variables:
+    DOCKER_DRIVER: overlay2
+  script:
+    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --time 5 --until-level 10
+
 docker:tag:
   image: docker:latest
   services:
