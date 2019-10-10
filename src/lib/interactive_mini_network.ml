@@ -3,7 +3,7 @@ open Console
 
 let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
     ~nodes_history_mode_edits ~with_baking ?generate_kiln_config node_exec
-    client_exec baker_exec endorser_exec accuser_exec () =
+    client_exec baker_exec endorser_exec accuser_exec test_kind () =
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
       [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
@@ -109,20 +109,32 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
     let env = build state ~clients in
     write state env ~path >>= fun () -> return (help_command state env ~path))
   >>= fun shell_env_help ->
-  Interactive_test.Pauser.add_commands state
-    Interactive_test.Commands.(
-      (shell_env_help :: all_defaults state ~nodes)
-      @ [secret_keys state ~protocol]
-      @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
-  Interactive_test.Pauser.generic ~force:true state
-    EF.[haf "Sandbox is READY \\o/"]
+  match test_kind with
+  | `Interactive ->
+      Interactive_test.Pauser.add_commands state
+        Interactive_test.Commands.(
+          (shell_env_help :: all_defaults state ~nodes)
+          @ [secret_keys state ~protocol]
+          @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
+      Interactive_test.Pauser.generic ~force:true state
+        EF.[haf "Sandbox is READY \\o/"]
+  | `Wait_level (`At_least lvl as opt) ->
+      let seconds =
+        let tbb =
+          protocol.Tezos_protocol.time_between_blocks |> List.hd
+          |> Option.value ~default:10 in
+        float tbb *. 3. in
+      let attempts = lvl in
+      Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds
+        nodes opt
 
 let cmd ~pp_error () =
   let open Cmdliner in
   let open Term in
   Test_command_line.Run_command.make ~pp_error
     ( pure
-        (fun size
+        (fun test_kind
+             size
              base_port
              (`External_peers external_peer_ports)
              (`No_daemons_for no_daemons_for)
@@ -140,8 +152,17 @@ let cmd ~pp_error () =
           let actual_test =
             run state ~size ~base_port ~protocol bnod bcli bak endo accu
               ~nodes_history_mode_edits ~with_baking ?generate_kiln_config
-              ~external_peer_ports ~no_daemons_for in
+              ~external_peer_ports ~no_daemons_for test_kind in
           (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
+    $ Arg.(
+        pure (fun level_opt ->
+            match level_opt with
+            | Some l -> `Wait_level (`At_least l)
+            | None -> `Interactive)
+        $ value
+            (opt (some int) None
+               (info ["until-level"]
+                  ~doc:"Run the sandbox until a given level (not interactive)")))
     $ Arg.(
         value & opt int 5
         & info ["size"; "S"] ~doc:"Set the size of the network.")
