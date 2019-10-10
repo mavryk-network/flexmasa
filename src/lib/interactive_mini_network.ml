@@ -1,9 +1,12 @@
 open Internal_pervasives
 open Console
 
-let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
-    ~nodes_history_mode_edits ~with_baking ?generate_kiln_config node_exec
-    client_exec baker_exec endorser_exec accuser_exec test_kind () =
+let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
+    ?external_peer_ports ~nodes_history_mode_edits ~with_baking
+    ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
+    accuser_exec test_kind () =
+  (if clear_root then Helpers.clear_root state else return ())
+  >>= fun () ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
       [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
@@ -134,6 +137,7 @@ let cmd ~pp_error () =
   Test_command_line.Run_command.make ~pp_error
     ( pure
         (fun test_kind
+             (`Clear_root clear_root)
              size
              base_port
              (`External_peers external_peer_ports)
@@ -151,8 +155,9 @@ let cmd ~pp_error () =
              ->
           let actual_test =
             run state ~size ~base_port ~protocol bnod bcli bak endo accu
-              ~nodes_history_mode_edits ~with_baking ?generate_kiln_config
-              ~external_peer_ports ~no_daemons_for test_kind in
+              ~clear_root ~nodes_history_mode_edits ~with_baking
+              ?generate_kiln_config ~external_peer_ports ~no_daemons_for
+              test_kind in
           (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
     $ Arg.(
         pure (fun level_opt ->
@@ -163,6 +168,12 @@ let cmd ~pp_error () =
             (opt (some int) None
                (info ["until-level"]
                   ~doc:"Run the sandbox until a given level (not interactive)")))
+    $ Arg.(
+        pure (fun kr -> `Clear_root (not kr))
+        $ value
+            (flag
+               (info ["keep-root"]
+                  ~doc:"Do not erase the root path before starting.")))
     $ Arg.(
         value & opt int 5
         & info ["size"; "S"] ~doc:"Set the size of the network.")
