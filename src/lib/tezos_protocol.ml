@@ -228,6 +228,7 @@ let cli_term () =
          (`Time_between_blocks time_between_blocks)
          (`Blocks_per_cycle blocks_per_cycle)
          (`Preserved_cycles preserved_cycles)
+         (`Timestamp_delay timestamp_delay)
          (`Protocol_parameters custom_protocol_parameters)
          kind
          add_bootstraps
@@ -245,6 +246,7 @@ let cli_term () =
       ; bootstrap_accounts
       ; time_between_blocks
       ; preserved_cycles
+      ; timestamp_delay
       ; blocks_per_voting_period })
   $ Arg.(
       value
@@ -288,6 +290,12 @@ let cli_term () =
                 ~doc:
                   "Base constant for baking rights (search for \
                    `PRESERVED_CYCLES` in the white paper).")))
+  $ Arg.(
+      pure (fun x -> `Timestamp_delay x)
+      $ value
+          (opt (some int) def.timestamp_delay
+             (info ["timestamp-delay"] ~docv:"NUMBER" ~docs
+                ~doc:"Protocol activation timestamp delay in seconds.")))
   $ Arg.(
       pure (fun f ->
           `Protocol_parameters
