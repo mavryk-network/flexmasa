@@ -42,6 +42,15 @@ let import_secret_key_script t ~state name key =
 
 let activate_protocol_script t ~state protocol =
   let open Genspio.EDSL in
+  let timestamp =
+    match protocol.Tezos_protocol.timestamp_delay with
+    | None -> []
+    | Some delay -> (
+        let now = Ptime_clock.now () in
+        match Ptime.add_span now (Ptime.Span.of_int_s delay) with
+        | None ->
+            invalid_arg "activate_protocol_script: protocol.timestamp_delay"
+        | Some x -> ["--timestamp"; Ptime.to_rfc3339 x] ) in
   check_sequence ~verbosity:(`Announce "activating-protocol")
     [ ( "add-activator-key"
       , import_secret_key_script t ~state
@@ -64,7 +73,8 @@ let activate_protocol_script t ~state protocol =
                   ; Tezos_protocol.dictator_name protocol
                   ; "and"; "parameters"
                   ; Tezos_protocol.protocol_parameters_path ~config:state
-                      protocol ] ) ] ) ]
+                      protocol ]
+                @ timestamp ) ] ) ]
 
 let import_secret_key t ~state name key =
   Running_processes.run_genspio state
