@@ -97,6 +97,7 @@ type t =
   ; blocks_per_cycle: int
   ; preserved_cycles: int
   ; proof_of_work_threshold: int
+  ; timestamp_delay: int option
   ; custom_protocol_parameters: Ezjsonm.t option }
 
 let compare a b = String.compare a.id b.id
@@ -119,6 +120,7 @@ let default () =
   ; blocks_per_cycle= 8
   ; preserved_cycles= 2
   ; proof_of_work_threshold= -1
+  ; timestamp_delay= Some (-3600)
   ; custom_protocol_parameters= None }
 
 let protocol_parameters_json t : Ezjsonm.t =
