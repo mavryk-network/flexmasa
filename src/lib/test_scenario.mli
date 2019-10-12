@@ -3,17 +3,24 @@
 open Internal_pervasives
 
 module Inconsistency_error : sig
-  type t = [`Empty_protocol_list | `Too_many_protocols of Tezos_protocol.t list]
+  type t =
+    [ `Empty_protocol_list
+    | `Too_many_protocols of Tezos_protocol.t list
+    | `Too_many_timestamp_delays of Tezos_protocol.t list ]
 
   val should_be_one_protocol :
        'a list
     -> ( 'a
-       , [> `Empty_protocol_list | `Too_many_protocols of 'a list] )
+       , [> `Empty_protocol_list
+         | `Too_many_protocols of 'a list
+         | `Too_many_timestamp_delays of 'a list ] )
        Asynchronous_result.t
 
   val pp :
        Format.formatter
-    -> [< `Empty_protocol_list | `Too_many_protocols of 'a Base.List.t]
+    -> [< `Empty_protocol_list
+       | `Too_many_protocols of 'a Base.List.t
+       | `Too_many_timestamp_delays of 'a Base.List.t ]
     -> unit
 end
 
@@ -78,7 +85,8 @@ module Network : sig
        , [> `Empty_protocol_list
          | System_error.t
          | Process_result.Error.t
-         | `Too_many_protocols of Tezos_protocol.t list ] )
+         | `Too_many_protocols of Tezos_protocol.t list
+         | `Too_many_timestamp_delays of Tezos_protocol.t list ] )
        Asynchronous_result.t
 end
 
@@ -91,7 +99,8 @@ val network_with_protocol :
                                 | System_error.t
                                 | Process_result.Error.t
                                 | `Too_many_protocols of Tezos_protocol.t list
-                                ]
+                                | `Too_many_timestamp_delays of
+                                  Tezos_protocol.t list ]
                                 as
                                 'errors)
                                Tezos_node.History_modes.edit
