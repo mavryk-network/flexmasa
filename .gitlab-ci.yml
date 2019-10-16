@@ -119,7 +119,7 @@ docker:test:
   variables:
     DOCKER_DRIVER: overlay2
   script:
-    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --time 5 --until-level 10
+    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --time-between-blocks 5 --until-level 10
 
 docker:tag:
   image: docker:latest
