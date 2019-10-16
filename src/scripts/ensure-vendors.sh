@@ -29,7 +29,7 @@ if [ -f "local-vendor/tezos-master/README.md" ] ; then
     say "Tezos already cloned"
 else
     mkdir -p local-vendor/
-    git clone --depth 10 https://gitlab.com/tezos/tezos.git -b master local-vendor/tezos-master
+    git clone --depth 100 https://gitlab.com/tezos/tezos.git -b master local-vendor/tezos-master
 fi
 
 (
@@ -38,4 +38,3 @@ fi
     git checkout "$tezos_commit"
     echo "(data_only_dirs flextesa-lib) ;; Unvendored flextesa" > vendors/dune
 )
-
