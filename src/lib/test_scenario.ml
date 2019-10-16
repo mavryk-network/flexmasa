@@ -1,18 +1,32 @@
 open Internal_pervasives
 
 module Inconsistency_error = struct
-  type t = [`Empty_protocol_list | `Too_many_protocols of Tezos_protocol.t list]
+  type t =
+    [ `Empty_protocol_list
+    | `Too_many_protocols of Tezos_protocol.t list
+    | `Too_many_timestamp_delays of Tezos_protocol.t list ]
 
   let should_be_one_protocol = function
     | [one] -> return one
     | [] -> fail `Empty_protocol_list
     | more -> fail (`Too_many_protocols more)
 
+  let should_be_one_timestamp_delay = function
+    | [_] -> return ()
+    | [] -> fail `Empty_protocol_list
+    | more -> fail (`Too_many_timestamp_delays more)
+
   let pp fmt err =
-    Format.fprintf fmt "Wrong number of protocols in network: %d"
-      ( match err with
-      | `Empty_protocol_list -> 0
-      | `Too_many_protocols p -> List.length p )
+    match err with
+    | `Empty_protocol_list ->
+        Format.fprintf fmt "Wrong number of protocols in network: 0"
+    | `Too_many_protocols p ->
+        Format.fprintf fmt "Wrong number of protocols in network: %d"
+          (List.length p)
+    | `Too_many_timestamp_delays p ->
+        Format.fprintf fmt
+          "Wrong number of protocol timestamp delays in network: %d"
+          (List.length p)
 end
 
 module Topology = struct
@@ -166,6 +180,8 @@ module Network = struct
       |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
     Inconsistency_error.should_be_one_protocol protocols
     >>= fun protocol ->
+    Inconsistency_error.should_be_one_timestamp_delay protocols
+    >>= fun () ->
     Tezos_protocol.ensure state protocol
     >>= fun () ->
     List.fold nodes ~init:(return ()) ~f:(fun prev_m node ->
@@ -199,6 +215,8 @@ let network_with_protocol ?external_peer_ports ?base_port ?(size = 5) ?protocol
     |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
   Inconsistency_error.should_be_one_protocol protocols
   >>= fun protocol ->
+  Inconsistency_error.should_be_one_timestamp_delay protocols
+  >>= fun () ->
   Network.start_up state ~client_exec (Network.make nodes)
   >>= fun () -> return (nodes, protocol)
 

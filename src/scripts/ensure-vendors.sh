@@ -39,4 +39,3 @@ fi
     git pull
     echo "(data_only_dirs flextesa-lib) ;; Unvendored flextesa" > vendors/dune
 )
-

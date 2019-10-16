@@ -61,6 +61,7 @@ type t =
   ; blocks_per_cycle: int
   ; preserved_cycles: int
   ; proof_of_work_threshold: int
+  ; timestamp_delay: int option
   ; custom_protocol_parameters: Ezjsonm.t option }
 (** [t] wraps bootstrap parameters for sandboxed protocols. *)
 
