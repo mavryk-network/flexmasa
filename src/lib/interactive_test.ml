@@ -265,6 +265,39 @@ module Commands = struct
                      ( if init = cur then af "%f (unchanged)" (tz cur)
                      else af "%f → %f" (tz init) (tz cur) )))))
 
+  let better_call_dev state ~default_port =
+    Prompt.unit_and_loop
+      EF.(
+        desc
+          (wf "Show URIs to all contracts with better-call.dev")
+          (desc_list (wf "Options")
+             [Sexp_options.port_number_doc state ~default_port]))
+      ["bcd"; "better-call-dev"]
+      (fun sexps ->
+        Sexp_options.port_number state sexps ~default_port
+        >>= fun port ->
+        curl_rpc state ~port ~path:"/chains/main/blocks/head/context/contracts"
+        >>= fun json_opt ->
+        do_jq state ~msg:"Getting contract list" ~f:Jqo.get_strings json_opt
+        >>= fun contracts ->
+        Console.sayf state
+          Fmt.(
+            fun ppf () ->
+              vbox ~indent:2
+                (fun ppf () ->
+                  pf ppf "Links:" ;
+                  cut ppf () ;
+                  List.iter contracts ~f:(fun c ->
+                      if String.is_prefix c ~prefix:"KT1" then (
+                        pf ppf
+                          "* \
+                           https://better-call.dev/sandbox/%s/operations?blockUrl=%s"
+                          c
+                          (kstr Uri.pct_encode
+                             "http://127.0.0.1:%d/chains/main/blocks" port) ;
+                        cut ppf () )))
+                ppf ()))
+
   let arbitrary_command_on_all_clients ?make_admin
       ?(command_names = ["atc"; "all-clients"]) state ~clients =
     Prompt.unit_and_loop
@@ -420,6 +453,7 @@ module Commands = struct
     ; balances state ~default_port
     ; curl_metadata state ~default_port
     ; curl_baking_rights state ~default_port
+    ; better_call_dev state ~default_port
     ; all_levels state ~nodes; show_process state; kill_all state ]
 end
 
