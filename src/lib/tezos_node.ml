@@ -10,7 +10,8 @@ type t =
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t
   ; history_mode: [`Full | `Archive | `Rolling] option
-  ; single_process: bool }
+  ; single_process: bool
+  ; cors_origin: string option }
 
 let compare a b = Base.String.compare a.id b.id
 let equal a b = Base.String.equal a.id b.id
@@ -25,7 +26,8 @@ let ef t =
 let pp fmt t = Easy_format.Pretty.to_formatter fmt (ef t)
 let id t = t.id
 
-let make ~exec ?(protocol = Tezos_protocol.default ()) ?(single_process = true)
+let make ?(cors_origin = Some "*") ~exec
+    ?(protocol = Tezos_protocol.default ()) ?(single_process = true)
     ?history_mode id ~expected_connections ~rpc_port ~p2p_port peers =
   { id
   ; expected_connections
@@ -35,7 +37,8 @@ let make ~exec ?(protocol = Tezos_protocol.default ()) ?(single_process = true)
   ; exec
   ; protocol
   ; history_mode
-  ; single_process }
+  ; single_process
+  ; cors_origin }
 
 let make_path p ~config t = Paths.root config // sprintf "node-%s" t.id // p
 
@@ -99,6 +102,8 @@ let run_command t ~config =
     @ optf "bootstrap-threshold" "0"
     @ optf "connections" "%d" t.expected_connections
     @ (if t.single_process then flag "singleprocess" else [])
+    @ Option.value_map t.cors_origin ~default:[] ~f:(fun s ->
+          flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s)
     @ opt "sandbox" (Tezos_protocol.sandbox_path ~config t.protocol) )
 
 let start_script t ~config =

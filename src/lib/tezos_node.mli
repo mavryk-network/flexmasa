@@ -9,7 +9,8 @@ type t = private
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t
   ; history_mode: [`Full | `Archive | `Rolling] option
-  ; single_process: bool }
+  ; single_process: bool
+  ; cors_origin: string option }
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
@@ -17,7 +18,8 @@ val ef : t -> Easy_format.t
 val pp : Format.formatter -> t -> unit
 
 val make :
-     exec:Tezos_executable.t
+     ?cors_origin:string option
+  -> exec:Tezos_executable.t
   -> ?protocol:Tezos_protocol.t
   -> ?single_process:bool
   -> ?history_mode:[`Full | `Archive | `Rolling]
@@ -33,6 +35,7 @@ val make :
 - [?single_process]: defaults to [true] (for now since multi-process
   validations still suffers from some bugs).
 - [?history_mode]: defaults to leaving the node's default (i.e. [`Full]).
+- [?cors_origin]: defaults to [Some "*"] (most permissive).
  *)
 
 val data_dir : config:< paths: Paths.t ; .. > -> t -> string
