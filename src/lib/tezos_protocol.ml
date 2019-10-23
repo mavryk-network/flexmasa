@@ -67,12 +67,13 @@ module Protocol_kind = struct
   type t = [`Athens | `Babylon]
 
   let names = [("Athens", `Athens); ("Babylon", `Babylon)]
+  let default = `Babylon
 
   let cmdliner_term () : t Cmdliner.Term.t =
     let open Cmdliner in
     Arg.(
       value
-        (opt (enum names) `Babylon
+        (opt (enum names) default
            (info ["protocol-kind"] ~doc:"Set the protocol family.")))
 
   let pp ppf n =
@@ -105,7 +106,7 @@ let compare a b = String.compare a.id b.id
 let default () =
   let dictator = Account.of_name "dictator-default" in
   { id= "default-bootstrap"
-  ; kind= `Babylon
+  ; kind= Protocol_kind.default
   ; bootstrap_accounts=
       List.init 4 ~f:(fun n ->
           (Account.of_namef "bootacc-%d" n, 4_000_000_000_000L))
