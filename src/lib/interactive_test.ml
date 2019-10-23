@@ -289,9 +289,9 @@ module Commands = struct
                   cut ppf () ;
                   List.iter contracts ~f:(fun c ->
                       if String.is_prefix c ~prefix:"KT1" then (
-                        pf ppf
-                          "* \
-                           https://better-call.dev/sandbox/%s/operations?blockUrl=%s"
+                        pf ppf "* %s/%s/operations?blockUrl=%s"
+                          (Environment_configuration.better_call_dev_base_url
+                             state)
                           c
                           (kstr Uri.pct_encode
                              "http://127.0.0.1:%d/chains/main/blocks" port) ;

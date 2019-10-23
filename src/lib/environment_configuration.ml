@@ -17,3 +17,7 @@ let default_cors_origin state =
   match get_from_environment state "node_cors_origin" with
   | Some "" | None -> None
   | Some other -> Some other
+
+let better_call_dev_base_url state =
+  get_from_environment state "better_call_dev_base_url"
+  |> Option.value ~default:"https://better-call.dev/sandbox"

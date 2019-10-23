@@ -125,6 +125,16 @@ module Commands : sig
     -> protocol:Tezos_protocol.t
     -> Console.Prompt.item
 
+  val better_call_dev :
+       < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> default_port:int
+    -> Console.Prompt.item
+
   val arbitrary_command_on_all_clients :
        ?make_admin:(Tezos_client.t -> Tezos_admin_client.t)
     -> ?command_names:string list
@@ -172,6 +182,7 @@ module Commands : sig
   val all_defaults :
        < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
