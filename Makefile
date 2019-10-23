@@ -1,4 +1,4 @@
-.PHONY: fmt all build
+.PHONY: fmt all build vendors clean
 
 all: build
 
@@ -8,6 +8,9 @@ vendors:
 build:
 	dune build src/test/main.exe src/app/main.exe && \
              ln -sf _build/default/src/app/main.exe flextesa
+
+clean:
+	dune clean
 
 fmt:
 	find ./src/ \( ! -name ".#*" \) \( -name "*.mli" -o -name "*.ml" \) -exec ocamlformat -i {} \;
