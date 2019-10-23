@@ -280,22 +280,33 @@ module Commands = struct
         >>= fun json_opt ->
         do_jq state ~msg:"Getting contract list" ~f:Jqo.get_strings json_opt
         >>= fun contracts ->
+        let kt1s =
+          List.filter contracts ~f:(fun c -> String.is_prefix c ~prefix:"KT1")
+        in
         Console.sayf state
           Fmt.(
             fun ppf () ->
               vbox ~indent:2
                 (fun ppf () ->
-                  pf ppf "Links:" ;
-                  cut ppf () ;
-                  List.iter contracts ~f:(fun c ->
-                      if String.is_prefix c ~prefix:"KT1" then (
-                        pf ppf "* %s/%s/operations?blockUrl=%s"
-                          (Environment_configuration.better_call_dev_base_url
-                             state)
-                          c
-                          (kstr Uri.pct_encode
-                             "http://127.0.0.1:%d/chains/main/blocks" port) ;
-                        cut ppf () )))
+                  let block_url_arg =
+                    kstr Uri.pct_encode
+                      "blockUrl=http://127.0.0.1:%d/chains/main/blocks" port
+                  in
+                  let base =
+                    Environment_configuration.better_call_dev_base_url state
+                  in
+                  match kt1s with
+                  | [] ->
+                      pf ppf "There are no KT1 contracts in this sandbox." ;
+                      cut ppf () ;
+                      pf ppf "You can still go to %s?%s" base block_url_arg
+                  | some_kt1s ->
+                      pf ppf "Links:" ;
+                      cut ppf () ;
+                      List.iter some_kt1s ~f:(fun c ->
+                          if String.is_prefix c ~prefix:"KT1" then (
+                            pf ppf "* %s/%s/operations?%s" base c block_url_arg ;
+                            cut ppf () )))
                 ppf ()))
 
   let arbitrary_command_on_all_clients ?make_admin
