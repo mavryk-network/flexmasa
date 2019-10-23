@@ -121,7 +121,7 @@ let default () =
   ; blocks_per_cycle= 8
   ; preserved_cycles= 2
   ; proof_of_work_threshold= -1
-  ; timestamp_delay= Some (-3600)
+  ; timestamp_delay= None
   ; custom_protocol_parameters= None }
 
 let protocol_parameters_json t : Ezjsonm.t =
