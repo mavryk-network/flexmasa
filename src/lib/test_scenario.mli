@@ -69,6 +69,7 @@ module Network : sig
   val start_up :
        ?check_ports:bool
     -> < Base_state.base
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; console: Console.t
        ; runner: Running_processes.State.t
@@ -98,7 +99,8 @@ val network_with_protocol :
                                 as
                                 'errors)
                                Tezos_node.History_modes.edit
-  -> < paths: Paths.t
+  -> < env_config: Environment_configuration.t
+     ; paths: Paths.t
      ; console: Console.t
      ; runner: Running_processes.State.t
      ; .. >

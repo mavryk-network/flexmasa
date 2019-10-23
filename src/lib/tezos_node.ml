@@ -26,9 +26,9 @@ let ef t =
 let pp fmt t = Easy_format.Pretty.to_formatter fmt (ef t)
 let id t = t.id
 
-let make ?(cors_origin = Some "*") ~exec
-    ?(protocol = Tezos_protocol.default ()) ?(single_process = true)
-    ?history_mode id ~expected_connections ~rpc_port ~p2p_port peers =
+let make ?cors_origin ~exec ?(protocol = Tezos_protocol.default ())
+    ?(single_process = true) ?history_mode id ~expected_connections ~rpc_port
+    ~p2p_port peers =
   { id
   ; expected_connections
   ; rpc_port
@@ -97,13 +97,19 @@ let node_command t ~config cmd options =
 
 let run_command t ~config =
   let peers = List.concat_map t.peers ~f:(optf "peer" "127.0.0.1:%d") in
+  let cors_origin =
+    match t.cors_origin with
+    | Some _ as s -> s
+    | None -> Environment_configuration.default_cors_origin config in
   node_command t ~config ["run"]
     ( flag "private-mode" @ flag "no-bootstrap-peers" @ peers
     @ optf "bootstrap-threshold" "0"
     @ optf "connections" "%d" t.expected_connections
     @ (if t.single_process then flag "singleprocess" else [])
-    @ Option.value_map t.cors_origin ~default:[] ~f:(fun s ->
+    @ Option.value_map cors_origin
+        ~f:(fun s ->
           flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s)
+        ~default:[]
     @ opt "sandbox" (Tezos_protocol.sandbox_path ~config t.protocol) )
 
 let start_script t ~config =

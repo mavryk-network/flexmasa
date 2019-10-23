@@ -5,7 +5,10 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
     ?external_peer_ports ~nodes_history_mode_edits ~with_baking
     ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
     accuser_exec test_kind () =
-  (if clear_root then Helpers.clear_root state else return ())
+  ( if clear_root then
+    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
+    >>= fun () -> Helpers.clear_root state
+  else Console.say state EF.(wf "Keeping root: `%s`" (Paths.root state)) )
   >>= fun () ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:

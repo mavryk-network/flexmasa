@@ -18,7 +18,7 @@ val ef : t -> Easy_format.t
 val pp : Format.formatter -> t -> unit
 
 val make :
-     ?cors_origin:string option
+     ?cors_origin:string
   -> exec:Tezos_executable.t
   -> ?protocol:Tezos_protocol.t
   -> ?single_process:bool
@@ -46,18 +46,26 @@ val exec_path : config:< paths: Paths.t ; .. > -> t -> string
 
 val node_command :
      t
-  -> config:< paths: Paths.t ; .. >
+  -> config:< env_config: Environment_configuration.t ; paths: Paths.t ; .. >
   -> string list
   -> string list
   -> unit Genspio.Language.t
 
 val run_command :
-  t -> config:< paths: Paths.t ; .. > -> unit Genspio.Language.t
+     t
+  -> config:< env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> unit Genspio.Language.t
 
 val start_script :
-  t -> config:< paths: Paths.t ; .. > -> unit Genspio.Language.t
+     t
+  -> config:< env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> unit Genspio.Language.t
 
-val process : < paths: Paths.t ; .. > -> t -> Running_processes.Process.t
+val process :
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
+  -> Running_processes.Process.t
+
 val protocol : t -> Tezos_protocol.t
 
 val connections :

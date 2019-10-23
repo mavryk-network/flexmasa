@@ -36,6 +36,7 @@ val restart_node :
      client_exec:Tezos_executable.t
   -> < application_name: string
      ; console: Console.t
+     ; env_config: Environment_configuration.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
      ; .. >

@@ -32,6 +32,7 @@ let cli_state ?default_interactivity ?(disable_interactivity = false) ~name ()
   let app = sprintf "Flextesa.%s" name in
   let pauser = Interactive_test.Pauser.make [] in
   let ops = Log_recorder.Operations.make () in
+  let env_config = Environment_configuration.default () in
   let state console paths interactivity =
     object
       method paths = paths
@@ -47,6 +48,8 @@ let cli_state ?default_interactivity ?(disable_interactivity = false) ~name ()
       method pauser = pauser
 
       method operations_log = ops
+
+      method env_config = env_config
     end in
   let open Cmdliner in
   Term.(
