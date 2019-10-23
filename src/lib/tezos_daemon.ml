@@ -36,7 +36,7 @@ let to_script (t : t) ~state =
       args in
   match t.args with
   | Baker key ->
-      let node_path = Tezos_node.data_dir ~config:state t.node in
+      let node_path = Tezos_node.data_dir state t.node in
       call t
         [ "--port"
         ; sprintf "%d" t.node.Tezos_node.rpc_port

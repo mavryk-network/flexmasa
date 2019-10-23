@@ -38,27 +38,27 @@ val make :
 - [?cors_origin]: defaults to [Some "*"] (most permissive).
  *)
 
-val data_dir : config:< paths: Paths.t ; .. > -> t -> string
-val config_file : config:< paths: Paths.t ; .. > -> t -> string
-val identity_file : config:< paths: Paths.t ; .. > -> t -> string
-val log_output : config:< paths: Paths.t ; .. > -> t -> string
-val exec_path : config:< paths: Paths.t ; .. > -> t -> string
+val data_dir : < paths: Paths.t ; .. > -> t -> string
+val config_file : < paths: Paths.t ; .. > -> t -> string
+val identity_file : < paths: Paths.t ; .. > -> t -> string
+val log_output : < paths: Paths.t ; .. > -> t -> string
+val exec_path : < paths: Paths.t ; .. > -> t -> string
 
 val node_command :
-     t
-  -> config:< env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
   -> string list
   -> string list
   -> unit Genspio.Language.t
 
 val run_command :
-     t
-  -> config:< env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
   -> unit Genspio.Language.t
 
 val start_script :
-     t
-  -> config:< env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
   -> unit Genspio.Language.t
 
 val process :

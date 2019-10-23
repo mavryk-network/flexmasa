@@ -43,11 +43,11 @@ let make ?cors_origin ~exec ?(protocol = Tezos_protocol.default ())
 let make_path p ~config t = Paths.root config // sprintf "node-%s" t.id // p
 
 (* Data-dir should not exist OR be fully functional. *)
-let data_dir ~config t = make_path "data-dir" ~config t
-let config_file ~config t = data_dir ~config t // "config.json"
-let identity_file ~config t = data_dir ~config t // "identity.json"
-let log_output ~config t = make_path "node-output.log" ~config t
-let exec_path ~config t = make_path ~config "exec" t
+let data_dir config t = make_path "data-dir" ~config t
+let config_file config t = data_dir config t // "config.json"
+let identity_file config t = data_dir config t // "identity.json"
+let log_output config t = make_path "node-output.log" ~config t
+let exec_path config t = make_path ~config "exec" t
 
 module Config_file = struct
   (* 
@@ -68,7 +68,7 @@ module Config_file = struct
                     | `Archive -> string "archive"
                     | `Full -> string "full"
                     | `Rolling -> string "rolling" ) ] ) ] in
-    [ ("data-dir", data_dir ~config:state t |> string)
+    [ ("data-dir", data_dir state t |> string)
     ; ( "rpc"
       , dict [("listen-addrs", strings [sprintf "0.0.0.0:%d" t.rpc_port])] )
     ; ( "p2p"
@@ -81,27 +81,27 @@ module Config_file = struct
                 [ ("maintenance-idle-time", int 3)
                 ; ("swap-linger", int 2)
                 ; ("connection-timeout", int 2) ] ) ] )
-    ; ("log", dict [("output", string (log_output ~config:state t))]) ]
+    ; ("log", dict [("output", string (log_output state t))]) ]
     @ shell
     |> dict |> to_string ~minify:false
 end
 
 open Tezos_executable.Make_cli
 
-let node_command t ~config cmd options =
-  Tezos_executable.call t.exec ~path:(exec_path t ~config)
+let node_command state t cmd options =
+  Tezos_executable.call t.exec ~path:(exec_path state t)
     ( cmd
-    @ opt "config-file" (config_file ~config t)
-    @ opt "data-dir" (data_dir ~config t)
+    @ opt "config-file" (config_file state t)
+    @ opt "data-dir" (data_dir state t)
     @ options )
 
-let run_command t ~config =
+let run_command state t =
   let peers = List.concat_map t.peers ~f:(optf "peer" "127.0.0.1:%d") in
   let cors_origin =
     match t.cors_origin with
     | Some _ as s -> s
-    | None -> Environment_configuration.default_cors_origin config in
-  node_command t ~config ["run"]
+    | None -> Environment_configuration.default_cors_origin state in
+  node_command state t ["run"]
     ( flag "private-mode" @ flag "no-bootstrap-peers" @ peers
     @ optf "bootstrap-threshold" "0"
     @ optf "connections" "%d" t.expected_connections
@@ -110,30 +110,30 @@ let run_command t ~config =
         ~f:(fun s ->
           flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s)
         ~default:[]
-    @ opt "sandbox" (Tezos_protocol.sandbox_path ~config t.protocol) )
+    @ opt "sandbox" (Tezos_protocol.sandbox_path ~config:state t.protocol) )
 
-let start_script t ~config =
+let start_script state t =
   let open Genspio.EDSL in
   let gen_id =
-    node_command t ~config
+    node_command state t
       [ "identity"; "generate"
       ; sprintf "%d" (Tezos_protocol.expected_pow t.protocol) ]
       [] in
-  let tmp_config = tmp_file (config_file t ~config) in
+  let tmp_config = tmp_file (config_file state t) in
   check_sequence ~verbosity:`Output_all
-    [ ("reset-config", node_command t ~config ["config"; "reset"] [])
+    [ ("reset-config", node_command state t ["config"; "reset"] [])
     ; ( "write-config"
       , seq
-          [ tmp_config#set (Config_file.of_node config t |> str)
-          ; call [str "mv"; tmp_config#path; str (config_file t ~config)] ] )
+          [ tmp_config#set (Config_file.of_node state t |> str)
+          ; call [str "mv"; tmp_config#path; str (config_file state t)] ] )
     ; ( "ensure-identity"
       , ensure "node-id"
-          ~condition:(file_exists (str (identity_file t ~config)))
+          ~condition:(file_exists (str (identity_file state t)))
           ~how:[("gen-id", gen_id)] )
-    ; ("start", run_command t ~config) ]
+    ; ("start", run_command state t) ]
 
-let process config t =
-  Running_processes.Process.genspio t.id (start_script t ~config)
+let process state t =
+  Running_processes.Process.genspio t.id (start_script state t)
 
 let protocol t = t.protocol
 
