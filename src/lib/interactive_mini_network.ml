@@ -30,7 +30,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
   Asynchronous_result.map_option generate_kiln_config ~f:(fun kiln_config ->
       Kiln.Configuration_directory.generate state kiln_config
         ~peers:(List.map nodes ~f:(fun {Tezos_node.p2p_port; _} -> p2p_port))
-        ~sandbox_json:(Tezos_protocol.sandbox_path ~config:state protocol)
+        ~sandbox_json:(Tezos_protocol.sandbox_path state protocol)
         ~nodes:
           (List.map nodes ~f:(fun {Tezos_node.rpc_port; _} ->
                sprintf "http://localhost:%d" rpc_port))

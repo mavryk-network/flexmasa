@@ -190,28 +190,27 @@ let bootstrap_accounts t = List.map ~f:fst t.bootstrap_accounts
 let dictator_name {dictator; _} = Account.name dictator
 let dictator_secret_key {dictator; _} = Account.private_key dictator
 let make_path config t = Paths.root config // sprintf "protocol-%s" (id t)
-let sandbox_path ~config t = make_path config t // "sandbox.json"
+let sandbox_path config t = make_path config t // "sandbox.json"
 
-let protocol_parameters_path ~config t =
+let protocol_parameters_path config t =
   make_path config t // "protocol_parameters.json"
 
-let ensure_script ~config t =
+let ensure_script state t =
   let open Genspio.EDSL in
   let file string p =
-    let path = p ~config t in
+    let path = p state t in
     ( Filename.basename path
     , write_stdout ~path:(str path)
         (feed ~string:(str (string t)) (exec ["cat"])) ) in
   check_sequence
     ~verbosity:(`Announce (sprintf "Ensure-protocol-%s" (id t)))
-    [ ("directory", exec ["mkdir"; "-p"; make_path config t])
+    [ ("directory", exec ["mkdir"; "-p"; make_path state t])
     ; file sandbox sandbox_path
     ; file protocol_parameters protocol_parameters_path ]
 
 let ensure state t =
   Running_processes.run_successful_cmdf state "sh -c %s"
-    ( Genspio.Compile.to_one_liner (ensure_script ~config:state t)
-    |> Filename.quote )
+    (Genspio.Compile.to_one_liner (ensure_script state t) |> Filename.quote)
   >>= fun _ -> return ()
 
 let cli_term () =

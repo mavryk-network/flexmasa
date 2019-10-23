@@ -75,8 +75,7 @@ let activate_protocol_script t ~state protocol =
                   ; "and"; "key"
                   ; Tezos_protocol.dictator_name protocol
                   ; "and"; "parameters"
-                  ; Tezos_protocol.protocol_parameters_path ~config:state
-                      protocol ]
+                  ; Tezos_protocol.protocol_parameters_path state protocol ]
                 @ timestamp ) ] ) ]
 
 let import_secret_key t ~state name key =

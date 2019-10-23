@@ -110,7 +110,7 @@ let run_command state t =
         ~f:(fun s ->
           flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s)
         ~default:[]
-    @ opt "sandbox" (Tezos_protocol.sandbox_path ~config:state t.protocol) )
+    @ opt "sandbox" (Tezos_protocol.sandbox_path state t.protocol) )
 
 let start_script state t =
   let open Genspio.EDSL in
