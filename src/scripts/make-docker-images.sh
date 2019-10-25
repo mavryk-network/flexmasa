@@ -127,6 +127,10 @@ FROM alpine
 EOF
     alpine_setup ""
     copy_interesting_binaries >> Dockerfile
+    cat >> Dockerfile <<EOF
+RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
+RUN chmod a+rx /usr/bin/flextesarl
+EOF
 }
 
 case "$image_kind" in
