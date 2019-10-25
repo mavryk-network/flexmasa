@@ -131,6 +131,7 @@ docker:tag:
   only:
     - master
     - /^image.*$/
+    - /^version.*$/
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa --help=plain
