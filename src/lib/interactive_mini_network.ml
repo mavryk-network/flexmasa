@@ -69,7 +69,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
         >>= fun {process= _; lwt= _} -> return ())
     >>= fun () ->
     List_sequential.iter keys_and_daemons ~f:(fun (acc, client, daemons) ->
-        Tezos_client.bootstrapped ~state client
+        Tezos_client.wait_for_node_bootstrap state client
         >>= fun () ->
         let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
         Tezos_client.import_secret_key state client ~name:key ~key:priv
@@ -81,7 +81,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
               [ desc (af "Client:") (af "%S" client.Tezos_client.id)
               ; desc (af "Key:") (af "%S" key) ])
         >>= fun () ->
-        Tezos_client.register_as_delegate ~state client key
+        Tezos_client.register_as_delegate state client ~key_name:key
         >>= fun () ->
         say state
           EF.(
@@ -97,7 +97,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
       ~f:(fun prev_m (acc, client, _) ->
         prev_m
         >>= fun prev ->
-        Tezos_client.bootstrapped ~state client
+        Tezos_client.wait_for_node_bootstrap state client
         >>= fun () ->
         let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
         let keyed_client =

@@ -32,9 +32,6 @@ val client_command :
   -> unit Genspio.EDSL.t
 (** Build a tezos-client command, the default [?wait] is ["none"]. *)
 
-val bootstrapped_script :
-  t -> state:< paths: Paths.t ; .. > -> unit Genspio.EDSL.t
-
 (** {3 Run Specific Client Commands } *)
 
 module Command_error : sig
@@ -48,11 +45,14 @@ module Command_error : sig
   val pp : Format.formatter -> t -> unit
 end
 
-val bootstrapped :
-     t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
-  -> (unit, [> System_error.t]) Asynchronous_result.t
+val wait_for_node_bootstrap :
+     < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> client
+  -> (unit, [> System_error.t | Command_error.t]) Asynchronous_result.t
 (** Wait for the node to be bootstrapped. *)
 
 val import_secret_key :
@@ -67,11 +67,14 @@ val import_secret_key :
   -> (unit, [> System_error.t | Command_error.t]) Asynchronous_result.t
 
 val register_as_delegate :
-     t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
-  -> string
-  -> (unit, [> System_error.t]) Asynchronous_result.t
+     < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> client
+  -> key_name:string
+  -> (unit, [> System_error.t | Command_error.t]) Asynchronous_result.t
 
 val activate_protocol :
      < application_name: string
@@ -83,7 +86,7 @@ val activate_protocol :
   -> Tezos_protocol.t
   -> (unit, [> System_error.t | Command_error.t]) Asynchronous_result.t
 
-val client_cmd :
+val verbose_client_cmd :
      ?wait:string
   -> < application_name: string
      ; console: Console.t

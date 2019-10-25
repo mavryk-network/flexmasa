@@ -232,7 +232,7 @@ let fresh_id _state prefix ~seed =
     Digest.(string seed |> to_hex)
     Random.(int 10_000_000)
 
-let run_cmdf state fmt =
+let run_cmdf ?(id_prefix = "cmd") state fmt =
   let get_file path =
     System_error.catch
       Lwt.(
@@ -245,7 +245,7 @@ let run_cmdf state fmt =
       () in
   ksprintf
     (fun s ->
-      let id = fresh_id state "cmd" ~seed:s in
+      let id = fresh_id state id_prefix ~seed:s in
       let proc = Process.make_in_session id `Process_group ["sh"; "-c"; s] in
       start state proc
       >>= fun proc ->

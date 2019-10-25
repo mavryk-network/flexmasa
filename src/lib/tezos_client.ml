@@ -24,34 +24,6 @@ let client_command ?wait t ~state args =
     ~path:(base_dir t ~state // "exec-client")
     (client_call ?wait state t args)
 
-let bootstrapped_script t ~state =
-  let open Genspio.EDSL in
-  let cmd =
-    loop_until_true ~attempts:5 ~sleep:1
-      ~on_failed_attempt:(fun _ ->
-        eprintf (str "Bootstrap attempt failed\\n") [])
-      (succeeds (client_command t ~state ["bootstrapped"])) in
-  seq
-    [ exec ["mkdir"; "-p"; base_dir ~state t]
-    ; if_seq cmd ~t:[eprintf (str "Node Bootstrapped\\n") []] ]
-
-let bootstrapped t ~state =
-  let genspio = bootstrapped_script t ~state in
-  Running_processes.run_genspio state (sprintf "bootstrap-%s" t.id) genspio
-  >>= fun _ -> return ()
-
-let register_as_delegate t ~state keyname =
-  Running_processes.run_genspio state
-    (sprintf "client-%s-register-as-delegate-for-%s" t.id keyname)
-    Genspio.EDSL.(
-      if_seq
-        ( succeeds
-        @@ client_command t ~state
-             ["register"; "key"; keyname; "as"; "delegate"] )
-        ~t:[say "SUCCESS: Registering %s as delegate" [str keyname]]
-        ~e:[say "FAILURE: Registering %s as delegate" [str keyname]])
-  >>= fun _ -> return ()
-
 module Command_error = struct
   type t = [`Client_command_error of string * string list option]
 
@@ -68,7 +40,12 @@ end
 open Command_error
 open Console
 
-let client_cmd ?wait state ~client args =
+let run_client_cmd ?id_prefix ?wait state client args =
+  Running_processes.run_cmdf ?id_prefix state "sh -c %s"
+    ( client_command ?wait client ~state args
+    |> Genspio.Compile.to_one_liner |> Filename.quote )
+
+let verbose_client_cmd ?wait state ~client args =
   Running_processes.run_cmdf state "sh -c %s"
     ( client_command ?wait client ~state args
     |> Genspio.Compile.to_one_liner |> Filename.quote )
@@ -77,16 +54,39 @@ let client_cmd ?wait state ~client args =
   >>= fun success -> return (success, res)
 
 let successful_client_cmd ?wait state ~client args =
-  client_cmd state ?wait ~client args
+  verbose_client_cmd state ?wait ~client args
   >>= fun (success, res) ->
   match success with
   | true -> return res
   | false ->
       failf ~args "Client-command failure: %s" (String.concat ~sep:" " args)
 
+let wait_for_node_bootstrap state client =
+  let try_once () =
+    run_client_cmd
+      ~id_prefix:(client.id ^ "-bootstrapped")
+      state client ["bootstrapped"]
+    >>= fun res -> return (res#status = Unix.WEXITED 0) in
+  let attempts = 8 in
+  let rec loop nth =
+    if nth >= attempts then failf "Bootstrapping failed %d times." nth
+    else
+      try_once ()
+      >>= function
+      | true -> return ()
+      | false ->
+          System.sleep Float.(0.3 + (float nth * 0.5))
+          >>= fun () -> loop (nth + 1) in
+  loop 1
+
 let import_secret_key state client ~name ~key =
   successful_client_cmd state ~client
     ["import"; "secret"; "key"; name; key; "--force"]
+  >>= fun _ -> return ()
+
+let register_as_delegate state client ~key_name =
+  successful_client_cmd state ~client
+    ["register"; "key"; key_name; "as"; "delegate"]
   >>= fun _ -> return ()
 
 let rpc state ~client meth ~path =

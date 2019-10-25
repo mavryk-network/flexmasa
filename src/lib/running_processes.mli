@@ -67,7 +67,8 @@ val find_process_by_id :
   -> (State.process_state list, [> ]) Asynchronous_result.t
 
 val run_cmdf :
-     < paths: Paths.t ; runner: State.t ; .. > Base_state.t
+     ?id_prefix:string
+  -> < paths: Paths.t ; runner: State.t ; .. > Base_state.t
   -> ( 'a
      , unit
      , string

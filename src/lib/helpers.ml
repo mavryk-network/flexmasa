@@ -59,7 +59,7 @@ let restart_node ~client_exec state nod =
   let client = Tezos_client.of_node nod ~exec:client_exec in
   say state
     EF.(wf "Started node %s, waiting for bootstrap …" nod.Tezos_node.id)
-  >>= fun () -> Tezos_client.bootstrapped client ~state
+  >>= fun () -> Tezos_client.wait_for_node_bootstrap state client
 
 module Counter_log = struct
   type t = (string * int) list ref

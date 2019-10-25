@@ -193,14 +193,14 @@ module Network = struct
     let node_0 = List.hd_exn nodes in
     let client = Tezos_client.of_node node_0 ~exec:client_exec in
     Dbg.e EF.(af "Trying to bootstrap client") ;
-    Tezos_client.bootstrapped client ~state
+    Tezos_client.wait_for_node_bootstrap state client
     >>= fun () ->
     Tezos_client.activate_protocol state client protocol
     >>= fun () ->
     Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
     List_sequential.iter nodes ~f:(fun node ->
         let client = Tezos_client.of_node node ~exec:client_exec in
-        Tezos_client.bootstrapped client ~state)
+        Tezos_client.wait_for_node_bootstrap state client)
 end
 
 let network_with_protocol ?external_peer_ports ?base_port ?(size = 5) ?protocol
