@@ -178,29 +178,32 @@ module System_dependencies = struct
     >>= fun errors_or_warnings ->
     match (errors_or_warnings, how_to_react) with
     | [], _ -> return ()
-    | more, `Or_fail ->
+    | more, `Or_fail -> (
+        let is_not_just_a_warning = function
+          | `Wrong_netstat | `Missing_exec ("netstat", _) -> false
+          | `Missing_exec _ | `Not_a_protocol_path _ -> true in
         Console.sayf state
-          Format.(
+          Fmt.(
             fun ppf () ->
-              pp_print_string ppf "System dependencies failed precheck:" ;
-              pp_print_space ppf () ;
-              pp_open_hvbox ppf 0 ;
-              List.iter more ~f:(fun item ->
-                  pp_print_if_newline ppf () ;
-                  pp_print_string ppf "* " ;
-                  pp_open_hovbox ppf 0 ;
-                  ( match item with
-                  | `Missing_exec (path, _) ->
-                      (* pp_open_hovbox ppf 0 ; *)
-                      pp_print_text ppf
-                        (sprintf "Missing executable: `%s`." path)
-                  | `Wrong_netstat ->
-                      pp_print_text ppf "Wrong netstat version."
-                  | `Not_a_protocol_path path ->
-                      pp_print_text ppf
-                        (sprintf "Not a protocol path: `%s`." path) ) ;
-                  pp_close_box ppf () ; pp_print_space ppf ()) ;
-              pp_close_box ppf ())
+              vbox ~indent:2
+                (fun ppf () ->
+                  string ppf "System dependencies failed precheck:" ;
+                  List.iter more ~f:(fun item ->
+                      cut ppf () ;
+                      box ~indent:2
+                        (fun ppf () ->
+                          pf ppf "* %s "
+                            ( if is_not_just_a_warning item then "Fatal-error:"
+                            else "Warning:" ) ;
+                          match item with
+                          | `Missing_exec (path, _) ->
+                              (* pp_open_hovbox ppf 0 ; *)
+                              kstr (text ppf) "Missing executable `%s`." path
+                          | `Wrong_netstat -> text ppf "Wrong netstat version."
+                          | `Not_a_protocol_path path ->
+                              kstr (text ppf) "`%s` is not a protocol." path)
+                        ppf ()))
+                ppf ())
         >>= fun () ->
         ( if
           List.exists more ~f:(function
@@ -233,7 +236,17 @@ module System_dependencies = struct
                     simply add `export PATH=.:$PATH` to allow unix tools to \
                     find it."))
         else return () )
-        >>= fun () -> failf "Error/Warnings were raised during precheck."
+        >>= fun () ->
+        let non_warning_errors = List.filter more ~f:is_not_just_a_warning in
+        match non_warning_errors with
+        | [] ->
+            Console.say state
+              EF.(
+                wf "Pre-check noticed only %d warnings, no errors"
+                  (List.length more))
+        | _ ->
+            failf "%d errors were raised during precheck."
+              (List.length non_warning_errors) )
 end
 
 module Shell_environement = struct
