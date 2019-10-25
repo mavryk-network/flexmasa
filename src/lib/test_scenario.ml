@@ -195,7 +195,7 @@ module Network = struct
     Dbg.e EF.(af "Trying to bootstrap client") ;
     Tezos_client.bootstrapped client ~state
     >>= fun () ->
-    Tezos_client.activate_protocol client ~state protocol
+    Tezos_client.activate_protocol state client protocol
     >>= fun () ->
     Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
     List_sequential.iter nodes ~f:(fun node ->

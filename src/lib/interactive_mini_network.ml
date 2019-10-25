@@ -72,7 +72,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
         Tezos_client.bootstrapped ~state client
         >>= fun () ->
         let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
-        Tezos_client.import_secret_key ~state client key priv
+        Tezos_client.import_secret_key state client ~name:key ~key:priv
         >>= fun () ->
         say state
           EF.(

@@ -40,50 +40,6 @@ let bootstrapped t ~state =
   Running_processes.run_genspio state (sprintf "bootstrap-%s" t.id) genspio
   >>= fun _ -> return ()
 
-let import_secret_key_script t ~state name key =
-  client_command t ~state ["import"; "secret"; "key"; name; key; "--force"]
-
-let activate_protocol_script t ~state protocol =
-  let open Genspio.EDSL in
-  let timestamp =
-    match protocol.Tezos_protocol.timestamp_delay with
-    | None -> []
-    | Some delay -> (
-        let now = Ptime_clock.now () in
-        match Ptime.add_span now (Ptime.Span.of_int_s delay) with
-        | None ->
-            invalid_arg "activate_protocol_script: protocol.timestamp_delay"
-        | Some x -> ["--timestamp"; Ptime.to_rfc3339 x] ) in
-  check_sequence ~verbosity:(`Announce "activating-protocol")
-    [ ( "add-activator-key"
-      , import_secret_key_script t ~state
-          (Tezos_protocol.dictator_name protocol)
-          (Tezos_protocol.dictator_secret_key protocol) )
-    ; ( "activate-protocol"
-      , ensure "activate-alpha-only-once"
-          ~condition:
-            (greps_to
-               (str protocol.Tezos_protocol.hash)
-               (client_command t ~state
-                  ["rpc"; "get"; "/chains/main/blocks/head/metadata"]))
-          ~how:
-            [ ( "activate"
-              , client_command t ~state @@ opt "block" "genesis"
-                @ [ "activate"; "protocol"; protocol.Tezos_protocol.hash; "with"
-                  ; "fitness"
-                  ; sprintf "%d" protocol.Tezos_protocol.expected_pow
-                  ; "and"; "key"
-                  ; Tezos_protocol.dictator_name protocol
-                  ; "and"; "parameters"
-                  ; Tezos_protocol.protocol_parameters_path state protocol ]
-                @ timestamp ) ] ) ]
-
-let import_secret_key t ~state name key =
-  Running_processes.run_genspio state
-    (sprintf "client-%s-import-key-%s-as-%s" t.id name key)
-    (import_secret_key_script t ~state name key)
-  >>= fun _ -> return ()
-
 let register_as_delegate t ~state keyname =
   Running_processes.run_genspio state
     (sprintf "client-%s-register-as-delegate-for-%s" t.id keyname)
@@ -94,12 +50,6 @@ let register_as_delegate t ~state keyname =
              ["register"; "key"; keyname; "as"; "delegate"] )
         ~t:[say "SUCCESS: Registering %s as delegate" [str keyname]]
         ~e:[say "FAILURE: Registering %s as delegate" [str keyname]])
-  >>= fun _ -> return ()
-
-let activate_protocol t ~state protocol =
-  Running_processes.run_genspio state
-    (sprintf "activate_protocol-%s-%s" t.id protocol.Tezos_protocol.id)
-    (activate_protocol_script t ~state protocol)
   >>= fun _ -> return ()
 
 module Command_error = struct
@@ -134,6 +84,11 @@ let successful_client_cmd ?wait state ~client args =
   | false ->
       failf ~args "Client-command failure: %s" (String.concat ~sep:" " args)
 
+let import_secret_key state client ~name ~key =
+  successful_client_cmd state ~client
+    ["import"; "secret"; "key"; name; key; "--force"]
+  >>= fun _ -> return ()
+
 let rpc state ~client meth ~path =
   let args =
     match meth with
@@ -158,6 +113,45 @@ let rpc state ~client meth ~path =
                 (markdown_verbatim (String.concat ~sep:"\n" res#err)) ])
       >>= fun () ->
       failf ~args "RPC failure cannot parse json: %s" Exn.(to_string e) )
+
+let activate_protocol state client protocol =
+  let timestamp =
+    match protocol.Tezos_protocol.timestamp_delay with
+    | None -> []
+    | Some delay -> (
+        let now = Ptime_clock.now () in
+        match Ptime.add_span now (Ptime.Span.of_int_s delay) with
+        | None ->
+            invalid_arg "activate_protocol_script: protocol.timestamp_delay"
+        | Some x -> ["--timestamp"; Ptime.to_rfc3339 x] ) in
+  Console.say state
+    EF.(wf "Activating protocol %s" protocol.Tezos_protocol.hash)
+  >>= fun () ->
+  import_secret_key state client
+    ~name:(Tezos_protocol.dictator_name protocol)
+    ~key:(Tezos_protocol.dictator_secret_key protocol)
+  >>= fun () ->
+  successful_client_cmd state ~client
+    ( opt "block" "genesis"
+    @ [ "activate"; "protocol"; protocol.Tezos_protocol.hash; "with"; "fitness"
+      ; sprintf "%d" protocol.Tezos_protocol.expected_pow
+      ; "and"; "key"
+      ; Tezos_protocol.dictator_name protocol
+      ; "and"; "parameters"
+      ; Tezos_protocol.protocol_parameters_path state protocol ]
+    @ timestamp )
+  >>= fun _ ->
+  rpc state ~client `Get ~path:"/chains/main/blocks/head/metadata"
+  >>= fun metadata_json ->
+  ( match Jqo.field metadata_json ~k:"next_protocol" with
+  | `String hash when hash = protocol.Tezos_protocol.hash -> return ()
+  | exception e ->
+      System_error.fail_fatalf "Error getting protocol metadata: %a" Exn.pp e
+  | other_value ->
+      System_error.fail_fatalf "Error activating protocol: %s Vs %s"
+        (Ezjsonm.value_to_string other_value)
+        protocol.Tezos_protocol.hash )
+  >>= fun () -> return ()
 
 let find_applied_in_mempool state ~client ~f =
   successful_client_cmd state ~client

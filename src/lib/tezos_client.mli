@@ -35,42 +35,7 @@ val client_command :
 val bootstrapped_script :
   t -> state:< paths: Paths.t ; .. > -> unit Genspio.EDSL.t
 
-val import_secret_key_script :
-  t -> state:< paths: Paths.t ; .. > -> string -> string -> unit Genspio.EDSL.t
-
-val activate_protocol_script :
-  t -> state:< paths: Paths.t ; .. > -> Tezos_protocol.t -> unit Genspio.EDSL.t
-
 (** {3 Run Specific Client Commands } *)
-
-val bootstrapped :
-     t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
-  -> (unit, [> System_error.t]) Asynchronous_result.t
-(** Wait for the node to be bootstrapped. *)
-
-val import_secret_key :
-     t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
-  -> string
-  -> string
-  -> (unit, [> System_error.t]) Asynchronous_result.t
-
-val register_as_delegate :
-     t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
-  -> string
-  -> (unit, [> System_error.t]) Asynchronous_result.t
-
-val activate_protocol :
-     t
-  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
-           Base_state.t
-  -> Tezos_protocol.t
-  -> (unit, [> System_error.t]) Asynchronous_result.t
 
 module Command_error : sig
   type t = [`Client_command_error of string * string list option]
@@ -82,6 +47,41 @@ module Command_error : sig
 
   val pp : Format.formatter -> t -> unit
 end
+
+val bootstrapped :
+     t
+  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
+           Base_state.t
+  -> (unit, [> System_error.t]) Asynchronous_result.t
+(** Wait for the node to be bootstrapped. *)
+
+val import_secret_key :
+     < paths: Paths.t
+     ; console: Console.t
+     ; runner: Running_processes.State.t
+     ; .. >
+     Base_state.t
+  -> t
+  -> name:string
+  -> key:string
+  -> (unit, [> System_error.t | Command_error.t]) Asynchronous_result.t
+
+val register_as_delegate :
+     t
+  -> state:< paths: Paths.t ; runner: Running_processes.State.t ; .. >
+           Base_state.t
+  -> string
+  -> (unit, [> System_error.t]) Asynchronous_result.t
+
+val activate_protocol :
+     < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> client
+  -> Tezos_protocol.t
+  -> (unit, [> System_error.t | Command_error.t]) Asynchronous_result.t
 
 val client_cmd :
      ?wait:string
