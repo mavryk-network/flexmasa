@@ -452,7 +452,8 @@ module Commands = struct
              client.Tezos_client.Keyed.client.id
              client.Tezos_client.Keyed.key_name)
           ~f:(fun ~result:_ -> function
-            | `Client_command_error (m, _) -> cmdline_fail "Error: %s" m
+            | #Process_result.Error.t as e ->
+                cmdline_fail "Error: %a" Process_result.Error.pp e
             | #System_error.t as e ->
                 cmdline_fail "Error: %a" System_error.pp e))
 

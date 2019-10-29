@@ -66,12 +66,10 @@ let () =
     | #Process_result.Error.t as e ->
         Format.fprintf fmt "%a" Process_result.Error.pp e
     | #System_error.t as e -> Format.fprintf fmt "%a" System_error.pp e
-    | `Client_command_error _ as e -> Tezos_client.Command_error.pp fmt e
-    | `Admin_command_error _ as e -> Tezos_admin_client.Command_error.pp fmt e
     | `Waiting_for (msg, `Time_out) ->
         Format.fprintf fmt "WAITING-FOR “%s”: Time-out" msg
     | `Precheck_failure _ as p -> Helpers.System_dependencies.Error.pp fmt p
-    | `Die _ -> () in
+    | `Die n -> Format.fprintf fmt "Exiting with %d" n in
   let help = Term.(ret (pure (`Help (`Auto, None))), info "flextesa") in
   Term.exit
     (Term.eval_choice

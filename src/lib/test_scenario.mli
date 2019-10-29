@@ -80,7 +80,7 @@ module Network : sig
        , [> `Empty_protocol_list
          | System_error.t
          | Process_result.Error.t
-         | Tezos_client.Command_error.t
+         | Process_result.Error.t
          | `Too_many_protocols of Tezos_protocol.t list
          | `Too_many_timestamp_delays of Tezos_protocol.t list ] )
        Asynchronous_result.t
@@ -94,7 +94,7 @@ val network_with_protocol :
   -> ?nodes_history_mode_edits:([> `Empty_protocol_list
                                 | System_error.t
                                 | Process_result.Error.t
-                                | Tezos_client.Command_error.t
+                                | Process_result.Error.t
                                 | `Too_many_protocols of Tezos_protocol.t list
                                 | `Too_many_timestamp_delays of
                                   Tezos_protocol.t list ]

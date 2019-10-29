@@ -97,7 +97,10 @@ end
 (** An “decorated result type” based on polymorphic variants *)
 module Attached_result = struct
   type content =
-    [`Text of string | `String_value of string | `Verbatim of string list]
+    [ `Text of string
+    | `String_value of string
+    | `Verbatim of string list
+    | `String_list of string list ]
 
   type ('ok, 'error) t =
     {result: ('ok, 'error) result; attachments: (string * content) list}
@@ -138,6 +141,13 @@ module Attached_result = struct
             ( match v with
             | `Text s -> pp_print_text ppf s
             | `String_value s -> fprintf ppf "%S" s
+            | `String_list words ->
+                pp_open_box ppf 0 ;
+                pp_print_string ppf "[[" ;
+                List.iter words ~f:(fun w ->
+                    pp_print_cut ppf () ; pp_print_string ppf w) ;
+                pp_print_string ppf "]]" ;
+                pp_close_box ppf ()
             | `Verbatim lines ->
                 pp_open_vbox ppf 0 ;
                 pp_print_cut ppf () ;
@@ -358,26 +368,43 @@ module Process_result = struct
       | WSTOPPED n -> sprintf "was stopped: %d" n)
 
   module Error = struct
-    type output = t
-    type t = [`Wrong_status of output * string]
+    type error =
+      | Wrong_status of {status: Unix.process_status; message: string}
+      | Wrong_behavior of {message: string}
 
-    let wrong_status (res : output) msgf =
-      ksprintf (fun msg -> fail (`Wrong_status (res, msg) : [> t])) msgf
+    type res = t
+    type t = [`Process_error of error]
 
-    let pp fmt = function
-      | (`Wrong_status (res, msg) : [< t]) ->
-          Format.(
-            fprintf fmt "Process-error, wrong status:@ '%s':@ %s"
-              (status_to_string res#status)
-              msg ;
-            fprintf fmt "@.```out@." ;
-            List.iter res#out ~f:(fprintf fmt "  | %s@.") ;
-            fprintf fmt "@.```@." ;
-            fprintf fmt "@.```err@." ;
-            List.iter res#err ~f:(fprintf fmt "  | %s@.") ;
-            fprintf fmt "@.```@.")
+    let make error = (`Process_error error : [> t])
+    let fail ?attach error = Asynchronous_result.fail ?attach (make error)
 
-    let fail_if_non_zero (res : output) msg =
+    let wrong_status ?attach result msgf =
+      Fmt.kstr
+        (fun message ->
+          let attach =
+            Option.value attach ~default:[]
+            @ [ ("stdout", `Verbatim result#out)
+              ; ("stderr", `Verbatim result#err) ] in
+          fail ~attach (Wrong_status {status= result#status; message}))
+        msgf
+
+    let wrong_behavior ?attach msgf =
+      Fmt.kstr (fun message -> fail ?attach (Wrong_behavior {message})) msgf
+
+    let pp ppf (`Process_error the_error) =
+      let open Fmt in
+      box ~indent:2
+        (fun ppf () ->
+          pf ppf "Process-error:" ;
+          sp ppf () ;
+          match the_error with
+          | Wrong_status {status; message} ->
+              text ppf message ;
+              pf ppf "; wrong-status: '%s'." (status_to_string status)
+          | Wrong_behavior {message} -> text ppf message)
+        ppf ()
+
+    let fail_if_non_zero (res : res) msg =
       if res#status <> Unix.WEXITED 0 then
         wrong_status res "Non-zero exit status: %s" msg
       else return ()

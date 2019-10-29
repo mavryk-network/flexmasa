@@ -25,16 +25,13 @@ let client_command ?wait t ~state args =
     (client_call ?wait state t args)
 
 module Command_error = struct
-  type t = [`Client_command_error of string * string list option]
-
-  let failf ?args fmt =
-    ksprintf (fun s -> fail (`Client_command_error (s, args) : [> t])) fmt
-
-  let pp fmt (`Client_command_error (msg, args) : t) =
-    Format.fprintf fmt "Client-command-error:@ %s%s" msg
-      (Option.value_map args ~default:"" ~f:(fun l ->
-           sprintf " (args: %s)"
-             (List.map ~f:(sprintf "%S") l |> String.concat ~sep:", ")))
+  let failf ?client ?args fmt =
+    let attach =
+      Option.value_map ~default:[] args ~f:(fun l ->
+          [("arguments", `String_list l)])
+      @ Option.value_map ~default:[] client ~f:(fun c ->
+            [("client-id", `String_value c.id)]) in
+    Process_result.Error.wrong_behavior ~attach fmt
 end
 
 open Command_error

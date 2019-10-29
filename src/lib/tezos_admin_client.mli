@@ -11,17 +11,6 @@ val make_command :
   t -> < paths: Paths.t ; .. > -> string list -> unit Genspio.EDSL.t
 (** Build a [Genspio.EDSL.t] command. *)
 
-module Command_error : sig
-  type t = [`Admin_command_error of string * string list option]
-
-  val failf :
-       ?args:string list
-    -> ('a, unit, string, ('b, [> t]) Asynchronous_result.t) format4
-    -> 'a
-
-  val pp : Format.formatter -> t -> unit
-end
-
 val successful_command :
      t
   -> < application_name: string
@@ -31,7 +20,7 @@ val successful_command :
      ; .. >
   -> string list
   -> ( Process_result.t
-     , [> Command_error.t | System_error.t] )
+     , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
 val inject_protocol :
@@ -43,5 +32,5 @@ val inject_protocol :
      ; .. >
   -> path:string
   -> ( Process_result.t * string
-     , [> Command_error.t | System_error.t] )
+     , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t

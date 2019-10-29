@@ -41,9 +41,7 @@ val restart_node :
      ; runner: Running_processes.State.t
      ; .. >
   -> Tezos_node.t
-  -> ( unit
-     , [> System_error.t | Tezos_client.Command_error.t] )
-     Asynchronous_result.t
+  -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 (** Restart a killed node. *)
 
 (** Stateful “message × count” log, see its use in, e.g.,
