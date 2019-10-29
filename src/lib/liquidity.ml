@@ -287,9 +287,8 @@ module On_chain = struct
 
   let show_contract_command state ~client ~name ~address ~pp_error =
     Console.Prompt.unit_and_loop
-      EF.(wf "Show status of the contract %s." address)
-      [sprintf "show-%s" name]
-      (fun _sexps ->
+      ~description:(Fmt.str "Show status of the contract %s." address)
+      [sprintf "show-%s" name] (fun _sexps ->
         Asynchronous_result.transform_error
           ~f:(fun e ->
             Format.kasprintf
@@ -320,10 +319,9 @@ module On_chain = struct
   let big_map_get_command state ~names ~thing ~client ~name ~address
       ~key_of_string ~pp_error =
     Console.Prompt.unit_and_loop
-      EF.(
-        wf "Get %s from the big-map of the contract %s@%s." thing name address)
-      names
-      (fun sexps ->
+      ~description:
+        (Fmt.str "Get %s from the big-map of the contract %s@%s." thing name
+           address) names (fun sexps ->
         Asynchronous_result.transform_error
           ~f:(fun e ->
             Format.kasprintf

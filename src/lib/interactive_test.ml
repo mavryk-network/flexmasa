@@ -10,20 +10,35 @@ module Commands = struct
 
   let flag f sexps = List.mem sexps (Base.Sexp.Atom f) ~equal:Base.Sexp.equal
 
-  let unit_loop_no_args doc opts f =
-    Prompt.unit_and_loop doc opts (fun sexps ->
+  let unit_loop_no_args ~description opts f =
+    Prompt.unit_and_loop ~description opts (fun sexps ->
         no_args sexps >>= fun () -> f ())
 
   module Sexp_options = struct
-    let option_doc pattern doc = EF.(desc (haf "`%s`:" pattern) doc)
+    type option = {name: string; placeholders: string list; description: string}
 
-    let option_list_doc = function
-      | [] -> EF.(wf "(no-options)")
-      | l -> EF.(desc_list (wf "Options:") l)
+    let make_option name ?(placeholders = []) description =
+      {name; placeholders; description}
+
+    let pp_options l ppf () =
+      let open More_fmt in
+      vertical_box ~indent:2 ppf (fun ppf ->
+          pf ppf "Options:" ;
+          List.iter l ~f:(fun {name; placeholders; description} ->
+              cut ppf () ;
+              wrapping_box ~indent:2 ppf (fun ppf ->
+                  let opt_ex ppf () =
+                    prompt ppf (fun ppf ->
+                        pf ppf "(%s%s)" name
+                          ( if placeholders = [] then ""
+                          else
+                            List.map ~f:(str " %s") placeholders
+                            |> String.concat ~sep:"" )) in
+                  pf ppf "* %a: %a" opt_ex () text description)))
 
     let port_number_doc _ ~default_port =
-      option_doc "(port <int>)"
-        EF.(wf "use port-number <int> (default: %d)" default_port)
+      make_option "port" ~placeholders:["<int>"]
+        Fmt.(str "Use port number <int> instead of %d (default)." default_port)
 
     let port_number state ~default_port sexps =
       match
@@ -55,7 +70,7 @@ module Commands = struct
 
   let du_sh_root state =
     unit_loop_no_args
-      EF.(af "Run du -sh on %s" (Paths.root state))
+      ~description:(Fmt.str "Run du -sh on %s" (Paths.root state))
       ["d"; "du-root"]
       (fun () ->
         Running_processes.run_cmdf state "du -sh %s" (Paths.root state)
@@ -71,10 +86,9 @@ module Commands = struct
 
   let processes state =
     Prompt.unit_and_loop
-      EF.(
-        af "Display status of processes-manager ('all' to include non-running)")
-      ["p"; "processes"]
-      (fun sxp ->
+      ~description:
+        "Display status of processes-manager ('all' to include non-running)"
+      ["p"; "processes"] (fun sxp ->
         let all = flag "all" sxp in
         say state (Running_processes.ef ~all state))
 
@@ -101,11 +115,10 @@ module Commands = struct
           (Ezjsonm.value_to_string ~minify:false json) )
 
   let curl_unit_display ?(jq = fun e -> e) state cmd ~default_port ~path ~doc =
-    Prompt.unit_and_loop
-      EF.(
-        desc (af "%s" doc)
-          (desc_list (af "Options:")
-             [Sexp_options.port_number_doc state ~default_port]))
+    Prompt.unit_and_loop ~description:doc
+      ~details:
+        (Sexp_options.pp_options
+           [Sexp_options.port_number_doc state ~default_port])
       cmd
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
@@ -119,23 +132,22 @@ module Commands = struct
   let curl_metadata state ~default_port =
     curl_unit_display state ["m"; "metadata"] ~default_port
       ~path:"/chains/main/blocks/head/metadata"
-      ~doc:"Display `/chains/main/blocks/head/metadata`"
+      ~doc:"Display `/chains/main/blocks/head/metadata`."
 
   let curl_level state ~default_port =
     curl_unit_display state ["l"; "level"] ~default_port
-      ~path:"/chains/main/blocks/head/metadata" ~doc:"Display block level"
+      ~path:"/chains/main/blocks/head/metadata" ~doc:"Display block level."
       ~jq:(Jqo.field ~k:"level")
 
   let curl_baking_rights state ~default_port =
     curl_unit_display state ["bk"; "baking-rights"] ~default_port
       ~path:"/chains/main/blocks/head/helpers/baking_rights"
-      ~doc:"Display baking rights"
+      ~doc:"Display baking rights."
 
   let all_levels state ~nodes =
     unit_loop_no_args
-      EF.(af "Get all the levels")
-      ["al"; "all-levels"]
-      (fun () ->
+      ~description:"Get all “head” levels of all the nodes."
+      ["al"; "all-levels"] (fun () ->
         Test_scenario.Queries.all_levels state ~nodes
         >>= fun results ->
         say state
@@ -152,46 +164,42 @@ module Commands = struct
 
   let show_process state =
     Prompt.unit_and_loop
-      EF.(af "Show more of a process (by name-prefix)")
-      ["show"]
+      ~description:"Show more of a process (by name-prefix)." ["show"]
       (function
-        | [Atom name] ->
-            let prefix = String.lowercase name in
-            Running_processes.find_process_by_id state ~f:(fun n ->
-                String.is_prefix (String.lowercase n) ~prefix)
-            >>= fun procs ->
-            List.fold procs ~init:(return []) ~f:(fun prevm {process; lwt} ->
-                prevm
-                >>= fun prev ->
-                let open Running_processes in
-                let out = output_path state process `Stdout in
-                let err = output_path state process `Stderr in
-                Running_processes.run_cmdf state "tail %s" out
-                >>= fun tailout ->
-                Running_processes.run_cmdf state "tail %s" err
-                >>= fun tailerr ->
-                return
-                  EF.(
-                    desc_list
-                      (haf "%S (%d)" process.Process.id lwt#pid)
-                      [ desc (af "out: %s" out) (ocaml_string_list tailout#out)
-                      ; desc (af "err: %s" err) (ocaml_string_list tailerr#out)
-                      ]
-                    :: prev))
-            >>= fun ef -> say state EF.(list ef)
-        | _other -> cmdline_fail "command expects 1 argument: name-prefix")
+      | [Atom name] ->
+          let prefix = String.lowercase name in
+          Running_processes.find_process_by_id state ~f:(fun n ->
+              String.is_prefix (String.lowercase n) ~prefix)
+          >>= fun procs ->
+          List.fold procs ~init:(return []) ~f:(fun prevm {process; lwt} ->
+              prevm
+              >>= fun prev ->
+              let open Running_processes in
+              let out = output_path state process `Stdout in
+              let err = output_path state process `Stderr in
+              Running_processes.run_cmdf state "tail %s" out
+              >>= fun tailout ->
+              Running_processes.run_cmdf state "tail %s" err
+              >>= fun tailerr ->
+              return
+                EF.(
+                  desc_list
+                    (haf "%S (%d)" process.Process.id lwt#pid)
+                    [ desc (af "out: %s" out) (ocaml_string_list tailout#out)
+                    ; desc (af "err: %s" err) (ocaml_string_list tailerr#out)
+                    ]
+                  :: prev))
+          >>= fun ef -> say state EF.(list ef)
+      | _other -> cmdline_fail "command expects 1 argument: name-prefix")
 
   let kill_all state =
-    unit_loop_no_args
-      EF.(af "Kill all processes.")
-      ["ka"; "killall"]
-      (fun () -> Running_processes.kill_all state)
+    unit_loop_no_args ~description:"Kill all known processes/process-groups."
+      ["ka"; "killall"] (fun () -> Running_processes.kill_all state)
 
   let secret_keys state ~protocol =
     unit_loop_no_args
-      EF.(af "Show the protocol's “bootstrap” accounts")
-      ["boa"; "bootstrap-accounts"]
-      (fun () ->
+      ~description:"Show the protocol's “bootstrap” accounts."
+      ["boa"; "bootstrap-accounts"] (fun () ->
         say state
           EF.(
             desc (af "Secret Keys:")
@@ -206,18 +214,16 @@ module Commands = struct
                         ; atom (private_key acc) ])))))
 
   let show_connections state nodes =
-    unit_loop_no_args
-      EF.(af "Show all node connections")
-      ["ac"; "all-connections"]
-      (fun () -> Helpers.dump_connections state nodes)
+    unit_loop_no_args ~description:"Show all node connections"
+      ["ac"; "all-connections"] (fun () ->
+        Helpers.dump_connections state nodes)
 
   let balances state ~default_port =
     Prompt.unit_and_loop
-      EF.(
-        desc
-          (wf "Show the balances of all known accounts")
-          (desc_list (wf "Options")
-             [Sexp_options.port_number_doc state ~default_port]))
+      ~description:"Show the balances of all known accounts."
+      ~details:
+        (Sexp_options.pp_options
+           [Sexp_options.port_number_doc state ~default_port])
       ["sb"; "show-balances"]
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
@@ -267,11 +273,10 @@ module Commands = struct
 
   let better_call_dev state ~default_port =
     Prompt.unit_and_loop
-      EF.(
-        desc
-          (wf "Show URIs to all contracts with better-call.dev")
-          (desc_list (wf "Options")
-             [Sexp_options.port_number_doc state ~default_port]))
+      ~description:"Show URIs to all contracts with `better-call.dev`."
+      ~details:
+        (Sexp_options.pp_options
+           [Sexp_options.port_number_doc state ~default_port])
       ["bcd"; "better-call-dev"]
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
@@ -311,29 +316,28 @@ module Commands = struct
 
   let arbitrary_command_on_all_clients ?make_admin
       ?(command_names = ["atc"; "all-clients"]) state ~clients =
+    let details =
+      let open Sexp_options in
+      let only_opt =
+        make_option "only"
+          ~placeholders:["<name1>"; "<name2>"; "..."]
+          "Restrict the clients by name." in
+      let all =
+        (match clients with [_] -> [] | _ -> [only_opt])
+        @ Option.value_map make_admin ~default:[] ~f:(fun _ ->
+              [make_option "admin" "Use the admin-client instead."]) in
+      match all with [] -> None | _ -> Some (pp_options all) in
     Prompt.unit_and_loop
-      EF.(
-        desc
-          (wf "Run a tezos-client command on %s"
-             ( match clients with
-             | [] -> "NO CLIENT, so this is useless…"
-             | [one] -> sprintf "the %S client." one.Tezos_client.id
-             | more ->
-                 sprintf "all the following clients: %s."
-                   ( List.map more ~f:(fun c -> c.Tezos_client.id)
-                   |> String.concat ~sep:", " ) ))
-          Sexp_options.(
-            let only_opt =
-              option_doc "(only <name1> <name2>)"
-                (wf "Restrict the clients by name") in
-            ( (match clients with [_] -> [] | _ -> [only_opt])
-            @
-            match make_admin with
-            | None -> []
-            | _ -> [option_doc "(admin)" (wf "Use the admin-client instead.")]
-            )
-            |> option_list_doc))
-      command_names
+      ~description:
+        (Fmt.str "Run a tezos-client command on %s"
+           ( match clients with
+           | [] -> "NO CLIENT, so this is useless…"
+           | [one] -> sprintf "the %S client." one.Tezos_client.id
+           | more ->
+               sprintf "all the following clients: %s."
+                 ( List.map more ~f:(fun c -> c.Tezos_client.id)
+                 |> String.concat ~sep:", " ) ))
+      ?details command_names
       (fun sexps ->
         let args =
           let open Base.Sexp in
@@ -426,16 +430,17 @@ module Commands = struct
 
   let bake_command state ~clients =
     Prompt.unit_and_loop
-      EF.(
-        wf "Manually bake a block (with %s)."
-          ( match clients with
-          | [] -> "NO CLIENT, this is just wrong"
-          | [one] -> one.Tezos_client.Keyed.client.id
-          | m ->
-              sprintf "one of %s"
-                ( List.mapi m ~f:(fun ith one ->
-                      sprintf "%d: %s" ith one.Tezos_client.Keyed.client.id)
-                |> String.concat ~sep:", " ) ))
+      ~description:
+        Fmt.(
+          str "Manually bake a block (with %s)."
+            ( match clients with
+            | [] -> "NO CLIENT, this is just wrong"
+            | [one] -> one.Tezos_client.Keyed.client.id
+            | m ->
+                str "one of %s"
+                  ( List.mapi m ~f:(fun ith one ->
+                        str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+                  |> String.concat ~sep:", " ) ))
       ["bake"]
       (fun sexps ->
         let client =

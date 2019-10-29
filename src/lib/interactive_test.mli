@@ -18,7 +18,7 @@ module Commands : sig
   val flag : string -> Sexplib0.Sexp.t list -> bool
 
   val unit_loop_no_args :
-       Easy_format.t
+       description:string
     -> string list
     -> (   unit
         -> ( unit

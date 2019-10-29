@@ -286,8 +286,7 @@ module Shell_environement = struct
 
   let help_command state t ~path =
     Console.Prompt.unit_and_loop
-      EF.(wf "Show help about the shell-environment.")
-      ["help-env"]
+      ~description:"Show help about the shell-environment." ["help-env"]
       (fun _sexps ->
         Console.sayf state
           More_fmt.(
