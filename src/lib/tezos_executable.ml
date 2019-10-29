@@ -63,6 +63,6 @@ let cli_term kind prefix =
   $ Arg.(
       value
       & opt (some string) None
-      & info
+      & info ~docs:"EXECUTABLE PATHS"
           [sprintf "%s-%s-binary" prefix (kind_string kind)]
           ~doc:(sprintf "Binary for the `tezos-%s` to use." (kind_string kind)))

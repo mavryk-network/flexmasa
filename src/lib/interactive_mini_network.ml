@@ -137,6 +137,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
 let cmd ~pp_error () =
   let open Cmdliner in
   let open Term in
+  let docs = "TEST SCENARIO OPTIONS" in
   Test_command_line.Run_command.make ~pp_error
     ( pure
         (fun test_kind
@@ -169,37 +170,37 @@ let cmd ~pp_error () =
             | None -> `Interactive)
         $ value
             (opt (some int) None
-               (info ["until-level"]
+               (info ["until-level"] ~docs
                   ~doc:"Run the sandbox until a given level (not interactive)")))
     $ Arg.(
         pure (fun kr -> `Clear_root (not kr))
         $ value
             (flag
-               (info ["keep-root"]
+               (info ["keep-root"] ~docs
                   ~doc:"Do not erase the root path before starting.")))
     $ Arg.(
         value & opt int 5
-        & info ["size"; "S"] ~doc:"Set the size of the network.")
+        & info ["size"; "S"] ~docs ~doc:"Set the size of the network.")
     $ Arg.(
         value & opt int 20_000
-        & info ["base-port"; "P"] ~doc:"Base port number to build upon.")
+        & info ["base-port"; "P"] ~docs ~doc:"Base port number to build upon.")
     $ Arg.(
         pure (fun l -> `External_peers l)
         $ value
             (opt_all int []
-               (info ["add-external-peer-port"] ~docv:"PORT-NUMBER"
+               (info ["add-external-peer-port"] ~docv:"PORT-NUMBER" ~docs
                   ~doc:"Add $(docv) to the peers of the network nodes.")))
     $ Arg.(
         pure (fun l -> `No_daemons_for l)
         $ value
             (opt_all string []
-               (info ["no-daemons-for"] ~docv:"ACCOUNT-NAME"
+               (info ["no-daemons-for"] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
     $ Arg.(
         pure (fun x -> `With_baking (not x))
         $ value
             (flag
-               (info ["no-baking"]
+               (info ["no-baking"] ~docs
                   ~doc:
                     "Completely disable baking/endorsing/accusing (you need \
                      to bake manually to make the chain advance).")))
@@ -217,5 +218,6 @@ let cmd ~pp_error () =
        [ `P
            "This test builds a small sandbox network, start various daemons, \
             and then gives the user an interactive command prompt to inspect \
-            the network." ] in
+            the network."; `S docs; `S "OPTIONS"; `S "PROTOCOL OPTIONS"
+       ; `S "EXECUTABLE PATHS"; `S "TOOLS: KILN" ] in
      info "mini-network" ~man ~doc)
