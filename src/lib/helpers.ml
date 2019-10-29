@@ -290,7 +290,7 @@ module Shell_environement = struct
       ["help-env"]
       (fun _sexps ->
         Console.sayf state
-          Experiments.More_fmt.(
+          More_fmt.(
             fun ppf () ->
               let pick_and_alias ppf () =
                 let k, _, _ = List.random_element_exn t.aliases in

@@ -1,6 +1,6 @@
 open Flextesa
 open Internal_pervasives
-module IFmt = Experiments.More_fmt
+module IFmt = More_fmt
 
 module Concrete = struct
   module Parse_error = struct

@@ -94,6 +94,38 @@ module Dbg = struct
   let pp_any fmt v = Dum.to_formatter fmt v
 end
 
+module More_fmt = struct
+  include Fmt
+  (** Little experiment for fun … *)
+
+  let vertical_box ?indent ppf f = vbox ?indent (fun ppf () -> f ppf) ppf ()
+  let wrapping_box ?indent ppf f = box ?indent (fun ppf () -> f ppf) ppf ()
+
+  let wf ppf fmt =
+    Format.kasprintf (fun s -> box (fun ppf () -> text ppf s) ppf ()) fmt
+
+  let markdown_verbatim_list ppf l =
+    vertical_box ~indent:0 ppf (fun ppf ->
+        cut ppf () ;
+        string ppf (String.make 45 '`') ;
+        List.iter l ~f:(fun l -> cut ppf () ; string ppf l) ;
+        cut ppf () ;
+        string ppf (String.make 45 '`'))
+
+  let tag tag ppf f =
+    Format.pp_open_tag ppf tag ;
+    (f ppf : unit) ;
+    Format.pp_close_tag ppf ()
+
+  let shout = tag "shout"
+  let prompt = tag "prompt"
+
+  let long_string ?(max = 30) ppf s =
+    match String.sub s ~pos:0 ~len:(max - 2) with
+    | s -> pf ppf "%S" (s ^ "...")
+    | exception _ -> pf ppf "%S" s
+end
+
 (** An “decorated result type” based on polymorphic variants *)
 module Attached_result = struct
   type content =
@@ -109,57 +141,47 @@ module Attached_result = struct
   let ok ?(attachments = []) o = {result= Ok o; attachments}
   let error ?(attachments = []) o = {result= Error o; attachments}
 
-  let pp ppf ?pp_ok ?pp_error {result; attachments} =
-    let open Format in
-    pp_open_hovbox ppf 4 ;
-    ( match result with
-    | Ok o ->
-        pp_open_hvbox ppf 2 ;
-        pp_open_tag ppf "success" ;
-        pp_print_string ppf "OK" ;
-        pp_close_tag ppf () ;
-        Option.iter pp_ok ~f:(fun pp -> pp ppf o) ;
-        pp_close_box ppf () ;
-        ()
-    | Error e ->
-        pp_open_hvbox ppf 2 ;
-        pp_open_tag ppf "shout" ;
-        pp_print_string ppf "ERROR:" ;
-        pp_print_space ppf () ;
-        pp_close_tag ppf () ;
-        Option.iter pp_error ~f:(fun pp -> pp ppf e) ;
-        pp_close_box ppf () ) ;
-    ( match attachments with
-    | [] -> ()
+  let pp ppf ?pp_ok ?pp_error {result= the_result; attachments} =
+    let open More_fmt in
+    let result_part ppf =
+      match the_result with
+      | Ok o ->
+          wrapping_box ~indent:4 ppf (fun ppf ->
+              prompt ppf (fun ppf -> pf ppf "OK") ;
+              Option.iter pp_ok ~f:(fun ppo -> pf ppf ":@ %a." ppo o))
+      | Error e ->
+          wrapping_box ~indent:4 ppf (fun ppf ->
+              shout ppf (fun ppf -> pf ppf "Error") ;
+              Option.iter pp_error ~f:(fun ppe -> pf ppf ":@ %a." ppe e)) in
+    match attachments with
+    | [] -> result_part ppf
     | more ->
-        pp_open_vbox ppf 4 ;
-        List.iter more ~f:(fun (k, v) ->
-            pp_print_cut ppf () ;
-            pp_open_hovbox ppf 2 ;
-            pp_print_string ppf "* " ;
-            fprintf ppf "%s:@ " k ;
-            ( match v with
-            | `Text s -> pp_print_text ppf s
-            | `String_value s -> fprintf ppf "%S" s
-            | `String_list words ->
-                pp_open_box ppf 0 ;
-                pp_print_string ppf "[[" ;
-                List.iter words ~f:(fun w ->
-                    pp_print_cut ppf () ; pp_print_string ppf w) ;
-                pp_print_string ppf "]]" ;
-                pp_close_box ppf ()
-            | `Verbatim lines ->
-                pp_open_vbox ppf 0 ;
-                pp_print_cut ppf () ;
-                fprintf ppf "```````````````" ;
-                List.iter lines ~f:(fun s ->
-                    pp_print_cut ppf () ; pp_print_string ppf s) ;
-                pp_print_cut ppf () ;
-                fprintf ppf "```````````````" ;
-                pp_close_box ppf () ) ;
-            pp_close_box ppf ()) ;
-        pp_close_box ppf () ) ;
-    pp_close_box ppf ()
+        vertical_box ~indent:0 ppf (fun ppf ->
+            result_part ppf ;
+            List.iter more ~f:(fun (k, v) ->
+                cut ppf () ;
+                wrapping_box ppf ~indent:2 (fun ppf ->
+                    pf ppf "* " ;
+                    prompt ppf (fun ppf -> string ppf k) ;
+                    match v with
+                    | `Text t -> pf ppf ": %a" text t
+                    | `String_value s -> pf ppf ": %S" s
+                    | `String_list sl ->
+                        pf ppf ": [" ;
+                        cut ppf () ;
+                        wrapping_box ~indent:2 ppf (fun ppf ->
+                            list ~sep:sp (fun ppf -> pf ppf "%S;") ppf sl ;
+                            pf ppf "]")
+                    | `Verbatim [] -> pf ppf ": EMPTY"
+                    | `Verbatim sl ->
+                        pf ppf ":" ;
+                        let lines =
+                          let sep = String.make 50 '`' in
+                          (sep :: List.drop sl (List.length sl - 20)) @ [sep]
+                        in
+                        cut ppf () ;
+                        vertical_box ~indent:0 ppf (fun ppf ->
+                            list ~sep:cut string ppf lines))))
 end
 
 (** A wrapper around [('ok, 'a Error.t) result Lwt.t]. *)
@@ -392,9 +414,8 @@ module Process_result = struct
       Fmt.kstr (fun message -> fail ?attach (Wrong_behavior {message})) msgf
 
     let pp ppf (`Process_error the_error) =
-      let open Fmt in
-      box ~indent:2
-        (fun ppf () ->
+      let open More_fmt in
+      wrapping_box ppf (fun ppf ->
           pf ppf "Process-error:" ;
           sp ppf () ;
           match the_error with
@@ -402,7 +423,6 @@ module Process_result = struct
               text ppf message ;
               pf ppf "; wrong-status: '%s'." (status_to_string status)
           | Wrong_behavior {message} -> text ppf message)
-        ppf ()
 
     let fail_if_non_zero (res : res) msg =
       if res#status <> Unix.WEXITED 0 then

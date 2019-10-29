@@ -609,7 +609,7 @@ module Pauser = struct
             >>= fun () ->
             last_pause_status := `Done ;
             return ()) in
-      Asynchronous_result.bind_on_result
+      Asynchronous_result.bind_all
         ( try
             Dbg.e EF.(wf "protecting: %S in-try" name) ;
             run_with_signal_catching ~name procedure
@@ -617,7 +617,8 @@ module Pauser = struct
             System_error.fail_fatalf
               ~attach:[("protected", `String_value name)]
               "protecting %S: ocaml-exn: %a" name Exn.pp e )
-        ~f:(function
+        ~f:(fun result ->
+          match result.result with
           | Ok (`Successful_procedure o) -> return (`Was_ok o)
           | Ok (`Woken_up_by_signal `Sig_term) ->
               Console.say state
@@ -645,12 +646,13 @@ module Pauser = struct
                        "Cannot pause because interactivity broken; killing \
                         everything and quitting."))
               >>= fun () -> return `Quit_with_error
-          | Error e ->
+          | Error _ ->
               Console.say state
                 EF.(
                   desc
                     (shout "An error happened")
-                    (custom (fun ppf -> pp_error ppf e)))
+                    (custom (fun ppf ->
+                         Attached_result.pp ~pp_error ppf result)))
               >>= fun () -> return `Error_that_can_be_interactive)
       >>= fun todo_next ->
       match todo_next with

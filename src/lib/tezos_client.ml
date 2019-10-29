@@ -25,12 +25,15 @@ let client_command ?wait t ~state args =
     (client_call ?wait state t args)
 
 module Command_error = struct
-  let failf ?client ?args fmt =
+  let failf ?result ?client ?args fmt =
     let attach =
       Option.value_map ~default:[] args ~f:(fun l ->
           [("arguments", `String_list l)])
       @ Option.value_map ~default:[] client ~f:(fun c ->
-            [("client-id", `String_value c.id)]) in
+            [("client-id", `String_value c.id)])
+      @ Option.value_map ~default:[] result ~f:(fun res ->
+            [("stdout", `Verbatim res#out); ("stderr", `Verbatim res#err)])
+    in
     Process_result.Error.wrong_behavior ~attach fmt
 end
 
@@ -52,11 +55,12 @@ let verbose_client_cmd ?wait state ~client args =
 
 let successful_client_cmd ?wait state ~client args =
   verbose_client_cmd state ?wait ~client args
-  >>= fun (success, res) ->
+  >>= fun (success, result) ->
   match success with
-  | true -> return res
+  | true -> return result
   | false ->
-      failf ~args "Client-command failure: %s" (String.concat ~sep:" " args)
+      failf ~result ~client ~args "Client-command failure: %s"
+        (String.concat ~sep:" " args)
 
 let wait_for_node_bootstrap state client =
   let try_once () =
