@@ -76,18 +76,20 @@ val bootstrap_accounts : t -> Account.t list
 val kind : t -> Protocol_kind.t
 val dictator_name : t -> string
 val dictator_secret_key : t -> string
-val sandbox_path : config:< paths: Paths.t ; .. > -> t -> string
-val protocol_parameters_path : config:< paths: Paths.t ; .. > -> t -> string
+val sandbox_path : < paths: Paths.t ; .. > -> t -> string
+val protocol_parameters_path : < paths: Paths.t ; .. > -> t -> string
 
-val ensure_script :
-  config:< paths: Paths.t ; .. > -> t -> unit Genspio.Language.t
+val ensure_script : < paths: Paths.t ; .. > -> t -> unit Genspio.Language.t
 (** Build a {!Genspio.EDSL.t} script which generates the
     bootstrap-parameters JSON file. *)
 
 val ensure :
-     t
-  -> config:< paths: Paths.t ; .. >
-  -> (unit, [> System_error.t]) Asynchronous_result.t
+     < application_name: string
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> t
+  -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 (** Run the script created by [ensure_script], i.e. create the JSON
     bootstrap parameters. *)
 

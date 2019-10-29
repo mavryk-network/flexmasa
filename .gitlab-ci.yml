@@ -5,19 +5,17 @@ stages:
   - deploy
 
 variables:
-    DEFAULT_IMAGE: "smondet/soteredi:T-407"
-    SHOW_INFO: >
-      echo "=========== INFO: ============" &&
-      opam config exec -- ocamlc -version &&
-      git status &&
-      git log --graph  --decorate --all --oneline -n 20
-    BUILD_SCRIPT: >
-      opam config exec -- make
-    BUILD_DOC: >
-      opam config exec -- dune build @doc
+  setup_image: "registry.gitlab.com/tezos/flextesa:image-mr2-setup"
+  SHOW_INFO: >
+    echo "=========== INFO: ============" &&
+    opam config exec -- ocamlc -version &&
+    git status &&
+    git log --graph  --decorate --all --oneline -n 20
+  BUILD_SCRIPT: >
+    opam config exec -- make
 
-ocaml:4070:
-  image: $DEFAULT_IMAGE
+build:ocaml-407:
+  image: $setup_image
   stage: build
   artifacts:
     paths:
@@ -26,18 +24,20 @@ ocaml:4070:
      - bash -c "$SHOW_INFO"
      - bash -c "$BUILD_SCRIPT"
 
-with-vendored-tezos:
-  image: $DEFAULT_IMAGE
+build:vendored-tezos:
+  image: $setup_image
   stage: build
   artifacts:
     paths:
       - _build/
   script:
      - bash -c "$SHOW_INFO"
+     - opam config exec -- opam pin add ipaddr 4.0.0
      - opam config exec -- make vendors
      - bash -c "$BUILD_SCRIPT"
+
 lint:
-  image: $DEFAULT_IMAGE
+  image: $setup_image
   stage: test
   script:
      - bash -c "$SHOW_INFO"
@@ -46,7 +46,7 @@ lint:
      - git diff --exit-code
 
 opam-test:
-  image: $DEFAULT_IMAGE
+  image: $setup_image
   stage: test
   artifacts:
     paths:
@@ -55,20 +55,102 @@ opam-test:
      - bash -c "$SHOW_INFO"
      - opam config exec -- opam pin add flextesa .
 
+docker:setup:
+  #image: ocaml/opam2:alpine
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: build
+  only:
+    - master
+    - /^image.*$/
+  variables:
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - apk add git bash
+    - git --version
+    - bash --version
+    - docker --version
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - ./src/scripts/make-docker-images.sh setup "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - docker tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-setup" "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-setup"
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-setup"
+
+docker:build:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: test
+  variables:
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - apk add git bash
+    - git --version
+    - bash --version
+    - docker --version
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - ./src/scripts/make-docker-images.sh build "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${setup_image}"
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
+
+docker:run:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: doc
+  variables:
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - apk add git bash
+    - git --version
+    - bash --version
+    - docker --version
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - ./src/scripts/make-docker-images.sh run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+
+docker:test:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: deploy
+  variables:
+    DOCKER_DRIVER: overlay2
+  script:
+    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" cat /usr/bin/flextesarl
+    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --time-between-blocks 5 --until-level 10
+
+docker:tag:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: deploy
+  variables:
+    DOCKER_DRIVER: overlay2
+  only:
+    - master
+    - /^image.*$/
+    - /^version.*$/
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa --help=plain
+    - docker tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-run"
+    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-run"
+
 makewebsite:
-  image: $DEFAULT_IMAGE
+  image: $setup_image
   stage: doc
   artifacts:
      paths:
      - testweb
   script:
      - bash -c "$SHOW_INFO"
-     - bash -c "$BUILD_DOC"
-     - mkdir -p testweb/api/
-     - cp -r _build/default/_doc/_html/* testweb/api/
+     - bash src/scripts/build-doc.sh testweb/
 
 pages:
-  image: $DEFAULT_IMAGE
+  image: docker:latest
   stage: deploy
   script:
      - cp -r testweb public

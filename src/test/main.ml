@@ -1,6 +1,6 @@
 open Flextesa
 open Internal_pervasives
-module MFmt = Experiments.More_fmt
+module MFmt = More_fmt
 
 module Test_fold_process = struct
   let run () =

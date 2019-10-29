@@ -19,6 +19,7 @@ val cli_state :
   -> name:string
   -> unit
   -> < application_name: string
+     ; env_config: Environment_configuration.t
      ; console: Console.t
      ; operations_log: Log_recorder.Operations.t
      ; paths: Paths.t

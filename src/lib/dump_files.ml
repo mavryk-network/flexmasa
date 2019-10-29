@@ -1,5 +1,5 @@
 open Internal_pervasives
-module IFmt = Experiments.More_fmt
+module IFmt = More_fmt
 
 type t = {mutable trees: (string * string * (string * string) list) list}
 

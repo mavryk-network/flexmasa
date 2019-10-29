@@ -106,9 +106,10 @@ module Topology = struct
         ~p2p_port
         (external_peer_ports @ peers) in
     let dbgp prefx names =
-      Printf.eprintf "%s:\n  %s\n%!" prefx
-        (String.concat ~sep:"\n  "
-           (List.map names ~f:(fun n -> sprintf "%s:%d" n (p2p n)))) in
+      Dbg.f (fun pf ->
+          pf "%s:\n  %s\n%!" prefx
+            (String.concat ~sep:"\n  "
+               (List.map names ~f:(fun n -> sprintf "%s:%d" n (p2p n))))) in
     let rec make :
         type a. ?extra_peers:string list -> prefix:string -> a network -> a =
      fun ?(extra_peers = []) ~prefix network ->
@@ -156,39 +157,9 @@ module Network = struct
 
   let make nodes = {nodes}
 
-  let netstat state =
-    Running_processes.run_cmdf state "netstat -nut"
-    >>= fun res ->
-    Process_result.Error.fail_if_non_zero res "netstat -nut command"
-    >>= fun () ->
-    let rows =
-      List.filter_mapi res#out ~f:(fun idx line ->
-          match
-            String.split line ~on:' '
-            |> List.filter_map ~f:(fun s ->
-                   match String.strip s with "" -> None | s -> Some s)
-          with
-          | ("tcp" | "tcp6") :: _ as row -> Some (`Tcp (idx, row))
-          | _ -> Some (`Wrong (idx, line))) in
-    return rows
-
-  let all_listening_ports rows =
-    List.filter_map rows ~f:(function
-      | `Tcp (_, _ :: _ :: _ :: addr :: _) as row -> (
-        match String.split addr ~on:':' with
-        | [_; port] -> ( try Some (Int.of_string port, row) with _ -> None )
-        | _ -> None )
-      | _ -> None)
-
-  let netstat_listening_ports state =
-    netstat state
-    >>= fun rows ->
-    let all_used = all_listening_ports rows in
-    return all_used
-
   let start_up ?(check_ports = true) state ~client_exec {nodes} =
     ( if check_ports then
-      netstat_listening_ports state
+      Helpers.Netstat.used_listening_ports state
       >>= fun all_used ->
       let taken port = List.find all_used ~f:(fun (p, _) -> Int.equal p port) in
       List_sequential.iter nodes
@@ -211,7 +182,7 @@ module Network = struct
     >>= fun protocol ->
     Inconsistency_error.should_be_one_timestamp_delay protocols
     >>= fun () ->
-    Tezos_protocol.ensure protocol ~config:state
+    Tezos_protocol.ensure state protocol
     >>= fun () ->
     List.fold nodes ~init:(return ()) ~f:(fun prev_m node ->
         prev_m
@@ -222,14 +193,14 @@ module Network = struct
     let node_0 = List.hd_exn nodes in
     let client = Tezos_client.of_node node_0 ~exec:client_exec in
     Dbg.e EF.(af "Trying to bootstrap client") ;
-    Tezos_client.bootstrapped client ~state
+    Tezos_client.wait_for_node_bootstrap state client
     >>= fun () ->
-    Tezos_client.activate_protocol client ~state protocol
+    Tezos_client.activate_protocol state client protocol
     >>= fun () ->
     Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
     List_sequential.iter nodes ~f:(fun node ->
         let client = Tezos_client.of_node node ~exec:client_exec in
-        Tezos_client.bootstrapped client ~state)
+        Tezos_client.wait_for_node_bootstrap state client)
 end
 
 let network_with_protocol ?external_peer_ports ?base_port ?(size = 5) ?protocol

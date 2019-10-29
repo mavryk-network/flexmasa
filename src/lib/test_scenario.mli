@@ -66,17 +66,12 @@ module Network : sig
 
   val make : Tezos_node.t list -> t
 
-  val netstat_listening_ports :
-       < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
-    -> ( (int * [> `Tcp of int * string list]) list
-       , [> System_error.t | Process_result.Error.t] )
-       Asynchronous_result.t
-  (** Call ["netstat"] to find TCP ports already in use. *)
-
   val start_up :
        ?check_ports:bool
     -> < Base_state.base
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
+       ; console: Console.t
        ; runner: Running_processes.State.t
        ; .. >
     -> client_exec:Tezos_executable.t
@@ -84,6 +79,7 @@ module Network : sig
     -> ( unit
        , [> `Empty_protocol_list
          | System_error.t
+         | Process_result.Error.t
          | Process_result.Error.t
          | `Too_many_protocols of Tezos_protocol.t list
          | `Too_many_timestamp_delays of Tezos_protocol.t list ] )
@@ -98,13 +94,19 @@ val network_with_protocol :
   -> ?nodes_history_mode_edits:([> `Empty_protocol_list
                                 | System_error.t
                                 | Process_result.Error.t
+                                | Process_result.Error.t
                                 | `Too_many_protocols of Tezos_protocol.t list
                                 | `Too_many_timestamp_delays of
                                   Tezos_protocol.t list ]
                                 as
                                 'errors)
                                Tezos_node.History_modes.edit
-  -> < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
+  -> < env_config: Environment_configuration.t
+     ; paths: Paths.t
+     ; console: Console.t
+     ; runner: Running_processes.State.t
+     ; .. >
+     Base_state.t
   -> node_exec:Tezos_executable.t
   -> client_exec:Tezos_executable.t
   -> (Tezos_node.t list * Tezos_protocol.t, 'errors) Asynchronous_result.t

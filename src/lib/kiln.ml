@@ -90,6 +90,7 @@ module Configuration_directory = struct
 
   let cli_term () =
     let open Cmdliner in
+    let docs = "TOOLS: KILN" in
     Term.(
       pure (fun x clean ->
           Option.map x ~f:(fun (path, p2p_port) -> {path; p2p_port; clean}))
@@ -98,14 +99,14 @@ module Configuration_directory = struct
             (opt
                (some (pair ~sep:',' string int))
                None
-               (info
+               (info ~docs
                   ["generate-kiln-configuration-path"]
                   ~docv:"PATH,PORT"
                   ~doc:"Generate a kiln configuration at $(docv)")))
       $ Arg.(
           value
             (flag
-               (info
+               (info ~docs
                   ["clean-kiln-configuration"]
                   ~doc:"Delete configuration path before generating it"))))
 end

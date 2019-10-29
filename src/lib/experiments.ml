@@ -1,36 +1,5 @@
 open Internal_pervasives
 
-module More_fmt = struct
-  include Fmt
-  (** Little experiment for fun … *)
-
-  let vertical_box ?indent ppf f = vbox ?indent (fun ppf () -> f ppf) ppf ()
-  let wrapping_box ?indent ppf f = box ?indent (fun ppf () -> f ppf) ppf ()
-
-  let wf ppf fmt =
-    Format.kasprintf (fun s -> box (fun ppf () -> text ppf s) ppf ()) fmt
-
-  let markdown_verbatim_list ppf l =
-    vertical_box ~indent:0 ppf (fun ppf ->
-        cut ppf () ;
-        string ppf (String.make 45 '`') ;
-        List.iter l ~f:(fun l -> cut ppf () ; string ppf l) ;
-        cut ppf () ;
-        string ppf (String.make 45 '`'))
-
-  let tag tag ppf f =
-    Format.pp_open_tag ppf tag ;
-    (f ppf : unit) ;
-    Format.pp_close_tag ppf ()
-
-  let shout = tag "shout"
-
-  let long_string ?(max = 30) ppf s =
-    match String.sub s ~pos:0 ~len:(max - 2) with
-    | s -> pf ppf "%S" (s ^ "...")
-    | exception _ -> pf ppf "%S" s
-end
-
 module Markup_fmt = struct
   (** An alternative experiment. *)
 

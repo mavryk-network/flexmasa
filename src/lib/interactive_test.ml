@@ -265,6 +265,50 @@ module Commands = struct
                      ( if init = cur then af "%f (unchanged)" (tz cur)
                      else af "%f → %f" (tz init) (tz cur) )))))
 
+  let better_call_dev state ~default_port =
+    Prompt.unit_and_loop
+      EF.(
+        desc
+          (wf "Show URIs to all contracts with better-call.dev")
+          (desc_list (wf "Options")
+             [Sexp_options.port_number_doc state ~default_port]))
+      ["bcd"; "better-call-dev"]
+      (fun sexps ->
+        Sexp_options.port_number state sexps ~default_port
+        >>= fun port ->
+        curl_rpc state ~port ~path:"/chains/main/blocks/head/context/contracts"
+        >>= fun json_opt ->
+        do_jq state ~msg:"Getting contract list" ~f:Jqo.get_strings json_opt
+        >>= fun contracts ->
+        let kt1s =
+          List.filter contracts ~f:(fun c -> String.is_prefix c ~prefix:"KT1")
+        in
+        Console.sayf state
+          Fmt.(
+            fun ppf () ->
+              vbox ~indent:2
+                (fun ppf () ->
+                  let block_url_arg =
+                    kstr Uri.pct_encode
+                      "blockUrl=http://127.0.0.1:%d/chains/main/blocks" port
+                  in
+                  let base =
+                    Environment_configuration.better_call_dev_base_url state
+                  in
+                  match kt1s with
+                  | [] ->
+                      pf ppf "There are no KT1 contracts in this sandbox." ;
+                      cut ppf () ;
+                      pf ppf "You can still go to %s?%s" base block_url_arg
+                  | some_kt1s ->
+                      pf ppf "Links:" ;
+                      cut ppf () ;
+                      List.iter some_kt1s ~f:(fun c ->
+                          if String.is_prefix c ~prefix:"KT1" then (
+                            pf ppf "* %s/%s/operations?%s" base c block_url_arg ;
+                            cut ppf () )))
+                ppf ()))
+
   let arbitrary_command_on_all_clients ?make_admin
       ?(command_names = ["atc"; "all-clients"]) state ~clients =
     Prompt.unit_and_loop
@@ -408,7 +452,8 @@ module Commands = struct
              client.Tezos_client.Keyed.client.id
              client.Tezos_client.Keyed.key_name)
           ~f:(fun ~result:_ -> function
-            | `Client_command_error (m, _) -> cmdline_fail "Error: %s" m
+            | #Process_result.Error.t as e ->
+                cmdline_fail "Error: %a" Process_result.Error.pp e
             | #System_error.t as e ->
                 cmdline_fail "Error: %a" System_error.pp e))
 
@@ -420,6 +465,7 @@ module Commands = struct
     ; balances state ~default_port
     ; curl_metadata state ~default_port
     ; curl_baking_rights state ~default_port
+    ; better_call_dev state ~default_port
     ; all_levels state ~nodes; show_process state; kill_all state ]
 end
 
@@ -563,7 +609,7 @@ module Pauser = struct
             >>= fun () ->
             last_pause_status := `Done ;
             return ()) in
-      Asynchronous_result.bind_on_result
+      Asynchronous_result.bind_all
         ( try
             Dbg.e EF.(wf "protecting: %S in-try" name) ;
             run_with_signal_catching ~name procedure
@@ -571,7 +617,8 @@ module Pauser = struct
             System_error.fail_fatalf
               ~attach:[("protected", `String_value name)]
               "protecting %S: ocaml-exn: %a" name Exn.pp e )
-        ~f:(function
+        ~f:(fun result ->
+          match result.result with
           | Ok (`Successful_procedure o) -> return (`Was_ok o)
           | Ok (`Woken_up_by_signal `Sig_term) ->
               Console.say state
@@ -599,12 +646,13 @@ module Pauser = struct
                        "Cannot pause because interactivity broken; killing \
                         everything and quitting."))
               >>= fun () -> return `Quit_with_error
-          | Error e ->
+          | Error _ ->
               Console.say state
                 EF.(
                   desc
                     (shout "An error happened")
-                    (custom (fun ppf -> pp_error ppf e)))
+                    (custom (fun ppf ->
+                         Attached_result.pp ~pp_error ppf result)))
               >>= fun () -> return `Error_that_can_be_interactive)
       >>= fun todo_next ->
       match todo_next with

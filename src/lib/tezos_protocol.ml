@@ -67,12 +67,13 @@ module Protocol_kind = struct
   type t = [`Athens | `Babylon]
 
   let names = [("Athens", `Athens); ("Babylon", `Babylon)]
+  let default = `Babylon
 
   let cmdliner_term () : t Cmdliner.Term.t =
     let open Cmdliner in
     Arg.(
       value
-        (opt (enum names) `Athens
+        (opt (enum names) default
            (info ["protocol-kind"] ~doc:"Set the protocol family.")))
 
   let pp ppf n =
@@ -105,7 +106,7 @@ let compare a b = String.compare a.id b.id
 let default () =
   let dictator = Account.of_name "dictator-default" in
   { id= "default-bootstrap"
-  ; kind= `Athens
+  ; kind= Protocol_kind.default
   ; bootstrap_accounts=
       List.init 4 ~f:(fun n ->
           (Account.of_namef "bootacc-%d" n, 4_000_000_000_000L))
@@ -120,7 +121,7 @@ let default () =
   ; blocks_per_cycle= 8
   ; preserved_cycles= 2
   ; proof_of_work_threshold= -1
-  ; timestamp_delay= Some (-3600)
+  ; timestamp_delay= None
   ; custom_protocol_parameters= None }
 
 let protocol_parameters_json t : Ezjsonm.t =
@@ -189,32 +190,28 @@ let bootstrap_accounts t = List.map ~f:fst t.bootstrap_accounts
 let dictator_name {dictator; _} = Account.name dictator
 let dictator_secret_key {dictator; _} = Account.private_key dictator
 let make_path config t = Paths.root config // sprintf "protocol-%s" (id t)
-let sandbox_path ~config t = make_path config t // "sandbox.json"
+let sandbox_path config t = make_path config t // "sandbox.json"
 
-let protocol_parameters_path ~config t =
+let protocol_parameters_path config t =
   make_path config t // "protocol_parameters.json"
 
-let ensure_script ~config t =
+let ensure_script state t =
   let open Genspio.EDSL in
   let file string p =
-    let path = p ~config t in
+    let path = p state t in
     ( Filename.basename path
     , write_stdout ~path:(str path)
         (feed ~string:(str (string t)) (exec ["cat"])) ) in
   check_sequence
     ~verbosity:(`Announce (sprintf "Ensure-protocol-%s" (id t)))
-    [ ("directory", exec ["mkdir"; "-p"; make_path config t])
+    [ ("directory", exec ["mkdir"; "-p"; make_path state t])
     ; file sandbox sandbox_path
     ; file protocol_parameters protocol_parameters_path ]
 
-let ensure t ~config =
-  match
-    Sys.command (Genspio.Compile.to_one_liner (ensure_script ~config t))
-  with
-  | 0 -> return ()
-  | _other ->
-      System_error.fail_fatalf "sys.command non-zero"
-        ~attach:[("location", `String_value "Tezos_protocol.ensure")]
+let ensure state t =
+  Running_processes.run_successful_cmdf state "sh -c %s"
+    (Genspio.Compile.to_one_liner (ensure_script state t) |> Filename.quote)
+  >>= fun _ -> return ()
 
 let cli_term () =
   let open Cmdliner in

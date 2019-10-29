@@ -8,7 +8,9 @@ type t = private
   ; peers: int list
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t
-  ; history_mode: [`Full | `Archive | `Rolling] option }
+  ; history_mode: [`Full | `Archive | `Rolling] option
+  ; single_process: bool
+  ; cors_origin: string option }
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
@@ -16,8 +18,10 @@ val ef : t -> Easy_format.t
 val pp : Format.formatter -> t -> unit
 
 val make :
-     exec:Tezos_executable.t
+     ?cors_origin:string
+  -> exec:Tezos_executable.t
   -> ?protocol:Tezos_protocol.t
+  -> ?single_process:bool
   -> ?history_mode:[`Full | `Archive | `Rolling]
   -> string
   -> expected_connections:int
@@ -25,27 +29,43 @@ val make :
   -> p2p_port:int
   -> int list
   -> t
+(** Create a node value (inert, not started), see 
+   ["tezos-node run --help"] for corresponding parameters.
 
-val data_dir : config:< paths: Paths.t ; .. > -> t -> string
-val config_file : config:< paths: Paths.t ; .. > -> t -> string
-val identity_file : config:< paths: Paths.t ; .. > -> t -> string
-val log_output : config:< paths: Paths.t ; .. > -> t -> string
-val exec_path : config:< paths: Paths.t ; .. > -> t -> string
+- [?single_process]: defaults to [true] (for now since multi-process
+  validations still suffers from some bugs).
+- [?history_mode]: defaults to leaving the node's default (i.e. [`Full]).
+- [?cors_origin]: defaults to [Some "*"] (most permissive).
+ *)
+
+val data_dir : < paths: Paths.t ; .. > -> t -> string
+val config_file : < paths: Paths.t ; .. > -> t -> string
+val identity_file : < paths: Paths.t ; .. > -> t -> string
+val log_output : < paths: Paths.t ; .. > -> t -> string
+val exec_path : < paths: Paths.t ; .. > -> t -> string
 
 val node_command :
-     t
-  -> config:< paths: Paths.t ; .. >
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
   -> string list
   -> string list
   -> unit Genspio.Language.t
 
 val run_command :
-  t -> config:< paths: Paths.t ; .. > -> unit Genspio.Language.t
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
+  -> unit Genspio.Language.t
 
 val start_script :
-  t -> config:< paths: Paths.t ; .. > -> unit Genspio.Language.t
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
+  -> unit Genspio.Language.t
 
-val process : < paths: Paths.t ; .. > -> t -> Running_processes.Process.t
+val process :
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
+  -> Running_processes.Process.t
+
 val protocol : t -> Tezos_protocol.t
 
 val connections :

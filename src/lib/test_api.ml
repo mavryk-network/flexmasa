@@ -1,5 +1,5 @@
 open Internal_pervasives
-module IFmt = Experiments.More_fmt
+module IFmt = More_fmt
 
 let failf ?attach fmt =
   ksprintf (fun s -> fail ?attach (`Scenario_error s)) fmt
