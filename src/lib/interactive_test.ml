@@ -40,7 +40,7 @@ module Commands = struct
       make_option "port" ~placeholders:["<int>"]
         Fmt.(str "Use port number <int> instead of %d (default)." default_port)
 
-    let port_number state ~default_port sexps =
+    let port_number _state ~default_port sexps =
       match
         List.find_map sexps
           ~f:
@@ -49,23 +49,20 @@ module Commands = struct
               | List [Atom "port"; Atom p] -> (
                 try Some (`Ok (Int.of_string p))
                 with _ -> Some (`Not_an_int p) )
-              | List (Atom "port" :: other) -> Some (`Wrong_option other)
+              | List (Atom "port" :: _ as other) -> Some (`Wrong_option other)
               | _other -> None)
       with
       | None -> return default_port
       | Some (`Ok p) -> return p
       | Some ((`Not_an_int _ | `Wrong_option _) as other) ->
-          say state
-            EF.(
-              desc
-                (shout "Error parsing port option:")
-                ( match other with
-                | `Not_an_int s ->
-                    af "This is not an integer: %S, using default: %d" s
-                      default_port
-                | `Wrong_option _sexps ->
-                    af "Usage (port <int>), using default: %d" default_port ))
-          >>= fun () -> return default_port
+          let problem =
+            match other with
+            | `Not_an_int s -> Fmt.str "This is not an integer: %S." s
+            | `Wrong_option s ->
+                Fmt.str "Usage is (port <int>), too many arguments here: %s."
+                  Base.Sexp.(to_string_hum (List s)) in
+          fail (`Command_line "Error parsing (port ...) option")
+            ~attach:[("Problem", `Text problem)]
   end
 
   let du_sh_root state =
@@ -200,18 +197,19 @@ module Commands = struct
     unit_loop_no_args
       ~description:"Show the protocol's “bootstrap” accounts."
       ["boa"; "bootstrap-accounts"] (fun () ->
-        say state
-          EF.(
-            desc (af "Secret Keys:")
-              (ocaml_list
-                 (List.map (Tezos_protocol.bootstrap_accounts protocol)
+        sayf state
+          More_fmt.(
+            fun ppf () ->
+              vertical_box ~indent:0 ppf (fun ppf ->
+                  prompt ppf (fun ppf -> pf ppf "Bootstrap Accounts:") ;
+                  List.iter (Tezos_protocol.bootstrap_accounts protocol)
                     ~f:(fun acc ->
                       let open Tezos_protocol.Account in
-                      ocaml_tuple
-                        [ atom (name acc)
-                        ; af "Pub:%s" (pubkey acc)
-                        ; af "Hash:%s" (pubkey_hash acc)
-                        ; atom (private_key acc) ])))))
+                      cut ppf () ;
+                      pf ppf "* Account %S:@," (name acc) ;
+                      pf ppf "  * Public Key Hash: %s@," (pubkey_hash acc) ;
+                      pf ppf "  * Public Key:      %s@," (pubkey acc) ;
+                      pf ppf "  * Private Key:     %s" (private_key acc)))))
 
   let show_connections state nodes =
     unit_loop_no_args ~description:"Show all node connections"
