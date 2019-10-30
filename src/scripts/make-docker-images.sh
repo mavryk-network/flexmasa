@@ -64,6 +64,15 @@ EOF
 }
 
 vendor=local-vendor/tezos-master
+daemons () {
+    local proto="$1"
+    local proto_dir="$(echo $proto | tr -- - _)"
+    cat <<EOF
+$vendor/src/proto_$proto_dir/bin_baker/main_baker_$proto_dir.exe:tezos-baker-$proto
+$vendor/src/proto_$proto_dir/bin_endorser/main_endorser_$proto_dir.exe:tezos-endorser-$proto
+$vendor/src/proto_$proto_dir/bin_accuser/main_accuser_$proto_dir.exe:tezos-accuser-$proto
+EOF
+}
 interesting_binaries="
 src/app/main.exe:flextesa
 $vendor/src/bin_node/main.exe:tezos-node
@@ -72,10 +81,9 @@ $vendor/src/bin_client/main_admin.exe:tezos-admin-client
 $vendor/src/bin_validation/main_validator.exe:tezos-validator
 $vendor/src/bin_signer/main_signer.exe:tezos-signer
 $vendor/src/bin_codec/codec.exe:tezos-codec
-$vendor/src/proto_alpha/bin_baker/main_baker_alpha.exe:tezos-baker-alpha
-$vendor/src/proto_alpha/bin_endorser/main_endorser_alpha.exe:tezos-endorser-alpha
-$vendor/src/proto_alpha/bin_accuser/main_accuser_alpha.exe:tezos-accuser-alpha
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
+$(daemons alpha)
+$(daemons 005-PsBabyM1)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
