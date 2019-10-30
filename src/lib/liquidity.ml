@@ -186,7 +186,7 @@ module On_chain = struct
   (* This should go to flextesa soon... *)
   let silent_client_cmd state ~client args =
     Running_processes.run_cmdf state "sh -c %s"
-      ( Tezos_client.client_command client ~state args
+      ( Tezos_client.client_command state client args
       |> Genspio.Compile.to_one_liner |> Filename.quote )
     >>= fun res ->
     let success = res#status = Lwt_unix.WEXITED 0 in

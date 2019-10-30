@@ -8,13 +8,17 @@ val of_client : exec:Tezos_executable.t -> Tezos_client.t -> t
 val of_node : exec:Tezos_executable.t -> Tezos_node.t -> t
 
 val make_command :
-  t -> < paths: Paths.t ; .. > -> string list -> unit Genspio.EDSL.t
+     < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
+  -> t
+  -> string list
+  -> unit Genspio.EDSL.t
 (** Build a [Genspio.EDSL.t] command. *)
 
 val successful_command :
      t
   -> < application_name: string
      ; console: Console.t
+     ; env_config: Environment_configuration.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
      ; .. >
@@ -28,6 +32,7 @@ val inject_protocol :
   -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
+     ; env_config: Environment_configuration.t
      ; runner: Running_processes.State.t
      ; .. >
   -> path:string

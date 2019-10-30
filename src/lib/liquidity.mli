@@ -82,6 +82,7 @@ module On_chain : sig
     -> < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> Tezos_client.Keyed.t
@@ -96,6 +97,7 @@ module On_chain : sig
        ?burn_cap:float
     -> < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; operations_log: Log_recorder.Operations.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
@@ -110,7 +112,11 @@ module On_chain : sig
        Asynchronous_result.t
 
   val silent_client_cmd :
-       < paths: Paths.t ; runner: Running_processes.State.t ; .. > Base_state.t
+       < paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+       Base_state.t
     -> client:Tezos_client.t
     -> string list
     -> (bool * Process_result.t, [> System_error.t]) Asynchronous_result.t
@@ -125,6 +131,7 @@ module On_chain : sig
     -> ?burn_cap:float
     -> < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -143,6 +150,7 @@ module On_chain : sig
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> client:Tezos_client.t
@@ -155,6 +163,7 @@ module On_chain : sig
   val show_contract_command :
        < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -170,6 +179,7 @@ module On_chain : sig
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> names:string list

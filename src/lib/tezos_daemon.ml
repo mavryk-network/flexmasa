@@ -24,10 +24,10 @@ let arg_to_string = function
   | Endorser k -> sprintf "endorser-%s" k
   | Accuser -> "accuser"
 
-let to_script (t : t) ~state =
+let to_script state (t : t) =
   let base_dir = Tezos_client.base_dir ~state t.client in
   let call t args =
-    Tezos_executable.call t.exec
+    Tezos_executable.call state t.exec
       ~path:
         ( base_dir
         // sprintf "exec-%s-%d%s" (arg_to_string t.args)
@@ -53,8 +53,8 @@ let to_script (t : t) ~state =
         ; sprintf "%d" t.node.Tezos_node.rpc_port
         ; "--base-dir"; base_dir; "run"; "--preserved-levels"; "10" ]
 
-let process (t : t) ~state =
+let process state (t : t) =
   Running_processes.Process.genspio
     (sprintf "%s-for-%s%s" (arg_to_string t.args) t.node.Tezos_node.id
        (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")))
-    (to_script t ~state)
+    (to_script state t)

@@ -65,7 +65,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
           let client = Tezos_client.of_node node ~exec:client_exec in
           Tezos_daemon.accuser_of_node ~exec:accuser_exec ~client node) in
     List_sequential.iter accusers ~f:(fun acc ->
-        Running_processes.start state (Tezos_daemon.process acc ~state)
+        Running_processes.start state (Tezos_daemon.process state acc)
         >>= fun {process= _; lwt= _} -> return ())
     >>= fun () ->
     List_sequential.iter keys_and_daemons ~f:(fun (acc, client, daemons) ->
@@ -90,7 +90,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
               ; desc (af "Key:") (af "%S" key) ])
         >>= fun () ->
         List_sequential.iter daemons ~f:(fun daemon ->
-            Running_processes.start state (Tezos_daemon.process daemon ~state)
+            Running_processes.start state (Tezos_daemon.process state daemon)
             >>= fun {process= _; lwt= _} -> return ()))
   else
     List.fold ~init:(return []) keys_and_daemons

@@ -21,3 +21,7 @@ let default_cors_origin state =
 let better_call_dev_base_url state =
   get_from_environment state "better_call_dev_base_url"
   |> Option.value ~default:"https://better-call.dev/sandbox"
+
+let default_events_level state =
+  get_from_environment state "default_events_level"
+  |> function None -> Some "warning" | Some "none" -> None | Some s -> Some s

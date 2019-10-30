@@ -19,8 +19,8 @@ let client_call ?(wait = "none") state t args =
   @ opt "base-dir" (base_dir ~state t)
   @ args
 
-let client_command ?wait t ~state args =
-  Tezos_executable.call t.exec
+let client_command ?wait state t args =
+  Tezos_executable.call state t.exec
     ~path:(base_dir t ~state // "exec-client")
     (client_call ?wait state t args)
 
@@ -42,12 +42,12 @@ open Console
 
 let run_client_cmd ?id_prefix ?wait state client args =
   Running_processes.run_cmdf ?id_prefix state "sh -c %s"
-    ( client_command ?wait client ~state args
+    ( client_command ?wait state client args
     |> Genspio.Compile.to_one_liner |> Filename.quote )
 
 let verbose_client_cmd ?wait state ~client args =
   Running_processes.run_cmdf state "sh -c %s"
-    ( client_command ?wait client ~state args
+    ( client_command ?wait state client args
     |> Genspio.Compile.to_one_liner |> Filename.quote )
   >>= fun res ->
   Console.display_errors_of_command state res

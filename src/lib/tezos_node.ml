@@ -89,7 +89,7 @@ end
 open Tezos_executable.Make_cli
 
 let node_command state t cmd options =
-  Tezos_executable.call t.exec ~path:(exec_path state t)
+  Tezos_executable.call state t.exec ~path:(exec_path state t)
     ( cmd
     @ opt "config-file" (config_file state t)
     @ opt "data-dir" (data_dir state t)

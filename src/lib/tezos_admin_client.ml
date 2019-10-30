@@ -14,9 +14,9 @@ let of_node ~exec n =
   let port = n.Tezos_node.rpc_port in
   {id; port; exec}
 
-let make_command t state args =
+let make_command state t args =
   let open Tezos_executable.Make_cli in
-  Tezos_executable.call t.exec
+  Tezos_executable.call state t.exec
     ~path:(base_dir t ~state // "exec-admin")
     (optf "port" "%d" t.port @ opt "base-dir" (base_dir ~state t) @ args)
 
@@ -34,7 +34,7 @@ open Command_error
 
 let successful_command admin state args =
   Running_processes.run_cmdf state "sh -c %s"
-    ( make_command admin state args
+    ( make_command state admin args
     |> Genspio.Compile.to_one_liner |> Filename.quote )
   >>= fun res ->
   Console.display_errors_of_command state res

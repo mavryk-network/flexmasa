@@ -45,7 +45,12 @@ val default_binary : t -> string
 val get : t -> string
 (** The path to the executable. *)
 
-val call : t -> path:string -> string list -> unit Genspio.EDSL.t
+val call :
+     < env_config: Environment_configuration.t ; .. >
+  -> t
+  -> path:string
+  -> string list
+  -> unit Genspio.EDSL.t
 (** Build a [Genspio.EDSL.t] script to run a tezos command, the
     [~path] argument is used as a toplevel path for the unix-files
     event-sink (event-logging-framework) and for other local logging

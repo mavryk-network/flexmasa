@@ -374,9 +374,9 @@ module Commands = struct
             >>= fun prev ->
             Running_processes.run_cmdf state "sh -c %s"
               ( ( match use_admin with
-                | `Client -> Tezos_client.client_command client ~state args
+                | `Client -> Tezos_client.client_command state client args
                 | `Admin mkadm ->
-                    Tezos_admin_client.make_command (mkadm client) state args
+                    Tezos_admin_client.make_command state (mkadm client) args
                 )
               |> Genspio.Compile.to_one_liner |> Filename.quote )
             >>= fun res ->
