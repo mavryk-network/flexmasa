@@ -4,6 +4,20 @@ open Internal_pervasives
 
 (** Make {!Cmdliner} commands from {!Asynchronous_result} functions. *)
 module Run_command : sig
+  module Common_errors : sig
+    type t =
+      [ `Die of int
+      | `Empty_protocol_list
+      | `Precheck_failure of string
+      | Process_result.Error.t
+      | `Scenario_error of string
+      | System_error.t
+      | Test_scenario.Inconsistency_error.t
+      | `Waiting_for of string * [`Time_out] ]
+
+    val pp : Format.formatter -> t -> unit
+  end
+
   val make :
        pp_error:(Format.formatter -> ([> ] as 'errors) -> unit)
     -> ( < application_name: string ; console: Console.t ; .. >

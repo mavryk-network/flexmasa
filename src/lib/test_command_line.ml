@@ -1,6 +1,31 @@
 open Internal_pervasives
 
 module Run_command = struct
+  module Common_errors = struct
+    type t =
+      [ `Die of int
+      | `Empty_protocol_list
+      | `Precheck_failure of string
+      | Process_result.Error.t
+      | `Scenario_error of string
+      | System_error.t
+      | Test_scenario.Inconsistency_error.t
+      | `Waiting_for of string * [`Time_out] ]
+
+    let pp ppf (e : t) =
+      match e with
+      | `Scenario_error s -> Format.fprintf ppf "%s" s
+      | #Test_scenario.Inconsistency_error.t as e ->
+          Format.fprintf ppf "%a" Test_scenario.Inconsistency_error.pp e
+      | #Process_result.Error.t as e ->
+          Format.fprintf ppf "%a" Process_result.Error.pp e
+      | #System_error.t as e -> Format.fprintf ppf "%a" System_error.pp e
+      | `Waiting_for (msg, `Time_out) ->
+          Format.fprintf ppf "WAITING-FOR “%s”: Time-out" msg
+      | `Precheck_failure _ as p -> Helpers.System_dependencies.Error.pp ppf p
+      | `Die n -> Format.fprintf ppf "Exiting with %d" n
+  end
+
   let or_hard_fail state main ~pp_error : unit =
     let open Asynchronous_result in
     Dbg.e EF.(wf "Run_command.or_hard_fail") ;
