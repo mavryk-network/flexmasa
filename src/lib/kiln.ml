@@ -88,9 +88,9 @@ module Configuration_directory = struct
     Running_processes.run_cmdf state " chmod -R 777 %s" path
     >>= fun _ -> return ()
 
-  let cli_term () =
+  let cli_term state =
     let open Cmdliner in
-    let docs = "TOOLS: KILN" in
+    let docs = Manpage_builder.section state ~rank:4 ~name:"TOOLS: KILN" in
     Term.(
       pure (fun x clean ->
           Option.map x ~f:(fun (path, p2p_port) -> {path; p2p_port; clean}))

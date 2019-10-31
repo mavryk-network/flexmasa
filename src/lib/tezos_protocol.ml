@@ -69,12 +69,12 @@ module Protocol_kind = struct
   let names = [("Athens", `Athens); ("Babylon", `Babylon)]
   let default = `Babylon
 
-  let cmdliner_term () : t Cmdliner.Term.t =
+  let cmdliner_term ~docs () : t Cmdliner.Term.t =
     let open Cmdliner in
     Arg.(
       value
         (opt (enum names) default
-           (info ["protocol-kind"] ~doc:"Set the protocol family.")))
+           (info ["protocol-kind"] ~docs ~doc:"Set the protocol family.")))
 
   let pp ppf n =
     Fmt.string ppf
@@ -214,11 +214,11 @@ let ensure state t =
     (Genspio.Compile.to_one_liner (ensure_script state t) |> Filename.quote)
   >>= fun _ -> return ()
 
-let cli_term () =
+let cli_term state =
   let open Cmdliner in
   let open Term in
   let def = default () in
-  let docs = "PROTOCOL OPTIONS" in
+  let docs = Manpage_builder.section state ~rank:2 ~name:"PROTOCOL OPTIONS" in
   pure
     (fun bootstrap_accounts
          (`Blocks_per_voting_period blocks_per_voting_period)
@@ -346,4 +346,4 @@ let cli_term () =
                    ones (technically this invalidates most other options from \
                    a tezos-node point of view, use at your own risk)."
                 ~docv:"JSON-FILE" ~docs)))
-  $ Protocol_kind.cmdliner_term ()
+  $ Protocol_kind.cmdliner_term () ~docs

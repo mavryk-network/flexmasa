@@ -59,13 +59,14 @@ let call state t ~path args =
           (printf (str "ARGS: %s\\n") [str (String.concat ~sep:" " args)])
       ; exec (get t :: args) ] )
 
-let cli_term kind prefix =
+let cli_term state kind prefix =
   let open Cmdliner in
   let open Term in
+  let docs = Manpage_builder.section state ~rank:2 ~name:"EXECUTABLE PATHS" in
   pure (fun binary -> {kind; binary; unix_files_sink= None; environment= []})
   $ Arg.(
       value
       & opt (some string) None
-      & info ~docs:"EXECUTABLE PATHS"
+      & info ~docs
           [sprintf "%s-%s-binary" prefix (kind_string kind)]
           ~doc:(sprintf "Binary for the `tezos-%s` to use." (kind_string kind)))

@@ -182,5 +182,5 @@ let make ?(command_name = "michokit") () =
           (opt (some string) None
              (info ["output-error-codes"]
                 ~doc:"Output the matching of error values to integers.")))
-    $ Test_command_line.cli_state ~name:command_name () )
+    $ Test_command_line.cli_state ~name:"michokit" () )
     (info command_name ~doc:"CLI for Flextesa_extras.Michokit")

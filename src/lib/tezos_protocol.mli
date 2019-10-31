@@ -42,7 +42,7 @@ module Protocol_kind : sig
   type t = [`Athens | `Babylon]
 
   val names : (string * t) list
-  val cmdliner_term : unit -> t Cmdliner.Term.t
+  val cmdliner_term : docs:string -> unit -> t Cmdliner.Term.t
   val pp : Format.formatter -> t -> unit
 end
 
@@ -93,6 +93,6 @@ val ensure :
 (** Run the script created by [ensure_script], i.e. create the JSON
     bootstrap parameters. *)
 
-val cli_term : unit -> t Cmdliner.Term.t
+val cli_term : < manpager: Manpage_builder.State.t ; .. > -> t Cmdliner.Term.t
 (** Create a [Cmdliner] term which configures protocol-parameters
     (e.g. options like ["--time-between-blocks"]). *)

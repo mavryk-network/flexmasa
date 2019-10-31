@@ -137,32 +137,35 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
 let cmd ~pp_error () =
   let open Cmdliner in
   let open Term in
-  let docs = "TEST SCENARIO OPTIONS" in
-  Test_command_line.Run_command.make ~pp_error
-    ( pure
-        (fun test_kind
-             (`Clear_root clear_root)
-             size
-             base_port
-             (`External_peers external_peer_ports)
-             (`No_daemons_for no_daemons_for)
-             (`With_baking with_baking)
-             protocol
-             bnod
-             bcli
-             bak
-             endo
-             accu
-             generate_kiln_config
-             nodes_history_mode_edits
-             state
-             ->
-          let actual_test =
-            run state ~size ~base_port ~protocol bnod bcli bak endo accu
-              ~clear_root ~nodes_history_mode_edits ~with_baking
-              ?generate_kiln_config ~external_peer_ports ~no_daemons_for
-              test_kind in
-          (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
+  let base_state =
+    Test_command_line.Command_making_state.make ~application_name:"Flextesa"
+      ~command_name:"mininet" () in
+  let docs = Manpage_builder.section_test_scenario base_state in
+  let term =
+    pure
+      (fun test_kind
+           (`Clear_root clear_root)
+           size
+           base_port
+           (`External_peers external_peer_ports)
+           (`No_daemons_for no_daemons_for)
+           (`With_baking with_baking)
+           protocol
+           bnod
+           bcli
+           bak
+           endo
+           accu
+           generate_kiln_config
+           nodes_history_mode_edits
+           state
+           ->
+        let actual_test =
+          run state ~size ~base_port ~protocol bnod bcli bak endo accu
+            ~clear_root ~nodes_history_mode_edits ~with_baking
+            ?generate_kiln_config ~external_peer_ports ~no_daemons_for
+            test_kind in
+        (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
     $ Arg.(
         pure (fun level_opt ->
             match level_opt with
@@ -204,20 +207,28 @@ let cmd ~pp_error () =
                   ~doc:
                     "Completely disable baking/endorsing/accusing (you need \
                      to bake manually to make the chain advance).")))
-    $ Tezos_protocol.cli_term ()
-    $ Tezos_executable.cli_term `Node "tezos"
-    $ Tezos_executable.cli_term `Client "tezos"
-    $ Tezos_executable.cli_term `Baker "tezos"
-    $ Tezos_executable.cli_term `Endorser "tezos"
-    $ Tezos_executable.cli_term `Accuser "tezos"
-    $ Kiln.Configuration_directory.cli_term ()
-    $ Tezos_node.History_modes.cmdliner_term ()
-    $ Test_command_line.cli_state ~name:"mininet" () )
+    $ Tezos_protocol.cli_term base_state
+    $ Tezos_executable.cli_term base_state `Node "tezos"
+    $ Tezos_executable.cli_term base_state `Client "tezos"
+    $ Tezos_executable.cli_term base_state `Baker "tezos"
+    $ Tezos_executable.cli_term base_state `Endorser "tezos"
+    $ Tezos_executable.cli_term base_state `Accuser "tezos"
+    $ Kiln.Configuration_directory.cli_term base_state
+    $ Tezos_node.History_modes.cmdliner_term base_state
+    $ Test_command_line.full_state_cmdliner_term base_state () in
+  Test_command_line.Run_command.make ~pp_error term
     (let doc = "Small network sandbox with bakers, endorsers, and accusers." in
      let man : Manpage.block list =
-       [ `P
+       Manpage_builder.make base_state
+         ~intro_blob:
            "This test builds a small sandbox network, start various daemons, \
             and then gives the user an interactive command prompt to inspect \
-            the network."; `S docs; `S "OPTIONS"; `S "PROTOCOL OPTIONS"
-       ; `S "EXECUTABLE PATHS"; `S "TOOLS: KILN" ] in
+            the network."
+         [ `P
+             "One can also run this sandbox with `--no-baking` to make baking \
+              interactive-only."
+         ; `P
+             "There is also the option of running the sandbox \
+              non-interactively for a given number of blocks, cf. \
+              `--until-level LEVEL`." ] in
      info "mini-network" ~man ~doc)

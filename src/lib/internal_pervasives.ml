@@ -439,6 +439,64 @@ module Base_state = struct
   type 'a t = 'a constraint 'a = < base ; .. >
 end
 
+module Manpage_builder = struct
+  module Section = struct
+    let test_scenario = "TEST SCENARIO OPTIONS"
+    let environment_variables = Cmdliner.Manpage.s_environment
+    let executables = "EXECUTABLE PATHS"
+  end
+
+  module Env_variables = struct
+    type doc = Lines of string list
+
+    let man all_known : Cmdliner.Manpage.block list =
+      [`S Section.environment_variables]
+      @ List.map all_known ~f:(fun (name, Lines lines) ->
+            `I (name, String.concat ~sep:"\n" lines))
+  end
+
+  module State = struct
+    type t =
+      { mutable used_sections: (int * string * Cmdliner.Manpage.block list) list
+      ; mutable env_variables: (string * Env_variables.doc) list }
+
+    let make () = {used_sections= []; env_variables= []}
+    let _state state = state#manpager
+
+    let add_section ?(man = []) state ~rank ~name =
+      let t = _state state in
+      match
+        List.find t.used_sections ~f:(fun (_, n, _) -> String.equal n name)
+      with
+      | None -> t.used_sections <- (rank, name, man) :: t.used_sections
+      | Some _ -> ()
+
+    let all_sections state : Cmdliner.Manpage.block list list =
+      let t = _state state in
+      List.sort t.used_sections ~compare:Base.Poly.ascending
+      |> List.map ~f:(fun (_, s, man) -> `S s :: man)
+
+    let register_env_variable state name lines =
+      let t = _state state in
+      t.env_variables <- (name, Env_variables.Lines lines) :: t.env_variables
+  end
+
+  let section ?man state ~rank ~name =
+    State.add_section ?man state ~rank ~name ;
+    name
+
+  let section_test_scenario state =
+    State.add_section state ~rank:0 ~name:Section.test_scenario ;
+    Section.test_scenario
+
+  let make state ~intro_blob extra : Cmdliner.Manpage.block list =
+    let sections = State.all_sections state in
+    List.concat
+      [ [`P intro_blob]; extra; List.concat sections
+      ; Env_variables.man state#manpager.State.env_variables
+      ; [`S Cmdliner.Manpage.s_options] ]
+end
+
 (** Some {!Lwt_unix} functions. *)
 module System = struct
   let sleep f = System_error.catch Lwt_unix.sleep f

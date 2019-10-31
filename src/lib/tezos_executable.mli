@@ -56,7 +56,11 @@ val call :
     event-sink (event-logging-framework) and for other local logging
     files. *)
 
-val cli_term : kind -> string -> t Cmdliner.Term.t
+val cli_term :
+     < manpager: Internal_pervasives.Manpage_builder.State.t ; .. >
+  -> kind
+  -> string
+  -> t Cmdliner.Term.t
 (** Build a [Cmdliner] term which creates tezos-executables, the
     second argument is a prefix of option names (e.g. ["tezos"] for the
     option ["--tezos-accuser-alpha-binary"]). *)

@@ -57,7 +57,7 @@ end
 
 let () =
   let open Cmdliner in
-  let pp_error = Flextesa.Test_command_line.Run_command.Common_errors.pp in
+  let pp_error = Flextesa.Test_command_line.Common_errors.pp in
   let help = Term.(ret (pure (`Help (`Auto, None))), info "flextesa") in
   Term.exit
     (Term.eval_choice
