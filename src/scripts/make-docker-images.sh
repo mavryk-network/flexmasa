@@ -113,8 +113,8 @@ ADD --chown=opam:opam . ./
 RUN make vendors
 RUN opam switch 4.07
 RUN opam switch --switch 4.07 import src/tezos-master.opam-switch
-RUN opam config exec -- bash -c 'opam install \$(find local-vendor -name "*.opam" -print)'
 EOF
+#RUN opam config exec -- bash -c 'opam install \$(find local-vendor -name "*.opam" -print)'
 }
 make_build_dockerfile () {
     cat > Dockerfile <<EOF
