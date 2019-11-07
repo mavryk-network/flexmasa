@@ -69,12 +69,12 @@ module Protocol_kind = struct
   let names = [("Athens", `Athens); ("Babylon", `Babylon)]
   let default = `Babylon
 
-  let cmdliner_term () : t Cmdliner.Term.t =
+  let cmdliner_term ~docs () : t Cmdliner.Term.t =
     let open Cmdliner in
     Arg.(
       value
         (opt (enum names) default
-           (info ["protocol-kind"] ~doc:"Set the protocol family.")))
+           (info ["protocol-kind"] ~docs ~doc:"Set the protocol family.")))
 
   let pp ppf n =
     Fmt.string ppf
@@ -103,13 +103,14 @@ type t =
 
 let compare a b = String.compare a.id b.id
 
+let make_bootstrap_accounts ~balance n =
+  List.init n ~f:(fun n -> (Account.of_namef "bootacc-%d" n, balance))
+
 let default () =
   let dictator = Account.of_name "dictator-default" in
   { id= "default-bootstrap"
   ; kind= Protocol_kind.default
-  ; bootstrap_accounts=
-      List.init 4 ~f:(fun n ->
-          (Account.of_namef "bootacc-%d" n, 4_000_000_000_000L))
+  ; bootstrap_accounts= make_bootstrap_accounts ~balance:4_000_000_000_000L 4
   ; dictator
     (* ; bootstrap_contracts= [(dictator, 10_000_000, `Sandbox_faucet)] *)
   ; expected_pow= 1
@@ -213,13 +214,13 @@ let ensure state t =
     (Genspio.Compile.to_one_liner (ensure_script state t) |> Filename.quote)
   >>= fun _ -> return ()
 
-let cli_term () =
+let cli_term state =
   let open Cmdliner in
   let open Term in
   let def = default () in
-  let docs = "PROTOCOL OPTIONS" in
+  let docs = Manpage_builder.section state ~rank:2 ~name:"PROTOCOL OPTIONS" in
   pure
-    (fun remove_default_bas
+    (fun bootstrap_accounts
          (`Blocks_per_voting_period blocks_per_voting_period)
          (`Protocol_hash hash)
          (`Time_between_blocks time_between_blocks)
@@ -228,12 +229,8 @@ let cli_term () =
          (`Timestamp_delay timestamp_delay)
          (`Protocol_parameters custom_protocol_parameters)
          kind
-         add_bootstraps
          ->
       let id = "default-and-command-line" in
-      let bootstrap_accounts =
-        add_bootstraps
-        @ if remove_default_bas then [] else def.bootstrap_accounts in
       { def with
         id
       ; kind
@@ -246,11 +243,52 @@ let cli_term () =
       ; timestamp_delay
       ; blocks_per_voting_period })
   $ Arg.(
-      value
-        (flag
-           (info ~doc:"Do not create any of the default bootstrap accounts."
-              ~docs
-              ["remove-default-bootstrap-accounts"])))
+      pure (fun remove_all nb balance add_bootstraps ->
+          add_bootstraps
+          @ make_bootstrap_accounts ~balance (if remove_all then 0 else nb))
+      $ value
+          (flag
+             (info
+                ~doc:
+                  "Do not create any of the default bootstrap accounts (this \
+                   overrides `--number-of-bootstrap-accounts` with 0)."
+                ~docs
+                ["remove-default-bootstrap-accounts"]))
+      $ value
+          (opt int 4
+             (info
+                ["number-of-bootstrap-accounts"]
+                ~docs ~doc:"Set the number of generated bootstrap accounts."))
+      $ ( pure (function
+            | `Tez, f -> f *. 1_000_000. |> Int64.of_float
+            | `Mutez, f -> f |> Int64.of_float)
+        $ value
+            (opt
+               (pair ~sep:':'
+                  (enum [("tz", `Tez); ("tez", `Tez); ("mutez", `Mutez)])
+                  float)
+               (`Tez, 4_000_000.)
+               (info
+                  ["balance-of-bootstrap-accounts"]
+                  ~docv:"UNIT:FLOAT" ~docs
+                  ~doc:
+                    "Set the initial balance of bootstrap accounts, for \
+                     instance: `tz:2_000_000.42` or \
+                     `mutez:42_000_000_000_000`.")) )
+      $ Arg.(
+          pure (fun l ->
+              List.map l
+                ~f:(fun ((name, pubkey, pubkey_hash, private_key), tez) ->
+                  (Account.key_pair name ~pubkey ~pubkey_hash ~private_key, tez)))
+          $ value
+              (opt_all
+                 (pair ~sep:'@' (t4 ~sep:',' string string string string) int64)
+                 []
+                 (info ["add-bootstrap-account"] ~docs
+                    ~docv:"NAME,PUBKEY,PUBKEY-HASH,PRIVATE-URI@MUTEZ-AMOUNT"
+                    ~doc:
+                      "Add a custom bootstrap account, e.g. \
+                       `LedgerBaker,edpku...,tz1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`."))))
   $ Arg.(
       pure (fun x -> `Blocks_per_voting_period x)
       $ value
@@ -308,17 +346,4 @@ let cli_term () =
                    ones (technically this invalidates most other options from \
                    a tezos-node point of view, use at your own risk)."
                 ~docv:"JSON-FILE" ~docs)))
-  $ Protocol_kind.cmdliner_term ()
-  $ Arg.(
-      pure (fun l ->
-          List.map l ~f:(fun ((name, pubkey, pubkey_hash, private_key), tez) ->
-              (Account.key_pair name ~pubkey ~pubkey_hash ~private_key, tez)))
-      $ value
-          (opt_all
-             (pair ~sep:'@' (t4 ~sep:',' string string string string) int64)
-             []
-             (info ["add-bootstrap-account"] ~docs
-                ~docv:"NAME,PUBKEY,PUBKEY-HASH,PRIVATE-URI@MUTEZ-AMOUNT"
-                ~doc:
-                  "Add a custom bootstrap account, e.g. \
-                   `LedgerBaker,edpku...,tz1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`.")))
+  $ Protocol_kind.cmdliner_term () ~docs

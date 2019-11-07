@@ -36,6 +36,8 @@ fi
 
 (
     cd local-vendor/tezos-master/
+    git checkout "$tezos_branch"
     git pull
+    git log --oneline -n 5
     echo "(data_only_dirs flextesa-lib) ;; Unvendored flextesa" > vendors/dune
 )

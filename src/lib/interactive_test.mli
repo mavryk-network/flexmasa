@@ -18,7 +18,7 @@ module Commands : sig
   val flag : string -> Sexplib0.Sexp.t list -> bool
 
   val unit_loop_no_args :
-       Easy_format.t
+       description:string
     -> string list
     -> (   unit
         -> ( unit
@@ -140,6 +140,7 @@ module Commands : sig
     -> ?command_names:string list
     -> < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -151,6 +152,7 @@ module Commands : sig
     -> ?make_command_names:(int -> string list)
     -> < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -164,6 +166,7 @@ module Commands : sig
     -> < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> clients:Tezos_client.t list
@@ -173,6 +176,7 @@ module Commands : sig
        < application_name: string
        ; console: Console.t
        ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -184,6 +188,7 @@ module Commands : sig
        ; console: Console.t
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> nodes:Tezos_node.t list

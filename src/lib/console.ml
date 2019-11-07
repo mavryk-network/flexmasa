@@ -108,23 +108,26 @@ let say (o : _ Base_state.t) ef : (_, _) Asynchronous_result.t =
 module Prompt = struct
   type item =
     { commands: string list
-    ; doc: EF.t
+    ; description: string
+    ; details: unit Fmt.t option
     ; action:
            Base.Sexp.t list
         -> ( [`Help | `Quit | `Loop]
            , [System_error.t | `Command_line of string] )
            Asynchronous_result.t }
 
-  let item doc commands action = {commands; doc; action}
+  let item ?details ~description commands action =
+    {commands; description; details; action}
 
-  let quit ?(doc = EF.(af "Quit this prompt and continue")) commands =
-    item doc commands (fun _ -> return `Quit)
+  let quit ?(description = "Quit this prompt and continue.") commands =
+    item ~description commands (fun _ -> return `Quit)
 
-  let help ?(doc = EF.(af "Display command help")) commands =
-    item doc commands (fun _ -> return `Help)
+  let help ?(description = "Display help on all commands.") commands =
+    item ~description commands (fun _ -> return `Help)
 
-  let unit_and_loop doc commands f =
-    item doc commands (fun x -> f x >>= fun () -> return `Loop)
+  let unit_and_loop ?details ~description commands f =
+    item ?details ~description commands (fun x ->
+        f x >>= fun () -> return `Loop)
 
   let default_commands () = [quit ["q"; "quit"]; help ["h"; "help"]]
 
@@ -162,23 +165,22 @@ module Prompt = struct
             >>= function
             | `Loop -> loop ()
             | `Help ->
-                say state
-                  EF.(
-                    let cmdlist =
-                      list ~sep:"|" ~delimiters:("[", "]")
-                        ~param:
-                          { default_list with
-                            space_after_separator= false
-                          ; space_before_closing= false
-                          ; space_after_opening= false } in
-                    label (haf "Commands:")
-                      (list
-                         (List.map commands ~f:(fun {commands; doc; _} ->
-                              label
-                                ~param:
-                                  {default_label with space_after_label= false}
-                                (cmdlist (List.map ~f:(af "%S") commands))
-                                (list [haf "->"; doc])))))
+                sayf state
+                  More_fmt.(
+                    fun ppf () ->
+                      vertical_box ~indent:2 ppf (fun ppf ->
+                          pf ppf "Available commands:" ;
+                          cut ppf () ;
+                          List.iter commands
+                            ~f:(fun {commands; description; details; _} ->
+                              wrapping_box ~indent:2 ppf (fun ppf ->
+                                  pf ppf "* {%a}:@ %a"
+                                    (list ~sep:(const string "|") (fun ppf s ->
+                                         prompt ppf (fun ppf -> string ppf s)))
+                                    commands text description ;
+                                  Option.iter details ~f:(fun pp ->
+                                      cut ppf () ; pp ppf ())) ;
+                              cut ppf ())))
                 >>= fun () -> loop ()
             | `Quit -> return () )
         | None ->

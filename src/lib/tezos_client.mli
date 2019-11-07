@@ -26,10 +26,10 @@ val client_call :
 
 val client_command :
      ?wait:string
+  -> < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
   -> client
-  -> state:< paths: Paths.t ; .. >
   -> string list
-  -> unit Genspio.EDSL.t
+  -> unit Genspio.Language.t
 (** Build a tezos-client command, the default [?wait] is ["none"]. *)
 
 (** {3 Run Specific Client Commands } *)
@@ -39,6 +39,7 @@ val wait_for_node_bootstrap :
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
+     ; env_config: Environment_configuration.t
      ; .. >
   -> client
   -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
@@ -48,6 +49,7 @@ val import_secret_key :
      < paths: Paths.t
      ; console: Console.t
      ; runner: Running_processes.State.t
+     ; env_config: Environment_configuration.t
      ; .. >
      Base_state.t
   -> t
@@ -60,6 +62,7 @@ val register_as_delegate :
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
+     ; env_config: Environment_configuration.t
      ; .. >
   -> client
   -> key_name:string
@@ -70,6 +73,7 @@ val activate_protocol :
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
+     ; env_config: Environment_configuration.t
      ; .. >
   -> client
   -> Tezos_protocol.t
@@ -80,6 +84,7 @@ val verbose_client_cmd :
   -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
+     ; env_config: Environment_configuration.t
      ; runner: Running_processes.State.t
      ; .. >
   -> client:client
@@ -92,6 +97,7 @@ val successful_client_cmd :
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
+     ; env_config: Environment_configuration.t
      ; .. >
      Base_state.t
   -> client:t
@@ -105,6 +111,7 @@ val rpc :
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
+     ; env_config: Environment_configuration.t
      ; .. >
      Base_state.t
   -> client:t
@@ -118,6 +125,7 @@ val find_applied_in_mempool :
      < application_name: string
      ; console: Console.t
      ; paths: Paths.t
+     ; env_config: Environment_configuration.t
      ; runner: Running_processes.State.t
      ; .. >
   -> client:client
@@ -132,6 +140,7 @@ val mempool_has_operation :
      ; console: Console.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
+     ; env_config: Environment_configuration.t
      ; .. >
   -> client:t
   -> kind:string
@@ -141,6 +150,7 @@ val mempool_has_operation :
 val block_has_operation :
      < application_name: string
      ; console: Console.t
+     ; env_config: Environment_configuration.t
      ; paths: Paths.t
      ; runner: Running_processes.State.t
      ; .. >
@@ -155,6 +165,7 @@ val get_block_header :
      < application_name: string
      ; console: Console.t
      ; paths: Paths.t
+     ; env_config: Environment_configuration.t
      ; runner: Running_processes.State.t
      ; .. >
   -> client:t
@@ -168,6 +179,7 @@ val list_known_addresses :
      < application_name: string
      ; console: Console.t
      ; paths: Paths.t
+     ; env_config: Environment_configuration.t
      ; runner: Running_processes.State.t
      ; .. >
   -> client:t
@@ -182,6 +194,7 @@ module Ledger : sig
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> client:t
@@ -192,6 +205,7 @@ module Ledger : sig
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> client:t
@@ -205,6 +219,7 @@ module Ledger : sig
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> client:t
@@ -216,6 +231,7 @@ module Ledger : sig
   val deauthorize_baking :
        < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -228,6 +244,7 @@ module Ledger : sig
   val get_authorized_key :
        < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -247,6 +264,7 @@ module Keyed : sig
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> t
@@ -260,6 +278,7 @@ module Keyed : sig
     -> < application_name: string
        ; console: Console.t
        ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -272,6 +291,7 @@ module Keyed : sig
   val endorse :
        < application_name: string
        ; console: Console.t
+       ; env_config: Environment_configuration.t
        ; operations_log: Log_recorder.Operations.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
@@ -286,6 +306,7 @@ module Keyed : sig
        < application_name: string
        ; console: Console.t
        ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
@@ -297,6 +318,7 @@ module Keyed : sig
 
   val forge_and_inject :
        < application_name: string
+       ; env_config: Environment_configuration.t
        ; console: Console.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t

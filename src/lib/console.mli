@@ -28,9 +28,10 @@ val sayf :
 
 (** Create interactive prompts. *)
 module Prompt : sig
-  type item =
+  type item = private
     { commands: string list
-    ; doc: Easy_format.t
+    ; description: string
+    ; details: unit Fmt.t option
     ; action:
            Sexplib0.Sexp.t list
         -> ( [`Help | `Loop | `Quit]
@@ -38,7 +39,8 @@ module Prompt : sig
            Asynchronous_result.t }
 
   val item :
-       Easy_format.t
+       ?details:unit Fmt.t
+    -> description:string
     -> string list
     -> (   Sexplib0.Sexp.t list
         -> ( [`Help | `Loop | `Quit]
@@ -49,11 +51,12 @@ module Prompt : sig
       which performs [action]; action gets all the arguments parsed as
       S-Expressions. *)
 
-  val quit : ?doc:Easy_format.t -> string list -> item
-  val help : ?doc:Easy_format.t -> string list -> item
+  val quit : ?description:string -> string list -> item
+  val help : ?description:string -> string list -> item
 
   val unit_and_loop :
-       Easy_format.t
+       ?details:unit Fmt.t
+    -> description:string
     -> string list
     -> (   Sexplib0.Sexp.t list
         -> ( unit

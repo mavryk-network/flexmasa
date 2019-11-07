@@ -89,7 +89,7 @@ end
 open Tezos_executable.Make_cli
 
 let node_command state t cmd options =
-  Tezos_executable.call t.exec ~path:(exec_path state t)
+  Tezos_executable.call state t.exec ~path:(exec_path state t)
     ( cmd
     @ opt "config-file" (config_file state t)
     @ opt "data-dir" (data_dir state t)
@@ -177,11 +177,16 @@ let connections node_list =
 module History_modes = struct
   type 'error edit = t list -> (t list, 'error) Asynchronous_result.t
 
-  let cmdliner_term () : _ edit Cmdliner.Term.t =
+  let cmdliner_term state : _ edit Cmdliner.Term.t =
     let open Cmdliner in
     let open Term in
     let history_mode_converter =
       Arg.enum [("archive", `Archive); ("full", `Full); ("rolling", `Rolling)]
+    in
+    let docs =
+      Manpage_builder.section state ~rank:2 ~name:"NODE HISTORY MODES"
+        ~man:
+          [`P "One can specify history modes for a given subset of the nodes."]
     in
     pure (fun edits node_list ->
         try
@@ -215,6 +220,8 @@ module History_modes = struct
           (opt_all
              (pair ~sep:':' string history_mode_converter)
              []
-             (info ["set-history-mode"]
-                ~doc:"Set the history mode for a given (named) node.")))
+             (info ["set-history-mode"] ~docs ~docv:"NODEPREFIX:MODE"
+                ~doc:
+                  "Set the history mode for a given (named) node, e.g. \
+                   `N000:archive`.")))
 end

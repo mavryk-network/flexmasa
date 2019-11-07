@@ -74,5 +74,7 @@ val connections :
 module History_modes : sig
   type 'error edit = t list -> (t list, 'error) Asynchronous_result.t
 
-  val cmdliner_term : unit -> [> System_error.t] edit Cmdliner.Term.t
+  val cmdliner_term :
+       < manpager: Manpage_builder.State.t ; .. >
+    -> [> System_error.t] edit Cmdliner.Term.t
 end

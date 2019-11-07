@@ -2,6 +2,38 @@
 
 open Internal_pervasives
 
+module Common_errors : sig
+  type t =
+    [ `Die of int
+    | `Empty_protocol_list
+    | `Precheck_failure of string
+    | Process_result.Error.t
+    | `Scenario_error of string
+    | System_error.t
+    | Test_scenario.Inconsistency_error.t
+    | `Waiting_for of string * [`Time_out] ]
+
+  val pp : t Fmt.t
+end
+
+module Command_making_state : sig
+  type specific =
+    < command_name: string
+    ; env_config: Environment_configuration.t
+    ; manpager: Manpage_builder.State.t >
+
+  type 'a t = 'a constraint 'a = < application_name: string ; specific ; .. >
+
+  val make :
+       application_name:string
+    -> command_name:string
+    -> unit
+    -> < application_name: string
+       ; command_name: string
+       ; env_config: Environment_configuration.t
+       ; manpager: Manpage_builder.State.t >
+end
+
 (** Make {!Cmdliner} commands from {!Asynchronous_result} functions. *)
 module Run_command : sig
   val make :
@@ -12,6 +44,21 @@ module Run_command : sig
     -> Cmdliner.Term.info
     -> unit Cmdliner.Term.t * Cmdliner.Term.info
 end
+
+val full_state_cmdliner_term :
+     _ Command_making_state.t
+  -> ?default_interactivity:Interactive_test.Interactivity.t
+  -> ?disable_interactivity:bool
+  -> unit
+  -> < application_name: string
+     ; console: Console.t
+     ; env_config: Environment_configuration.t
+     ; operations_log: Log_recorder.Operations.t
+     ; paths: Paths.t
+     ; pauser: Interactive_test.Pauser.t
+     ; runner: Running_processes.State.t
+     ; test_interactivity: Interactive_test.Interactivity.t >
+     Cmdliner.Term.t
 
 val cli_state :
      ?default_interactivity:Interactive_test.Interactivity.t

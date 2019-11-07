@@ -57,19 +57,7 @@ end
 
 let () =
   let open Cmdliner in
-  let pp_error fmt =
-    let open Flextesa in
-    function
-    | `Scenario_error s -> Format.fprintf fmt "%s" s
-    | #Test_scenario.Inconsistency_error.t as e ->
-        Format.fprintf fmt "%a" Test_scenario.Inconsistency_error.pp e
-    | #Process_result.Error.t as e ->
-        Format.fprintf fmt "%a" Process_result.Error.pp e
-    | #System_error.t as e -> Format.fprintf fmt "%a" System_error.pp e
-    | `Waiting_for (msg, `Time_out) ->
-        Format.fprintf fmt "WAITING-FOR “%s”: Time-out" msg
-    | `Precheck_failure _ as p -> Helpers.System_dependencies.Error.pp fmt p
-    | `Die n -> Format.fprintf fmt "Exiting with %d" n in
+  let pp_error = Flextesa.Test_command_line.Common_errors.pp in
   let help = Term.(ret (pure (`Help (`Auto, None))), info "flextesa") in
   Term.exit
     (Term.eval_choice
