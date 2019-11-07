@@ -43,12 +43,12 @@ open Console
 let run_client_cmd ?id_prefix ?wait state client args =
   Running_processes.run_cmdf ?id_prefix state "sh -c %s"
     ( client_command ?wait state client args
-    |> Genspio.Compile.to_one_liner |> Filename.quote )
+    |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
 
 let verbose_client_cmd ?wait state ~client args =
   Running_processes.run_cmdf state "sh -c %s"
     ( client_command ?wait state client args
-    |> Genspio.Compile.to_one_liner |> Filename.quote )
+    |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
   >>= fun res ->
   Console.display_errors_of_command state res
   >>= fun success -> return (success, res)
@@ -67,7 +67,7 @@ let wait_for_node_bootstrap state client =
     run_client_cmd
       ~id_prefix:(client.id ^ "-bootstrapped")
       state client ["bootstrapped"]
-    >>= fun res -> return (res#status = Unix.WEXITED 0) in
+    >>= fun res -> return Poly.(res#status = Unix.WEXITED 0) in
   let attempts = 8 in
   let rec loop nth =
     if nth >= attempts then failf "Bootstrapping failed %d times." nth
@@ -76,7 +76,7 @@ let wait_for_node_bootstrap state client =
       >>= function
       | true -> return ()
       | false ->
-          System.sleep Float.(0.3 + (float nth * 0.5))
+          System.sleep Float.(0.3 + (of_int nth * 0.5))
           >>= fun () -> loop (nth + 1) in
   loop 1
 
@@ -145,7 +145,8 @@ let activate_protocol state client protocol =
   rpc state ~client `Get ~path:"/chains/main/blocks/head/metadata"
   >>= fun metadata_json ->
   ( match Jqo.field metadata_json ~k:"next_protocol" with
-  | `String hash when hash = protocol.Tezos_protocol.hash -> return ()
+  | `String hash when String.equal hash protocol.Tezos_protocol.hash ->
+      return ()
   | exception e ->
       System_error.fail_fatalf "Error getting protocol metadata: %a" Exn.pp e
   | other_value ->
@@ -175,8 +176,9 @@ let find_applied_in_mempool state ~client ~f =
 let mempool_has_operation state ~client ~kind =
   find_applied_in_mempool state ~client ~f:(fun o ->
       Jqo.field o ~k:"contents"
-      |> Jqo.list_exists ~f:(fun op -> Jqo.field op ~k:"kind" = `String kind))
-  >>= fun found_or_not -> return (found_or_not <> None)
+      |> Jqo.list_exists
+           ~f:Poly.(fun op -> Jqo.field op ~k:"kind" = `String kind))
+  >>= fun found_or_not -> return Poly.(found_or_not <> None)
 
 let block_has_operation state ~client ~level ~kind =
   successful_client_cmd state ~client
@@ -188,8 +190,9 @@ let block_has_operation state ~client ~level ~kind =
       Jqo.list_exists json ~f:(fun olist ->
           Jqo.list_exists olist ~f:(fun o ->
               Jqo.field o ~k:"contents"
-              |> Jqo.list_exists ~f:(fun op ->
-                     Jqo.field op ~k:"kind" = `String kind))) in
+              |> Jqo.list_exists
+                   ~f:Poly.(fun op -> Jqo.field op ~k:"kind" = `String kind)))
+    in
     say state
       EF.(
         desc
@@ -237,7 +240,7 @@ module Ledger = struct
   let set_hwm state ~client ~uri ~level =
     successful_client_cmd state ~client
       [ "set"; "ledger"; "high"; "watermark"; "for"; uri; "to"
-      ; string_of_int level ]
+      ; Int.to_string level ]
     >>= fun _ -> return ()
 
   let get_hwm state ~client ~uri =
@@ -261,12 +264,12 @@ module Ledger = struct
     let matches = Re.exec re (String.concat ~sep:" " res#out) in
     try
       return
-        { main= int_of_string (Re.Group.get matches 1)
+        { main= Int.of_string (Re.Group.get matches 1)
         ; chain=
             (let v = Re.Group.get matches 2 in
-             if v = "'Unspecified'" then None
+             if String.equal v "'Unspecified'" then None
              else Some (Tezos_crypto.Chain_id.of_b58check_exn v))
-        ; test= int_of_string (Re.Group.get matches 3) }
+        ; test= Int.of_string (Re.Group.get matches 3) }
     with e ->
       failf
         "Couldn't understand result of 'get high watermark for %S': error %S: \
@@ -289,7 +292,8 @@ module Ledger = struct
       let pubkey_hash = Re.(Group.get (exec addr_re out) 1) in
       let name =
         match
-          List.find known_addresses ~f:(fun (_, pkh) -> pkh = pubkey_hash)
+          List.find known_addresses ~f:(fun (_, pkh) ->
+              String.equal pkh pubkey_hash)
         with
         | None -> ""
         | Some (alias, _) -> alias in

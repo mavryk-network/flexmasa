@@ -39,9 +39,9 @@ module Configuration_directory = struct
       (path // "kiln-node-net-port")
       ~content:(sprintf "%d" p2p_port)
     >>= fun () ->
-    let pwd = Sys.getenv "PWD" in
+    let pwd = Caml.Sys.getenv "PWD" in
     let absolutize path =
-      if Filename.is_relative path then pwd // path else path in
+      if Caml.Filename.is_relative path then pwd // path else path in
     System.write_file state ~perm:0o777
       (path // "kiln-node-custom-args")
       ~content:

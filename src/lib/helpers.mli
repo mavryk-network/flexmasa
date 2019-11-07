@@ -74,7 +74,7 @@ module System_dependencies : sig
   module Error : sig
     type t = [`Precheck_failure of string]
 
-    val pp : Format.formatter -> [< `Precheck_failure of string] -> unit
+    val pp : Caml.Format.formatter -> [< `Precheck_failure of string] -> unit
   end
 
   val precheck :

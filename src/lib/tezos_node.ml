@@ -153,7 +153,7 @@ let connections node_list =
       | _, `Duplex _ -> 1
       | _, _ -> Caml.Pervasives.compare a b
   end in
-  let module Connection_set = Set.Make (Connection) in
+  let module Connection_set = Caml.Set.Make (Connection) in
   let res = ref Connection_set.empty in
   List.iter node_list ~f:(fun node ->
       let peer_nodes =

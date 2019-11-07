@@ -37,7 +37,7 @@ end
 (** Make {!Cmdliner} commands from {!Asynchronous_result} functions. *)
 module Run_command : sig
   val make :
-       pp_error:(Format.formatter -> ([> ] as 'errors) -> unit)
+       pp_error:(Caml.Format.formatter -> ([> ] as 'errors) -> unit)
     -> ( < application_name: string ; console: Console.t ; .. >
        * (unit -> (unit, 'errors) Asynchronous_result.t) )
        Cmdliner.Term.t

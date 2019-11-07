@@ -79,7 +79,7 @@ module Protocol_kind = struct
   let pp ppf n =
     Fmt.string ppf
       (List.find_map_exn names ~f:(function
-        | s, x when x = n -> Some s
+        | s, x when Poly.equal x n -> Some s
         | _ -> None))
 end
 
@@ -200,7 +200,7 @@ let ensure_script state t =
   let open Genspio.EDSL in
   let file string p =
     let path = p state t in
-    ( Filename.basename path
+    ( Caml.Filename.basename path
     , write_stdout ~path:(str path)
         (feed ~string:(str (string t)) (exec ["cat"])) ) in
   check_sequence
@@ -211,7 +211,8 @@ let ensure_script state t =
 
 let ensure state t =
   Running_processes.run_successful_cmdf state "sh -c %s"
-    (Genspio.Compile.to_one_liner (ensure_script state t) |> Filename.quote)
+    ( Genspio.Compile.to_one_liner (ensure_script state t)
+    |> Caml.Filename.quote )
   >>= fun _ -> return ()
 
 let cli_term state =
@@ -335,7 +336,7 @@ let cli_term state =
       pure (fun f ->
           `Protocol_parameters
             (Option.map f ~f:(fun path ->
-                 let i = open_in path in
+                 let i = Caml.open_in path in
                  Ezjsonm.from_channel i)))
       $ value
           (opt (some file) None

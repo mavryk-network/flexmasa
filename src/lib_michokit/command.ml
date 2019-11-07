@@ -29,9 +29,9 @@ module Concrete = struct
 
   let to_string e =
     let buf = Buffer.create 1000 in
-    let fmt = Format.formatter_of_buffer buf in
+    let fmt = Caml.Format.formatter_of_buffer buf in
     Tezos_client_alpha.Michelson_v1_printer.print_expr_unwrapped fmt e ;
-    Format.pp_print_flush fmt () ;
+    Caml.Format.pp_print_flush fmt () ;
     Buffer.contents buf
 end
 
@@ -42,7 +42,9 @@ module Transform = struct
     let open Tz_protocol.Environment.Micheline in
     let all_failwith_arguments = ref [] in
     let add_failwith_argument arg =
-      match List.find !all_failwith_arguments ~f:(fun (_, a) -> a = arg) with
+      match
+        List.find !all_failwith_arguments ~f:(fun (_, a) -> Poly.equal a arg)
+      with
       | Some (id, _) ->
           (* Printf.eprintf "found %d\n%!" id ; *)
           id
@@ -65,7 +67,7 @@ module Transform = struct
                     _
                     , _annt ) as anything )
               ; Prim (l4, I_FAILWITH, nf, _annf) ] ->
-                (* Format.eprintf "\n\n\nFound failwith: %S\n%!" s ; *)
+                (* Caml.Format.eprintf "\n\n\nFound failwith: %S\n%!" s ; *)
                 let id = add_failwith_argument (strip_locations anything) in
                 [ Prim
                     ( l1
@@ -98,7 +100,7 @@ module Json = struct
 end
 
 let run ?output_error_codes state ~input_file ~output_file () =
-  ( match Filename.extension input_file with
+  ( match Caml.Filename.extension input_file with
   | ".tz" ->
       System.read_file state input_file
       >>= fun content -> Concrete.parse content
@@ -106,7 +108,7 @@ let run ?output_error_codes state ~input_file ~output_file () =
       System_error.fail_fatalf "Cannot parse file with extension %S" other )
   >>= fun expr ->
   let transformed, error_codes = Transform.strip_errors_and_annotations expr in
-  ( match Filename.extension output_file with
+  ( match Caml.Filename.extension output_file with
   | ".tz" ->
       System.write_file state output_file
         ~content:(Concrete.to_string transformed)

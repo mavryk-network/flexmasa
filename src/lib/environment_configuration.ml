@@ -58,7 +58,7 @@ let init state env_config =
 let get_var_from_environment state varf =
   let var = varf state#env_config in
   let varname = Fmt.str "%s%s" (prefix state) var.name in
-  Sys.getenv_opt varname |> var.transform
+  Caml.Sys.getenv_opt varname |> var.transform
 
 let default_cors_origin state =
   get_var_from_environment state (fun e -> e.default_cors_origin)
