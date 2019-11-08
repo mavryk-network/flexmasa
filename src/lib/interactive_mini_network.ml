@@ -1,7 +1,7 @@
 open Internal_pervasives
 open Console
 
-let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
+let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ?external_peer_ports ~nodes_history_mode_edits ~with_baking
     ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
     accuser_exec test_kind () =
@@ -12,12 +12,35 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
   >>= fun () ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
-      [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
+      ( [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
+      @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables )
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.")
   >>= fun () ->
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
     ~nodes_history_mode_edits ~base_port state ~node_exec ~client_exec
+    ?node_custom_network:
+      (Option.map hard_fork ~f:(fun hf ->
+           let open Ezjsonm in
+           let default_stuff =
+             [ ( "genesis"
+               , dict
+                   [ ("timestamp", string "2018-06-30T16:07:32Z")
+                   ; ( "block"
+                     , string
+                         "BLockGenesisGenesisGenesisGenesisGenesisf79b5d1CoW2"
+                     )
+                   ; ( "protocol"
+                     , string
+                         "Ps9mPmXaRzmzk35gbAYNCAw6UXdE2qoABTHbN2oEEc1qM7CwT9P"
+                     ) ] )
+             ; ("chain_name", string "TEZOS_MAINNET")
+             ; ("old_chain_name", string "TEZOS_BETANET_2018-06-30T16:07:32Z")
+             ; ("incompatible_chain_name", string "INCOMPATIBLE")
+             ; ("sandboxed_chain_name", string "SANDBOXED_TEZOS_MAINNET") ]
+           in
+           `Json
+             (Ezjsonm.dict (default_stuff @ [Hard_fork.node_network_config hf]))))
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.")
   >>= fun () ->
@@ -56,9 +79,12 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
              Some
                ( acc
                , client
-               , [ Tezos_daemon.baker_of_node ~exec:baker_exec ~client node ~key
-                 ; Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
-                     node ~key ] )) in
+               , Option.value_map hard_fork ~default:[]
+                   ~f:(Hard_fork.keyed_daemons ~client ~node ~key)
+                 @ [ Tezos_daemon.baker_of_node ~exec:baker_exec ~client node
+                       ~key
+                   ; Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
+                       node ~key ] )) in
   ( if with_baking then
     let accusers =
       List.map nodes ~f:(fun node ->
@@ -156,13 +182,14 @@ let cmd ~pp_error () =
            bak
            endo
            accu
+           hard_fork
            generate_kiln_config
            nodes_history_mode_edits
            state
            ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ~clear_root ~nodes_history_mode_edits ~with_baking
+            ?hard_fork ~clear_root ~nodes_history_mode_edits ~with_baking
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
             test_kind in
         (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
@@ -213,6 +240,7 @@ let cmd ~pp_error () =
     $ Tezos_executable.cli_term base_state `Baker "tezos"
     $ Tezos_executable.cli_term base_state `Endorser "tezos"
     $ Tezos_executable.cli_term base_state `Accuser "tezos"
+    $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.full_state_cmdliner_term base_state () in
