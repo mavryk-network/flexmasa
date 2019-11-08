@@ -21,26 +21,10 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~nodes_history_mode_edits ~base_port state ~node_exec ~client_exec
     ?node_custom_network:
       (Option.map hard_fork ~f:(fun hf ->
-           let open Ezjsonm in
-           let default_stuff =
-             [ ( "genesis"
-               , dict
-                   [ ("timestamp", string "2018-06-30T16:07:32Z")
-                   ; ( "block"
-                     , string
-                         "BLockGenesisGenesisGenesisGenesisGenesisf79b5d1CoW2"
-                     )
-                   ; ( "protocol"
-                     , string
-                         "Ps9mPmXaRzmzk35gbAYNCAw6UXdE2qoABTHbN2oEEc1qM7CwT9P"
-                     ) ] )
-             ; ("chain_name", string "TEZOS_MAINNET")
-             ; ("old_chain_name", string "TEZOS_BETANET_2018-06-30T16:07:32Z")
-             ; ("incompatible_chain_name", string "INCOMPATIBLE")
-             ; ("sandboxed_chain_name", string "SANDBOXED_TEZOS_MAINNET") ]
-           in
            `Json
-             (Ezjsonm.dict (default_stuff @ [Hard_fork.node_network_config hf]))))
+             (Ezjsonm.dict
+                ( Tezos_node.Config_file.default_network
+                @ [Hard_fork.node_network_config hf] ))))
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.")
   >>= fun () ->

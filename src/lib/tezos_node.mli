@@ -82,3 +82,8 @@ module History_modes : sig
        < manpager: Manpage_builder.State.t ; .. >
     -> [> System_error.t] edit Cmdliner.Term.t
 end
+
+module Config_file : sig
+  val default_network : (string * Ezjsonm.value) list
+  val of_node : < paths: Paths.t ; .. > -> t -> string
+end

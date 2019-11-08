@@ -59,6 +59,22 @@ module Config_file = struct
      want the sandbox to be able to configure ≥ 1 versions of the
      node.
   *)
+
+  let default_network =
+    let open Ezjsonm in
+    [ ( "genesis"
+      , dict
+          [ ("timestamp", string "2018-06-30T16:07:32Z")
+          ; ( "block"
+            , string "BLockGenesisGenesisGenesisGenesisGenesisf79b5d1CoW2" )
+          ; ( "protocol"
+            , string "Ps9mPmXaRzmzk35gbAYNCAw6UXdE2qoABTHbN2oEEc1qM7CwT9P" ) ]
+      )
+    ; ("chain_name", string "TEZOS_MAINNET")
+    ; ("old_chain_name", string "TEZOS_BETANET_2018-06-30T16:07:32Z")
+    ; ("incompatible_chain_name", string "INCOMPATIBLE")
+    ; ("sandboxed_chain_name", string "SANDBOXED_TEZOS_MAINNET") ]
+
   let of_node state t =
     let open Ezjsonm in
     let shell =
