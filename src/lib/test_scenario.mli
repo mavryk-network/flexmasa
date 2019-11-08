@@ -53,9 +53,13 @@ module Topology : sig
 
   val build :
        ?external_peer_ports:int list
-    -> ?protocol:Tezos_protocol.t
     -> ?base_port:int
-    -> exec:Tezos_executable.t
+    -> make_node:(   string
+                  -> expected_connections:int
+                  -> rpc_port:int
+                  -> p2p_port:int
+                  -> int list
+                  -> node)
     -> 'a network
     -> 'a
 end
@@ -87,7 +91,8 @@ module Network : sig
 end
 
 val network_with_protocol :
-     ?external_peer_ports:int list
+     ?node_custom_network:[`Json of Ezjsonm.value]
+  -> ?external_peer_ports:int list
   -> ?base_port:int
   -> ?size:int
   -> ?protocol:Tezos_protocol.t

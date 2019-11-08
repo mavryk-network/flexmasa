@@ -1,5 +1,7 @@
 open Internal_pervasives
 
+type custom_network = [`Json of Ezjsonm.value]
+
 type t =
   { id: string
   ; expected_connections: int
@@ -11,7 +13,8 @@ type t =
   ; protocol: Tezos_protocol.t
   ; history_mode: [`Full | `Archive | `Rolling] option
   ; single_process: bool
-  ; cors_origin: string option }
+  ; cors_origin: string option
+  ; custom_network: custom_network option }
 
 let compare a b = Base.String.compare a.id b.id
 let equal a b = Base.String.equal a.id b.id
@@ -27,8 +30,8 @@ let pp fmt t = Easy_format.Pretty.to_formatter fmt (ef t)
 let id t = t.id
 
 let make ?cors_origin ~exec ?(protocol = Tezos_protocol.default ())
-    ?(single_process = true) ?history_mode id ~expected_connections ~rpc_port
-    ~p2p_port peers =
+    ?custom_network ?(single_process = true) ?history_mode id
+    ~expected_connections ~rpc_port ~p2p_port peers =
   { id
   ; expected_connections
   ; rpc_port
@@ -38,7 +41,8 @@ let make ?cors_origin ~exec ?(protocol = Tezos_protocol.default ())
   ; protocol
   ; history_mode
   ; single_process
-  ; cors_origin }
+  ; cors_origin
+  ; custom_network }
 
 let make_path p ~config t = Paths.root config // sprintf "node-%s" t.id // p
 
@@ -68,6 +72,9 @@ module Config_file = struct
                     | `Archive -> string "archive"
                     | `Full -> string "full"
                     | `Rolling -> string "rolling" ) ] ) ] in
+    let network =
+      Option.value_map t.custom_network ~default:[] ~f:(function `Json j ->
+          [("network", j)]) in
     [ ("data-dir", data_dir state t |> string)
     ; ( "rpc"
       , dict [("listen-addrs", strings [sprintf "0.0.0.0:%d" t.rpc_port])] )
@@ -82,7 +89,7 @@ module Config_file = struct
                 ; ("swap-linger", int 2)
                 ; ("connection-timeout", int 2) ] ) ] )
     ; ("log", dict [("output", string (log_output state t))]) ]
-    @ shell
+    @ shell @ network
     |> dict |> to_string ~minify:false
 end
 
