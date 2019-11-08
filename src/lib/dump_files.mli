@@ -18,4 +18,4 @@ val write :
   -> (string * string) list
   -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 
-val pp : Format.formatter -> t -> unit
+val pp : t Fmt.t

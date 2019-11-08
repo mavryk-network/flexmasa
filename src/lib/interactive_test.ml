@@ -2,7 +2,7 @@ open Internal_pervasives
 open Console
 
 module Commands = struct
-  let cmdline_fail fmt = Format.kasprintf (fun s -> fail (`Command_line s)) fmt
+  let cmdline_fail fmt = Fmt.kstr (fun s -> fail (`Command_line s)) fmt
 
   let no_args = function
     | [] -> return ()
@@ -30,7 +30,7 @@ module Commands = struct
                   let opt_ex ppf () =
                     prompt ppf (fun ppf ->
                         pf ppf "(%s%s)" name
-                          ( if placeholders = [] then ""
+                          ( if Poly.equal placeholders [] then ""
                           else
                             List.map ~f:(str " %s") placeholders
                             |> String.concat ~sep:"" )) in
@@ -264,7 +264,7 @@ module Commands = struct
               (af "Balances from levels %d to “head” (port :%d)" save_point
                  port)
               (List.map results ~f:(fun (hsh, init, cur) ->
-                   let tz i = float i /. 1_000_000. in
+                   let tz i = Float.of_int i /. 1_000_000. in
                    desc (haf "%s:" hsh)
                      ( if init = cur then af "%f (unchanged)" (tz cur)
                      else af "%f → %f" (tz init) (tz cur) )))))
@@ -378,7 +378,7 @@ module Commands = struct
                 | `Admin mkadm ->
                     Tezos_admin_client.make_command state (mkadm client) args
                 )
-              |> Genspio.Compile.to_one_liner |> Filename.quote )
+              |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
             >>= fun res ->
             display_errors_of_command state res
             >>= function
@@ -402,7 +402,8 @@ module Commands = struct
                      (List.map different_results ~f:(fun (_, res) ->
                           let clients =
                             List.filter_map results ~f:(function
-                              | c, r when res = r -> Some c.Tezos_client.id
+                              | c, r when String.equal res r ->
+                                  Some c.Tezos_client.id
                               | _ -> None) in
                           desc
                             (haf "Client%s %s:"
@@ -476,7 +477,7 @@ module Interactivity = struct
   type t = [`Full | `None | `On_error | `At_end]
 
   let is_interactive (state : < test_interactivity: t ; .. >) =
-    state#test_interactivity = `Full
+    Poly.equal state#test_interactivity `Full
 
   let pause_on_error state =
     match state#test_interactivity with
@@ -556,16 +557,16 @@ module Pauser = struct
       >>= fun () ->
       say state EF.(af "Waiting for processes to all die.")
       >>= fun () -> Running_processes.wait_all state in
-    Sys.catch_break false ;
+    Caml.Sys.catch_break false ;
     let cond = Lwt_condition.create () in
     let catch_signals () =
-      Lwt_unix.on_signal Sys.sigint (fun i ->
-          Printf.eprintf
+      Lwt_unix.on_signal Caml.Sys.sigint (fun i ->
+          Caml.Printf.eprintf
             "\nReceived signal SIGINT (%d), type `q` to quit prompts.\n\n%!" i ;
           Lwt_condition.broadcast cond `Sig_int)
       |> ignore ;
-      Lwt_unix.on_signal Sys.sigterm (fun i ->
-          Printf.eprintf
+      Lwt_unix.on_signal Caml.Sys.sigterm (fun i ->
+          Caml.Printf.eprintf
             "\nReceived signal SIGTERM (%d), type `q` to quit prompts.\n\n%!" i ;
           Lwt_condition.broadcast cond `Sig_term)
       |> ignore in
@@ -661,7 +662,7 @@ module Pauser = struct
       match todo_next with
       | `Was_ok ()
         when Interactivity.pause_on_success state
-             && !last_pause_status = `Not_done ->
+             && Poly.equal !last_pause_status `Not_done ->
           last_pause ()
       | `Was_ok () -> (
           finish ()

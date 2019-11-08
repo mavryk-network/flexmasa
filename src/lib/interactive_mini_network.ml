@@ -44,7 +44,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
   >>= fun (_ : unit option) ->
   let keys_and_daemons =
     let pick_a_node_and_client idx =
-      match List.nth nodes ((1 + idx) mod List.length nodes) with
+      match List.nth nodes (Int.rem (1 + idx) (List.length nodes)) with
       | Some node -> (node, Tezos_client.of_node node ~exec:client_exec)
       | None -> assert false in
     Tezos_protocol.bootstrap_accounts protocol
@@ -129,7 +129,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for
         let tbb =
           protocol.Tezos_protocol.time_between_blocks |> List.hd
           |> Option.value ~default:10 in
-        float tbb *. 3. in
+        Float.of_int tbb *. 3. in
       let attempts = lvl in
       Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds
         nodes opt

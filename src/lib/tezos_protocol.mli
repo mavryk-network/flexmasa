@@ -43,7 +43,7 @@ module Protocol_kind : sig
 
   val names : (string * t) list
   val cmdliner_term : docs:string -> unit -> t Cmdliner.Term.t
-  val pp : Format.formatter -> t -> unit
+  val pp : t Fmt.t
 end
 
 type t =

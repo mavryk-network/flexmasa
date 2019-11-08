@@ -15,7 +15,7 @@ type t = private
 val compare : t -> t -> int
 val equal : t -> t -> bool
 val ef : t -> Easy_format.t
-val pp : Format.formatter -> t -> unit
+val pp : t Fmt.t
 
 val make :
      ?cors_origin:string

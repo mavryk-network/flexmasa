@@ -35,7 +35,7 @@ open Command_error
 let successful_command admin state args =
   Running_processes.run_cmdf state "sh -c %s"
     ( make_command state admin args
-    |> Genspio.Compile.to_one_liner |> Filename.quote )
+    |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
   >>= fun res ->
   Console.display_errors_of_command state res
   >>= function
@@ -49,7 +49,7 @@ let inject_protocol admin state ~path =
   String.concat ~sep:" " res#out
   |> String.split ~on:' ' |> List.map ~f:String.strip
   |> (function
-       | _ :: _ :: hash :: _ when hash.[0] = 'P' -> return hash
+       | _ :: _ :: hash :: _ when Char.equal hash.[0] 'P' -> return hash
        | _ ->
            failf "inject protocol: cannot parse hash of protocol: %s"
              (String.concat ~sep:", " (List.map ~f:(sprintf "%S") res#out)))

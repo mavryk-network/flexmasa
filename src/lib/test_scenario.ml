@@ -19,12 +19,12 @@ module Inconsistency_error = struct
   let pp fmt err =
     match err with
     | `Empty_protocol_list ->
-        Format.fprintf fmt "Wrong number of protocols in network: 0"
+        Caml.Format.fprintf fmt "Wrong number of protocols in network: 0"
     | `Too_many_protocols p ->
-        Format.fprintf fmt "Wrong number of protocols in network: %d"
+        Caml.Format.fprintf fmt "Wrong number of protocols in network: %d"
           (List.length p)
     | `Too_many_timestamp_delays p ->
-        Format.fprintf fmt
+        Caml.Format.fprintf fmt
           "Wrong number of protocol timestamp delays in network: %d"
           (List.length p)
 end
@@ -84,9 +84,9 @@ module Topology = struct
   let build ?(external_peer_ports = []) ?protocol ?(base_port = 15_001) ~exec
       network =
     let all_ports = ref [] in
-    let next_port = ref (base_port + (base_port mod 2)) in
+    let next_port = ref (base_port + Int.rem base_port 2) in
     let rpc name =
-      match List.find !all_ports ~f:(fun (n, _) -> n = name) with
+      match List.find !all_ports ~f:(fun (n, _) -> String.equal n name) with
       | Some (_, p) -> p
       | None ->
           let p = !next_port in
@@ -101,7 +101,7 @@ module Topology = struct
         List.length peers + List.length external_peer_ports in
       let peers =
         List.filter_map peers ~f:(fun p ->
-            if p <> id then Some (p2p p) else None) in
+            if not (String.equal p id) then Some (p2p p) else None) in
       Tezos_node.make ?protocol ~exec id ~expected_connections ~rpc_port
         ~p2p_port
         (external_peer_ports @ peers) in
@@ -168,7 +168,8 @@ module Network = struct
             System_error.fail_fatalf
               "Node: %S's %s port %d already in use {%s}" id s p
               (String.concat ~sep:"|" row) in
-          let time_wait (_, `Tcp (_, row)) = List.last row = Some "TIME_WAIT" in
+          let time_wait (_, `Tcp (_, row)) =
+            Poly.equal (List.last row) (Some "TIME_WAIT") in
           match (taken rpc_port, taken p2p_port) with
           | None, None -> return ()
           | Some p, _ -> if time_wait p then return () else fail "RPC" p

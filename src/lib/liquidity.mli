@@ -4,7 +4,7 @@ module Data : sig
   type t
 
   val to_string : t -> string
-  val rawf : ('a, Format.formatter, unit, t) format4 -> 'a
+  val rawf : ('a, Caml.Format.formatter, unit, t) format4 -> 'a
   val empty_set : t
   val address : string -> t
   val tuple : t list -> t
@@ -170,7 +170,7 @@ module On_chain : sig
     -> client:Tezos_client.t
     -> name:string
     -> address:string
-    -> pp_error:(   Format.formatter
+    -> pp_error:(   Caml.Format.formatter
                  -> [> Process_result.Error.t | System_error.t]
                  -> unit)
     -> Console.Prompt.item
@@ -193,8 +193,8 @@ module On_chain : sig
                             | System_error.t
                             | `Scenario_error of string ]
                             as
-                            'a) )
+                            'errors) )
                          Asynchronous_result.t)
-    -> pp_error:(Format.formatter -> 'a -> unit)
+    -> pp_error:(Caml.Format.formatter -> 'errors -> unit)
     -> Console.Prompt.item
 end

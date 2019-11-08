@@ -30,10 +30,10 @@ module Markup_fmt = struct
     verbatim_raw (Ezjsonm.value_to_string ~minify:false json)
 
   let t s : in_par list = [`Text s]
-  let tf fmt = Format.kasprintf t fmt
+  let tf fmt = Fmt.kstr t fmt
   let hl l : in_par list = [`Highlight (`Concat l)]
   let concat l = `Concat l
-  let hlf fmt = Format.kasprintf (fun s -> hl (t s)) fmt
+  let hlf fmt = Fmt.kstr (fun s -> hl (t s)) fmt
   let itemize l : t list = [`Itemize (List.map l ~f:(fun l -> `Concat l))]
 
   let to_fmt (x : t list) ppf () =
@@ -42,9 +42,9 @@ module Markup_fmt = struct
       | `Text s -> text ppf s
       | `Concat l -> List.iter l ~f:(pp_in_par ppf)
       | `Highlight s ->
-          Format.pp_open_tag ppf "prompt" ;
+          Caml.Format.pp_open_tag ppf "prompt" ;
           pp_in_par ppf s ;
-          Format.pp_close_tag ppf () in
+          Caml.Format.pp_close_tag ppf () in
     vertical_box ppf (fun ppf ->
         list ~sep:cut
           (fun ppf item ->

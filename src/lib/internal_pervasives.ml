@@ -2,14 +2,9 @@
 
 See also ["docs/tutorials/flextesa.rst"]. *)
 
-module List = Base.List
-module String = Base.String
-module Option = Base.Option
-module Int = Base.Int
-module Float = Base.Float
-module Exn = Base.Exn
+include Base
 
-let ( // ) = Filename.concat
+let ( // ) = Caml.Filename.concat
 let ksprintf, sprintf = Printf.(ksprintf, sprintf)
 
 (** Wrapper around the [EasyFormat] library to use for console display. *)
@@ -40,20 +35,20 @@ module EF = struct
   let prompt = atom ~param:{atom_style= Some "prompt"}
   let highlight = atom ~param:{atom_style= Some "prompt"}
   let custom pr = Custom pr
-  let pr f = custom (fun ppf -> f (Format.fprintf ppf))
+  let pr f = custom (fun ppf -> f (Fmt.pf ppf))
   let desc_list s l = label s (list ~sep:"," l)
   let desc s v = label s v
-  let af ?param fmt = Format.kasprintf (atom ?param) fmt
+  let af ?param fmt = Fmt.kstr (atom ?param) fmt
 
   let wrap s =
     String.split ~on:' ' s |> List.map ~f:String.strip
-    |> List.filter ~f:(( <> ) "")
+    |> List.filter ~f:(Fn.non (String.equal ""))
     |> List.map ~f:atom |> list
 
-  let wf fmt = Format.kasprintf wrap fmt
-  let haf fmt = Format.kasprintf highlight fmt
+  let wf fmt = Fmt.kstr wrap fmt
+  let haf fmt = Fmt.kstr highlight fmt
   let opt f = function None -> atom "-" | Some o -> f o
-  let ocaml_string_list l = ocaml_list (ListLabels.map l ~f:(af "%S"))
+  let ocaml_string_list l = ocaml_list (List.map l ~f:(af "%S"))
   let exn e = wf "%a" Exn.pp e
 
   let markdown_verbatim ?(guard_length = 80) s =
@@ -70,7 +65,7 @@ module Dbg = struct
   let on = ref false
 
   let () =
-    Option.iter (Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
+    Option.iter (Caml.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
       | "true" -> on := true
       | _ -> ())
 
@@ -86,7 +81,7 @@ module Dbg = struct
             ; space_before_closing= true }
           [ef]
         |> Easy_format.Pretty.to_stderr) ;
-      Printf.eprintf "\n%!" )
+      Fmt.epr "\n%!" )
 
   let i (e : EF.t) = ignore e
   let f f = e (EF.pr f)
@@ -102,7 +97,7 @@ module More_fmt = struct
   let wrapping_box ?indent ppf f = box ?indent (fun ppf () -> f ppf) ppf ()
 
   let wf ppf fmt =
-    Format.kasprintf (fun s -> box (fun ppf () -> text ppf s) ppf ()) fmt
+    Fmt.kstr (fun s -> box (fun ppf () -> text ppf s) ppf ()) fmt
 
   let markdown_verbatim_list ppf l =
     vertical_box ~indent:0 ppf (fun ppf ->
@@ -113,9 +108,9 @@ module More_fmt = struct
         string ppf (String.make 45 '`'))
 
   let tag tag ppf f =
-    Format.pp_open_tag ppf tag ;
+    Caml.Format.pp_open_tag ppf tag ;
     (f ppf : unit) ;
-    Format.pp_close_tag ppf ()
+    Caml.Format.pp_close_tag ppf ()
 
   let shout = tag "shout"
   let prompt = tag "prompt"
@@ -135,7 +130,7 @@ module Attached_result = struct
     | `String_list of string list ]
 
   type ('ok, 'error) t =
-    {result: ('ok, 'error) result; attachments: (string * content) list}
+    {result: ('ok, 'error) Result.t; attachments: (string * content) list}
     constraint 'error = [> ]
 
   let ok ?(attachments = []) o = {result= Ok o; attachments}
@@ -229,7 +224,9 @@ module Asynchronous_result = struct
         >>= fun {result; attachments} ->
         Lwt.return
           { result
-          ; attachments= List.dedup_and_sort ~compare (attachments @ attach) }
+          ; attachments=
+              List.dedup_and_sort ~compare:Poly.compare (attachments @ attach)
+          }
 
   let transform_error o ~f =
     let open Lwt.Infix in
@@ -256,7 +253,7 @@ module Asynchronous_result = struct
 
   let bind_on_result :
          ('ok, 'error) t
-      -> f:(('ok, 'error) result -> ('ok2, 'error2) t)
+      -> f:(('ok, 'error) Result.t -> ('ok2, 'error2) t)
       -> ('ok2, 'error2) t =
    fun o ~f ->
     let open Lwt.Infix in
@@ -319,7 +316,7 @@ module Asynchronous_result = struct
               | Ok x -> f x elt
               | Error _ ->
                   error := Some prevm ;
-                  Lwt.fail Not_found)
+                  Lwt.fail Caml.Not_found)
             stream (Attached_result.ok init))
         (fun e ->
           match !error with
@@ -343,8 +340,8 @@ module Asynchronous_result = struct
           Dbg.e EF.(wf "Lwt_main.run") ;
           r ())
     with
-    | {result= Ok (); _} -> exit 0
-    | {result= Error (`Die ret); _} -> exit ret
+    | {result= Ok (); _} -> Caml.exit 0
+    | {result= Error (`Die ret); _} -> Caml.exit ret
 end
 
 include Asynchronous_result.Std
@@ -365,12 +362,12 @@ module System_error = struct
       (fun exn -> fail_fatal ?attach (Exception exn))
 
   let fail_fatalf ?attach fmt =
-    Format.kasprintf (fun e -> fail_fatal ?attach (Message e)) fmt
+    Fmt.kstr (fun e -> fail_fatal ?attach (Message e)) fmt
 
   let pp fmt (e : [< t]) =
     match e with
     | `System_error (`Fatal, e) ->
-        Format.fprintf fmt "@[<2>Fatal-system-error:@ %a@]"
+        Fmt.pf fmt "@[<2>Fatal-system-error:@ %a@]"
           (fun ppf -> function Exception e -> Fmt.exn ppf e
             | Message e -> Fmt.string ppf e)
           e
@@ -425,7 +422,7 @@ module Process_result = struct
           | Wrong_behavior {message} -> text ppf message)
 
     let fail_if_non_zero (res : res) msg =
-      if res#status <> Unix.WEXITED 0 then
+      if Poly.( <> ) res#status (Unix.WEXITED 0) then
         wrong_status res "Non-zero exit status: %s" msg
       else return ()
   end
@@ -536,7 +533,7 @@ module Jqo = struct
 
   let remove_field o ~name =
     match o with
-    | `O l -> `O (List.filter l ~f:(fun (k, _) -> k <> name))
+    | `O l -> `O (List.filter l ~f:Poly.(fun (k, _) -> k <> name))
     | other ->
         ksprintf failwith "Jqo.remove_field %S: No an object: %s" name
           (to_string other)

@@ -3,10 +3,12 @@ open Internal_pervasives
 type t = {root: string}
 
 let make root =
-  {root= (if Filename.is_relative root then Sys.getcwd () // root else root)}
+  { root=
+      ( if Caml.Filename.is_relative root then Caml.Sys.getcwd () // root
+      else root ) }
 
 let root_path o = o.root
-let pp fmt o = Format.fprintf fmt "@[<2>{Root:@ %s}@]" (root_path o)
+let pp fmt o = Fmt.pf fmt "@[<2>{Root:@ %s}@]" (root_path o)
 let ob o : t = o#paths
 let root o = ob o |> root_path
 

@@ -6,7 +6,7 @@ open Internal_pervasives
 module Commands : sig
   val cmdline_fail :
        ( 'a
-       , Format.formatter
+       , Caml.Format.formatter
        , unit
        , ('b, [> `Command_line of string]) Asynchronous_result.t )
        format4
@@ -241,7 +241,7 @@ module Pauser : sig
        ; test_interactivity: Interactivity.t
        ; .. >
     -> (unit -> (unit, ([> System_error.t] as 'errors)) Asynchronous_result.t)
-    -> pp_error:(Format.formatter -> 'errors -> unit)
+    -> pp_error:(Caml.Format.formatter -> 'errors -> unit)
     -> unit
     -> (unit, [> System_error.t | `Die of int]) Asynchronous_result.t
   (** Run a test-scenario and deal with potential errors according

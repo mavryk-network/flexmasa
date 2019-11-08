@@ -8,7 +8,7 @@ let make () = {trees= []}
 let write state ~name ~path files =
   let t = state#dump_files in
   Running_processes.run_successful_cmdf state "mkdir -p %s"
-    (Filename.quote path)
+    (Caml.Filename.quote path)
   >>= fun _ ->
   List_sequential.iter files ~f:(fun (p, content) ->
       System.write_file state (path // p) ~content)
