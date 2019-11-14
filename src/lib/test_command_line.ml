@@ -77,43 +77,46 @@ module Run_command = struct
     Cmdliner.Term.(term ~pp_error () $ t, i)
 end
 
-let full_state_cmdliner_term base_state ?default_interactivity
-    ?(disable_interactivity = false) () =
-  let runner = Running_processes.State.make () in
-  let default_root = sprintf "/tmp/%s-test" base_state#command_name in
-  let pauser = Interactive_test.Pauser.make [] in
-  let ops = Log_recorder.Operations.make () in
-  let state console paths interactivity =
-    object
-      method paths = paths
+module Full_default_state = struct
+  let cmdliner_term base_state ?default_interactivity
+      ?(disable_interactivity = false) () =
+    let runner = Running_processes.State.make () in
+    let default_root = sprintf "/tmp/%s-test" base_state#command_name in
+    let pauser = Interactive_test.Pauser.make [] in
+    let ops = Log_recorder.Operations.make () in
+    let state console paths interactivity =
+      object
+        method paths = paths
 
-      method runner = runner
+        method runner = runner
 
-      method console = console
+        method console = console
 
-      method application_name = base_state#application_name
+        method application_name = base_state#application_name
 
-      method test_interactivity = interactivity
+        method test_interactivity = interactivity
 
-      method pauser = pauser
+        method pauser = pauser
 
-      method operations_log = ops
+        method operations_log = ops
 
-      method env_config = base_state#env_config
-    end in
-  let open Cmdliner in
-  Term.(
-    pure state $ Console.cli_term ()
-    $ Paths.cli_term ~default_root ()
-    $
-    if disable_interactivity then pure `None
-    else
-      Interactive_test.Interactivity.cli_term ?default:default_interactivity ())
+        method env_config = base_state#env_config
+      end in
+    let open Cmdliner in
+    Term.(
+      pure state $ Console.cli_term ()
+      $ Paths.cli_term ~default_root ()
+      $
+      if disable_interactivity then pure `None
+      else
+        Interactive_test.Interactivity.cli_term ?default:default_interactivity
+          ())
+end
 
 let cli_state ?default_interactivity ?disable_interactivity ~name () =
   let application_name = Fmt.str "Flextesa.%s" name in
   let command_name = name in
   let base_state =
     Command_making_state.make ~application_name ~command_name () in
-  full_state_cmdliner_term base_state ?default_interactivity
+  Full_default_state.cmdliner_term base_state ?default_interactivity
     ?disable_interactivity ()

@@ -227,7 +227,7 @@ let cmd ~pp_error () =
     $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
-    $ Test_command_line.full_state_cmdliner_term base_state () in
+    $ Test_command_line.Full_default_state.cmdliner_term base_state () in
   Test_command_line.Run_command.make ~pp_error term
     (let doc = "Small network sandbox with bakers, endorsers, and accusers." in
      let man : Manpage.block list =
