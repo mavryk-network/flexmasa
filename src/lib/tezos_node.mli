@@ -1,5 +1,7 @@
 open Internal_pervasives
 
+type custom_network = [`Json of Ezjsonm.value]
+
 type t = private
   { id: string
   ; expected_connections: int
@@ -10,7 +12,8 @@ type t = private
   ; protocol: Tezos_protocol.t
   ; history_mode: [`Full | `Archive | `Rolling] option
   ; single_process: bool
-  ; cors_origin: string option }
+  ; cors_origin: string option
+  ; custom_network: custom_network option }
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
@@ -21,8 +24,9 @@ val make :
      ?cors_origin:string
   -> exec:Tezos_executable.t
   -> ?protocol:Tezos_protocol.t
+  -> ?custom_network:[`Json of Ezjsonm.value]
   -> ?single_process:bool
-  -> ?history_mode:[`Full | `Archive | `Rolling]
+  -> ?history_mode:[`Archive | `Full | `Rolling]
   -> string
   -> expected_connections:int
   -> rpc_port:int
@@ -77,4 +81,9 @@ module History_modes : sig
   val cmdliner_term :
        < manpager: Manpage_builder.State.t ; .. >
     -> [> System_error.t] edit Cmdliner.Term.t
+end
+
+module Config_file : sig
+  val default_network : (string * Ezjsonm.value) list
+  val of_node : < paths: Paths.t ; .. > -> t -> string
 end

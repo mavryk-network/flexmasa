@@ -57,7 +57,8 @@ val call :
     files. *)
 
 val cli_term :
-     < manpager: Internal_pervasives.Manpage_builder.State.t ; .. >
+     ?extra_doc:string
+  -> < manpager: Internal_pervasives.Manpage_builder.State.t ; .. >
   -> kind
   -> string
   -> t Cmdliner.Term.t
