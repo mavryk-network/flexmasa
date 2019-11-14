@@ -57,6 +57,7 @@ tezos_depexts="gmp-dev hidapi-dev@testing m4 perl pkgconfig libev-dev"
 alpine_setup () {
     local sudo="$1"
     cat >> Dockerfile <<EOF
+RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories"
 RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories"
 RUN $sudo apk update
 RUN $sudo apk add $tezos_depexts curl net-tools rlwrap@testing
