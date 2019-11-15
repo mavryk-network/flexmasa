@@ -80,7 +80,8 @@ val activate_protocol :
   -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 
 val client_cmd :
-     ?verbose:bool
+     ?id_prefix:string
+  -> ?verbose:bool
   -> ?wait:string
   -> < application_name: string
      ; console: Console.t
@@ -93,7 +94,8 @@ val client_cmd :
   -> (bool * Process_result.t, [> System_error.t]) Asynchronous_result.t
 
 val successful_client_cmd :
-     ?verbose:bool
+     ?id_prefix:string
+  -> ?verbose:bool
   -> ?wait:string
   -> < application_name: string
      ; console: Console.t

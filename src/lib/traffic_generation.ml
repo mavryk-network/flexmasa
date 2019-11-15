@@ -60,6 +60,10 @@ module Random = struct
       | false -> Fmt.pf ppf "Failure" in
     let valid_contracts = ref [] in
     let rec loop iteration =
+      let client_cmd name l =
+        Tezos_client.client_cmd ~verbose:false state ~client
+          ~id_prefix:(Fmt.str "randomizer-%04d-%s" iteration name)
+          l in
       let continue_or_not () =
         Test_scenario.Queries.all_levels state ~nodes
         >>= fun all_levels ->
@@ -81,21 +85,34 @@ module Random = struct
           ( match List.random_element !valid_contracts with
           | None -> info "No valid contracts to call."
           | Some (name, params) ->
-              Tezos_client.client_cmd ~verbose:false state ~client
+              client_cmd
+                (Fmt.str "transfer-%s" name)
                 ["transfer"; "1"; "from"; from; "to"; name; "--arg"; params]
               >>= fun (success, _) ->
               info "Called %s(%s): %a" name params pp_success success )
           >>= fun () -> continue_or_not ()
       | Some `Add_contract ->
           let name = Fmt.str "contract-%d" iteration in
+          let push_drops = Random.int 100 in
+          let parameter, init_storage =
+            match List.random_element [`Unit; `String] with
+            | Some `String ->
+                ( "string"
+                , Fmt.str "%S"
+                    (String.init
+                       (Random.int 42 + 1)
+                       ~f:(fun _ -> Random.int 20 + 40 |> Char.of_int_exn)) )
+            | _ -> ("unit", "Unit") in
           Michelson.prepare_origination_of_id_script state ~name ~from
-            ~protocol_kind:protocol.Tezos_protocol.kind ~parameter:"unit"
-            ~init_storage:"Unit" ~push_drops:(Random.int 42)
+            ~protocol_kind:protocol.Tezos_protocol.kind ~parameter
+            ~init_storage ~push_drops
           >>= fun origination ->
-          Tezos_client.client_cmd ~verbose:false state ~client origination
+          client_cmd (Fmt.str "originate-%s" name) origination
           >>= fun (success, _) ->
-          if success then valid_contracts := (name, "Unit") :: !valid_contracts ;
-          info "Origination of `%s`: `%a`." name pp_success success
+          if success then
+            valid_contracts := (name, init_storage) :: !valid_contracts ;
+          info "Origination of `%s` (%s : %s): `%a`." name init_storage
+            parameter pp_success success
           >>= fun () -> continue_or_not ()
       | None -> continue_or_not () in
     loop 0

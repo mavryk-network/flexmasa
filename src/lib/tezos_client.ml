@@ -45,8 +45,8 @@ let run_client_cmd ?id_prefix ?wait state client args =
     ( client_command ?wait state client args
     |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
 
-let client_cmd ?(verbose = true) ?wait state ~client args =
-  Running_processes.run_cmdf state "sh -c %s"
+let client_cmd ?id_prefix ?(verbose = true) ?wait state ~client args =
+  Running_processes.run_cmdf ?id_prefix state "sh -c %s"
     ( client_command ?wait state client args
     |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
   >>= fun res ->
@@ -56,8 +56,9 @@ let client_cmd ?(verbose = true) ?wait state ~client args =
   else return () )
   >>= fun () -> return (unix_success, res)
 
-let successful_client_cmd ?(verbose = true) ?wait state ~client args =
-  client_cmd ~verbose state ?wait ~client args
+let successful_client_cmd ?id_prefix ?(verbose = true) ?wait state ~client args
+    =
+  client_cmd ?id_prefix ~verbose state ?wait ~client args
   >>= fun (success, result) ->
   match success with
   | true -> return result
