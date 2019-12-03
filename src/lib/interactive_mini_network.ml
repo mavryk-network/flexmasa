@@ -125,15 +125,20 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     let env = build state ~clients in
     write state env ~path >>= fun () -> return (help_command state env ~path))
   >>= fun shell_env_help ->
+  Interactive_test.Pauser.add_commands state
+    Interactive_test.Commands.(
+      (shell_env_help :: all_defaults state ~nodes)
+      @ [secret_keys state ~protocol]
+      @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
   match test_kind with
   | `Interactive ->
-      Interactive_test.Pauser.add_commands state
-        Interactive_test.Commands.(
-          (shell_env_help :: all_defaults state ~nodes)
-          @ [secret_keys state ~protocol]
-          @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
       Interactive_test.Pauser.generic ~force:true state
         EF.[haf "Sandbox is READY \\o/"]
+  | `Random_traffic (`Any, `Until level) ->
+      System.sleep 10.
+      >>= fun () ->
+      Traffic_generation.Random.run state ~protocol ~nodes ~clients
+        ~until_level:level `Any
   | `Wait_level (`At_least lvl as opt) ->
       let seconds =
         let tbb =
@@ -177,15 +182,32 @@ let cmd ~pp_error () =
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
             test_kind in
         (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
-    $ Arg.(
-        pure (fun level_opt ->
-            match level_opt with
-            | Some l -> `Wait_level (`At_least l)
-            | None -> `Interactive)
-        $ value
-            (opt (some int) None
-               (info ["until-level"] ~docs
-                  ~doc:"Run the sandbox until a given level (not interactive)")))
+    $ term_result ~usage:true
+        Arg.(
+          pure
+            Result.(
+              fun level_opt random_traffic ->
+                match (level_opt, random_traffic) with
+                | Some l, None -> return (`Wait_level (`At_least l))
+                | None, None -> return `Interactive
+                | Some l, Some kind ->
+                    return (`Random_traffic (kind, `Until l))
+                | None, Some _ ->
+                    fail
+                      (`Msg
+                        "Error: option `--random-traffic` requires also \
+                         `--until-level`."))
+          $ value
+              (opt (some int) None
+                 (info ["until-level"] ~docs
+                    ~doc:
+                      "Run the sandbox until a given level (not interactive)"))
+          $ value
+              (opt
+                 (some (enum [("any", `Any)]))
+                 None
+                 (info ["random-traffic"] ~docs
+                    ~doc:"Generate random traffic (requires `--until-level`).")))
     $ Arg.(
         pure (fun kr -> `Clear_root (not kr))
         $ value
@@ -227,7 +249,7 @@ let cmd ~pp_error () =
     $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
-    $ Test_command_line.full_state_cmdliner_term base_state () in
+    $ Test_command_line.Full_default_state.cmdliner_term base_state () in
   Test_command_line.Run_command.make ~pp_error term
     (let doc = "Small network sandbox with bakers, endorsers, and accusers." in
      let man : Manpage.block list =

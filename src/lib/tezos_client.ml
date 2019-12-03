@@ -45,16 +45,20 @@ let run_client_cmd ?id_prefix ?wait state client args =
     ( client_command ?wait state client args
     |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
 
-let verbose_client_cmd ?wait state ~client args =
-  Running_processes.run_cmdf state "sh -c %s"
+let client_cmd ?id_prefix ?(verbose = true) ?wait state ~client args =
+  Running_processes.run_cmdf ?id_prefix state "sh -c %s"
     ( client_command ?wait state client args
     |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
   >>= fun res ->
-  Console.display_errors_of_command state res
-  >>= fun success -> return (success, res)
+  let unix_success = Poly.equal res#status (Lwt_unix.WEXITED 0) in
+  ( if verbose then
+    Console.display_errors_of_command state res >>= fun _ -> return ()
+  else return () )
+  >>= fun () -> return (unix_success, res)
 
-let successful_client_cmd ?wait state ~client args =
-  verbose_client_cmd state ?wait ~client args
+let successful_client_cmd ?id_prefix ?(verbose = true) ?wait state ~client args
+    =
+  client_cmd ?id_prefix ~verbose state ?wait ~client args
   >>= fun (success, result) ->
   match success with
   | true -> return result

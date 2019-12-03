@@ -79,8 +79,10 @@ val activate_protocol :
   -> Tezos_protocol.t
   -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 
-val verbose_client_cmd :
-     ?wait:string
+val client_cmd :
+     ?id_prefix:string
+  -> ?verbose:bool
+  -> ?wait:string
   -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
@@ -92,7 +94,9 @@ val verbose_client_cmd :
   -> (bool * Process_result.t, [> System_error.t]) Asynchronous_result.t
 
 val successful_client_cmd :
-     ?wait:string
+     ?id_prefix:string
+  -> ?verbose:bool
+  -> ?wait:string
   -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t

@@ -45,21 +45,24 @@ module Run_command : sig
     -> unit Cmdliner.Term.t * Cmdliner.Term.info
 end
 
-val full_state_cmdliner_term :
-     _ Command_making_state.t
-  -> ?default_interactivity:Interactive_test.Interactivity.t
-  -> ?disable_interactivity:bool
-  -> unit
-  -> < application_name: string
-     ; console: Console.t
-     ; env_config: Environment_configuration.t
-     ; operations_log: Log_recorder.Operations.t
-     ; paths: Paths.t
-     ; pauser: Interactive_test.Pauser.t
-     ; runner: Running_processes.State.t
-     ; test_interactivity: Interactive_test.Interactivity.t >
-     Cmdliner.Term.t
+module Full_default_state : sig
+  val cmdliner_term :
+       _ Command_making_state.t
+    -> ?default_interactivity:Interactive_test.Interactivity.t
+    -> ?disable_interactivity:bool
+    -> unit
+    -> < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; operations_log: Log_recorder.Operations.t
+       ; paths: Paths.t
+       ; pauser: Interactive_test.Pauser.t
+       ; runner: Running_processes.State.t
+       ; test_interactivity: Interactive_test.Interactivity.t >
+       Cmdliner.Term.t
+end
 
+(** Legacy API for {!Full_default_state.cmdliner_term}. *)
 val cli_state :
      ?default_interactivity:Interactive_test.Interactivity.t
   -> ?disable_interactivity:bool

@@ -129,17 +129,13 @@ let protocol_parameters_json t : Ezjsonm.t =
   let open Ezjsonm in
   let make_account (account, amount) =
     strings [Account.pubkey account; sprintf "%Ld" amount] in
-  (* let make_contract (deleg, amount, script) = dict
-      [ ("delegate", string (Account.pubkey_hash deleg))
-      ; ("amount", ksprintf string "%d" amount)
-      ; ("script", (Script.load script :> Ezjsonm.value)) ] in
-  *)
   let extra_babylon_stuff_to_put =
+    (* `src/proto_005_PsBabyM1/lib_protocol/parameters_repr.ml` *)
     Ezjsonm.
       [ ("blocks_per_commitment", int 4)
       ; ("endorsers_per_block", int 32)
-      ; ("hard_gas_limit_per_operation", string (Int.to_string 100_000_000_000))
-      ; ("hard_gas_limit_per_block", string (Int.to_string 10_000_000_000_000))
+      ; ("hard_gas_limit_per_operation", string (Int.to_string 800_000))
+      ; ("hard_gas_limit_per_block", string (Int.to_string 8_000_000))
       ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
       ; ("michelson_maximum_type_size", int 1_000)
       ; ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
@@ -148,9 +144,8 @@ let protocol_parameters_json t : Ezjsonm.t =
       ; ("endorsement_security_deposit", string (Int.to_string 64_000_000))
       ; ("block_reward", string (Int.to_string 16_000_000))
       ; ("endorsement_reward", string (Int.to_string 2_000_000))
-      ; ( "hard_storage_limit_per_operation"
-        , string (Int.to_string 10_000_000_000) )
-      ; ("cost_per_byte", string (Int.to_string 100))
+      ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
+      ; ("cost_per_byte", string (Int.to_string 1_000))
       ; ("test_chain_duration", string (Int.to_string 1_966_080))
       ; ("quorum_min", int 3_000)
       ; ("quorum_max", int 7_000)
