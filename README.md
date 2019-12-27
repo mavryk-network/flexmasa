@@ -45,4 +45,11 @@ that's it the sandbox with 2 nodes starts and drops you in the interactive
 prompt: type `help` (or `h`) to list available commands, `al` to check the
 current level, `m` to see the metadata of the head block, etc.
 
+More Documentation
+------------------
+
+Some documentation is part of the `tezos/tezos` repository:
+[Flexible Network Sandboxes](https://tezos.gitlab.io/developer/flextesa.html).
+
+
 

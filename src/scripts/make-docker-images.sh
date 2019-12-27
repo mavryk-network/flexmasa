@@ -139,6 +139,8 @@ EOF
     cat >> Dockerfile <<EOF
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
+ADD ./src/scripts/mini-babylon.sh /usr/bin/babylonbox
+RUN chmod a+rx /usr/bin/babylonbox
 EOF
 }
 
