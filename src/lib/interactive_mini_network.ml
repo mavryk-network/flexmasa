@@ -149,9 +149,10 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds
         nodes opt
 
-let cmd ~pp_error () =
+let cmd () =
   let open Cmdliner in
   let open Term in
+  let pp_error = Test_command_line.Common_errors.pp in
   let base_state =
     Test_command_line.Command_making_state.make ~application_name:"Flextesa"
       ~command_name:"mininet" () in
@@ -181,7 +182,8 @@ let cmd ~pp_error () =
             ?hard_fork ~clear_root ~nodes_history_mode_edits ~with_baking
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
             test_kind in
-        (state, Interactive_test.Pauser.run_test ~pp_error state actual_test))
+        Test_command_line.Run_command.or_hard_fail state ~pp_error
+          (Interactive_test.Pauser.run_test ~pp_error state actual_test))
     $ term_result ~usage:true
         Arg.(
           pure
@@ -250,19 +252,20 @@ let cmd ~pp_error () =
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state () in
-  Test_command_line.Run_command.make ~pp_error term
-    (let doc = "Small network sandbox with bakers, endorsers, and accusers." in
-     let man : Manpage.block list =
-       Manpage_builder.make base_state
-         ~intro_blob:
-           "This test builds a small sandbox network, start various daemons, \
-            and then gives the user an interactive command prompt to inspect \
-            the network."
-         [ `P
-             "One can also run this sandbox with `--no-baking` to make baking \
-              interactive-only."
-         ; `P
-             "There is also the option of running the sandbox \
-              non-interactively for a given number of blocks, cf. \
-              `--until-level LEVEL`." ] in
-     info "mini-network" ~man ~doc)
+  let info =
+    let doc = "Small network sandbox with bakers, endorsers, and accusers." in
+    let man : Manpage.block list =
+      Manpage_builder.make base_state
+        ~intro_blob:
+          "This test builds a small sandbox network, start various daemons, \
+           and then gives the user an interactive command prompt to inspect \
+           the network."
+        [ `P
+            "One can also run this sandbox with `--no-baking` to make baking \
+             interactive-only."
+        ; `P
+            "There is also the option of running the sandbox \
+             non-interactively for a given number of blocks, cf. \
+             `--until-level LEVEL`." ] in
+    info "mini-network" ~man ~doc in
+  (term, info)
