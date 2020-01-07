@@ -1,21 +1,5 @@
 
-{1 Flextesa }
+{1 The Flextesa Library }
 
-{2 Command Line Application }
+See the toplevel module {!Flextesa}.
 
-See
-
-{v
-flextesa --help
-v}
-
-for instance, start a small network, with a time-between-blocks of 5 seconds:
-
-{v
-flextesa mini --time 5
-v}
-
-
-{2 Using The Library }
-
-See module {!Flextesa}.
