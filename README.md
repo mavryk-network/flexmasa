@@ -1,6 +1,17 @@
 Flextesa: Flexible Tezos Sandboxes
 ==================================
 
+This repository contains the Flextesa library used in
+[tezos/tezos](https://gitlab.com/tezos/tezos) to build the `tezos-sandbox`
+[tests](https://tezos.gitlab.io/developer/flextesa.html), as well as some extra
+testing utilities, such as the `flextesa` application, which may be useful to
+the greater community (e.g. to test third party tools against fully functional
+Tezos sandboxes).
+
+
+<!--TOC-->
+
+
 Build
 -----
 
@@ -12,6 +23,9 @@ vendored:
 Then:
 
     make
+    
+The above builds the `flextesa` and `michokit` libraries, the `flextesa` command
+line application (see `./flextesa --help`) and the tests (in `src/test`).
 
 MacOSX Users
 ------------
@@ -48,8 +62,16 @@ current level, `m` to see the metadata of the head block, etc.
 More Documentation
 ------------------
 
-Some documentation is part of the `tezos/tezos` repository:
-[Flexible Network Sandboxes](https://tezos.gitlab.io/developer/flextesa.html).
+The API documentation of the Flextesa OCaml library starts here:
+[Flextesa: API](https://tezos.gitlab.io/flextesa/lib-index.html).
 
+Some documentation, including many examples, is part of the `tezos/tezos`
+repository:
+[Flexible Network Sandboxes](https://tezos.gitlab.io/developer/flextesa.html)
+(it uses the `tezos-sandbox` executable which is implemented there).
 
+TQ Tezos' [“assets documentation”](https://assets.tqtezos.com)
+shows how to quickly set up a
+[Babylon docker sandbox](https://assets.tqtezos.com/sandbox-quickstart)
+(uses the docker images from this repository).
 
