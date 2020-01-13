@@ -1,5 +1,4 @@
 open Internal_pervasives
-open Console
 
 module Commands = struct
   let cmdline_fail fmt = Fmt.kstr (fun s -> fail (`Command_line s)) fmt
@@ -11,7 +10,7 @@ module Commands = struct
   let flag f sexps = List.mem sexps (Base.Sexp.Atom f) ~equal:Base.Sexp.equal
 
   let unit_loop_no_args ~description opts f =
-    Prompt.unit_and_loop ~description opts (fun sexps ->
+    Console.Prompt.unit_and_loop ~description opts (fun sexps ->
         no_args sexps >>= fun () -> f ())
 
   module Sexp_options = struct
@@ -72,27 +71,27 @@ module Commands = struct
       (fun () ->
         Running_processes.run_cmdf state "du -sh %s" (Paths.root state)
         >>= fun du ->
-        display_errors_of_command state du
+        Console.display_errors_of_command state du
         >>= function
         | true ->
-            say state
+            Console.say state
               EF.(
                 desc (haf "Disk-Usage:")
                   (af "%s" (String.concat ~sep:" " du#out)))
         | false -> return ())
 
   let processes state =
-    Prompt.unit_and_loop
+    Console.Prompt.unit_and_loop
       ~description:
         "Display status of processes-manager ('all' to include non-running)"
       ["p"; "processes"] (fun sxp ->
         let all = flag "all" sxp in
-        say state (Running_processes.ef ~all state))
+        Console.say state (Running_processes.ef ~all state))
 
   let curl_rpc state ~port ~path =
     Running_processes.run_cmdf state "curl http://localhost:%d/%s" port path
     >>= fun curl_res ->
-    display_errors_of_command state curl_res ~should_output:true
+    Console.display_errors_of_command state curl_res ~should_output:true
     >>= fun success ->
     if not success then return None
     else
@@ -111,8 +110,9 @@ module Commands = struct
           (Exn.to_string e)
           (Ezjsonm.value_to_string ~minify:false json) )
 
-  let curl_unit_display ?(jq = fun e -> e) state cmd ~default_port ~path ~doc =
-    Prompt.unit_and_loop ~description:doc
+  let curl_unit_display ?(jq = fun e -> e) ?(pp_json = More_fmt.json) state cmd
+      ~default_port ~path ~doc =
+    Console.Prompt.unit_and_loop ~description:doc
       ~details:
         (Sexp_options.pp_options
            [Sexp_options.port_number_doc state ~default_port])
@@ -123,8 +123,14 @@ module Commands = struct
         curl_rpc state ~port ~path
         >>= fun json_opt ->
         do_jq ~msg:doc state json_opt ~f:jq
-        >>= fun json ->
-        say state EF.(desc (af "Curl-Node :%d" port) (ef_json doc json)))
+        >>= fun processed_json ->
+        Console.sayf state
+          More_fmt.(
+            fun ppf () ->
+              vertical_box ~indent:2 ppf (fun ppf ->
+                  pf ppf "Curl-node:%d -> %s" port doc ;
+                  cut ppf () ;
+                  pp_json ppf processed_json)))
 
   let curl_metadata state ~default_port =
     curl_unit_display state ["m"; "metadata"] ~default_port
@@ -147,7 +153,7 @@ module Commands = struct
       ["al"; "all-levels"] (fun () ->
         Test_scenario.Queries.all_levels state ~nodes
         >>= fun results ->
-        say state
+        Console.say state
           EF.(
             desc (af "Node-levels:")
               (list
@@ -159,8 +165,13 @@ module Commands = struct
                         | `Null -> af "{Null}"
                         | `Unknown s -> af "¿%s?" s ))))))
 
+  let mempool state ~default_port =
+    curl_unit_display state ["mp"; "mempool"] ~default_port
+      ~path:"/chains/main/mempool/pending_operations"
+      ~doc:"Display the status of the mempool."
+
   let show_process state =
-    Prompt.unit_and_loop
+    Console.Prompt.unit_and_loop
       ~description:"Show more of a process (by name-prefix)." ["show"]
       (function
       | [Atom name] ->
@@ -186,7 +197,7 @@ module Commands = struct
                     ; desc (af "err: %s" err) (ocaml_string_list tailerr#out)
                     ]
                   :: prev))
-          >>= fun ef -> say state EF.(list ef)
+          >>= fun ef -> Console.say state EF.(list ef)
       | _other -> cmdline_fail "command expects 1 argument: name-prefix")
 
   let kill_all state =
@@ -197,7 +208,7 @@ module Commands = struct
     unit_loop_no_args
       ~description:"Show the protocol's “bootstrap” accounts."
       ["boa"; "bootstrap-accounts"] (fun () ->
-        sayf state
+        Console.sayf state
           More_fmt.(
             fun ppf () ->
               vertical_box ~indent:0 ppf (fun ppf ->
@@ -217,7 +228,7 @@ module Commands = struct
         Helpers.dump_connections state nodes)
 
   let balances state ~default_port =
-    Prompt.unit_and_loop
+    Console.Prompt.unit_and_loop
       ~description:"Show the balances of all known accounts."
       ~details:
         (Sexp_options.pp_options
@@ -258,7 +269,7 @@ module Commands = struct
             balance "head" hsh
             >>= fun current -> return ((hsh, init, current) :: prev))
         >>= fun results ->
-        say state
+        Console.say state
           EF.(
             desc_list
               (af "Balances from levels %d to “head” (port :%d)" save_point
@@ -270,7 +281,7 @@ module Commands = struct
                      else af "%f → %f" (tz init) (tz cur) )))))
 
   let better_call_dev state ~default_port =
-    Prompt.unit_and_loop
+    Console.Prompt.unit_and_loop
       ~description:"Show URIs to all contracts with `better-call.dev`."
       ~details:
         (Sexp_options.pp_options
@@ -325,7 +336,7 @@ module Commands = struct
         @ Option.value_map make_admin ~default:[] ~f:(fun _ ->
               [make_option "admin" "Use the admin-client instead."]) in
       match all with [] -> None | _ -> Some (pp_options all) in
-    Prompt.unit_and_loop
+    Console.Prompt.unit_and_loop
       ~description:
         (Fmt.str "Run a tezos-client command on %s"
            ( match clients with
@@ -380,7 +391,7 @@ module Commands = struct
                 )
               |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
             >>= fun res ->
-            display_errors_of_command state res
+            Console.display_errors_of_command state res
             >>= function
             | true -> return ((client, String.concat ~sep:"\n" res#out) :: prev)
             | false -> return prev)
@@ -388,7 +399,7 @@ module Commands = struct
         let different_results =
           List.dedup_and_sort results ~compare:(fun (_, a) (_, b) ->
               String.compare a b) in
-        say state
+        Console.say state
           EF.(
             desc_list (af "Done")
               [ desc (haf "Command:")
@@ -428,7 +439,7 @@ module Commands = struct
          ?make_command_names:make_individual_command_names
 
   let bake_command state ~clients =
-    Prompt.unit_and_loop
+    Console.Prompt.unit_and_loop
       ~description:
         Fmt.(
           str "Manually bake a block (with %s)."
@@ -469,6 +480,7 @@ module Commands = struct
     ; balances state ~default_port
     ; curl_metadata state ~default_port
     ; curl_baking_rights state ~default_port
+    ; mempool state ~default_port
     ; better_call_dev state ~default_port
     ; all_levels state ~nodes; show_process state; kill_all state ]
 end
@@ -527,7 +539,8 @@ end
 
 module Pauser = struct
   type t =
-    {mutable extra_commands: Prompt.item list; default_end: [`Sleep of float]}
+    { mutable extra_commands: Console.Prompt.item list
+    ; default_end: [`Sleep of float] }
 
   let make ?(default_end = `Sleep 0.5) extra_commands =
     {extra_commands; default_end}
@@ -540,22 +553,22 @@ module Pauser = struct
 
   let generic state ?(force = false) msgs =
     let do_pause = Interactivity.is_interactive state || force in
-    say state
+    Console.say state
       EF.(
         desc
           (if do_pause then haf "Pause" else haf "Not pausing")
           (list ~param:{default_list with space_before_separator= false} msgs))
     >>= fun () ->
-    if do_pause then Prompt.(command state ~commands:(commands state))
+    if do_pause then Console.Prompt.(command state ~commands:(commands state))
     else return ()
 
   let run_test state f ~pp_error () =
     let finish () =
-      say state EF.(af "Killing all processes.")
+      Console.say state EF.(af "Killing all processes.")
       >>= fun () ->
       Running_processes.kill_all state
       >>= fun () ->
-      say state EF.(af "Waiting for processes to all die.")
+      Console.say state EF.(af "Waiting for processes to all die.")
       >>= fun () -> Running_processes.wait_all state in
     Caml.Sys.catch_break false ;
     let cond = Lwt_condition.create () in
@@ -669,7 +682,7 @@ module Pauser = struct
           >>= fun () ->
           match default_end state with
           | `Sleep n ->
-              say state EF.(wf "Test done, sleeping %.02f seconds" n)
+              Console.say state EF.(wf "Test done, sleeping %.02f seconds" n)
               >>= fun () -> System.sleep n )
       | `Error_that_can_be_interactive when Interactivity.pause_on_error state
         ->

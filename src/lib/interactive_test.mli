@@ -62,12 +62,13 @@ module Commands : sig
 
   val curl_unit_display :
        ?jq:(Ezjsonm.value -> Ezjsonm.value)
+    -> ?pp_json:(Formatter.t -> Ezjsonm.value -> unit)
     -> < application_name: string
        ; console: Console.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
-    -> string list
+    -> string sexp_list
     -> default_port:int
     -> path:string
     -> doc:string
