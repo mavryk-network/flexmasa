@@ -153,8 +153,8 @@ module Commands = struct
 
   let curl_level state ~default_port =
     curl_unit_display state ["l"; "level"] ~default_port
-      ~path:"/chains/main/blocks/head/metadata" ~doc:"Display block level."
-      ~jq:(Jqo.field ~k:"level")
+      ~path:"/chains/main/blocks/head" ~doc:"Display current head block info."
+      ~pp_json:Tezos_protocol.Pretty_print.(verbatim_protection block_head_rpc)
 
   let curl_baking_rights state ~default_port =
     curl_unit_display state ["bk"; "baking-rights"] ~default_port
@@ -184,53 +184,8 @@ module Commands = struct
       ~path:"/chains/main/mempool/pending_operations"
       ~doc:"Display the status of the mempool."
       ~pp_json:
-        More_fmt.(
-          fun ppf mempool_json ->
-            try
-              let open Jqo in
-              match mempool_json with
-              | `O four_fields ->
-                  List.iter four_fields ~f:(fun (name, content) ->
-                      pf ppf "* `%s`: " (String.capitalize name) ;
-                      match content with
-                      | `A [] -> pf ppf "Empty.@,"
-                      | `A l ->
-                          cut ppf () ;
-                          List.iter l ~f:(fun op ->
-                              let contents =
-                                field ~k:"contents" op |> get_list in
-                              let pp_op_short ppf js =
-                                pf ppf "%s" (field ~k:"kind" js |> get_string)
-                              in
-                              let pp_op_long ppf js =
-                                match field ~k:"kind" js |> get_string with
-                                | "transaction" ->
-                                    pf ppf
-                                      "@,       * Mutez:%s: `%s` -> `%s`%s"
-                                      (field ~k:"amount" js |> get_string)
-                                      (field ~k:"source" js |> get_string)
-                                      (field ~k:"destination" js |> get_string)
-                                      ( try
-                                          let _ = field ~k:"parameters" js in
-                                          "+parameters"
-                                        with _ -> "" )
-                                | "origination" ->
-                                    pf ppf
-                                      "@,       * Mutez:%s, source: `%s`, \
-                                       fee: `%s`"
-                                      (field ~k:"balance" js |> get_string)
-                                      (field ~k:"source" js |> get_string)
-                                      (field ~k:"fee" js |> get_string)
-                                | _ -> () in
-                              pf ppf "   * [%a] %a"
-                                (list ~sep:(const string "+") pp_op_short)
-                                contents (long_string ~max:15)
-                                (field ~k:"hash" op |> get_string) ;
-                              List.iter contents ~f:(pp_op_long ppf) ;
-                              cut ppf ())
-                      | _ -> assert false)
-              | _ -> assert false
-            with e -> json ppf mempool_json ; cut ppf () ; exn ppf e)
+        Tezos_protocol.Pretty_print.(
+          verbatim_protection mempool_pending_operations_rpc)
 
   let show_process state =
     Console.Prompt.unit_and_loop
