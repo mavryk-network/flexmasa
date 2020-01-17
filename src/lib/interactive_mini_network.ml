@@ -49,6 +49,11 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         ~protocol_execs:
           [(protocol.Tezos_protocol.hash, baker_exec, endorser_exec)])
   >>= fun (_ : unit option) ->
+  let to_keyed acc client =
+    let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
+    let keyed_client =
+      Tezos_client.Keyed.make client ~key_name:key ~secret_key:priv in
+    keyed_client in
   let keys_and_daemons =
     let pick_a_node_and_client idx =
       match List.nth nodes (Int.rem (1 + idx) (List.length nodes)) with
@@ -63,12 +68,20 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
              Some
                ( acc
                , client
+               , to_keyed acc client
                , Option.value_map hard_fork ~default:[]
                    ~f:(Hard_fork.keyed_daemons ~client ~node ~key)
                  @ [ Tezos_daemon.baker_of_node ~exec:baker_exec ~client node
                        ~key
                    ; Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
                        node ~key ] )) in
+  List_sequential.iter keys_and_daemons ~f:(fun (_, _, kc, _) ->
+      Tezos_client.Keyed.initialize state kc >>= fun _ -> return ())
+  >>= fun () ->
+  Interactive_test.Pauser.add_commands state
+    Interactive_test.Commands.
+      [ generate_traffic_command state
+          ~clients:(List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc)) ] ;
   ( if with_baking then
     let accusers =
       List.map nodes ~f:(fun node ->
@@ -78,48 +91,42 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         Running_processes.start state (Tezos_daemon.process state acc)
         >>= fun {process= _; lwt= _} -> return ())
     >>= fun () ->
-    List_sequential.iter keys_and_daemons ~f:(fun (acc, client, daemons) ->
+    List_sequential.iter keys_and_daemons
+      ~f:(fun (_acc, client, kc, daemons) ->
         Tezos_client.wait_for_node_bootstrap state client
         >>= fun () ->
-        let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
-        Tezos_client.import_secret_key state client ~name:key ~key:priv
-        >>= fun () ->
+        let key_name = kc.Tezos_client.Keyed.key_name in
         say state
           EF.(
             desc_list
               (haf "Registration-as-delegate:")
               [ desc (af "Client:") (af "%S" client.Tezos_client.id)
-              ; desc (af "Key:") (af "%S" key) ])
+              ; desc (af "Key:") (af "%S" key_name) ])
         >>= fun () ->
-        Tezos_client.register_as_delegate state client ~key_name:key
+        Tezos_client.register_as_delegate state client ~key_name
         >>= fun () ->
         say state
           EF.(
             desc_list (haf "Starting daemons:")
               [ desc (af "Client:") (af "%S" client.Tezos_client.id)
-              ; desc (af "Key:") (af "%S" key) ])
+              ; desc (af "Key:") (af "%S" key_name) ])
         >>= fun () ->
         List_sequential.iter daemons ~f:(fun daemon ->
             Running_processes.start state (Tezos_daemon.process state daemon)
             >>= fun {process= _; lwt= _} -> return ()))
   else
     List.fold ~init:(return []) keys_and_daemons
-      ~f:(fun prev_m (acc, client, _) ->
+      ~f:(fun prev_m (_acc, client, keyed, _) ->
         prev_m
         >>= fun prev ->
         Tezos_client.wait_for_node_bootstrap state client
-        >>= fun () ->
-        let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
-        let keyed_client =
-          Tezos_client.Keyed.make client ~key_name:key ~secret_key:priv in
-        Tezos_client.Keyed.initialize state keyed_client
-        >>= fun _ -> return (keyed_client :: prev))
+        >>= fun () -> return (keyed :: prev))
     >>= fun clients ->
     Interactive_test.Pauser.add_commands state
       Interactive_test.Commands.[bake_command state ~clients] ;
     return () )
   >>= fun () ->
-  let clients = List.map keys_and_daemons ~f:(fun (_, c, _) -> c) in
+  let clients = List.map keys_and_daemons ~f:(fun (_, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in
     let env = build state ~clients in

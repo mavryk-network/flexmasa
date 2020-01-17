@@ -373,7 +373,7 @@ module Keyed = struct
 
   let forge_and_inject state {client; key_name; _} ~json =
     rpc state ~client ~path:"/chains/main/blocks/head/helpers/forge/operations"
-      (`Post (Ezjsonm.to_string json))
+      (`Post (Ezjsonm.value_to_string json))
     >>= fun res ->
     let operation_bytes = match res with `String s -> s | _ -> assert false in
     let bytes_to_sign = "0x03" ^ operation_bytes in

@@ -184,6 +184,17 @@ module Commands : sig
     -> clients:Tezos_client.Keyed.t list
     -> Console.Prompt.item
 
+  val generate_traffic_command :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> clients:Tezos_client.Keyed.t list
+    -> Console.Prompt.item
+
   val all_defaults :
        < application_name: string
        ; console: Console.t

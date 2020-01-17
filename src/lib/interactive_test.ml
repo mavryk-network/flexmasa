@@ -35,6 +35,33 @@ module Commands = struct
                             |> String.concat ~sep:"" )) in
                   pf ppf "* %a: %a" opt_ex () text description)))
 
+    let find opt sexps f =
+      List.find_map sexps
+        ~f:
+          Sexp.(
+            function
+            | List (Atom a :: more)
+              when String.equal a opt.name
+                   && Int.(List.length more = List.length opt.placeholders) ->
+                Some (f more)
+            | _ -> None)
+
+    let get opt sexps ~default ~f =
+      match find opt sexps f with
+      | Some n -> return n
+      | None -> default ()
+      | exception e -> cmdline_fail "Getting option %s: %a" opt.name Exn.pp e
+
+    let get_int_exn = function
+      | Sexp.[Atom a] -> (
+        try Int.of_string a with _ -> Fmt.failwith "%S is not an integer" a )
+      | other -> Fmt.failwith "wrong structure: %a" Sexp.pp (Sexp.List other)
+
+    let get_float_exn = function
+      | Sexp.[Atom a] -> (
+        try Float.of_string a with _ -> Fmt.failwith "%S is not a float" a )
+      | other -> Fmt.failwith "wrong structure: %a" Sexp.pp (Sexp.List other)
+
     let port_number_doc _ ~default_port =
       make_option "port" ~placeholders:["<int>"]
         Fmt.(str "Use port number <int> instead of %d (default)." default_port)
@@ -455,6 +482,19 @@ module Commands = struct
     :: arbitrary_commands_for_each_client state ?make_admin ~clients
          ?make_command_names:make_individual_command_names
 
+  let protect_with_keyed_client msg ~client ~f =
+    let msg =
+      Fmt.str "Command-line %s with client %s (account: %s)" msg
+        client.Tezos_client.Keyed.client.id client.Tezos_client.Keyed.key_name
+    in
+    Asynchronous_result.bind_on_error (f ()) ~f:(fun ~result:_ ->
+      function
+      | #Process_result.Error.t as e ->
+          cmdline_fail "%s -> Error: %a" msg Process_result.Error.pp e
+      | #System_error.t as e ->
+          cmdline_fail "%s -> Error: %a" msg System_error.pp e
+      | `Command_line _ as e -> fail e)
+
   let bake_command state ~clients =
     Console.Prompt.unit_and_loop
       ~description:
@@ -477,17 +517,120 @@ module Commands = struct
           | [Atom s] -> List.nth_exn clients (Int.of_string s)
           | _ -> Fmt.kstrf failwith "Wrong command line: %a" pp (List sexps)
         in
-        Asynchronous_result.bind_on_error
-          (Fmt.kstrf
-             (Tezos_client.Keyed.bake state client)
-             "Command-line baking with client %s (account: %s)"
-             client.Tezos_client.Keyed.client.id
-             client.Tezos_client.Keyed.key_name)
-          ~f:(fun ~result:_ -> function
-            | #Process_result.Error.t as e ->
-                cmdline_fail "Error: %a" Process_result.Error.pp e
-            | #System_error.t as e ->
-                cmdline_fail "Error: %a" System_error.pp e))
+        protect_with_keyed_client "manual-baking" ~client ~f:(fun () ->
+            Tezos_client.Keyed.bake state client "Manual baking !"))
+
+  let generate_traffic_command state ~clients =
+    Console.Prompt.unit_and_loop
+      ~description:
+        Fmt.(
+          str "Generate traffic from a client (%s); try `gen help`."
+            ( match clients with
+            | [] -> "NO CLIENT, this is just wrong"
+            | [one] -> one.Tezos_client.Keyed.client.id
+            | m ->
+                str "use option (client ..) with one of %s"
+                  ( List.mapi m ~f:(fun ith one ->
+                        str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+                  |> String.concat ~sep:", " ) ))
+      ["generate"; "gen"]
+      (fun sexps ->
+        let client =
+          let open Sexp in
+          match
+            List.find_map sexps ~f:(function
+              | List [Atom "client"; Atom s] ->
+                  Some (List.nth_exn clients (Int.of_string s))
+              | _ -> None)
+          with
+          | None -> List.nth_exn clients 0
+          | Some c -> c
+          | exception _ ->
+              Fmt.kstr failwith "Wrong command line: %a" pp (List sexps) in
+        let counter_option =
+          Sexp_options.make_option "counter" ~placeholders:["<int>"]
+            "The counter to provide (get it from the node by default)." in
+        let size_option =
+          Sexp_options.make_option "size" ~placeholders:["<int>"]
+            "The batch size (default: 10)." in
+        let fee_option =
+          Sexp_options.make_option "fee" ~placeholders:["<float-tz>"]
+            "The fee per operation (default: 0.02)." in
+        let level_option =
+          Sexp_options.make_option "level" ~placeholders:["<int>"] "The level."
+        in
+        let branch client =
+          Tezos_client.rpc state ~client:client.Tezos_client.Keyed.client `Get
+            ~path:"/chains/main/blocks/head/hash"
+          >>= fun br ->
+          let branch = Jqo.get_string br in
+          return branch in
+        match sexps with
+        | Atom "help" :: __ ->
+            Console.sayf state
+              More_fmt.(
+                let cmd ppf name desc options =
+                  cut ppf () ;
+                  vertical_box ~indent:2 ppf (fun ppf ->
+                      pf ppf "* Command `gen %s ...`:" name ;
+                      cut ppf () ;
+                      wrapping_box ppf (fun ppf -> desc ppf ()) ;
+                      cut ppf () ;
+                      Sexp_options.pp_options options ppf ()) in
+                fun ppf () ->
+                  pf ppf "Generating traffic: TODO" ;
+                  cmd ppf "batch"
+                    (const text
+                       "Make a batch operation (only transfers for now).")
+                    [counter_option; size_option; fee_option] ;
+                  cmd ppf "endorsement"
+                    (const text "Make an endorsement for a given level")
+                    [level_option])
+        | Atom "endorsement" :: more_args ->
+            protect_with_keyed_client "forge-and-inject" ~client ~f:(fun () ->
+                branch client
+                >>= fun branch ->
+                Sexp_options.get level_option more_args
+                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 42)
+                >>= fun level ->
+                let json = Traffic_generation.Forge.endorsement ~branch level in
+                Tezos_client.Keyed.forge_and_inject state client ~json
+                >>= fun json_result ->
+                Console.sayf state
+                  More_fmt.(fun ppf () -> json ppf json_result))
+        | Atom "batch" :: more_args ->
+            protect_with_keyed_client "forge-and-inject" ~client ~f:(fun () ->
+                branch client
+                >>= fun branch ->
+                let src =
+                  client.key_name |> Tezos_protocol.Account.of_name
+                  |> Tezos_protocol.Account.pubkey_hash in
+                Sexp_options.get counter_option more_args
+                  ~f:Sexp_options.get_int_exn ~default:(fun () ->
+                    Tezos_client.rpc state ~client:client.client `Get
+                      ~path:
+                        (Fmt.str
+                           "/chains/main/blocks/head/context/contracts/%s/counter"
+                           src)
+                    >>= fun counter_json ->
+                    return ((Jqo.get_string counter_json |> Int.of_string) + 1))
+                >>= fun counter ->
+                Sexp_options.get size_option more_args
+                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 10)
+                >>= fun size ->
+                Sexp_options.get fee_option more_args
+                  ~f:Sexp_options.get_float_exn ~default:(fun () ->
+                    return 0.02)
+                >>= fun fee ->
+                let json =
+                  Traffic_generation.Forge.batch_transfer ~src ~counter ~fee
+                    ~branch size in
+                Tezos_client.Keyed.forge_and_inject state client ~json
+                >>= fun json_result ->
+                Console.sayf state
+                  More_fmt.(fun ppf () -> json ppf json_result))
+        | other ->
+            Fmt.kstr failwith "Wrong command line: %a" Sexp.pp (List other))
 
   let all_defaults state ~nodes =
     let default_port = (List.hd_exn nodes).Tezos_node.rpc_port in

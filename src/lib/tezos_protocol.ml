@@ -367,8 +367,17 @@ module Pretty_print = struct
   let fail_expecting s = failwith "PP: Expecting %s" s
 
   let mempool_pending_operations_rpc ppf mempool_json =
-    let pp_op_short ppf js =
-      pf ppf "%s" Jqo.(field ~k:"kind" js |> get_string) in
+    let pp_op_list_short ppf l =
+      let kinds =
+        List.map l ~f:(fun js -> Jqo.(field ~k:"kind" js |> get_string)) in
+      pf ppf "%s"
+        ( List.fold kinds ~init:[] ~f:(fun prev k ->
+              match prev with
+              | (kind, n) :: more when String.equal kind k ->
+                  (kind, n + 1) :: more
+              | other -> (k, 1) :: other)
+        |> List.map ~f:(function k, 1 -> k | k, n -> str "%s×%d" k n)
+        |> String.concat ~sep:"+" ) in
     let open Jqo in
     match mempool_json with
     | `O four_fields ->
@@ -399,17 +408,15 @@ module Pretty_print = struct
                               (field ~k:"source" js |> get_string)
                               (field ~k:"fee" js |> get_string)
                         | _ -> () in
-                      pf ppf "@,   * [%a] %a"
-                        (list ~sep:(const string "+") pp_op_short)
-                        contents (long_string ~max:15)
+                      pf ppf "@,   * [%a] %a" pp_op_list_short contents
+                        (long_string ~max:15)
                         (field ~k:"hash" op |> get_string) ;
                       List.iter contents ~f:(pp_op_long ppf))
               | _other ->
                   List.iter l ~f:(function
                     | `A [`String opid; op] ->
                         let contents = field ~k:"contents" op |> get_list in
-                        pf ppf "@,    * [%s]: %a" opid
-                          (list ~sep:(const string "+") pp_op_short)
+                        pf ppf "@,    * [%s]: %a" opid pp_op_list_short
                           contents ;
                         pf ppf "@,    TODO: %a" json content
                     | _ -> fail_expecting "a operation tuple") )
