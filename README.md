@@ -72,6 +72,6 @@ repository:
 
 TQ Tezos' [“assets documentation”](https://assets.tqtezos.com)
 shows how to quickly set up a
-[Babylon docker sandbox](https://assets.tqtezos.com/sandbox-quickstart)
+[Babylon docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
 (uses the docker images from this repository).
 
