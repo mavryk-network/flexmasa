@@ -1,12 +1,15 @@
 #! /bin/sh
 
+default_protocol=Babylon
+
 all_commands="
 * usage | help | --help | -h: Display this help message."
 usage () {
     cat >&2 <<EOF
 This script provides a Flextesa “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
-wallet software like \`tezos-client\`.
+wallet software like \`tezos-client\`. This one uses the $default_protocol
+protocol (hash: $protocol_hash).
 
 usage: $0 <command>
 
@@ -15,24 +18,43 @@ $all_commands
 EOF
 }
 
+case "$default_protocol" in
+    "Babylon" )
+        daemon_suffix=005-PsBabyM1
+        protocol_hash=PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
+        ;;
+    "Carthage" )
+        daemon_suffix=006-PsCARTHA
+        protocol_hash=PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb
+        ;;
+    * )
+        echo "Cannot understand protocol kind: '$default_protocol'"
+        usage ;;
+esac
+
+time_bb=${block_time:-5}
+
 export alice="$(flextesa key alice)"
 export bob="$(flextesa key bob)"
 all_commands="$all_commands
 * start : Start the sandbox."
+root_path=/tmp/mini-box
 start () {
     flextesa mini-net \
-             --root /tmp/mini-babylon --size 1 "$@" \
+             --root "$root_path" --size 1 "$@" \
+             --set-history-mode N000:archive \
              --number-of-b 1 \
-             --time-b 8 \
+             --time-b "$time_bb" \
              --add-bootstrap-account="$alice@2_000_000_000_000" \
              --add-bootstrap-account="$bob@2_000_000_000_000" \
              --no-daemons-for=alice \
              --no-daemons-for=bob \
              --until-level 2_000_000 \
-             --tezos-baker tezos-baker-005-PsBabyM1 \
-             --tezos-endor tezos-endorser-005-PsBabyM1 \
-             --tezos-accus tezos-accuser-005-PsBabyM1 \
-             --protocol-hash PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
+             --tezos-baker "tezos-baker-$daemon_suffix" \
+             --tezos-endor "tezos-endorser-$daemon_suffix" \
+             --tezos-accus "tezos-accuser-$daemon_suffix" \
+             --protocol-kind "$default_protocol" \
+             --protocol-hash "$protocol_hash"
 }
 
 all_commands="$all_commands
@@ -43,6 +65,8 @@ Usable accounts:
 
 - $(echo $alice | sed 's/,/\n  * /g')
 - $(echo $bob | sed 's/,/\n  * /g')
+
+Root path (logs, chain data, etc.): $root_path (inside container).
 EOF
 }
 
