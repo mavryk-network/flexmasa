@@ -6,7 +6,7 @@ usage () {
     cat >&2 <<EOF
 usage: $0
 
-
+Creates or tries to update the \`./local-vendor/\` directory.
 EOF
 }
 
@@ -21,7 +21,13 @@ if ! [ -f src/scripts/ensure-vendors.sh ] ; then
     exit 1
 fi
 
-tezos_branch=sm@flextesa-ci
+if [ "$*" != "" ] ; then
+    usage
+    exit 2
+fi
+
+# We use the following pointer to the main repo's master branch:
+tezos_branch=master-20200204
 tezos_remote=https://gitlab.com/smondet/tezos.git
 
 say "Vendoring tezos @ %10s" "$tezos_commit"

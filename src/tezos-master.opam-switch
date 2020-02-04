@@ -139,4 +139,8 @@ installed: [
   "yojson.1.7.0"
   "zarith.1.9.1"
   "zed.2.0.3"
+  "json-data-encoding.0.8"
+  "json-data-encoding-bson.0.8"
+  "lwt-canceler.0.2"
+  "lwt-watcher.0.1"
 ]
