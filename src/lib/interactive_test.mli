@@ -68,7 +68,7 @@ module Commands : sig
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
-    -> string sexp_list
+    -> string list
     -> default_port:int
     -> path:string
     -> doc:string
