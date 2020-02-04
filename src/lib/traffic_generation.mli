@@ -13,7 +13,7 @@ module Michelson : sig
     -> protocol_kind:Tezos_protocol.Protocol_kind.t
     -> parameter:string
     -> init_storage:string
-    -> (string sexp_list, [> System_error.t]) Asynchronous_result.t
+    -> (string list, [> System_error.t]) Asynchronous_result.t
 end
 
 module Random : sig
@@ -30,4 +30,22 @@ module Random : sig
     -> until_level:int
     -> [> `Any]
     -> (unit, [> System_error.t]) Asynchronous_result.t
+end
+
+module Forge : sig
+  val batch_transfer :
+       ?protocol_kind:Tezos_protocol.Protocol_kind.t
+    -> ?counter:int
+    -> ?dst:(string * int) list
+    -> src:string
+    -> fee:float
+    -> branch:string
+    -> int
+    -> Ezjsonm.value
+
+  val endorsement :
+       ?protocol_kind:Tezos_protocol.Protocol_kind.t
+    -> branch:string
+    -> int
+    -> Ezjsonm.value
 end

@@ -119,6 +119,10 @@ module More_fmt = struct
     match String.sub s ~pos:0 ~len:(max - 2) with
     | s -> pf ppf "%S" (s ^ "...")
     | exception _ -> pf ppf "%S" s
+
+  let json ppf json =
+    markdown_verbatim_list ppf
+      (Ezjsonm.value_to_string ~minify:false json |> String.split ~on:'\n')
 end
 
 (** An “decorated result type” based on polymorphic variants *)
@@ -541,4 +545,5 @@ module Jqo = struct
   let get_string = Ezjsonm.get_string
   let get_strings = Ezjsonm.get_strings
   let get_int = Ezjsonm.get_int
+  let get_list = Ezjsonm.get_list (fun e -> e)
 end
