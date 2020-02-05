@@ -40,6 +40,18 @@ root_path="$PWD"
 image_kind="$1"
 docker_tag="$2"
 setup_image="$3"
+commit_ref_name="$4"
+
+case "$commit_ref_name" in
+    master | image* )
+        setup_image=$docker_tag-setup
+        ;;
+    * )
+        say "The setup image was likely not built"
+        ;;
+esac
+say "Using setup-image: $setup_image"
+
 
 tmppath=$(mktemp -d)
 
