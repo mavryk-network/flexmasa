@@ -23,7 +23,7 @@ vendored:
 Then:
 
     make
-    
+
 The above builds the `flextesa` and `michokit` libraries, the `flextesa` command
 line application (see `./flextesa --help`) and the tests (in `src/test`).
 
@@ -45,7 +45,7 @@ With Docker
 Let's use this version:
 
 ```
-export flextesa_image=registry.gitlab.com/tezos/flextesa:7dd2d93a-run
+export flextesa_image=registry.gitlab.com/tezos/flextesa:image-tutobox-run
 ```
 
 in the container `flextesarl` is `flextesa` + `rlwrap` (while bypassing a docker
@@ -58,6 +58,22 @@ docker run -it --rm "$flextesa_image" flextesarl mini-net --size 2
 that's it the sandbox with 2 nodes starts and drops you in the interactive
 prompt: type `help` (or `h`) to list available commands, `al` to check the
 current level, `m` to see the metadata of the head block, etc.
+
+The docker image also contains scripts wrapping flextesa for silent, protocol
+specific sandboxes: `babylonbox` and `carthagebox`, see for instance:
+
+    docker run --rm --name my-sandbox --detach -p 20000:20000 -e block_time=4 \
+           registry.gitlab.com/tezos/flextesa:image-tutobox-run \
+           carthagebox start
+
+One can then manipulate them with `tezos-client`:
+
+    ./tezos-client -P 20000  rpc get /chains/main/blocks/head/context/constants
+
+or simply shut them down:
+
+    docker kill my-sandbox
+
 
 More Documentation
 ------------------
@@ -74,4 +90,3 @@ TQ Tezos' [“assets documentation”](https://assets.tqtezos.com)
 shows how to quickly set up a
 [Babylon docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
 (uses the docker images from this repository).
-
