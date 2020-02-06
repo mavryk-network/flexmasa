@@ -152,8 +152,11 @@ EOF
     cat >> Dockerfile <<EOF
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/mini-babylon.sh /usr/bin/babylonbox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/babylonbox
 RUN chmod a+rx /usr/bin/babylonbox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/carthagebox
+RUN sed -i s/default_protocol=Babylon/default_protocol=Carthage/ /usr/bin/carthagebox
+RUN chmod a+rx /usr/bin/carthagebox
 EOF
 }
 
