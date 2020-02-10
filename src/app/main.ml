@@ -56,7 +56,7 @@ module Small_utilities = struct
     let open Cmdliner in
     let open Term in
     Flextesa.Test_command_line.Run_command.make ~pp_error
-      ( pure (fun state seed attempts pattern ->
+      ( pure (fun state stop_at_first seed attempts pattern ->
             Flextesa.
               ( state
               , fun () ->
@@ -64,7 +64,8 @@ module Small_utilities = struct
                     Fmt.(fun ppf () -> pf ppf "Looking for %S" pattern)
                   >>= fun () ->
                   let rec loop count res =
-                    if count >= attempts then res
+                    if count >= attempts || (stop_at_first && Poly.(res <> []))
+                    then res
                     else
                       let seed = seed ^ Int.to_string count in
                       let open Tezos_crypto in
@@ -95,6 +96,7 @@ module Small_utilities = struct
                                       seed bh ci))) ))
       $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"vanity-chain-id" ()
+      $ Arg.(value (flag (info ["first"] ~doc:"Stop at the first result.")))
       $ Arg.(
           value
             (opt string "flextesa"
