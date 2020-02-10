@@ -2,9 +2,9 @@ open Internal_pervasives
 open Console
 
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
-    ?external_peer_ports ~nodes_history_mode_edits ~with_baking
-    ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
-    accuser_exec test_kind () =
+    ?genesis_block_hash ?external_peer_ports ~nodes_history_mode_edits
+    ~with_baking ?generate_kiln_config node_exec client_exec baker_exec
+    endorser_exec accuser_exec test_kind () =
   ( if clear_root then
     Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
     >>= fun () -> Helpers.clear_root state
@@ -17,14 +17,17 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.")
   >>= fun () ->
+  let node_custom_network =
+    let base =
+      Tezos_node.Config_file.network ?genesis_hash:genesis_block_hash () in
+    `Json
+      (Ezjsonm.dict
+         ( base
+         @ Option.value_map ~default:[] hard_fork ~f:(fun hf ->
+               [Hard_fork.node_network_config hf]) )) in
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
     ~nodes_history_mode_edits ~base_port state ~node_exec ~client_exec
-    ?node_custom_network:
-      (Option.map hard_fork ~f:(fun hf ->
-           `Json
-             (Ezjsonm.dict
-                ( Tezos_node.Config_file.default_network
-                @ [Hard_fork.node_network_config hf] ))))
+    ~node_custom_network
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.")
   >>= fun () ->
@@ -180,6 +183,7 @@ let cmd () =
            endo
            accu
            hard_fork
+           genesis_block_hash
            generate_kiln_config
            nodes_history_mode_edits
            state
@@ -188,7 +192,7 @@ let cmd () =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
             ?hard_fork ~clear_root ~nodes_history_mode_edits ~with_baking
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
-            test_kind in
+            ?genesis_block_hash test_kind in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test))
     $ term_result ~usage:true
@@ -256,6 +260,13 @@ let cmd () =
     $ Tezos_executable.cli_term base_state `Endorser "tezos"
     $ Tezos_executable.cli_term base_state `Accuser "tezos"
     $ Hard_fork.cmdliner_term ~docs base_state ()
+    $ Arg.(
+        value
+          (opt (some string) None
+             (info ["genesis-block-hash"]
+                ~doc:
+                  "Override the default genesis block hash (from which the \
+                   chain-id is derived).")))
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state () in
