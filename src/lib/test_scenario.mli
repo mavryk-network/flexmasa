@@ -71,7 +71,8 @@ module Network : sig
   val make : Tezos_node.t list -> t
 
   val start_up :
-       ?check_ports:bool
+       ?do_activation:bool
+    -> ?check_ports:bool
     -> < Base_state.base
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
@@ -91,7 +92,8 @@ module Network : sig
 end
 
 val network_with_protocol :
-     ?node_custom_network:[`Json of Ezjsonm.value]
+     ?do_activation:bool
+  -> ?node_custom_network:[`Json of Ezjsonm.value]
   -> ?external_peer_ports:int list
   -> ?base_port:int
   -> ?size:int

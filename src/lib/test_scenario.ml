@@ -156,7 +156,8 @@ module Network = struct
 
   let make nodes = {nodes}
 
-  let start_up ?(check_ports = true) state ~client_exec {nodes} =
+  let start_up ?(do_activation = true) ?(check_ports = true) state ~client_exec
+      {nodes} =
     ( if check_ports then
       Helpers.Netstat.used_listening_ports state
       >>= fun all_used ->
@@ -195,7 +196,8 @@ module Network = struct
     Dbg.e EF.(af "Trying to bootstrap client") ;
     Tezos_client.wait_for_node_bootstrap state client
     >>= fun () ->
-    Tezos_client.activate_protocol state client protocol
+    ( if do_activation then Tezos_client.activate_protocol state client protocol
+    else return () )
     >>= fun () ->
     Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
     List_sequential.iter nodes ~f:(fun node ->
@@ -203,9 +205,9 @@ module Network = struct
         Tezos_client.wait_for_node_bootstrap state client)
 end
 
-let network_with_protocol ?node_custom_network ?external_peer_ports ?base_port
-    ?(size = 5) ?protocol ?(nodes_history_mode_edits = return) state ~node_exec
-    ~client_exec =
+let network_with_protocol ?do_activation ?node_custom_network
+    ?external_peer_ports ?base_port ?(size = 5) ?protocol
+    ?(nodes_history_mode_edits = return) state ~node_exec ~client_exec =
   let pre_edit_nodes =
     Topology.build ?base_port ?external_peer_ports
       ~make_node:(fun id ~expected_connections ~rpc_port ~p2p_port peers ->
@@ -221,7 +223,7 @@ let network_with_protocol ?node_custom_network ?external_peer_ports ?base_port
   >>= fun protocol ->
   Inconsistency_error.should_be_one_timestamp_delay protocols
   >>= fun () ->
-  Network.start_up state ~client_exec (Network.make nodes)
+  Network.start_up ?do_activation state ~client_exec (Network.make nodes)
   >>= fun () -> return (nodes, protocol)
 
 module Queries = struct

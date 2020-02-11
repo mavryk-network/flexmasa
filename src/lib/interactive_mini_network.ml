@@ -26,8 +26,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
          @ Option.value_map ~default:[] hard_fork ~f:(fun hf ->
                [Hard_fork.node_network_config hf]) )) in
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
-    ~nodes_history_mode_edits ~base_port state ~node_exec ~client_exec
-    ~node_custom_network
+    ~do_activation:clear_root ~nodes_history_mode_edits ~base_port state
+    ~node_exec ~client_exec ~node_custom_network
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.")
   >>= fun () ->
@@ -226,7 +226,10 @@ let cmd () =
         $ value
             (flag
                (info ["keep-root"] ~docs
-                  ~doc:"Do not erase the root path before starting.")))
+                  ~doc:
+                    "Do not erase the root path before starting (this also \
+                     makes the sandbox start-up bypass the \
+                     protocol-activation step).")))
     $ Arg.(
         value & opt int 5
         & info ["size"; "S"] ~docs ~doc:"Set the size of the network.")
