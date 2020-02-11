@@ -196,6 +196,14 @@ module Network = struct
     Dbg.e EF.(af "Trying to bootstrap client") ;
     Tezos_client.wait_for_node_bootstrap state client
     >>= fun () ->
+    Tezos_client.rpc state ~client `Get ~path:"/chains/main/blocks/head/header"
+    >>= fun json ->
+    let do_activation =
+      (* If the level is 0 we still do the activation. *)
+      do_activation
+      ||
+      try Int.equal Jqo.(field ~k:"level" json |> get_int) 0 with _ -> false
+    in
     ( if do_activation then Tezos_client.activate_protocol state client protocol
     else return () )
     >>= fun () ->

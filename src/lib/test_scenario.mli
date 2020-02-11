@@ -89,6 +89,13 @@ module Network : sig
          | `Too_many_protocols of Tezos_protocol.t list
          | `Too_many_timestamp_delays of Tezos_protocol.t list ] )
        Asynchronous_result.t
+  (** Start the nodes, bootstrap the client, and (potentially)
+      activate the protocol of a network.
+
+      - [?do_activation]: if [true] the start-up will try to activate
+        the protocol, if [false] it will do it only if the current
+        level of the chain is [0].
+ *)
 end
 
 val network_with_protocol :
@@ -118,7 +125,7 @@ val network_with_protocol :
   -> client_exec:Tezos_executable.t
   -> (Tezos_node.t list * Tezos_protocol.t, 'errors) Asynchronous_result.t
 (** [network_with_protocol] is a wrapper simply starting-up a
-    {!Topology.mesh}. *)
+    {!Topology.mesh}. See {!Network.start_up} for details on some arguments. *)
 
 (** Run queries on running networks. *)
 module Queries : sig
