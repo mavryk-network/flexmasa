@@ -151,6 +151,7 @@ makewebsite:
   script:
      - bash -c "$SHOW_INFO"
      - make vendors
+     - make
      - opam config exec -- bash src/scripts/build-doc.sh testweb/
 
 pages:
