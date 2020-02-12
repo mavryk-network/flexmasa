@@ -17,6 +17,7 @@ options, all the “baker deamons.”
 An easy way to let flextesa find them is to add them to the `PATH`, for instance
 if all the tezos utilities have been build at `/path/to/tezos-repo/`:
 
+    $ export PATH=/path/to/tezos-repo/:$PATH
     $ flextesa mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2
 
