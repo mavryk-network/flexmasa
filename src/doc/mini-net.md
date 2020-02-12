@@ -17,24 +17,29 @@ options, all the “baker deamons.”
 An easy way to let flextesa find them is to add them to the `PATH`, for instance
 if all the tezos utilities have been build at `/path/to/tezos-repo/`:
 
-    PATH=/path/to/tezos-repo:$PATH ./flextesa mini  \
-        --size 2 --time-between-blocks 10 --number-of-boot 2
+    flextesa mini  \
+             --size 2 --time-between-blocks 10 --number-of-boot 2
 
 If one does not want to, or cannot, use this method, all the executable paths
 can be passed with command line options:
 
-    ./flextesa mini  \
-        --size 3 --time-between-blocks 8 --number-of-boot 2 \
-        --tezos-node /path/to/tezos-repo/tezos-node \
-        --tezos-client /path/to/tezos-repo/tezos-client \
-        --tezos-baker /path/to/tezos-repo/tezos-baker-alpha \
-        --tezos-endorser /path/to/tezos-repo/tezos-endorser-alpha \
-        --tezos-accuser /path/to/tezos-repo/tezos-accuser-alpha
+    flextesa mini  \
+            --size 3 --time-between-blocks 8 --number-of-boot 2 \
+            --tezos-node /path/to/tezos-repo/tezos-node \
+            --tezos-client /path/to/tezos-repo/tezos-client \
+            --tezos-baker /path/to/tezos-repo/tezos-baker-alpha \
+            --tezos-endorser /path/to/tezos-repo/tezos-endorser-alpha \
+            --tezos-accuser /path/to/tezos-repo/tezos-accuser-alpha
 
 The above command starts 3 nodes, activates the protocol `alpha` with a
 block-time of 8 seconds (`alpha` is the development protocol of the `master`
 branch; it *mimics* the `mainnet` one), and starts baking daemons for 2
 bootstrap-baker accounts.
+
+* If you are using the docker image, valid `tezos-*` executables are already in
+  the `$PATH`.
+* The following sections assume you have these figured out (as additional
+  arguments or in the `$PATH`).
 
 A Note On Interactivity
 -----------------------
@@ -59,11 +64,11 @@ daemons, the client needs to manually bake blocks on demand (this is very useful
 to make faster and more reproducible tests for instance).
 
 
-    ./flextesa mini  \
-        --size 1 --number-of-boot 1 --base-port 4000 \
-        --tezos-node /path/to/tezos-repo/tezos-node \
-        --tezos-client /path/to/tezos-repo/tezos-client \
-        --no-baking
+    flextesa mini  \
+             --size 1 --number-of-boot 1 --base-port 4000 \
+             --tezos-node /path/to/tezos-repo/tezos-node \
+             --tezos-client /path/to/tezos-repo/tezos-client \
+             --no-baking
 
 By typing `help` we see we can use the command `bake` to make new blocks:
 
@@ -88,9 +93,9 @@ Flextesa:
     * A loadable shell environment is available at
     `/tmp/mininet-test/shell.env`.
     * It contains 1 POSIX-shell aliases (compatible with `bash`, etc.).
-    
+
     Example:
-    
+
         . /tmp/mininet-test/shell.env
         tc0 list known addresses
         tc0 rpc get /chains/main/blocks/head/metadata
@@ -108,6 +113,9 @@ Feb 12 10:30:42 - alpha.baking.forge: found 0 valid operations (0 refused) for t
 Injected block BLehBRAoyFAB
 ```
 
+When running “manual” sandboxes the option `--timestamp-delay` is also useful
+(e.g. `--timestamp-delay=3600`), it allows the user to bake faster than the
+expected time between blocks.
 
 ### Running Another Protocol And History Modes
 
@@ -118,11 +126,10 @@ non-interactive sandboxes with the “real” Babylon or Carthage protocols.
 
 For instance:
 
-    export PATH=/path/to/tezos-build:$PATH
     flextesa mini-net \
              --root /tmp/mini-box \
              --size 1 \
-             --set-history-mode N000:archive 
+             --set-history-mode N000:archive
              --number-of-bootstrap-accounts 1 \
              --time-b 5 \
              --until-level 2_000_000 \
@@ -149,22 +156,69 @@ More over flextesa provides a command to generate **deterministic** key-pairs
 from any string.
 
     alice=$(./flextesa key-of-name alice)
-    PATH=/path/to/tezos-repo:$PATH ./flextesa mini  \
-        --size 2 --time-between-blocks 10 --number-of-boot 2 \
-        --add-bootstrap-account "$alice@2_000_000_000_000 \
-        --no-daemons-for=alice
+    flextesa mini  \
+             --size 2 --time-between-blocks 10 --number-of-boot 2 \
+             --add-bootstrap-account "$alice@2_000_000_000_000 \
+             --no-daemons-for=alice
 
-**TODO:**
+This sandbox has one more account with 2 million ꜩ, that account is not used for
+baking. See the output of the key generation:
 
-- explain
-- show output of key-of-name
+```
+ $ ./flextesa key-of-name alice
+alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
+```
+
+One can use simply `tezos-client import secret key the-alice
+unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq` to interact
+with this account.
 
 ### Choosing a (Vanity) Chain-id
 
-**TODO**
+With the default values the chain id for the sandbox is
+`NetXKMbjQL2SBox` (cf. RPC `/chains/main/chain_id`), but one may want to use a
+different one.
 
-### Stopping/Restarting Sandboxes
+The chain-id is computed from the hash of the Genesis block, which can be forced
+with the `--genesis-block-hash`; and one can brute-force a block-hash to generate vanity chain-id with the `flextesa vanity-chain-id` command.
 
-**TODO**
+```
+ $ flextesa vanity-chain-id Bob  \
+            --attempts 1_000_000 --first --seed my-seed-string
 
+Flextesa.vanity-chain-id:  Looking for "Bob"
+Flextesa.vanity-chain-id:
+  Results:
+    * Seed: "my-seed-string140396"
+      → block: "BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q"
+      → chain-id: "NetXLGHj52FuBob"
+```
 
+One can use it like this:
+
+    flextesa mini  \
+             --size 2 --time-between-blocks 10 --number-of-boot 2 \
+             --genesis BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q
+
+And check interactively that `c0 rpc get /chains/main/chain_id` returns
+`"NetXLGHj52FuBob"`.
+
+### Root Path & Stopping/Restarting Sandboxes
+
+All the sandboxes keep all their data within a “root path” which can be set
+with the `--root-path` option.
+
+By default the `mini-net` erases that directory at startup but one can try to
+restart a sandbox from the state it was when it was shut down with
+the option `--keep-root`.
+
+Restarting sandboxes is *not an exact science* because it is not how a
+blockchain is supposed to work, sometimes bakers and nodes fail while trying to
+catch-up, it is better to use “small” networks:
+
+    flextesa mini --root /tmp/longer-running-mini-net \
+             --size 1 --time-between-blocks 2 --number-of-boot 1 \
+             --keep-root
+
+Stopping the sandbox with `quit`, and restarting with the same command some time
+later usually works.
