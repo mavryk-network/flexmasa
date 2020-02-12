@@ -90,10 +90,11 @@ module Small_utilities = struct
                             | more ->
                                 List.iter more ~f:(fun (seed, bh, ci) ->
                                     cut ppf () ;
-                                    pf ppf
-                                      "* Seed: %S → block: %S → chain-id: \
-                                       %S"
-                                      seed bh ci))) ))
+                                    wrapping_box ~indent:2 ppf (fun ppf ->
+                                        pf ppf
+                                          "* Seed: %S@ → block: %S@ → \
+                                           chain-id: %S"
+                                          seed bh ci)))) ))
       $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"vanity-chain-id" ()
       $ Arg.(value (flag (info ["first"] ~doc:"Stop at the first result.")))
