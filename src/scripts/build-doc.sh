@@ -45,7 +45,7 @@ opam config exec -- opam install --yes odig omd
 
 cp -r _build/default/_doc/_html/* "$output_path/"
 
-cp -r $(odig odoc-theme path odig.solarized.dark)/* "$output_path/"
+cp -r $(odig odoc-theme path odig.light)/* "$output_path/"
 
 lib_index_fragment=$(mktemp "/tmp/lib-index-XXXX.html")
 odoc html-frag src/doc/index.mld \
@@ -66,8 +66,19 @@ main_index="$output_path/index.html"
 
 
 mini_net_fragment=$(mktemp "/tmp/mini-net-XXXX.html")
-cat ./src/doc/mini-net.md \
-    | omd >> "$mini_net_fragment"
+{
+    cat ./src/doc/mini-net.md ;
+    cat <<'EOF'
+
+## Manpage Of mini-net
+
+For convenience, here is the output of `flextesa mini-net --help`:
+
+EOF
+    echo '``````'
+    ./flextesa mini-net --help=plain
+    echo '``````'
+} | omd >> "$mini_net_fragment"
 mini_net="$output_path/mini-net.html"
 
 make_page () {
