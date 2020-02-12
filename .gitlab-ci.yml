@@ -144,7 +144,7 @@ docker:tag:
 
 makewebsite:
   image: $setup_image
-  stage: doc
+  stage: build
   artifacts:
      paths:
      - testweb
