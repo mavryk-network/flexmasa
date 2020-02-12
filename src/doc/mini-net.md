@@ -17,19 +17,19 @@ options, all the “baker deamons.”
 An easy way to let flextesa find them is to add them to the `PATH`, for instance
 if all the tezos utilities have been build at `/path/to/tezos-repo/`:
 
-    flextesa mini  \
-             --size 2 --time-between-blocks 10 --number-of-boot 2
+    $ flextesa mini  \
+               --size 2 --time-between-blocks 10 --number-of-boot 2
 
 If one does not want to, or cannot, use this method, all the executable paths
 can be passed with command line options:
 
-    flextesa mini  \
-            --size 3 --time-between-blocks 8 --number-of-boot 2 \
-            --tezos-node /path/to/tezos-repo/tezos-node \
-            --tezos-client /path/to/tezos-repo/tezos-client \
-            --tezos-baker /path/to/tezos-repo/tezos-baker-alpha \
-            --tezos-endorser /path/to/tezos-repo/tezos-endorser-alpha \
-            --tezos-accuser /path/to/tezos-repo/tezos-accuser-alpha
+    $ flextesa mini  \
+               --size 3 --time-between-blocks 8 --number-of-boot 2 \
+               --tezos-node /path/to/tezos-repo/tezos-node \
+               --tezos-client /path/to/tezos-repo/tezos-client \
+               --tezos-baker /path/to/tezos-repo/tezos-baker-alpha \
+               --tezos-endorser /path/to/tezos-repo/tezos-endorser-alpha \
+               --tezos-accuser /path/to/tezos-repo/tezos-accuser-alpha
 
 The above command starts 3 nodes, activates the protocol `alpha` with a
 block-time of 8 seconds (`alpha` is the development protocol of the `master`
@@ -64,11 +64,11 @@ daemons, the client needs to manually bake blocks on demand (this is very useful
 to make faster and more reproducible tests for instance).
 
 
-    flextesa mini  \
-             --size 1 --number-of-boot 1 --base-port 4000 \
-             --tezos-node /path/to/tezos-repo/tezos-node \
-             --tezos-client /path/to/tezos-repo/tezos-client \
-             --no-baking
+    $ flextesa mini  \
+               --size 1 --number-of-boot 1 --base-port 4000 \
+               --tezos-node /path/to/tezos-repo/tezos-node \
+               --tezos-client /path/to/tezos-repo/tezos-client \
+               --no-baking
 
 By typing `help` we see we can use the command `bake` to make new blocks:
 
@@ -126,18 +126,18 @@ non-interactive sandboxes with the “real” Babylon or Carthage protocols.
 
 For instance:
 
-    flextesa mini-net \
-             --root /tmp/mini-box \
-             --size 1 \
-             --set-history-mode N000:archive
-             --number-of-bootstrap-accounts 1 \
-             --time-b 5 \
-             --until-level 2_000_000 \
-             --tezos-baker tezos-baker-005-PsBabyM1 \
-             --tezos-endor tezos-endorser-005-PsBabyM1 \
-             --tezos-accus tezos-accuser-005-PsBabyM1 \
-             --protocol-kind Babylon \
-             --protocol-hash PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
+    $ flextesa mini-net \
+               --root /tmp/mini-box \
+               --size 1 \
+               --set-history-mode N000:archive
+               --number-of-bootstrap-accounts 1 \
+               --time-b 5 \
+               --until-level 2_000_000 \
+               --tezos-baker tezos-baker-005-PsBabyM1 \
+               --tezos-endor tezos-endorser-005-PsBabyM1 \
+               --tezos-accus tezos-accuser-005-PsBabyM1 \
+               --protocol-kind Babylon \
+               --protocol-hash PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
 
 runs a 1-node sandbox with 1 bootstrap baker, running Babylon (the same as
 mainnet) but with a time-between-blocks of 5 seconds.
@@ -155,17 +155,17 @@ prevents the sandbox from baking with a given bootstrap-account.
 More over flextesa provides a command to generate **deterministic** key-pairs
 from any string.
 
-    alice=$(./flextesa key-of-name alice)
-    flextesa mini  \
-             --size 2 --time-between-blocks 10 --number-of-boot 2 \
-             --add-bootstrap-account "$alice@2_000_000_000_000 \
-             --no-daemons-for=alice
+    $ alice=$(./flextesa key-of-name alice)
+    $ flextesa mini  \
+               --size 2 --time-between-blocks 10 --number-of-boot 2 \
+               --add-bootstrap-account "$alice@2_000_000_000_000 \
+               --no-daemons-for=alice
 
 This sandbox has one more account with 2 million ꜩ, that account is not used for
 baking. See the output of the key generation:
 
 ```
- $ ./flextesa key-of-name alice
+ $ flextesa key-of-name alice
 alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 ```
 
@@ -196,9 +196,9 @@ Flextesa.vanity-chain-id:
 
 One can use it like this:
 
-    flextesa mini  \
-             --size 2 --time-between-blocks 10 --number-of-boot 2 \
-             --genesis BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q
+    $ flextesa mini  \
+               --size 2 --time-between-blocks 10 --number-of-boot 2 \
+               --genesis BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q
 
 And check interactively that `c0 rpc get /chains/main/chain_id` returns
 `"NetXLGHj52FuBob"`.
@@ -216,9 +216,9 @@ Restarting sandboxes is *not an exact science* because it is not how a
 blockchain is supposed to work, sometimes bakers and nodes fail while trying to
 catch-up, it is better to use “small” networks:
 
-    flextesa mini --root /tmp/longer-running-mini-net \
-             --size 1 --time-between-blocks 2 --number-of-boot 1 \
-             --keep-root
+    $ flextesa mini --root /tmp/longer-running-mini-net \
+               --size 1 --time-between-blocks 2 --number-of-boot 1 \
+               --keep-root
 
 Stopping the sandbox with `quit`, and restarting with the same command some time
 later usually works.
