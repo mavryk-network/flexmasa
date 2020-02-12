@@ -31,6 +31,11 @@ if ! [ -f src/scripts/build-doc.sh ] ; then
 fi
 
 output_path="$1"
+if [ "$output_path" = "" ] ; then
+    shout "Missing argument"
+    usage
+    exit 2
+fi
 
 mkdir -p "$output_path/api"
 
@@ -55,8 +60,15 @@ head -n "$toc_spot" ./README.md  | omd > "$main_index_fragment"
     | omd -otoc >> "$main_index_fragment"
 tail +$toc_spot  ./README.md \
     | sed 's@https://tezos.gitlab.io/flextesa/lib-index.html@./lib-index.html@' \
+    | sed 's@./src/doc/mini-net.md@./mini-net.html@' \
     | omd >> "$main_index_fragment"
 main_index="$output_path/index.html"
+
+
+mini_net_fragment=$(mktemp "/tmp/mini-net-XXXX.html")
+cat ./src/doc/mini-net.md \
+    | omd >> "$mini_net_fragment"
+mini_net="$output_path/mini-net.html"
 
 make_page () {
     input="$1"
@@ -84,9 +96,11 @@ EOF
 
 make_page "$lib_index_fragment" "$lib_index" "Flextesa: API"
 make_page "$main_index_fragment" "$main_index" "Flextesa: Home"
+make_page "$mini_net_fragment" "$mini_net" "Flextesa: Mini-net Command"
 
 
 say "done: file://$PWD/$main_index"
+say "done: file://$PWD/$mini_net"
 say "done: file://$PWD/$lib_index"
 say "done: file://$PWD/$output_path/flextesa/Flextesa/index.html"
 

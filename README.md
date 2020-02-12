@@ -78,6 +78,9 @@ or simply shut them down:
 More Documentation
 ------------------
 
+The command `flextesa mini-net [...]` has a specific documentation
+page: [The `mini-net` Command](./src/doc/mini-net.md).
+
 The API documentation of the Flextesa OCaml library starts here:
 [Flextesa: API](https://tezos.gitlab.io/flextesa/lib-index.html).
 
