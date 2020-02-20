@@ -56,12 +56,15 @@ module Small_utilities = struct
     let open Cmdliner in
     let open Term in
     Flextesa.Test_command_line.Run_command.make ~pp_error
-      ( pure (fun state stop_at_first seed attempts pattern ->
+      ( pure (fun state stop_at_first machine_readable seed attempts pattern ->
             Flextesa.
               ( state
               , fun () ->
-                  Console.sayf state
-                    Fmt.(fun ppf () -> pf ppf "Looking for %S" pattern)
+                  let sayf f =
+                    match machine_readable with
+                    | Some _ -> return ()
+                    | None -> Console.sayf state f in
+                  sayf Fmt.(fun ppf () -> pf ppf "Looking for %S" pattern)
                   >>= fun () ->
                   let rec loop count res =
                     if count >= attempts || (stop_at_first && Poly.(res <> []))
@@ -80,7 +83,21 @@ module Small_utilities = struct
                         else res in
                       loop (count + 1) acc in
                   let res = loop 0 [] in
-                  Console.sayf state
+                  ( match machine_readable with
+                  | None -> ()
+                  | Some fmt ->
+                      let sep =
+                        match fmt with
+                        | `Csv -> fun () -> Fmt.pr ","
+                        | `Tsv -> fun () -> Fmt.pr "\t" in
+                      List.iter res ~f:(fun (seed, bh, ci) ->
+                          Fmt.pr "%S" seed ;
+                          sep () ;
+                          Fmt.pr "%s" bh ;
+                          sep () ;
+                          Fmt.pr "%s" ci ;
+                          Fmt.pr "\n%!") ) ;
+                  sayf
                     More_fmt.(
                       fun ppf () ->
                         vertical_box ~indent:2 ppf (fun ppf ->
@@ -98,6 +115,15 @@ module Small_utilities = struct
       $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"vanity-chain-id" ()
       $ Arg.(value (flag (info ["first"] ~doc:"Stop at the first result.")))
+      $ Arg.(
+          value
+            (let cases = [("csv", `Csv); ("tsv", `Tsv)] in
+             opt
+               (some (enum cases))
+               None
+               (info ["machine-readable"]
+                  ~docv:(List.map cases ~f:fst |> String.concat ~sep:"|")
+                  ~doc:"Print the results on stdout in a parsing friendly way.")))
       $ Arg.(
           value
             (opt string "flextesa"
