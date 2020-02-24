@@ -20,6 +20,8 @@ variables:
   # * Note that the build of the `...-build` images knows how to get the right
   #   `...-setup` image depending on the branch
   #   (cf. src/scripts/make-docker-images.sh).
+  dind_image: "docker:19.03.1"
+  dind_service: "docker:19.03.5-dind"
   SHOW_INFO: >
     echo "=========== INFO: ============" &&
     opam config exec -- ocamlc -version &&
@@ -55,9 +57,9 @@ opam-test:
      - opam config exec -- sh src/scripts/opam-test.sh
 
 docker:setup:
-  image: docker:latest
+  image: "$dind_image"
   services:
-    - docker:dind
+    - "$dind_service"
   only:
     - master
     - /^image.*$/
@@ -78,9 +80,9 @@ docker:setup:
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-setup"
 
 docker:build:
-  image: docker:latest
+  image: "$dind_image"
   services:
-    - docker:dind
+    - "$dind_service"
   stage: test
   variables:
     DOCKER_DRIVER: overlay2
@@ -95,9 +97,9 @@ docker:build:
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
 
 docker:run:
-  image: docker:latest
+  image: "$dind_image"
   services:
-    - docker:dind
+    - "$dind_service"
   stage: doc
   variables:
     DOCKER_DRIVER: overlay2
@@ -112,9 +114,9 @@ docker:run:
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
 
 docker:test:
-  image: docker:latest
+  image: "$dind_image"
   services:
-    - docker:dind
+    - "$dind_service"
   stage: deploy
   variables:
     DOCKER_DRIVER: overlay2
@@ -126,9 +128,9 @@ docker:test:
     - docker run -v ${PWD}/mini-net-root:/root "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --keep-root --time-between-blocks 3 --until-level 30 --number-of-boot 2 --size 2 --random-traffic any
 
 docker:tag:
-  image: docker:latest
+  image: "$dind_image"
   services:
-    - docker:dind
+    - "$dind_service"
   stage: deploy
   variables:
     DOCKER_DRIVER: overlay2
