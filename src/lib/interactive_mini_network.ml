@@ -43,8 +43,8 @@ module Genesis_block_hash = struct
                 "Set the genesis block hash (from which the chain-id is \
                  derived). The default (or the string %S) is `%s...`, %S \
                  means pick-one-at-random. This option is ignored when the \
-                 `--keep-root` allows a chain to resume (the previously \
-                 chosen genesis-hash will be still in effect)."
+                 `--keep-root` option allows the chain to resume (the \
+                 previously chosen genesis-hash will be still in effect)."
                 "default"
                 (String.sub default ~pos:0 ~len:8)
                 "random" in
