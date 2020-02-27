@@ -13,4 +13,4 @@ clean:
 	dune clean
 
 fmt:
-	find ./src/ \( ! -name ".#*" \) \( -name "*.mli" -o -name "*.ml" \) -exec ocamlformat -i {} \;
+	find ./src/ \( ! -name ".#*" \) \( -name "*.mli" -o -name "*.ml" \) -exec ocamlformat --profile=compact -i {} \;

@@ -78,6 +78,9 @@ or simply shut them down:
 More Documentation
 ------------------
 
+The command `flextesa mini-net [...]` has a dedicated documentation
+page: [The `mini-net` Command](./src/doc/mini-net.md).
+
 The API documentation of the Flextesa OCaml library starts here:
 [Flextesa: API](https://tezos.gitlab.io/flextesa/lib-index.html).
 
@@ -86,7 +89,7 @@ repository:
 [Flexible Network Sandboxes](https://tezos.gitlab.io/developer/flextesa.html)
 (it uses the `tezos-sandbox` executable which is implemented there).
 
-TQ Tezos' [“assets documentation”](https://assets.tqtezos.com)
-shows how to quickly set up a
+TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com)
+documentation shows how to quickly set up a
 [Babylon docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
 (uses the docker images from this repository).

@@ -31,16 +31,21 @@ if ! [ -f src/scripts/build-doc.sh ] ; then
 fi
 
 output_path="$1"
+if [ "$output_path" = "" ] ; then
+    shout "Missing argument"
+    usage
+    exit 2
+fi
 
 mkdir -p "$output_path/api"
 
-opam config exec -- dune build @doc
+opam config exec -- dune build @src/lib/doc
 
 opam config exec -- opam install --yes odig omd
 
 cp -r _build/default/_doc/_html/* "$output_path/"
 
-cp -r $(odig odoc-theme path odig.solarized.dark)/* "$output_path/"
+cp -r $(odig odoc-theme path odig.light)/* "$output_path/"
 
 lib_index_fragment=$(mktemp "/tmp/lib-index-XXXX.html")
 odoc html-frag src/doc/index.mld \
@@ -55,8 +60,26 @@ head -n "$toc_spot" ./README.md  | omd > "$main_index_fragment"
     | omd -otoc >> "$main_index_fragment"
 tail +$toc_spot  ./README.md \
     | sed 's@https://tezos.gitlab.io/flextesa/lib-index.html@./lib-index.html@' \
+    | sed 's@./src/doc/mini-net.md@./mini-net.html@' \
     | omd >> "$main_index_fragment"
 main_index="$output_path/index.html"
+
+
+mini_net_fragment=$(mktemp "/tmp/mini-net-XXXX.html")
+{
+    cat ./src/doc/mini-net.md ;
+    cat <<'EOF'
+
+## Manpage Of mini-net
+
+For convenience, here is the output of `flextesa mini-net --help`:
+
+EOF
+    echo '``````'
+    ./flextesa mini-net --help=plain
+    echo '``````'
+} | omd >> "$mini_net_fragment"
+mini_net="$output_path/mini-net.html"
 
 make_page () {
     input="$1"
@@ -84,9 +107,11 @@ EOF
 
 make_page "$lib_index_fragment" "$lib_index" "Flextesa: API"
 make_page "$main_index_fragment" "$main_index" "Flextesa: Home"
+make_page "$mini_net_fragment" "$mini_net" "Flextesa: Mini-net Command"
 
 
 say "done: file://$PWD/$main_index"
+say "done: file://$PWD/$mini_net"
 say "done: file://$PWD/$lib_index"
 say "done: file://$PWD/$output_path/flextesa/Flextesa/index.html"
 

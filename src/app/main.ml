@@ -52,7 +52,94 @@ module Small_utilities = struct
       (info "netstat-listening-ports"
          ~doc:"Like `netstat -nut | awk something-something` but glorified.")
 
-  let all ~pp_error () = [key_of_name_command (); netstat_ports ~pp_error ()]
+  let vanity_chain_id ~pp_error () =
+    let open Cmdliner in
+    let open Term in
+    Flextesa.Test_command_line.Run_command.make ~pp_error
+      ( pure (fun state stop_at_first machine_readable seed attempts pattern ->
+            Flextesa.
+              ( state
+              , fun () ->
+                  let sayf f =
+                    match machine_readable with
+                    | Some _ -> return ()
+                    | None -> Console.sayf state f in
+                  sayf Fmt.(fun ppf () -> pf ppf "Looking for %S" pattern)
+                  >>= fun () ->
+                  let rec loop count res =
+                    if count >= attempts || (stop_at_first && Poly.(res <> []))
+                    then res
+                    else
+                      let seed = seed ^ Int.to_string count in
+                      let open Tezos_crypto in
+                      let block_hash = Block_hash.hash_string [seed] in
+                      let chain_id =
+                        block_hash |> Chain_id.of_block_hash
+                        |> Chain_id.to_b58check in
+                      let acc =
+                        if String.is_suffix ~suffix:pattern chain_id then
+                          (seed, Block_hash.to_b58check block_hash, chain_id)
+                          :: res
+                        else res in
+                      loop (count + 1) acc in
+                  let res = loop 0 [] in
+                  ( match machine_readable with
+                  | None -> ()
+                  | Some fmt ->
+                      let sep =
+                        match fmt with
+                        | `Csv -> fun () -> Fmt.pr ","
+                        | `Tsv -> fun () -> Fmt.pr "\t" in
+                      List.iter res ~f:(fun (seed, bh, ci) ->
+                          Fmt.pr "%S" seed ;
+                          sep () ;
+                          Fmt.pr "%s" bh ;
+                          sep () ;
+                          Fmt.pr "%s" ci ;
+                          Fmt.pr "\n%!") ) ;
+                  sayf
+                    More_fmt.(
+                      fun ppf () ->
+                        vertical_box ~indent:2 ppf (fun ppf ->
+                            pf ppf "Results:" ;
+                            match res with
+                            | [] -> pf ppf " EMPTY!"
+                            | more ->
+                                List.iter more ~f:(fun (seed, bh, ci) ->
+                                    cut ppf () ;
+                                    wrapping_box ~indent:2 ppf (fun ppf ->
+                                        pf ppf
+                                          "* Seed: %S@ → block: %S@ → \
+                                           chain-id: %S"
+                                          seed bh ci)))) ))
+      $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
+          ~name:"vanity-chain-id" ()
+      $ Arg.(value (flag (info ["first"] ~doc:"Stop at the first result.")))
+      $ Arg.(
+          value
+            (let cases = [("csv", `Csv); ("tsv", `Tsv)] in
+             opt
+               (some (enum cases))
+               None
+               (info ["machine-readable"]
+                  ~docv:(List.map cases ~f:fst |> String.concat ~sep:"|")
+                  ~doc:"Print the results on stdout in a parsing friendly way.")))
+      $ Arg.(
+          value
+            (opt string "flextesa"
+               (info ["seed"] ~doc:"The constant seed to use.")))
+      $ Arg.(
+          value
+            (opt int 100_000 (info ["attempts"] ~doc:"The number of attempts.")))
+      $ Arg.(required (pos 0 (some string) None (info [] ~docv:"PATTERN"))) )
+      (info "vanity-chain-id"
+         ~doc:
+           "Find a block hash to set as Genesis which makes-up a given \
+            chain-id suffix.")
+
+  let all ~pp_error () =
+    [ key_of_name_command (); netstat_ports ~pp_error ()
+    ; vanity_chain_id ~pp_error () ]
 end
 
 let () =

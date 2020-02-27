@@ -1,15 +1,132 @@
 open Internal_pervasives
 open Console
 
+(** A.k.a the [chain_id] *)
+module Genesis_block_hash = struct
+  let path state = Paths.root state // "genesis.json"
+
+  let to_json _state genesis =
+    Ezjsonm.dict [("genesis-block-hash", `String genesis)]
+
+  (** See implementation of {!Tezos_node}, this corresponds to the Chain-id
+      ["NetXKMbjQL2SBox"] *)
+  let default = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf"
+
+  module Choice = struct
+    type t = [`Random | `Force of string | `Default]
+
+    let pp ppf =
+      let open Fmt in
+      function
+      | `Random -> pf ppf "Random"
+      | `Default -> pf ppf "Default:%s" default
+      | `Force v -> pf ppf "Forced:%s" v
+
+    let pp_short ppf =
+      let open Fmt in
+      function
+      | `Random -> pf ppf "Random"
+      | `Default -> pf ppf "Default"
+      | `Force _ -> pf ppf "Forced"
+
+    let cmdliner_term () : t Cmdliner.Term.t =
+      let open Cmdliner in
+      let open Term in
+      ret
+        ( pure (function
+            | None | Some "default" -> `Ok `Default
+            | Some "random" -> `Ok `Random
+            | Some force -> `Ok (`Force force))
+        $ Arg.(
+            let doc =
+              Fmt.str
+                "Set the genesis block hash (from which the chain-id is \
+                 derived). The default (or the string %S) is `%s...`, %S \
+                 means pick-one-at-random. This option is ignored when the \
+                 `--keep-root` option allows the chain to resume (the \
+                 previously chosen genesis-hash will be still in effect)."
+                "default"
+                (String.sub default ~pos:0 ~len:8)
+                "random" in
+            value
+              (opt (some string) None
+                 (info ["genesis-block-hash"] ~docv:"BLOCK-HASH|random|default"
+                    ~doc))) )
+  end
+
+  let chain_id_of_hash hash =
+    let open Tezos_crypto in
+    Option.map (Block_hash.of_b58check_opt hash) ~f:(fun bh ->
+        bh |> Chain_id.of_block_hash |> Chain_id.to_b58check)
+
+  let process_choice state choice =
+    let json_file = path state in
+    let pp_hash_fancily ppf h =
+      let open More_fmt in
+      pf ppf "`%s` (corresponding chain-id: `%s`)" h
+        (chain_id_of_hash h |> Option.value ~default:"ERROR-WRONG-HASH") in
+    match Caml.Sys.file_exists json_file with
+    | true ->
+        System.read_file state json_file
+        >>= fun json_str ->
+        System_error.catch_exn
+          ~attach:[("json-content", `Verbatim [json_str])]
+          (fun () ->
+            match Ezjsonm.value_from_string json_str with
+            | `O [("genesis-block-hash", `String hash)] -> hash
+            | _ ->
+                Fmt.failwith "invalid json for genesis-block-hash: %S" json_str)
+        >>= fun hash ->
+        Console.sayf state
+          More_fmt.(
+            fun ppf () ->
+              wf ppf "Genesis-block-hash already set: %a%a" pp_hash_fancily
+                hash
+                (fun ppf -> function `Default -> pf ppf "."
+                  | choice ->
+                      pf ppf " (user choice “%a” is then ignored)."
+                        Choice.pp choice)
+                choice)
+        >>= fun () -> return hash
+    | false ->
+        let hash =
+          match choice with
+          | `Default -> default
+          | `Force v -> v
+          | `Random ->
+              let seed =
+                Fmt.str "%d:%f" (Random.int 1_000_000) (Unix.gettimeofday ())
+              in
+              let open Tezos_crypto in
+              let block_hash = Block_hash.hash_string [seed] in
+              Block_hash.to_b58check block_hash in
+        Console.sayf state
+          More_fmt.(
+            fun ppf () ->
+              wf ppf
+                "Genesis-block-hash not set, using: %a (from user choice: \
+                 “%a”)."
+                pp_hash_fancily hash Choice.pp_short choice)
+        >>= fun () ->
+        Running_processes.run_successful_cmdf state "mkdir -p %s"
+          Caml.Filename.(dirname json_file |> quote)
+        >>= fun _ ->
+        System.write_file state json_file
+          ~content:(to_json state hash |> Ezjsonm.value_to_string)
+        >>= fun () -> return hash
+end
+
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
-    ?external_peer_ports ~nodes_history_mode_edits ~with_baking
-    ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
-    accuser_exec test_kind () =
+    ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
+    ~with_baking ?generate_kiln_config node_exec client_exec baker_exec
+    endorser_exec accuser_exec test_kind () =
   ( if clear_root then
     Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
     >>= fun () -> Helpers.clear_root state
   else Console.say state EF.(wf "Keeping root: `%s`" (Paths.root state)) )
   >>= fun () ->
+  Genesis_block_hash.process_choice state genesis_block_choice
+  >>= fun genesis_block_hash ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
       ( [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
@@ -17,14 +134,17 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.")
   >>= fun () ->
+  let node_custom_network =
+    let base =
+      Tezos_node.Config_file.network ~genesis_hash:genesis_block_hash () in
+    `Json
+      (Ezjsonm.dict
+         ( base
+         @ Option.value_map ~default:[] hard_fork ~f:(fun hf ->
+               [Hard_fork.node_network_config hf]) )) in
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
-    ~nodes_history_mode_edits ~base_port state ~node_exec ~client_exec
-    ?node_custom_network:
-      (Option.map hard_fork ~f:(fun hf ->
-           `Json
-             (Ezjsonm.dict
-                ( Tezos_node.Config_file.default_network
-                @ [Hard_fork.node_network_config hf] ))))
+    ~do_activation:clear_root ~nodes_history_mode_edits ~base_port state
+    ~node_exec ~client_exec ~node_custom_network
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.")
   >>= fun () ->
@@ -180,6 +300,7 @@ let cmd () =
            endo
            accu
            hard_fork
+           genesis_block_choice
            generate_kiln_config
            nodes_history_mode_edits
            state
@@ -188,7 +309,7 @@ let cmd () =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
             ?hard_fork ~clear_root ~nodes_history_mode_edits ~with_baking
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
-            test_kind in
+            ~genesis_block_choice test_kind in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test))
     $ term_result ~usage:true
@@ -222,7 +343,10 @@ let cmd () =
         $ value
             (flag
                (info ["keep-root"] ~docs
-                  ~doc:"Do not erase the root path before starting.")))
+                  ~doc:
+                    "Do not erase the root path before starting (this also \
+                     makes the sandbox start-up bypass the \
+                     protocol-activation step).")))
     $ Arg.(
         value & opt int 5
         & info ["size"; "S"] ~docs ~doc:"Set the size of the network.")
@@ -256,6 +380,7 @@ let cmd () =
     $ Tezos_executable.cli_term base_state `Endorser "tezos"
     $ Tezos_executable.cli_term base_state `Accuser "tezos"
     $ Hard_fork.cmdliner_term ~docs base_state ()
+    $ Genesis_block_hash.Choice.cmdliner_term ()
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state () in
