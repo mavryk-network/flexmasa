@@ -365,6 +365,9 @@ module System_error = struct
       (fun () -> Lwt.bind (f x) @@ fun r -> return r)
       (fun exn -> fail_fatal ?attach (Exception exn))
 
+  let catch_exn ?attach f =
+    try return (f ()) with exn -> fail_fatal ?attach (Exception exn)
+
   let fail_fatalf ?attach fmt =
     Fmt.kstr (fun e -> fail_fatal ?attach (Message e)) fmt
 
