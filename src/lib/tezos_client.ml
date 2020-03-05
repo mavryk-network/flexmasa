@@ -72,7 +72,7 @@ let wait_for_node_bootstrap state client =
       ~id_prefix:(client.id ^ "-bootstrapped")
       state client ["bootstrapped"]
     >>= fun res -> return Poly.(res#status = Unix.WEXITED 0) in
-  let attempts = 12 in
+  let attempts = 20 in
   let rec loop nth =
     if nth >= attempts then failf "Bootstrapping failed %d times." nth
     else
@@ -80,7 +80,7 @@ let wait_for_node_bootstrap state client =
       >>= function
       | true -> return ()
       | false ->
-          System.sleep Float.(0.3 + (of_int nth * 0.5))
+          System.sleep Float.(0.3 + (of_int nth * 0.6))
           >>= fun () -> loop (nth + 1) in
   loop 1
 
