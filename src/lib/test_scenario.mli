@@ -145,7 +145,8 @@ module Queries : sig
       node-ID × level } values. *)
 
   val wait_for_all_levels_to_be :
-       ?chain:string
+       ?attempts_factor:float
+    -> ?chain:string
     -> < application_name: string
        ; console: Console.t
        ; paths: Paths.t

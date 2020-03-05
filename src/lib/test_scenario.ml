@@ -262,7 +262,8 @@ module Queries = struct
     in
     return sorted
 
-  let wait_for_all_levels_to_be ?chain state ~attempts ~seconds nodes level =
+  let wait_for_all_levels_to_be ?attempts_factor ?chain state ~attempts
+      ~seconds nodes level =
     let check_level =
       match level with
       | `Equal_to l -> ( = ) l
@@ -289,7 +290,7 @@ module Queries = struct
              (List.map nodes ~f:(fun n -> n.Tezos_node.id)))
           (Option.value_map chain ~default:"" ~f:(sprintf ", chain: %s")))
     >>= fun () ->
-    Helpers.wait_for state ~attempts ~seconds (fun _nth ->
+    Helpers.wait_for state ?attempts_factor ~attempts ~seconds (fun _nth ->
         all_levels state ~nodes ?chain
         >>= fun results ->
         let not_readys =
