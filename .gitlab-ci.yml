@@ -6,7 +6,7 @@ stages:
   - deploy
 
 variables:
-  setup_image: "${CI_REGISTRY_IMAGE}:image-ci-setup"
+  setup_image: "${CI_REGISTRY_IMAGE}:b7e4b1df-setup"
   # ### Setup of setup_image:
   # * since we cannot set variables depending on branches in Gitlab CI
   #   AND we don't want to build the `..-setup` image for every push
