@@ -90,8 +90,7 @@ module Json = struct
 
   let of_expr expr =
     match
-      Tezos_data_encoding.Data_encoding.Json.construct
-        Tz_protocol.Script_repr.encoding
+      Data_encoding.Json.construct Tz_protocol.Script_repr.encoding
         Tz_protocol.Script_repr.
           {code= lazy_expr expr; storage= lazy_expr (dummy_storage ())}
     with
@@ -156,10 +155,10 @@ let run ?output_error_codes state ~input_file ~output_file () =
               (Tz_protocol.Script_repr.deserialized_cost transformed)) ;
         cut ppf () ;
         wf ppf "Binary-Bytes: %d -> %d"
-          (Tezos_data_encoding.Data_encoding.Binary.length
-             Tz_protocol.Script_repr.expr_encoding expr)
-          (Tezos_data_encoding.Data_encoding.Binary.length
-             Tz_protocol.Script_repr.expr_encoding transformed))
+          (Data_encoding.Binary.length Tz_protocol.Script_repr.expr_encoding
+             expr)
+          (Data_encoding.Binary.length Tz_protocol.Script_repr.expr_encoding
+             transformed))
 
 let make ?(command_name = "michokit") () =
   let open Cmdliner in
