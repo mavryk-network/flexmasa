@@ -87,7 +87,8 @@ module Network : sig
          | Process_result.Error.t
          | Process_result.Error.t
          | `Too_many_protocols of Tezos_protocol.t list
-         | `Too_many_timestamp_delays of Tezos_protocol.t list ] )
+         | `Too_many_timestamp_delays of Tezos_protocol.t list
+         | `Waiting_for of string * [`Time_out] ] )
        Asynchronous_result.t
   (** Start the nodes, bootstrap the client, and (potentially)
       activate the protocol of a network.
@@ -111,7 +112,8 @@ val network_with_protocol :
                                 | Process_result.Error.t
                                 | `Too_many_protocols of Tezos_protocol.t list
                                 | `Too_many_timestamp_delays of
-                                  Tezos_protocol.t list ]
+                                  Tezos_protocol.t list
+                                | `Waiting_for of string * [`Time_out] ]
                                 as
                                 'errors)
                                Tezos_node.History_modes.edit

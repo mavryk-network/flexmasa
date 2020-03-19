@@ -129,7 +129,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun genesis_block_hash ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
-      ( [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
+      ( [node_exec; client_exec]
+      @ (if with_baking then [baker_exec; endorser_exec; accuser_exec] else [])
       @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables )
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.")
@@ -210,11 +211,6 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     List_sequential.iter accusers ~f:(fun acc ->
         Running_processes.start state (Tezos_daemon.process state acc)
         >>= fun {process= _; lwt= _} -> return ())
-    >>= fun () ->
-    (* We make sure all nodes got activation before trying to register
-       as delegate: *)
-    Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts:20
-      ~seconds:0.5 ~attempts_factor:0.8 nodes (`At_least 1)
     >>= fun () ->
     List_sequential.iter keys_and_daemons
       ~f:(fun (_acc, client, kc, daemons) ->
