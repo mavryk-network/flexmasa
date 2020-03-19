@@ -151,89 +151,6 @@ module Topology = struct
     make ~prefix:"" network
 end
 
-module Network = struct
-  type t = {nodes: Tezos_node.t list}
-
-  let make nodes = {nodes}
-
-  let start_up ?(do_activation = true) ?(check_ports = true) state ~client_exec
-      {nodes} =
-    ( if check_ports then
-      Helpers.Netstat.used_listening_ports state
-      >>= fun all_used ->
-      let taken port = List.find all_used ~f:(fun (p, _) -> Int.equal p port) in
-      List_sequential.iter nodes
-        ~f:(fun {Tezos_node.id; rpc_port; p2p_port; _} ->
-          let fail s (p, `Tcp (_, row)) =
-            System_error.fail_fatalf
-              "Node: %S's %s port %d already in use {%s}" id s p
-              (String.concat ~sep:"|" row) in
-          let time_wait (_, `Tcp (_, row)) =
-            Poly.equal (List.last row) (Some "TIME_WAIT") in
-          match (taken rpc_port, taken p2p_port) with
-          | None, None -> return ()
-          | Some p, _ -> if time_wait p then return () else fail "RPC" p
-          | _, Some p -> if time_wait p then return () else fail "P2P" p)
-    else return () )
-    >>= fun () ->
-    let protocols =
-      List.map ~f:Tezos_node.protocol nodes
-      |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
-    Inconsistency_error.should_be_one_protocol protocols
-    >>= fun protocol ->
-    Inconsistency_error.should_be_one_timestamp_delay protocols
-    >>= fun () ->
-    Tezos_protocol.ensure state protocol
-    >>= fun () ->
-    List.fold nodes ~init:(return ()) ~f:(fun prev_m node ->
-        prev_m
-        >>= fun () ->
-        Running_processes.start state (Tezos_node.process state node)
-        >>= fun _ -> return ())
-    >>= fun () ->
-    let node_0 = List.hd_exn nodes in
-    let client = Tezos_client.of_node node_0 ~exec:client_exec in
-    Dbg.e EF.(af "Trying to bootstrap client") ;
-    Tezos_client.wait_for_node_bootstrap state client
-    >>= fun () ->
-    Tezos_client.rpc state ~client `Get ~path:"/chains/main/blocks/head/header"
-    >>= fun json ->
-    let do_activation =
-      (* If the level is 0 we still do the activation. *)
-      do_activation
-      ||
-      try Int.equal Jqo.(field ~k:"level" json |> get_int) 0 with _ -> false
-    in
-    ( if do_activation then Tezos_client.activate_protocol state client protocol
-    else return () )
-    >>= fun () ->
-    Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
-    List_sequential.iter nodes ~f:(fun node ->
-        let client = Tezos_client.of_node node ~exec:client_exec in
-        Tezos_client.wait_for_node_bootstrap state client)
-end
-
-let network_with_protocol ?do_activation ?node_custom_network
-    ?external_peer_ports ?base_port ?(size = 5) ?protocol
-    ?(nodes_history_mode_edits = return) state ~node_exec ~client_exec =
-  let pre_edit_nodes =
-    Topology.build ?base_port ?external_peer_ports
-      ~make_node:(fun id ~expected_connections ~rpc_port ~p2p_port peers ->
-        Tezos_node.make ?protocol ~exec:node_exec id ~expected_connections
-          ?custom_network:node_custom_network ~rpc_port ~p2p_port peers)
-      (Topology.mesh "N" size) in
-  nodes_history_mode_edits pre_edit_nodes
-  >>= fun nodes ->
-  let protocols =
-    List.map ~f:Tezos_node.protocol nodes
-    |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
-  Inconsistency_error.should_be_one_protocol protocols
-  >>= fun protocol ->
-  Inconsistency_error.should_be_one_timestamp_delay protocols
-  >>= fun () ->
-  Network.start_up ?do_activation state ~client_exec (Network.make nodes)
-  >>= fun () -> return (nodes, protocol)
-
 module Queries = struct
   let all_levels ?(chain = "main") state ~nodes =
     List.fold nodes ~init:(return [])
@@ -301,3 +218,90 @@ module Queries = struct
         | [] -> return (`Done ())
         | ids -> return (`Not_done (msg ids)))
 end
+
+module Network = struct
+  type t = {nodes: Tezos_node.t list}
+
+  let make nodes = {nodes}
+
+  let start_up ?(do_activation = true) ?(check_ports = true) state ~client_exec
+      {nodes} =
+    ( if check_ports then
+      Helpers.Netstat.used_listening_ports state
+      >>= fun all_used ->
+      let taken port = List.find all_used ~f:(fun (p, _) -> Int.equal p port) in
+      List_sequential.iter nodes
+        ~f:(fun {Tezos_node.id; rpc_port; p2p_port; _} ->
+          let fail s (p, `Tcp (_, row)) =
+            System_error.fail_fatalf
+              "Node: %S's %s port %d already in use {%s}" id s p
+              (String.concat ~sep:"|" row) in
+          let time_wait (_, `Tcp (_, row)) =
+            Poly.equal (List.last row) (Some "TIME_WAIT") in
+          match (taken rpc_port, taken p2p_port) with
+          | None, None -> return ()
+          | Some p, _ -> if time_wait p then return () else fail "RPC" p
+          | _, Some p -> if time_wait p then return () else fail "P2P" p)
+    else return () )
+    >>= fun () ->
+    let protocols =
+      List.map ~f:Tezos_node.protocol nodes
+      |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
+    Inconsistency_error.should_be_one_protocol protocols
+    >>= fun protocol ->
+    Inconsistency_error.should_be_one_timestamp_delay protocols
+    >>= fun () ->
+    Tezos_protocol.ensure state protocol
+    >>= fun () ->
+    List.fold nodes ~init:(return ()) ~f:(fun prev_m node ->
+        prev_m
+        >>= fun () ->
+        Running_processes.start state (Tezos_node.process state node)
+        >>= fun _ -> return ())
+    >>= fun () ->
+    let node_0 = List.hd_exn nodes in
+    let client = Tezos_client.of_node node_0 ~exec:client_exec in
+    Dbg.e EF.(af "Trying to bootstrap client") ;
+    Tezos_client.wait_for_node_bootstrap state client
+    >>= fun () ->
+    Tezos_client.rpc state ~client `Get ~path:"/chains/main/blocks/head/header"
+    >>= fun json ->
+    let do_activation =
+      (* If the level is 0 we still do the activation. *)
+      do_activation
+      ||
+      try Int.equal Jqo.(field ~k:"level" json |> get_int) 0 with _ -> false
+    in
+    ( if do_activation then Tezos_client.activate_protocol state client protocol
+    else return () )
+    >>= fun () ->
+    Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
+    List_sequential.iter nodes ~f:(fun node ->
+        let client = Tezos_client.of_node node ~exec:client_exec in
+        Tezos_client.wait_for_node_bootstrap state client)
+    >>= fun () ->
+    (* We make sure all nodes got activation before trying to continue: *)
+    Queries.wait_for_all_levels_to_be state ~attempts:20 ~seconds:0.5
+      ~attempts_factor:0.8 nodes (`At_least 1)
+end
+
+let network_with_protocol ?do_activation ?node_custom_network
+    ?external_peer_ports ?base_port ?(size = 5) ?protocol
+    ?(nodes_history_mode_edits = return) state ~node_exec ~client_exec =
+  let pre_edit_nodes =
+    Topology.build ?base_port ?external_peer_ports
+      ~make_node:(fun id ~expected_connections ~rpc_port ~p2p_port peers ->
+        Tezos_node.make ?protocol ~exec:node_exec id ~expected_connections
+          ?custom_network:node_custom_network ~rpc_port ~p2p_port peers)
+      (Topology.mesh "N" size) in
+  nodes_history_mode_edits pre_edit_nodes
+  >>= fun nodes ->
+  let protocols =
+    List.map ~f:Tezos_node.protocol nodes
+    |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
+  Inconsistency_error.should_be_one_protocol protocols
+  >>= fun protocol ->
+  Inconsistency_error.should_be_one_timestamp_delay protocols
+  >>= fun () ->
+  Network.start_up ?do_activation state ~client_exec (Network.make nodes)
+  >>= fun () -> return (nodes, protocol)

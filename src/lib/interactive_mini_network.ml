@@ -211,11 +211,6 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         Running_processes.start state (Tezos_daemon.process state acc)
         >>= fun {process= _; lwt= _} -> return ())
     >>= fun () ->
-    (* We make sure all nodes got activation before trying to register
-       as delegate: *)
-    Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts:20
-      ~seconds:0.5 ~attempts_factor:0.8 nodes (`At_least 1)
-    >>= fun () ->
     List_sequential.iter keys_and_daemons
       ~f:(fun (_acc, client, kc, daemons) ->
         Tezos_client.wait_for_node_bootstrap state client
