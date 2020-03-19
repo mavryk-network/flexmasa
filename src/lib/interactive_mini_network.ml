@@ -129,7 +129,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun genesis_block_hash ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
-      ( [node_exec; client_exec; baker_exec; endorser_exec; accuser_exec]
+      ( [node_exec; client_exec]
+      @ (if with_baking then [baker_exec; endorser_exec; accuser_exec] else [])
       @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables )
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.")
