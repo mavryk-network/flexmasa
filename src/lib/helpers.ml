@@ -34,8 +34,7 @@ let wait_for ?(attempts_factor = 0.) state ~attempts ~seconds f =
     >>= function
     | `Done x -> return x
     | `Not_done msg when nth < attempts ->
-        let sleep_time =
-          Float.((attempts_factor * of_int attempts) + seconds) in
+        let sleep_time = Float.((attempts_factor * of_int nth) + seconds) in
         say state
           EF.(
             wf "%s: attempt %d/%d, sleeping %.02f seconds" msg nth attempts
