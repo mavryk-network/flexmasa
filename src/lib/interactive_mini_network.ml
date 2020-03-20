@@ -15,14 +15,16 @@ module Genesis_block_hash = struct
   module Choice = struct
     type t = [`Random | `Force of string | `Default]
 
-    let pp ppf =
+    let pp : t Fmt.t =
+     fun ppf ->
       let open Fmt in
       function
       | `Random -> pf ppf "Random"
       | `Default -> pf ppf "Default:%s" default
       | `Force v -> pf ppf "Forced:%s" v
 
-    let pp_short ppf =
+    let pp_short : t Fmt.t =
+     fun ppf ->
       let open Fmt in
       function
       | `Random -> pf ppf "Random"

@@ -18,19 +18,19 @@ let make with_timestamp color =
   let reset = "\027[m" in
   if color then (
     let color_of_tag = function
-      | "prompt" -> Some bold
-      | "shout" -> Some red
+      | Caml.Format.String_tag "prompt" -> Some bold
+      | Caml.Format.String_tag "shout" -> Some red
       | _ -> None in
     Caml.Format.(
-      pp_set_formatter_tag_functions formatter
-        { mark_open_tag= (fun _ -> "")
-        ; mark_close_tag= (fun _ -> "")
-        ; print_open_tag=
+      pp_set_formatter_stag_functions formatter
+        { mark_open_stag= (fun _ -> "")
+        ; mark_close_stag= (fun _ -> "")
+        ; print_open_stag=
             (fun tag ->
               match color_of_tag tag with
               | Some c -> fprintf formatter "%s" c
               | None -> ())
-        ; print_close_tag=
+        ; print_close_stag=
             (fun tag ->
               if Poly.(color_of_tag tag <> None) then
                 fprintf formatter "%s" reset) } ;
@@ -81,9 +81,9 @@ let sayf (o : _ Base_state.t) (fmt : Caml.Format.formatter -> unit -> unit) :
   let ppf = o#console.formatter in
   Caml.Format.(
     pp_open_hvbox ppf 2 ;
-    pp_open_tag ppf "prompt" ;
+    pp_open_stag ppf (String_tag "prompt") ;
     fprintf ppf "%s%s:" o#application_name date ;
-    pp_close_tag ppf () ;
+    pp_close_stag ppf () ;
     pp_print_break ppf 2 0 ;
     fmt ppf () ;
     pp_print_newline ppf () ;

@@ -27,6 +27,13 @@ Then:
 The above builds the `flextesa` and `michokit` libraries, the `flextesa` command
 line application (see `./flextesa --help`) and the tests (in `src/test`).
 
+One can easily create an opam-switch which should just work with the above:
+
+    opam switch import --switch <name> src/tezos-master.opam-switch
+
+(where `<name>` is preferably a fresh name).
+
+
 MacOSX Users
 ------------
 
