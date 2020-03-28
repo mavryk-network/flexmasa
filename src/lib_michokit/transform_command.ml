@@ -65,7 +65,7 @@ let run ?output_error_codes state ~input_file ~output_file () =
           (Data_encoding.Binary.length Tz_protocol.Script_repr.expr_encoding
              transformed))
 
-let make ?(command_name = "michokit") () =
+let make ?(command_name = "transform-michelson") () =
   let open Cmdliner in
   let open Term in
   let pp_error ppf e =
@@ -89,5 +89,5 @@ let make ?(command_name = "michokit") () =
           (opt (some string) None
              (info ["output-error-codes"]
                 ~doc:"Output the matching of error values to integers.")))
-    $ Test_command_line.cli_state ~name:"michokit" () )
-    (info command_name ~doc:"CLI for Flextesa_extras.Michokit")
+    $ Test_command_line.cli_state ~name:"michokit-transform" () )
+    (info command_name ~doc:"Perform transformations on Michelson code.")
