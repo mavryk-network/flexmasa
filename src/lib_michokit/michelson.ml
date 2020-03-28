@@ -97,3 +97,25 @@ module Json = struct
     | `O [("code", o); ("storage", _)] -> return (o : Ezjsonm.value)
     | _other -> System_error.fail_fatalf "Error with expr->json: this is a bug"
 end
+
+module File_io = struct
+  let read_file state input_file =
+    match Caml.Filename.extension input_file with
+    | ".tz" ->
+        System.read_file state input_file
+        >>= fun content -> Concrete.parse content
+    | other ->
+        System_error.fail_fatalf "Cannot parse file with extension %S" other
+
+  let write_file state ~path expr =
+    match Caml.Filename.extension path with
+    | ".tz" -> System.write_file state path ~content:(Concrete.to_string expr)
+    | ".json" ->
+        Json.of_expr expr
+        >>= fun json ->
+        System.write_file state path
+          ~content:(Ezjsonm.value_to_string ~minify:false json)
+    | other ->
+        System_error.fail_fatalf "Don't know what to do with extension %S"
+          other
+end

@@ -4,26 +4,10 @@ module IFmt = More_fmt
 
 let run ?output_error_codes state ~input_file ~output_file () =
   let open Michelson in
-  ( match Caml.Filename.extension input_file with
-  | ".tz" ->
-      System.read_file state input_file
-      >>= fun content -> Concrete.parse content
-  | other ->
-      System_error.fail_fatalf "Cannot parse file with extension %S" other )
+  File_io.read_file state input_file
   >>= fun expr ->
   let transformed, error_codes = Transform.strip_errors_and_annotations expr in
-  ( match Caml.Filename.extension output_file with
-  | ".tz" ->
-      System.write_file state output_file
-        ~content:(Concrete.to_string transformed)
-  | ".json" ->
-      Json.of_expr transformed
-      >>= fun json ->
-      System.write_file state output_file
-        ~content:(Ezjsonm.value_to_string ~minify:false json)
-  | other ->
-      System_error.fail_fatalf "Don't know what to do with extension %S" other
-  )
+  File_io.write_file state ~path:output_file transformed
   >>= fun () ->
   Asynchronous_result.map_option output_error_codes ~f:(fun path ->
       List.fold error_codes ~init:(return [])
