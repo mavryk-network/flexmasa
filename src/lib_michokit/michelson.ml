@@ -119,3 +119,54 @@ module File_io = struct
         System_error.fail_fatalf "Don't know what to do with extension %S"
           other
 end
+
+module Typed_ir = struct
+  let of_tz_error_monad pp_error f =
+    let open Lwt in
+    f ()
+    >>= function
+    | Ok o -> Asynchronous_result.return o
+    | Error el ->
+        System_error.fail_fatalf "Tz-Error: %a" Fmt.(list ~sep:sp pp_error) el
+
+  let pp_tz_error = Tezos_error_monad.Error_monad.pp
+
+  let pp_protocol_error =
+    Tezos_protocol_environment_alpha.Environment.Error_monad.pp
+
+  let make_fresh_context () =
+    of_tz_error_monad pp_tz_error (fun () ->
+        Tezos_client_alpha.Mockup.mem_init
+          Tezos_client_alpha.Mockup.default_mockup_parameters)
+    >>= fun {context; _} ->
+    of_tz_error_monad pp_protocol_error (fun () ->
+        Tezos_raw_protocol_alpha.Alpha_context.prepare context ~level:1l
+          ~predecessor_timestamp:
+            Tezos_protocol_environment_alpha.Environment.Time.(of_seconds 1L)
+          ~timestamp:
+            Tezos_protocol_environment_alpha.Environment.Time.(of_seconds 2L)
+          ~fitness:(* Tezos_raw_protocol_alpha.Alpha_context.Fitness. *) [])
+
+  let parse_type node =
+    make_fresh_context ()
+    >>= fun context ->
+    match
+      Tz_protocol.Script_ir_translator.parse_ty context ~legacy:false
+        ~allow_big_map:true ~allow_operation:true ~allow_contract:true node
+    with
+    | Ok (ex_ty, _context) -> return ex_ty
+    | Error el ->
+        System_error.fail_fatalf "Error parsing the type: %a\n%!"
+          Fmt.(
+            list ~sep:sp
+              Tezos_protocol_environment_alpha.Environment.Error_monad.pp)
+          el
+
+  let unparse_type = function
+    | Tezos_raw_protocol_alpha.Script_ir_translator.Ex_ty ty ->
+        make_fresh_context ()
+        >>= fun context ->
+        of_tz_error_monad pp_protocol_error (fun () ->
+            Tz_protocol.Script_ir_translator.unparse_ty context ty)
+        >>= fun (node, _context) -> return node
+end
