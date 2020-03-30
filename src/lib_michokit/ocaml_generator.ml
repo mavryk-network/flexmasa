@@ -322,22 +322,34 @@ module Ocaml = struct
       (Fmt.str "(%s, %s) %s.t" vk ve what, concat [mk; me; m]) in
     let rec go ~name simple =
       let continue = go in
-      let single s = (v s, m s) in
+      let single ?type_def s = (v s, m ?type_def s) in
       match simple with
-      | Unit -> single "M_unit"
-      | Int -> single "M_int"
-      | Nat -> single "N_nat"
-      | Signature -> single "M_signature"
-      | String -> single "M_string"
-      | Bytes -> single "M_bytes"
-      | Mutez -> single "M_mutez"
-      | Key_hash -> single "M_key_hash"
-      | Key -> single "M_key"
-      | Timestamp -> single "M_timestamp"
-      | Address -> single "M_address"
-      | Bool -> single "M_bool"
-      | Chain_id -> single "M_chain_id"
-      | Operation -> single "M_operation"
+      | Unit -> single "M_unit" ~type_def:"Unit"
+      | Int -> single "M_int" ~type_def:"Int of int"
+      | Nat -> single "N_nat" ~type_def:"Int of int"
+      | Signature ->
+          single "M_signature"
+            ~type_def:"Raw_b58 of string | Raw_bytes of string"
+      | String -> single "M_string" ~type_def:"Raw of string"
+      | Bytes -> single "M_bytes" ~type_def:"Raw of string"
+      | Mutez -> single "M_mutez" ~type_def:"Int of int"
+      | Key_hash ->
+          single "M_key_hash"
+            ~type_def:"Raw_b58 of string | Raw_bytes of string"
+      | Key ->
+          single "M_key" ~type_def:"Raw_b58 of string | Raw_bytes of string"
+      | Timestamp ->
+          single "M_timestamp"
+            ~type_def:"Raw_string of string | Raw_int of int"
+      | Address ->
+          single "M_address"
+            ~type_def:"Raw_b58 of string | Raw_bytes of string"
+      | Bool -> single "M_bool" ~type_def:"bool"
+      | Chain_id ->
+          single "M_chain_id"
+            ~type_def:"Raw_b58 of string | Raw_bytes of string"
+      | Operation ->
+          single "M_operation" ~type_def:" | (* impossible to create *) "
       | Record {fields; type_annotations= _} ->
           record_or_variant `Record ~fields ~name
             ~typedef_field:(fun f v ->
