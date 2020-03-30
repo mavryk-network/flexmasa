@@ -23,7 +23,7 @@ let rec analyze_type ty =
   | Ex_ty _ty -> dbg "()"
 
 module Simpler_michelson_type = struct
-  open Tezos_raw_protocol_alpha.Script_ir_translator
+  (* open Tezos_raw_protocol_alpha.Script_ir_translator *)
   open Tezos_raw_protocol_alpha.Script_typed_ir
 
   module Tree = struct
@@ -35,6 +35,10 @@ module Simpler_michelson_type = struct
     let rec iter ~f = function
       | Leaf x -> f x
       | Node (l, r) -> iter ~f l ; iter ~f r
+
+    let rec to_list = function
+      | Leaf x -> [x]
+      | Node (l, r) -> to_list l @ to_list r
   end
 
   type t =
@@ -61,7 +65,6 @@ module Simpler_michelson_type = struct
     | Operation
     | Contract of t
     | Option of t
-    | Unknown of ex_ty
 
   and field = {tag: string option; content: t}
 
@@ -105,7 +108,6 @@ module Simpler_michelson_type = struct
     | Operation -> string ppf "Operation"
     | Contract t -> pf ppf "Contract(%a)" pp t
     | Option t -> pf ppf "Option(%a)" pp t
-    | Unknown _ -> pf ppf "UNKNOWN"
 
   let rec of_type : type a. a ty -> t =
    fun ty ->
@@ -213,26 +215,160 @@ module Simpler_michelson_type = struct
     Record {fields; type_annotations}
 end
 
+module Ocaml = struct
+  type t =
+    | Empty
+    | Comment of string
+    | Module of {name: string; structure: string}
+    | Concat of t list
+
+  let new_module name structure = Module {name; structure}
+  let concat l = Concat l
+  let append l x = Concat (l @ [x])
+  let comment c = Comment c
+
+  let rec to_string = function
+    | Empty -> ""
+    | Comment c -> Fmt.str "  (* %s *)  " c
+    | Module {name; structure} ->
+        Fmt.str "module %s = struct %s end" name structure
+    | Concat l -> String.concat ~sep:" \n " (List.map ~f:to_string l)
+
+  let clean_up o =
+    let modules = ref [] in
+    let rec go = function
+      | Module {name; _} when List.mem !modules name ~equal:String.equal ->
+          Comment (Fmt.str "Removed %s (duplicate)" name)
+      | Module {name; _} as not_yet ->
+          modules := name :: !modules ;
+          not_yet
+      | Empty | Concat [] -> Empty
+      | Comment _ as c -> c
+      | Concat t -> Concat (List.map ~f:go t) in
+    go o
+
+  let of_simple_type ~intro_blob ~name simple =
+    let v s = Fmt.str "%s.t" s in
+    let m ?layout ?(type_def = "unit") ?(type_parameter = "") s =
+      Fmt.kstr (new_module s) "type %s t = %s %s " type_parameter type_def
+        (Option.value_map ~default:"(* no layout here *)" layout ~f:(fun s ->
+             Fmt.str "let layout () : Layout.t = %s" s)) in
+    let open Simpler_michelson_type in
+    let record_or_variant ~fields ~name ~type_def ~typedef_field ~continue =
+      let modname = String.capitalize name in
+      let compiled_fields =
+        Tree.to_list fields
+        |> List.mapi ~f:(fun idx {tag; content} ->
+               let name =
+                 Option.value_map tag ~f:String.capitalize
+                   ~default:(Fmt.str "%s_%d" modname idx) in
+               (String.uncapitalize name, continue ~name content)) in
+      let type_def =
+        type_def
+          ( List.map compiled_fields ~f:(fun (field_name, (value, _)) ->
+                typedef_field field_name value)
+          |> String.concat ~sep:"  " ) in
+      let deps = List.map compiled_fields ~f:(fun (_, (_, m)) -> m) in
+      let layout =
+        let open Tree in
+        let rec make = function
+          | Leaf _ -> "`V"
+          | Node (l, r) -> Fmt.str "(`P (%s, %s))" (make l) (make r) in
+        make fields in
+      let v = v modname in
+      let m = m modname ~type_def ~layout in
+      (v, append deps m) in
+    let one_param ~name ~continue ~implementation what elt_t =
+      let name = Fmt.str "%s_element" name in
+      let velt, melt = continue ~name elt_t in
+      let type_def =
+        match implementation with `List -> "'a list" | `Option -> "'a option"
+      in
+      let m = m ~type_def ~type_parameter:"'a" what in
+      (Fmt.str "%s %s.t" velt what, concat [melt; m]) in
+    let map_or_big_map ~key_t ~elt_t ~name ~continue what =
+      let kname = Fmt.str "%s_key" name in
+      let ename = Fmt.str "%s_element" name in
+      let vk, mk = continue ~name:kname key_t in
+      let ve, me = continue ~name:ename elt_t in
+      let m = m ~type_def:"('k * 'v) list" ~type_parameter:"('k, 'v)" what in
+      (Fmt.str "(%s, %s) %s.t" vk ve what, concat [mk; me; m]) in
+    let rec go ~name simple =
+      let continue = go in
+      let single s = (v s, m s) in
+      match simple with
+      | Unit -> single "Unit"
+      | Int -> single "Int"
+      | Nat -> single "Nat"
+      | Signature -> single "Signature"
+      | String -> single "String"
+      | Bytes -> single "Bytes"
+      | Mutez -> single "Mutez"
+      | Key_hash -> single "Key_hash"
+      | Key -> single "Key"
+      | Timestamp -> single "Timestamp"
+      | Address -> single "Address"
+      | Bool -> single "Bool"
+      | Chain_id -> single "Chain_id"
+      | Operation -> single "Operation"
+      | Record {fields; type_annotations= _} ->
+          record_or_variant ~fields ~name
+            ~typedef_field:(fun f v ->
+              Fmt.str "%s : %s;" (String.uncapitalize f) v)
+            ~continue ~type_def:(Fmt.str "{ %s }")
+      | Sum {variants; type_annotations= _} ->
+          record_or_variant ~fields:variants ~name
+            ~typedef_field:(fun f v ->
+              Fmt.str "| %s of %s" (String.capitalize f) v)
+            ~continue ~type_def:(Fmt.str " %s ")
+      | Set elt_t ->
+          one_param ~implementation:`List ~name ~continue "Set" elt_t
+      | List elt_t ->
+          one_param ~implementation:`List ~name ~continue "List" elt_t
+      | Option elt_t ->
+          one_param ~implementation:`Option ~name ~continue "Option" elt_t
+      | Contract elt_t ->
+          one_param ~implementation:`Option ~name ~continue "Contract" elt_t
+      | Map (key_t, elt_t) ->
+          map_or_big_map ~key_t ~elt_t ~name ~continue "Map"
+      | Big_map (key_t, elt_t) ->
+          map_or_big_map ~key_t ~elt_t ~name ~continue "Big_map"
+      | Lambda (_, _) -> single "Lambdas_to_do" in
+    let _, s = go ~name simple in
+    concat [comment intro_blob; m "Layout" ~type_def:"[ `P of t * t | `V ]"; s]
+end
+
 let make_module expr =
   let open Michelson.Tz_protocol.Environment.Micheline in
   let module Prim = Michelson.Tz_protocol.Michelson_v1_primitives in
-  match root expr with
-  | Seq (_, Prim (_, Prim.K_parameter, [the_type], _ann) :: _) ->
-      Michelson.Typed_ir.parse_type the_type
-      >>= fun ex_ty ->
-      let simple =
-        match ex_ty with Ex_ty ty -> Simpler_michelson_type.of_type ty in
-      Michelson.Typed_ir.unparse_type ex_ty
-      >>= fun back_to_node ->
-      dbg "ocaml:@,%a" Simpler_michelson_type.pp simple ;
-      (* Dbg.f (fun f -> f "Found the type: %a" Dbg.pp_any the_type) ; *)
-      let first_comment =
-        Fmt.str "(* Generated code for\n%a\n*)\n"
-          Tezos_client_alpha.Michelson_v1_printer.print_expr_unwrapped
-          (strip_locations back_to_node) in
-      (* Dbg.f (fun f -> f "Built the type: %a" Dbg.pp_any ty) ; *)
-      return first_comment
-  | _ -> Fmt.failwith "not here"
+  let handle_type name mich =
+    Michelson.Typed_ir.parse_type mich
+    >>= fun ex_ty ->
+    let simple =
+      match ex_ty with Ex_ty ty -> Simpler_michelson_type.of_type ty in
+    Michelson.Typed_ir.unparse_type ex_ty
+    >>= fun back_to_node ->
+    dbg "%s:@,%a" name Simpler_michelson_type.pp simple ;
+    (* Dbg.f (fun f -> f "Found the type: %a" Dbg.pp_any the_type) ; *)
+    let first_comment =
+      Fmt.str "(* Generated code for\n%a\n*)\n"
+        Tezos_client_alpha.Michelson_v1_printer.print_expr_unwrapped
+        (strip_locations back_to_node) in
+    (* Dbg.f (fun f -> f "Built the type: %a" Dbg.pp_any ty) ; *)
+    return (Ocaml.of_simple_type ~intro_blob:first_comment ~name simple) in
+  let rec find_all acc = function
+    | Seq (loc, Prim (_, Prim.K_parameter, [the_type], _ann) :: more) ->
+        handle_type "Parameter" the_type
+        >>= fun found -> find_all (found :: acc) (Seq (loc, more))
+    | Seq (loc, Prim (_, Prim.K_storage, [the_type], _ann) :: more) ->
+        handle_type "Storage" the_type
+        >>= fun found -> find_all (found :: acc) (Seq (loc, more))
+    | maybe_a_type ->
+        Asynchronous_result.bind_on_result
+          (handle_type "Toplevel" maybe_a_type) ~f:(function
+          | Ok o -> return (o :: acc)
+          | Error _ -> return acc) in
+  find_all [] (root expr) >>= fun l -> return (Ocaml.concat l)
 
 module Command = struct
   let run state ~input_file ~output_file () =
@@ -240,7 +376,9 @@ module Command = struct
     File_io.read_file state input_file
     >>= fun expr ->
     make_module expr
-    >>= fun ocaml -> System.write_file state output_file ~content:ocaml
+    >>= fun ocaml ->
+    let content = Ocaml.(clean_up ocaml |> to_string) in
+    System.write_file state output_file ~content
 
   let make ?(command_name = "ocaml-of-michelson") () =
     let open Cmdliner in
