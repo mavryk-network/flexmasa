@@ -219,7 +219,7 @@ module Ocaml = struct
   type t =
     | Empty
     | Comment of string
-    | Module of {name: string; structure: string}
+    | Module of {name: string; structure: string list}
     | Concat of t list
 
   let new_module name structure = Module {name; structure}
@@ -231,7 +231,8 @@ module Ocaml = struct
     | Empty -> ""
     | Comment c -> Fmt.str "  (* %s *)  " c
     | Module {name; structure} ->
-        Fmt.str "module %s = struct %s end" name structure
+        Fmt.str "module %s = struct %s end" name
+          (String.concat ~sep:"\n" structure)
     | Concat l -> String.concat ~sep:" \n " (List.map ~f:to_string l)
 
   let clean_up o =
@@ -247,14 +248,40 @@ module Ocaml = struct
       | Concat t -> Concat (List.map ~f:go t) in
     go o
 
-  let of_simple_type ~intro_blob ~name simple =
+  module Deriving_option = struct
+    type t = {all: string list; records: string list; variants: string list}
+
+    let make ?(records = []) ?(variants = []) all = {all; records; variants}
+
+    let render t what =
+      let l =
+        match what with
+        | `Any -> t.all
+        | `Record -> t.all @ t.records
+        | `Variant -> t.all @ t.variants in
+      match l with
+      | [] -> " (* no deriving *) "
+      | more -> Fmt.(str "[@@@@deriving %a ]" (list ~sep:comma string)) more
+
+    let default = make ["show"; "eq"] ~records:["make"]
+  end
+
+  type options = {deriving: Deriving_option.t}
+
+  let default_options = {deriving= Deriving_option.default}
+
+  let of_simple_type ?(options = default_options) ~intro_blob ~name simple =
     let v s = Fmt.str "%s.t" s in
-    let m ?layout ?(type_def = "unit") ?(type_parameter = "") s =
-      Fmt.kstr (new_module s) "type %s t = %s %s " type_parameter type_def
-        (Option.value_map ~default:"(* no layout here *)" layout ~f:(fun s ->
-             Fmt.str "let layout () : Layout.t = %s" s)) in
+    let m ?(kind = `Any) ?layout ?(type_def = "unit") ?(type_parameter = "") s
+        =
+      new_module s
+        [ Fmt.str "type %s t = %s %s" type_parameter type_def
+            (Deriving_option.render options.deriving kind)
+        ; Option.value_map ~default:"(* no layout here *)" layout ~f:(fun s ->
+              Fmt.str "let layout () : Pairing_layout.t = %s" s) ] in
     let open Simpler_michelson_type in
-    let record_or_variant ~fields ~name ~type_def ~typedef_field ~continue =
+    let record_or_variant kind ~fields ~name ~type_def ~typedef_field ~continue
+        =
       let modname = String.capitalize name in
       let compiled_fields =
         Tree.to_list fields
@@ -276,7 +303,7 @@ module Ocaml = struct
           | Node (l, r) -> Fmt.str "(`P (%s, %s))" (make l) (make r) in
         make fields in
       let v = v modname in
-      let m = m modname ~type_def ~layout in
+      let m = m modname ~kind ~type_def ~layout in
       (v, append deps m) in
     let one_param ~name ~continue ~implementation what elt_t =
       let name = Fmt.str "%s_element" name in
@@ -297,45 +324,48 @@ module Ocaml = struct
       let continue = go in
       let single s = (v s, m s) in
       match simple with
-      | Unit -> single "Unit"
-      | Int -> single "Int"
-      | Nat -> single "Nat"
-      | Signature -> single "Signature"
-      | String -> single "String"
-      | Bytes -> single "Bytes"
-      | Mutez -> single "Mutez"
-      | Key_hash -> single "Key_hash"
-      | Key -> single "Key"
-      | Timestamp -> single "Timestamp"
-      | Address -> single "Address"
-      | Bool -> single "Bool"
-      | Chain_id -> single "Chain_id"
-      | Operation -> single "Operation"
+      | Unit -> single "M_unit"
+      | Int -> single "M_int"
+      | Nat -> single "N_nat"
+      | Signature -> single "M_signature"
+      | String -> single "M_string"
+      | Bytes -> single "M_bytes"
+      | Mutez -> single "M_mutez"
+      | Key_hash -> single "M_key_hash"
+      | Key -> single "M_key"
+      | Timestamp -> single "M_timestamp"
+      | Address -> single "M_address"
+      | Bool -> single "M_bool"
+      | Chain_id -> single "M_chain_id"
+      | Operation -> single "M_operation"
       | Record {fields; type_annotations= _} ->
-          record_or_variant ~fields ~name
+          record_or_variant `Record ~fields ~name
             ~typedef_field:(fun f v ->
               Fmt.str "%s : %s;" (String.uncapitalize f) v)
             ~continue ~type_def:(Fmt.str "{ %s }")
       | Sum {variants; type_annotations= _} ->
-          record_or_variant ~fields:variants ~name
+          record_or_variant `Variant ~fields:variants ~name
             ~typedef_field:(fun f v ->
               Fmt.str "| %s of %s" (String.capitalize f) v)
             ~continue ~type_def:(Fmt.str " %s ")
       | Set elt_t ->
-          one_param ~implementation:`List ~name ~continue "Set" elt_t
+          one_param ~implementation:`List ~name ~continue "M_set" elt_t
       | List elt_t ->
-          one_param ~implementation:`List ~name ~continue "List" elt_t
+          one_param ~implementation:`List ~name ~continue "M_list" elt_t
       | Option elt_t ->
-          one_param ~implementation:`Option ~name ~continue "Option" elt_t
+          one_param ~implementation:`Option ~name ~continue "M_option" elt_t
       | Contract elt_t ->
-          one_param ~implementation:`Option ~name ~continue "Contract" elt_t
+          one_param ~implementation:`Option ~name ~continue "M_contract" elt_t
       | Map (key_t, elt_t) ->
-          map_or_big_map ~key_t ~elt_t ~name ~continue "Map"
+          map_or_big_map ~key_t ~elt_t ~name ~continue "M_map"
       | Big_map (key_t, elt_t) ->
-          map_or_big_map ~key_t ~elt_t ~name ~continue "Big_map"
-      | Lambda (_, _) -> single "Lambdas_to_do" in
+          map_or_big_map ~key_t ~elt_t ~name ~continue "M_big_map"
+      | Lambda (_, _) -> single "M_lambdas_to_do" in
     let _, s = go ~name simple in
-    concat [comment intro_blob; m "Layout" ~type_def:"[ `P of t * t | `V ]"; s]
+    concat
+      [ comment intro_blob
+      ; m "Pairing_layout" ~type_def:"[ `P of t * t | `V ]"
+      ; s ]
 end
 
 let make_module expr =
