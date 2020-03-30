@@ -38,7 +38,7 @@ end
 module Tz_protocol = Tezos_protocol_alpha.Protocol
 
 module Transform = struct
-  let strip_errors_and_annotations expr =
+  let strip_errors ?(and_annotations = false) expr =
     let open Tz_protocol.Environment.Micheline in
     let all_failwith_arguments = ref [] in
     let add_failwith_argument arg =
@@ -55,7 +55,9 @@ module Transform = struct
           id in
     let rec transform = function
       | (Int _ | String _ | Bytes _) as e -> e
-      | Prim (a, b, nl, _ann) -> Prim (a, b, List.map ~f:transform nl, [])
+      | Prim (a, b, nl, _ann) when and_annotations ->
+          Prim (a, b, List.map ~f:transform nl, [])
+      | Prim (a, b, nl, ann) -> Prim (a, b, List.map ~f:transform nl, ann)
       | Seq (loc, node_list) ->
           let open Tz_protocol.Michelson_v1_primitives in
           let new_node_list =
