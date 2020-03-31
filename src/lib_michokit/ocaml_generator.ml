@@ -346,13 +346,15 @@ module Ocaml = struct
     let defaults = {deriving= Deriving_option.default; integers= [`Big_int]}
 
     let to_dune_library t ~name =
+      let preprocess =
+        Deriving_option.libraries t.deriving |> String.concat ~sep:" " in
       let libraries =
-        Deriving_option.libraries t.deriving
-        @ List.map t.integers ~f:(function
-            | `Big_int -> "num"
-            | `Zarith -> "zarith")
+        List.map t.integers ~f:(function
+          | `Big_int -> "num"
+          | `Zarith -> "zarith")
         |> String.concat ~sep:" " in
-      Fmt.str "(library (name %s) (libraries %s))" name libraries
+      Fmt.str "(library (name %s) (preprocess (pps %s)) (libraries %s))" name
+        preprocess libraries
 
     let cmdliner_term () =
       let open Cmdliner in
