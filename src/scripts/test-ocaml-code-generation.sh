@@ -31,6 +31,7 @@ EOF
     dune exec src/app/main.exe -- ocaml "$tz_path" \
              --output-dune test_library \
              "$output_path/lib/contract.ml"
+    echo "GENERATED $output_path/lib/contract.ml"
     echo '(executables (names main) (libraries test_library))' >> $output_path/test/dune
     (
         cd "$output_path"
@@ -79,10 +80,18 @@ EOF
         "$tezos_entrypoints/no_default_target.tz" \
         "$testpath/epndt/"
 
-# FAILS becuase of lambdas:
-##    test_one \
-##        "$tezos_entrypoints/manager.tz" \
-##        "$testpath/epmana/" \
+    # FAILS becuase of lambdas:
+    lambda="{ PUSH nat 42; ADD }"
+    cat > $extratest <<EOF
+let () =
+  assert_string
+    "(Left $lambda)"
+    Parameter.(Do M_lambda.(Concrete_raw_string "$lambda")
+               |> to_concrete)
+EOF
+    test_one \
+        "$tezos_entrypoints/manager.tz" \
+        "$testpath/epmana/"
 
 }
 

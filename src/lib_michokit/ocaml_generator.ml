@@ -603,7 +603,12 @@ module Ocaml = struct
           map_or_big_map ~key_t ~elt_t ~name ~continue "M_map"
       | Big_map (key_t, elt_t) ->
           map_or_big_map ~key_t ~elt_t ~name ~continue "M_big_map"
-      | Lambda (_, _) -> single "M_lambdas_to_do" ~functions:[] in
+      | Lambda (_, _) ->
+          let type_def, to_concrete =
+            make_variant_implementation
+              [ variant_1_arg "Concrete_raw_string" "string"
+                  "Printf.sprintf \"%s\"" ] in
+          single "M_lambda" ~type_def ~functions:[to_concrete] in
     let _, s = go ~name simple in
     concat
       [ comment intro_blob
