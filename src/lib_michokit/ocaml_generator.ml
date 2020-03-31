@@ -257,6 +257,33 @@ module Ocaml = struct
       | Concat t -> Concat (List.map ~f:go t) in
     go o
 
+  module Type = struct
+    type t = T_in_module of string | Apply_1 of t * t | Apply_2 of t * (t * t)
+
+    let t0 s = T_in_module s
+    let call_1 s t = Apply_1 (t0 s, t)
+    let call_2 s a b = Apply_2 (t0 s, (a, b))
+
+    let rec make_function_call t f =
+      match t with
+      | T_in_module s -> Fmt.str "%s.%s" s f
+      | Apply_1 (tf, arg) ->
+          Fmt.str "(%s %s)" (make_function_call tf f)
+            (make_function_call arg f)
+      | Apply_2 (tf, (arg1, arg2)) ->
+          Fmt.str "(%s %s %s)" (make_function_call tf f)
+            (make_function_call arg1 f)
+            (make_function_call arg2 f)
+
+    let rec make_type_t t =
+      match t with
+      | T_in_module s -> Fmt.str "%s.t" s
+      | Apply_1 (tf, arg) -> Fmt.str "%s %s" (make_type_t arg) (make_type_t tf)
+      | Apply_2 (tf, (arg1, arg2)) ->
+          Fmt.str "(%s, %s) %s" (make_type_t arg1) (make_type_t arg2)
+            (make_type_t tf)
+  end
+
   module Deriving_option = struct
     type t = {all: string list; records: string list; variants: string list}
 
@@ -289,12 +316,32 @@ module Ocaml = struct
       $ make_opt "deriving-all" ["show"; "eq"] "all"
       $ make_opt "deriving-records" ["make"] "record"
       $ make_opt "deriving-variants" [] "variant"
+
+    let libraries t =
+      List.dedup_and_sort
+        (t.all @ t.records @ t.variants)
+        ~compare:String.compare
+      |> List.map ~f:(function
+           | ("show" | "eq" | "make" | "ord" | "iter" | "fold" | "enum" | "map")
+             as d ->
+               Fmt.str "ppx_deriving.%s" d
+           | "sexp" -> "ppx_sexp_conv"
+           | other -> other)
   end
 
   module Options = struct
     type t = {deriving: Deriving_option.t; integers: [`Zarith | `Big_int] list}
 
     let defaults = {deriving= Deriving_option.default; integers= [`Big_int]}
+
+    let to_dune_library t ~name =
+      let libraries =
+        Deriving_option.libraries t.deriving
+        @ List.map t.integers ~f:(function
+            | `Big_int -> "num"
+            | `Zarith -> "zarith")
+        |> String.concat ~sep:" " in
+      Fmt.str "(library (name %s) (libraries %s))" name libraries
 
     let cmdliner_term () =
       let open Cmdliner in
@@ -311,33 +358,6 @@ module Ocaml = struct
                   ~doc:
                     "Chose which kind of integers to use for int|nat literals \
                      (on top of `int`)")))
-  end
-
-  module Type = struct
-    type t = T_in_module of string | Apply_1 of t * t | Apply_2 of t * (t * t)
-
-    let t0 s = T_in_module s
-    let call_1 s t = Apply_1 (t0 s, t)
-    let call_2 s a b = Apply_2 (t0 s, (a, b))
-
-    let rec make_function_call t f =
-      match t with
-      | T_in_module s -> Fmt.str "%s.%s" s f
-      | Apply_1 (tf, arg) ->
-          Fmt.str "(%s %s)" (make_function_call tf f)
-            (make_function_call arg f)
-      | Apply_2 (tf, (arg1, arg2)) ->
-          Fmt.str "(%s %s %s)" (make_function_call tf f)
-            (make_function_call arg1 f)
-            (make_function_call arg2 f)
-
-    let rec make_type_t t =
-      match t with
-      | T_in_module s -> Fmt.str "%s.t" s
-      | Apply_1 (tf, arg) -> Fmt.str "%s %s" (make_type_t arg) (make_type_t tf)
-      | Apply_2 (tf, (arg1, arg2)) ->
-          Fmt.str "(%s, %s) %s" (make_type_t arg1) (make_type_t arg2)
-            (make_type_t tf)
   end
 
   let of_simple_type ?(options = Options.defaults) ~intro_blob ~name simple =
@@ -605,7 +625,7 @@ let make_module ~options expr =
   find_all [] (root expr) >>= fun l -> return (Ocaml.concat l)
 
 module Command = struct
-  let run state ~options ~input_file ~output_file () =
+  let run state ~options ~input_file ~output_file ~output_dune () =
     let open Michelson in
     File_io.read_file state input_file
     >>= fun expr ->
@@ -613,6 +633,13 @@ module Command = struct
     >>= fun ocaml ->
     let content = Ocaml.(clean_up ocaml |> to_string) in
     System.write_file state output_file ~content
+    >>= fun () ->
+    match output_dune with
+    | None -> return ()
+    | Some name ->
+        let dune_path = Caml.Filename.(concat (dirname output_file) "dune") in
+        let content = Ocaml.Options.to_dune_library options ~name in
+        System.write_file state dune_path ~content
 
   let make ?(command_name = "ocaml-of-michelson") () =
     let open Cmdliner in
@@ -623,8 +650,8 @@ module Command = struct
       | `Michelson_parsing _ as mp -> Michelson.Concrete.Parse_error.pp ppf mp
     in
     Test_command_line.Run_command.make ~pp_error
-      ( pure (fun options input_file output_file state ->
-            (state, run state ~options ~input_file ~output_file))
+      ( pure (fun options input_file output_file output_dune state ->
+            (state, run state ~options ~input_file ~output_file ~output_dune))
       $ Ocaml.Options.cmdliner_term ()
       $ Arg.(
           required
@@ -634,6 +661,11 @@ module Command = struct
           required
             (pos 1 (some string) None
                (info [] ~docv:"OUTPUT-PATH" ~doc:"Output file.")))
+      $ Arg.(
+          value
+            (opt (some string) None
+               (info ["output-dune-library"] ~docv:"NAME"
+                  ~doc:"Output a `dune` file at next to the output file.")))
       $ Test_command_line.cli_state ~name:"michokit-ocofmi" () )
       (info command_name ~doc:"Generate OCaml code from Michelson.")
 end
