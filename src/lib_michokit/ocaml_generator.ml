@@ -273,13 +273,45 @@ module Ocaml = struct
       | more -> Fmt.(str "[@@@@deriving %a ]" (list ~sep:comma string)) more
 
     let default = make ["show"; "eq"] ~records:["make"]
+
+    let cmdliner_term () : t Cmdliner.Term.t =
+      let open Cmdliner in
+      let open Term in
+      let make_opt name defaults kind =
+        Arg.(
+          value
+            (opt (list ~sep:',' string) defaults
+               (info [name]
+                  ~doc:
+                    (Fmt.str "Add [@@deriving ..] attributes to %s types." kind))))
+      in
+      pure (fun all records variants -> make all ~records ~variants)
+      $ make_opt "deriving-all" ["show"; "eq"] "all"
+      $ make_opt "deriving-records" ["make"] "record"
+      $ make_opt "deriving-variants" [] "variant"
   end
 
-  type options =
-    {deriving: Deriving_option.t; integers: [`Zarith | `Big_int] list}
+  module Options = struct
+    type t = {deriving: Deriving_option.t; integers: [`Zarith | `Big_int] list}
 
-  let default_options =
-    {deriving= Deriving_option.default; integers= [`Big_int]}
+    let defaults = {deriving= Deriving_option.default; integers= [`Big_int]}
+
+    let cmdliner_term () =
+      let open Cmdliner in
+      let open Term in
+      pure (fun deriving integers -> {deriving; integers})
+      $ Deriving_option.cmdliner_term ()
+      $ Arg.(
+          value
+            (opt
+               (list ~sep:','
+                  (enum [("zarith", `Zarith); ("bigint", `Big_int)]))
+               [`Big_int]
+               (info ["integer-types"]
+                  ~doc:
+                    "Chose which kind of integers to use for int|nat literals \
+                     (on top of `int`)")))
+  end
 
   module Type = struct
     type t = T_in_module of string | Apply_1 of t * t | Apply_2 of t * (t * t)
@@ -308,7 +340,7 @@ module Ocaml = struct
             (make_type_t tf)
   end
 
-  let of_simple_type ?(options = default_options) ~intro_blob ~name simple =
+  let of_simple_type ?(options = Options.defaults) ~intro_blob ~name simple =
     let m ?(prelude = "") ?(kind = `Any) ?layout ?(type_def = "unit")
         ?to_concrete ?(type_parameter = "") s =
       new_module s
@@ -538,7 +570,7 @@ module Ocaml = struct
       ; s ]
 end
 
-let make_module expr =
+let make_module ~options expr =
   let open Michelson.Tz_protocol.Environment.Micheline in
   let module Prim = Michelson.Tz_protocol.Michelson_v1_primitives in
   let handle_type name mich =
@@ -555,7 +587,9 @@ let make_module expr =
         Tezos_client_alpha.Michelson_v1_printer.print_expr_unwrapped
         (strip_locations back_to_node) in
     (* Dbg.f (fun f -> f "Built the type: %a" Dbg.pp_any ty) ; *)
-    return (Ocaml.of_simple_type ~intro_blob:first_comment ~name simple) in
+    return
+      (Ocaml.of_simple_type ~options ~intro_blob:first_comment ~name simple)
+  in
   let rec find_all acc = function
     | Seq (loc, Prim (_, Prim.K_parameter, [the_type], _ann) :: more) ->
         handle_type "Parameter" the_type
@@ -571,11 +605,11 @@ let make_module expr =
   find_all [] (root expr) >>= fun l -> return (Ocaml.concat l)
 
 module Command = struct
-  let run state ~input_file ~output_file () =
+  let run state ~options ~input_file ~output_file () =
     let open Michelson in
     File_io.read_file state input_file
     >>= fun expr ->
-    make_module expr
+    make_module expr ~options
     >>= fun ocaml ->
     let content = Ocaml.(clean_up ocaml |> to_string) in
     System.write_file state output_file ~content
@@ -589,8 +623,9 @@ module Command = struct
       | `Michelson_parsing _ as mp -> Michelson.Concrete.Parse_error.pp ppf mp
     in
     Test_command_line.Run_command.make ~pp_error
-      ( pure (fun input_file output_file state ->
-            (state, run state ~input_file ~output_file))
+      ( pure (fun options input_file output_file state ->
+            (state, run state ~options ~input_file ~output_file))
+      $ Ocaml.Options.cmdliner_term ()
       $ Arg.(
           required
             (pos 0 (some string) None
