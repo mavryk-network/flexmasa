@@ -56,6 +56,18 @@ opam-test:
      - make vendors
      - opam config exec -- sh src/scripts/opam-test.sh
 
+codegen-test:
+  image: $setup_image
+  stage: test
+  artifacts:
+    paths:
+      - _build/
+  script:
+     - bash -c "$SHOW_INFO"
+     - make vendors
+     - opam install -y ppx_deriving
+     - opam config exec -- sh src/scripts/test-ocaml-code-generation.sh run_all
+
 docker:setup:
   image: "$dind_image"
   services:

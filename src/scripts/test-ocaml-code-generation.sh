@@ -28,7 +28,7 @@ EOF
     cat >> "$testml" <<EOF
 let () = say "TEST $(basename $tz_path) SUCCEEDED"
 EOF
-    flextesa ocaml "$tz_path" \
+    dune exec src/app/main.exe -- ocaml "$tz_path" \
              --output-dune test_library \
              "$output_path/lib/contract.ml"
     echo '(executables (names main) (libraries test_library))' >> $output_path/test/dune
