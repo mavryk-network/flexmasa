@@ -39,6 +39,15 @@ module Simpler_michelson_type = struct
     let rec to_list = function
       | Leaf x -> [x]
       | Node (l, r) -> to_list l @ to_list r
+
+    let mapi t ~f =
+      let c = ref 0 in
+      let rec fo = function
+        | Leaf x ->
+            let y = f !c x in
+            Caml.incr c ; Leaf y
+        | Node (l, r) -> Node (fo l, fo r) in
+      fo t
   end
 
   type t =
@@ -266,44 +275,112 @@ module Ocaml = struct
     let default = make ["show"; "eq"] ~records:["make"]
   end
 
-  type options = {deriving: Deriving_option.t}
+  type options =
+    {deriving: Deriving_option.t; integers: [`Zarith | `Big_int] list}
 
-  let default_options = {deriving= Deriving_option.default}
+  let default_options =
+    {deriving= Deriving_option.default; integers= [`Big_int]}
+
+  module Type = struct
+    type t = T_in_module of string | Apply_1 of t * t | Apply_2 of t * (t * t)
+
+    let t0 s = T_in_module s
+    let call_1 s t = Apply_1 (t0 s, t)
+    let call_2 s a b = Apply_2 (t0 s, (a, b))
+
+    let rec make_function_call t f =
+      match t with
+      | T_in_module s -> Fmt.str "%s.%s" s f
+      | Apply_1 (tf, arg) ->
+          Fmt.str "(%s %s)" (make_function_call tf f)
+            (make_function_call arg f)
+      | Apply_2 (tf, (arg1, arg2)) ->
+          Fmt.str "(%s %s %s)" (make_function_call tf f)
+            (make_function_call arg1 f)
+            (make_function_call arg2 f)
+
+    let rec make_type_t t =
+      match t with
+      | T_in_module s -> Fmt.str "%s.t" s
+      | Apply_1 (tf, arg) -> Fmt.str "%s %s" (make_type_t arg) (make_type_t tf)
+      | Apply_2 (tf, (arg1, arg2)) ->
+          Fmt.str "(%s, %s) %s" (make_type_t arg1) (make_type_t arg2)
+            (make_type_t tf)
+  end
 
   let of_simple_type ?(options = default_options) ~intro_blob ~name simple =
-    let v s = Fmt.str "%s.t" s in
-    let m ?(kind = `Any) ?layout ?(type_def = "unit") ?(type_parameter = "") s
-        =
+    let m ?(prelude = "") ?(kind = `Any) ?layout ?(type_def = "unit")
+        ?to_concrete ?(type_parameter = "") s =
       new_module s
-        [ Fmt.str "type %s t = %s %s" type_parameter type_def
+        [ prelude
+        ; Fmt.str "type %s t = %s %s" type_parameter type_def
             (Deriving_option.render options.deriving kind)
         ; Option.value_map ~default:"(* no layout here *)" layout ~f:(fun s ->
-              Fmt.str "let layout () : Pairing_layout.t = %s" s) ] in
+              Fmt.str "let layout () : Pairing_layout.t = %s" s)
+        ; ( match to_concrete with
+          | None -> Fmt.str " (* No to_concrete function *) "
+          | Some (t, f) -> Fmt.str "let to_concrete : %s = (%s)" t f ) ] in
     let open Simpler_michelson_type in
     let record_or_variant kind ~fields ~name ~type_def ~typedef_field ~continue
         =
       let modname = String.capitalize name in
+      let modname_of_tag idx tag =
+        Option.value_map tag ~f:String.capitalize
+          ~default:(Fmt.str "%s_%d" modname idx) in
       let compiled_fields =
-        Tree.to_list fields
-        |> List.mapi ~f:(fun idx {tag; content} ->
-               let name =
-                 Option.value_map tag ~f:String.capitalize
-                   ~default:(Fmt.str "%s_%d" modname idx) in
-               (String.uncapitalize name, continue ~name content)) in
+        Tree.mapi fields ~f:(fun idx {tag; content} ->
+            let name = modname_of_tag idx tag in
+            (String.uncapitalize name, continue ~name content)) in
+      let compiled_fields_list = Tree.to_list compiled_fields in
       let type_def =
         type_def
-          ( List.map compiled_fields ~f:(fun (field_name, (value, _)) ->
-                typedef_field field_name value)
+          ( List.map compiled_fields_list ~f:(fun (field_name, (typ, _)) ->
+                typedef_field field_name (typ : Type.t))
           |> String.concat ~sep:"  " ) in
-      let deps = List.map compiled_fields ~f:(fun (_, (_, m)) -> m) in
+      let to_concrete =
+        let t = "t -> string" in
+        let f =
+          Fmt.str "fun x -> %s"
+            ( match kind with
+            | `Any -> assert false
+            | `Variant ->
+                let open Tree in
+                let rec make acc = function
+                  | Leaf (name, (t, _)) ->
+                      let call =
+                        Type.make_function_call t "to_concrete" ^ " x" in
+                      let sprintf lr x =
+                        Fmt.str "(Printf.sprintf \"(%s %%s)\" (%s))" lr x in
+                      let rec left_right = function
+                        | [] -> call
+                        | `L :: more -> sprintf "Left" (left_right more)
+                        | `R :: more -> sprintf "Right" (left_right more) in
+                      Fmt.str "| %s x -> (%s)" (String.capitalize name)
+                        (left_right (List.rev acc))
+                  | Node (l, r) -> make (`L :: acc) l ^ make (`R :: acc) r
+                in
+                Fmt.str "match x with %s" (make [] compiled_fields)
+            | `Record ->
+                let open Tree in
+                let rec make = function
+                  | Leaf (name, (t, _)) ->
+                      Fmt.str "(%s x.%s)"
+                        (Type.make_function_call t "to_concrete")
+                        name
+                  | Node (l, r) ->
+                      Fmt.str "(Printf.sprintf \"(Pair %%s %%s)\" %s %s)"
+                        (make l) (make r) in
+                make compiled_fields ) in
+        (t, f) in
+      let deps = List.map compiled_fields_list ~f:(fun (_, (_, m)) -> m) in
       let layout =
         let open Tree in
         let rec make = function
           | Leaf _ -> "`V"
           | Node (l, r) -> Fmt.str "(`P (%s, %s))" (make l) (make r) in
         make fields in
-      let v = v modname in
-      let m = m modname ~kind ~type_def ~layout in
+      let v = Type.t0 modname in
+      let m = m modname ~kind ~type_def ~layout ~to_concrete in
       (v, append deps m) in
     let one_param ~name ~continue ~implementation what elt_t =
       let name = Fmt.str "%s_element" name in
@@ -311,54 +388,124 @@ module Ocaml = struct
       let type_def =
         match implementation with `List -> "'a list" | `Option -> "'a option"
       in
-      let m = m ~type_def ~type_parameter:"'a" what in
-      (Fmt.str "%s %s.t" velt what, concat [melt; m]) in
+      let to_concrete =
+        let t = "('a -> string) -> 'a t -> string" in
+        let f =
+          let pre = "fun f x -> " in
+          pre
+          ^
+          match implementation with
+          | `List ->
+              "\"{ \" ^ StringLabels.concat ~sep:\" ; \" (ListLabels.map ~f \
+               x) ^ \"}\""
+          | `Option ->
+              "(match x with None -> \"None\" | Some v -> \"Some \" ^ f v)"
+        in
+        (t, f) in
+      let m = m ~type_def ~type_parameter:"'a" what ~to_concrete in
+      ( Type.call_1 what velt (* Fmt.str "%s %s.t" velt what *)
+      , concat [melt; m] ) in
     let map_or_big_map ~key_t ~elt_t ~name ~continue what =
       let kname = Fmt.str "%s_key" name in
       let ename = Fmt.str "%s_element" name in
       let vk, mk = continue ~name:kname key_t in
       let ve, me = continue ~name:ename elt_t in
-      let m = m ~type_def:"('k * 'v) list" ~type_parameter:"('k, 'v)" what in
-      (Fmt.str "(%s, %s) %s.t" vk ve what, concat [mk; me; m]) in
+      let to_concrete =
+        let t = "('a -> string) -> ('b -> string) -> ('a, 'b) t -> string" in
+        let f =
+          let pre = "fun fk fv x -> " in
+          pre ^ "let f (k, v) = Printf.sprintf \"Elt %s %s\" (fk k) (fv v) in "
+          ^ "\"{ \" ^ StringLabels.concat ~sep:\";\" (ListLabels.map ~f x) ^ \
+             \"}\"" in
+        (t, f) in
+      let m =
+        m ~type_def:"('k * 'v) list" ~to_concrete ~type_parameter:"('k, 'v)"
+          what in
+      (Type.call_2 what vk ve, concat [mk; me; m]) in
+    let single ?type_def ?to_concrete s =
+      (Type.t0 s, m ?to_concrete ?type_def s) in
+    let variant_0_arg tag as_string = `V0 (tag, as_string) in
+    let variant_1_arg tag typ to_string = `V1 (tag, typ, to_string) in
+    let make_variant_implementation variant =
+      let type_def =
+        List.map variant ~f:(function
+          | `V1 (k, v, _) -> Fmt.str "%s of %s" k v
+          | `V0 (t, _) -> t)
+        |> String.concat ~sep:"\n| " in
+      let to_concrete =
+        let pattern =
+          (* Printf.sprintf "%%S"  *)
+          List.map variant ~f:(function
+            | `V1 (k, _, f) -> Fmt.str " %s x -> ((%s) x)" k f
+            | `V0 (t, s) -> Fmt.str "%s -> %s" t s)
+          |> String.concat ~sep:"\n| " in
+        ("t -> string", Fmt.str "function %s" pattern) in
+      (type_def, to_concrete) in
+    let quote_string = "Printf.sprintf \"%S\"" in
+    let crypto_thing_implementation modname =
+      let crypto_thing_implementation_variant =
+        [ variant_1_arg "Raw_b58" "string" quote_string
+        ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
+      let type_def, to_concrete =
+        make_variant_implementation crypto_thing_implementation_variant in
+      single modname ~type_def ~to_concrete in
+    let int_implementation modname =
+      let int_implementation_variant =
+        [variant_1_arg "Int" "int" "string_of_int"]
+        @ List.map options.integers ~f:(function
+            | `Big_int ->
+                variant_1_arg "Big_int" "Big_int.t" "Big_int.string_of_big_int"
+            | `Zarith -> variant_1_arg "Z" "Z.t" "Z.to_string") in
+      let type_def, to_concrete =
+        make_variant_implementation int_implementation_variant in
+      single modname ~type_def ~to_concrete in
+    let string_implementation modname =
+      let crypto_thing_implementation_variant =
+        [ variant_1_arg "Raw_string" "string" quote_string
+        ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
+      let type_def, to_concrete =
+        make_variant_implementation crypto_thing_implementation_variant in
+      single modname ~type_def ~to_concrete in
     let rec go ~name simple =
       let continue = go in
-      let single ?type_def s = (v s, m ?type_def s) in
       match simple with
-      | Unit -> single "M_unit" ~type_def:"Unit"
-      | Int -> single "M_int" ~type_def:"Int of int"
-      | Nat -> single "N_nat" ~type_def:"Int of int"
-      | Signature ->
-          single "M_signature"
-            ~type_def:"Raw_b58 of string | Raw_bytes of string"
-      | String -> single "M_string" ~type_def:"Raw of string"
-      | Bytes -> single "M_bytes" ~type_def:"Raw of string"
-      | Mutez -> single "M_mutez" ~type_def:"Int of int"
-      | Key_hash ->
-          single "M_key_hash"
-            ~type_def:"Raw_b58 of string | Raw_bytes of string"
-      | Key ->
-          single "M_key" ~type_def:"Raw_b58 of string | Raw_bytes of string"
+      | Unit ->
+          let type_def, to_concrete =
+            make_variant_implementation [variant_0_arg "Unit" "\"Unit\""] in
+          single "M_unit" ~type_def ~to_concrete
+      | Int -> int_implementation "M_int"
+      | Nat -> int_implementation "M_nat"
+      | Signature -> crypto_thing_implementation "M_signature"
+      | String -> string_implementation "M_string"
+      | Bytes -> string_implementation "M_bytes"
+      | Mutez -> int_implementation "M_mutez"
+      | Key_hash -> crypto_thing_implementation "M_key_hash"
+      | Key -> crypto_thing_implementation "M_key"
       | Timestamp ->
-          single "M_timestamp"
-            ~type_def:"Raw_string of string | Raw_int of int"
-      | Address ->
-          single "M_address"
-            ~type_def:"Raw_b58 of string | Raw_bytes of string"
-      | Bool -> single "M_bool" ~type_def:"bool"
-      | Chain_id ->
-          single "M_chain_id"
-            ~type_def:"Raw_b58 of string | Raw_bytes of string"
+          let type_def, to_concrete =
+            make_variant_implementation
+              [ variant_1_arg "Raw_string" "string" quote_string
+              ; variant_1_arg "Raw_int" "int" "string_of_int" ] in
+          single "M_timestamp" ~type_def ~to_concrete
+      | Address -> crypto_thing_implementation "M_address"
+      | Bool ->
+          let type_def, to_concrete =
+            make_variant_implementation
+              [ variant_0_arg "True" "\"True\""
+              ; variant_0_arg "False" "\"False\"" ] in
+          single "M_bool" ~type_def ~to_concrete
+      | Chain_id -> crypto_thing_implementation "M_chain_id"
       | Operation ->
           single "M_operation" ~type_def:" | (* impossible to create *) "
       | Record {fields; type_annotations= _} ->
           record_or_variant `Record ~fields ~name
             ~typedef_field:(fun f v ->
-              Fmt.str "%s : %s;" (String.uncapitalize f) v)
+              Fmt.str "%s : %s;" (String.uncapitalize f) (Type.make_type_t v))
             ~continue ~type_def:(Fmt.str "{ %s }")
       | Sum {variants; type_annotations= _} ->
           record_or_variant `Variant ~fields:variants ~name
             ~typedef_field:(fun f v ->
-              Fmt.str "| %s of %s" (String.capitalize f) v)
+              Fmt.str "| %s of %s" (String.capitalize f) (Type.make_type_t v))
             ~continue ~type_def:(Fmt.str " %s ")
       | Set elt_t ->
           one_param ~implementation:`List ~name ~continue "M_set" elt_t
@@ -376,6 +523,17 @@ module Ocaml = struct
     let _, s = go ~name simple in
     concat
       [ comment intro_blob
+      ; concat
+          (List.map options.integers ~f:(function
+            | `Zarith -> comment "ZArith : TODO"
+            | `Big_int ->
+                (* Big_int. *)
+                m "Big_int" ~type_def:"big_int"
+                  ~prelude:
+                    "include Big_int\n\
+                     let equal_big_int = eq_big_int\n\
+                    \                     let pp_big_int ppf bi =\n\
+                     Format.pp_print_string ppf (string_of_big_int bi)"))
       ; m "Pairing_layout" ~type_def:"[ `P of t * t | `V ]"
       ; s ]
 end
@@ -393,7 +551,7 @@ let make_module expr =
     dbg "%s:@,%a" name Simpler_michelson_type.pp simple ;
     (* Dbg.f (fun f -> f "Found the type: %a" Dbg.pp_any the_type) ; *)
     let first_comment =
-      Fmt.str "(* Generated code for\n%a\n*)\n"
+      Fmt.str "Generated code for\n%a\n\n"
         Tezos_client_alpha.Michelson_v1_printer.print_expr_unwrapped
         (strip_locations back_to_node) in
     (* Dbg.f (fun f -> f "Built the type: %a" Dbg.pp_any ty) ; *)
