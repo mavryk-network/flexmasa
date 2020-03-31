@@ -284,6 +284,17 @@ module Ocaml = struct
             (make_type_t tf)
   end
 
+  module Function = struct
+    type t = {name: string; signature: string; body: string; doc: string option}
+
+    let make ?doc ~name (signature, body) = {name; doc; signature; body}
+
+    let render t =
+      Fmt.str "%s\nlet %s : %s = (%s)"
+        (Option.value_map ~default:"" t.doc ~f:(Fmt.str "\n(** %s *)"))
+        t.name t.signature t.body
+  end
+
   module Deriving_option = struct
     type t = {all: string list; records: string list; variants: string list}
 
@@ -362,17 +373,20 @@ module Ocaml = struct
 
   let of_simple_type ?(options = Options.defaults) ~intro_blob ~name simple =
     let m ?(prelude = "") ?(kind = `Any) ?layout ?(type_def = "unit")
-        ?to_concrete ?(type_parameter = "") s =
+        ~functions ?(type_parameter = "") s =
       new_module s
-        [ prelude
-        ; Fmt.str "type %s t = %s %s" type_parameter type_def
-            (Deriving_option.render options.deriving kind)
-        ; Option.value_map ~default:"(* no layout here *)" layout ~f:(fun s ->
-              Fmt.str "let layout () : Pairing_layout.t = %s" s)
-        ; ( match to_concrete with
-          | None -> Fmt.str " (* No to_concrete function *) "
-          | Some (t, f) -> Fmt.str "let to_concrete : %s = (%s)" t f ) ] in
+        ( [ prelude
+          ; Fmt.str "type %s t = %s %s" type_parameter type_def
+              (Deriving_option.render options.deriving kind)
+          ; Option.value_map ~default:"(* no layout here *)" layout
+              ~f:(fun s -> Fmt.str "let layout () : Pairing_layout.t = %s" s)
+          ]
+        @ List.map functions ~f:Function.render ) in
     let open Simpler_michelson_type in
+    let to_concrete (t, f) =
+      Function.make ~name:"to_concrete"
+        ~doc:"Convert a value to a string in concrete Michelson syntax." (t, f)
+    in
     let record_or_variant kind ~fields ~name ~type_def ~typedef_field ~continue
         =
       let modname = String.capitalize name in
@@ -389,44 +403,55 @@ module Ocaml = struct
           ( List.map compiled_fields_list ~f:(fun (field_name, (typ, _)) ->
                 typedef_field field_name (typ : Type.t))
           |> String.concat ~sep:"  " ) in
-      let to_concrete =
-        let t = "t -> string" in
-        let f =
-          Fmt.str "fun x -> %s"
-            ( match kind with
-            | `Any -> assert false
-            | `Variant ->
-                let open Tree in
-                let rec make acc = function
-                  | Leaf (name, (t, _)) ->
-                      let call =
-                        Type.make_function_call t "to_concrete" ^ " x" in
-                      let rec left_right = function
-                        | [] -> "%s"
-                        | `L :: more -> Fmt.str "(Left %s)" (left_right more)
-                        | `R :: more -> Fmt.str "(Right %s)" (left_right more)
-                      in
-                      Fmt.str "| %s x -> (%s)" (String.capitalize name)
-                        ( match List.rev acc with
-                        | [] -> call
-                        | more ->
-                            Fmt.str "(Printf.sprintf %S (%s))"
-                              (left_right more) call )
-                  | Node (l, r) -> make (`L :: acc) l ^ make (`R :: acc) r
-                in
-                Fmt.str "match x with %s" (make [] compiled_fields)
-            | `Record ->
-                let open Tree in
-                let rec make = function
-                  | Leaf (name, (t, _)) ->
-                      Fmt.str "(%s x.%s)"
-                        (Type.make_function_call t "to_concrete")
-                        name
-                  | Node (l, r) ->
-                      Fmt.str "(Printf.sprintf \"(Pair %%s %%s)\" %s %s)"
-                        (make l) (make r) in
-                make compiled_fields ) in
-        (t, f) in
+      let to_concrete_functions =
+        let make_default ~body =
+          let t = "t -> string" in
+          let f = Fmt.str "fun x -> %s" body in
+          to_concrete (t, f) in
+        match kind with
+        | `Any -> []
+        | `Variant ->
+            let open Tree in
+            let rec make entry_point acc = function
+              | Leaf (name, (t, _)) ->
+                  let call = Type.make_function_call t "to_concrete" ^ " x" in
+                  let rec left_right = function
+                    | [] -> "%s"
+                    | `L :: more -> Fmt.str "(Left %s)" (left_right more)
+                    | `R :: more -> Fmt.str "(Right %s)" (left_right more)
+                  in
+                  Fmt.str "| %s x -> (%s)" (String.capitalize name)
+                    ( match List.rev acc with
+                    | [] -> call
+                    | _ when entry_point ->
+                        Fmt.str "(`Name %S, `Literal (%s))" name call
+                    | more ->
+                        Fmt.str "(Printf.sprintf %S (%s))" (left_right more)
+                          call )
+              | Node (l, r) ->
+                  make entry_point (`L :: acc) l
+                  ^ make entry_point (`R :: acc) r in
+            let with_match entry_point =
+              Fmt.str "match x with %s" (make entry_point [] compiled_fields)
+            in
+            [ make_default ~body:(with_match false)
+            ; Function.make ~name:"to_concrete_entry_point"
+                ~doc:
+                  "Like {!to_concrete} but assume this variant is defining an \
+                   entry point (i.e. forget about the [Left|Right] wrapping)."
+                ( "t -> ( [ `Name of string ] * [ `Literal of string ])"
+                , "fun x -> " ^ with_match true ) ]
+        | `Record ->
+            let open Tree in
+            let rec make = function
+              | Leaf (name, (t, _)) ->
+                  Fmt.str "(%s x.%s)"
+                    (Type.make_function_call t "to_concrete")
+                    name
+              | Node (l, r) ->
+                  Fmt.str "(Printf.sprintf \"(Pair %%s %%s)\" %s %s)" (make l)
+                    (make r) in
+            [make_default ~body:(make compiled_fields)] in
       let deps = List.map compiled_fields_list ~f:(fun (_, (_, m)) -> m) in
       let layout =
         let open Tree in
@@ -435,7 +460,9 @@ module Ocaml = struct
           | Node (l, r) -> Fmt.str "(`P (%s, %s))" (make l) (make r) in
         make fields in
       let v = Type.t0 modname in
-      let m = m modname ~kind ~type_def ~layout ~to_concrete in
+      let m =
+        m modname ~kind ~type_def ~layout ~functions:to_concrete_functions
+      in
       (v, append deps m) in
     let one_param ~name ~continue ~implementation what elt_t =
       let name = Fmt.str "%s_element" name in
@@ -456,8 +483,8 @@ module Ocaml = struct
           | `Option ->
               "(match x with None -> \"None\" | Some v -> \"Some \" ^ f v)"
         in
-        (t, f) in
-      let m = m ~type_def ~type_parameter:"'a" what ~to_concrete in
+        to_concrete (t, f) in
+      let m = m ~type_def ~type_parameter:"'a" what ~functions:[to_concrete] in
       ( Type.call_1 what velt (* Fmt.str "%s %s.t" velt what *)
       , concat [melt; m] ) in
     let map_or_big_map ~key_t ~elt_t ~name ~continue what =
@@ -472,13 +499,12 @@ module Ocaml = struct
           pre ^ "let f (k, v) = Printf.sprintf \"Elt %s %s\" (fk k) (fv v) in "
           ^ "\"{ \" ^ StringLabels.concat ~sep:\";\" (ListLabels.map ~f x) ^ \
              \"}\"" in
-        (t, f) in
+        to_concrete (t, f) in
       let m =
-        m ~type_def:"('k * 'v) list" ~to_concrete ~type_parameter:"('k, 'v)"
-          what in
+        m ~type_def:"('k * 'v) list" ~functions:[to_concrete]
+          ~type_parameter:"('k, 'v)" what in
       (Type.call_2 what vk ve, concat [mk; me; m]) in
-    let single ?type_def ?to_concrete s =
-      (Type.t0 s, m ?to_concrete ?type_def s) in
+    let single ?type_def ~functions s = (Type.t0 s, m ~functions ?type_def s) in
     let variant_0_arg tag as_string = `V0 (tag, as_string) in
     let variant_1_arg tag typ to_string = `V1 (tag, typ, to_string) in
     let make_variant_implementation variant =
@@ -494,7 +520,7 @@ module Ocaml = struct
             | `V1 (k, _, f) -> Fmt.str " %s x -> ((%s) x)" k f
             | `V0 (t, s) -> Fmt.str "%s -> %s" t s)
           |> String.concat ~sep:"\n| " in
-        ("t -> string", Fmt.str "function %s" pattern) in
+        to_concrete ("t -> string", Fmt.str "function %s" pattern) in
       (type_def, to_concrete) in
     let quote_string = "Printf.sprintf \"%S\"" in
     let crypto_thing_implementation modname =
@@ -503,7 +529,7 @@ module Ocaml = struct
         ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
       let type_def, to_concrete =
         make_variant_implementation crypto_thing_implementation_variant in
-      single modname ~type_def ~to_concrete in
+      single modname ~type_def ~functions:[to_concrete] in
     let int_implementation modname =
       let int_implementation_variant =
         [variant_1_arg "Int" "int" "string_of_int"]
@@ -513,21 +539,21 @@ module Ocaml = struct
             | `Zarith -> variant_1_arg "Z" "Z.t" "Z.to_string") in
       let type_def, to_concrete =
         make_variant_implementation int_implementation_variant in
-      single modname ~type_def ~to_concrete in
+      single modname ~type_def ~functions:[to_concrete] in
     let string_implementation modname =
       let crypto_thing_implementation_variant =
         [ variant_1_arg "Raw_string" "string" quote_string
         ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
       let type_def, to_concrete =
         make_variant_implementation crypto_thing_implementation_variant in
-      single modname ~type_def ~to_concrete in
+      single modname ~type_def ~functions:[to_concrete] in
     let rec go ~name simple =
       let continue = go in
       match simple with
       | Unit ->
           let type_def, to_concrete =
             make_variant_implementation [variant_0_arg "Unit" "\"Unit\""] in
-          single "M_unit" ~type_def ~to_concrete
+          single "M_unit" ~type_def ~functions:[to_concrete]
       | Int -> int_implementation "M_int"
       | Nat -> int_implementation "M_nat"
       | Signature -> crypto_thing_implementation "M_signature"
@@ -541,17 +567,18 @@ module Ocaml = struct
             make_variant_implementation
               [ variant_1_arg "Raw_string" "string" quote_string
               ; variant_1_arg "Raw_int" "int" "string_of_int" ] in
-          single "M_timestamp" ~type_def ~to_concrete
+          single "M_timestamp" ~type_def ~functions:[to_concrete]
       | Address -> crypto_thing_implementation "M_address"
       | Bool ->
           let type_def, to_concrete =
             make_variant_implementation
               [ variant_0_arg "True" "\"True\""
               ; variant_0_arg "False" "\"False\"" ] in
-          single "M_bool" ~type_def ~to_concrete
+          single "M_bool" ~type_def ~functions:[to_concrete]
       | Chain_id -> crypto_thing_implementation "M_chain_id"
       | Operation ->
           single "M_operation" ~type_def:" | (* impossible to create *) "
+            ~functions:[]
       | Record {fields; type_annotations= _} ->
           record_or_variant `Record ~fields ~name
             ~typedef_field:(fun f v ->
@@ -574,7 +601,7 @@ module Ocaml = struct
           map_or_big_map ~key_t ~elt_t ~name ~continue "M_map"
       | Big_map (key_t, elt_t) ->
           map_or_big_map ~key_t ~elt_t ~name ~continue "M_big_map"
-      | Lambda (_, _) -> single "M_lambdas_to_do" in
+      | Lambda (_, _) -> single "M_lambdas_to_do" ~functions:[] in
     let _, s = go ~name simple in
     concat
       [ comment intro_blob
@@ -583,13 +610,13 @@ module Ocaml = struct
             | `Zarith -> comment "ZArith : TODO"
             | `Big_int ->
                 (* Big_int. *)
-                m "Big_int" ~type_def:"big_int"
+                m "Big_int" ~type_def:"big_int" ~functions:[]
                   ~prelude:
                     "include Big_int\n\
                      let equal_big_int = eq_big_int\n\
                     \                     let pp_big_int ppf bi =\n\
                      Format.pp_print_string ppf (string_of_big_int bi)"))
-      ; m "Pairing_layout" ~type_def:"[ `P of t * t | `V ]"
+      ; m "Pairing_layout" ~type_def:"[ `P of t * t | `V ]" ~functions:[]
       ; s ]
 end
 
