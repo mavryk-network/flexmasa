@@ -401,14 +401,17 @@ module Ocaml = struct
                   | Leaf (name, (t, _)) ->
                       let call =
                         Type.make_function_call t "to_concrete" ^ " x" in
-                      let sprintf lr x =
-                        Fmt.str "(Printf.sprintf \"(%s %%s)\" (%s))" lr x in
                       let rec left_right = function
-                        | [] -> call
-                        | `L :: more -> sprintf "Left" (left_right more)
-                        | `R :: more -> sprintf "Right" (left_right more) in
+                        | [] -> "%s"
+                        | `L :: more -> Fmt.str "(Left %s)" (left_right more)
+                        | `R :: more -> Fmt.str "(Right %s)" (left_right more)
+                      in
                       Fmt.str "| %s x -> (%s)" (String.capitalize name)
-                        (left_right (List.rev acc))
+                        ( match List.rev acc with
+                        | [] -> call
+                        | more ->
+                            Fmt.str "(Printf.sprintf %S (%s))"
+                              (left_right more) call )
                   | Node (l, r) -> make (`L :: acc) l ^ make (`R :: acc) r
                 in
                 Fmt.str "match x with %s" (make [] compiled_fields)
