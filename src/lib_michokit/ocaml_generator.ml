@@ -503,18 +503,32 @@ module Ocaml = struct
       let ename = Fmt.str "%s_element" name in
       let vk, mk = continue ~name:kname key_t in
       let ve, me = continue ~name:ename elt_t in
+      let m_name =
+        match what with `Map -> "M_map" | `Big_map -> "M_big_map" in
+      let type_def =
+        let list = "('k * 'v) list" in
+        match what with
+        | `Map -> list
+        | `Big_map -> Fmt.str "List of %s | Int of int" list in
       let to_concrete =
         let t = "('a -> string) -> ('b -> string) -> ('a, 'b) t -> string" in
+        let pre = "fun fk fv x -> " in
         let f =
-          let pre = "fun fk fv x -> " in
-          pre ^ "let f (k, v) = Printf.sprintf \"Elt %s %s\" (fk k) (fv v) in "
-          ^ "\"{ \" ^ StringLabels.concat ~sep:\";\" (ListLabels.map ~f x) ^ \
-             \"}\"" in
+          let deal_with_list =
+            "let f (k, v) = Printf.sprintf \"Elt %s %s\" (fk k) (fv v) in "
+            ^ "\"{ \" ^ StringLabels.concat ~sep:\";\" (ListLabels.map ~f x) \
+               ^ \"}\"" in
+          match what with
+          | `Map -> pre ^ deal_with_list
+          | `Big_map ->
+              Fmt.str
+                "%smatch x with List x -> (%s) | Int i -> string_of_int i" pre
+                deal_with_list in
         to_concrete (t, f) in
       let m =
-        m ~type_def:"('k * 'v) list" ~functions:[to_concrete]
-          ~type_parameter:"('k, 'v)" what in
-      (Type.call_2 what vk ve, concat [mk; me; m])
+        m ~type_def ~functions:[to_concrete] ~type_parameter:"('k, 'v)" m_name
+      in
+      (Type.call_2 m_name vk ve, concat [mk; me; m])
 
     let single ?type_def ~functions s = (Type.t0 s, m ~functions ?type_def s)
 
@@ -678,10 +692,9 @@ module Ocaml = struct
           one_param ~implementation:`Option ~name ~continue "M_option" elt_t
       | Contract elt_t ->
           one_param ~implementation:`Option ~name ~continue "M_contract" elt_t
-      | Map (key_t, elt_t) ->
-          map_or_big_map ~key_t ~elt_t ~name ~continue "M_map"
+      | Map (key_t, elt_t) -> map_or_big_map ~key_t ~elt_t ~name ~continue `Map
       | Big_map (key_t, elt_t) ->
-          map_or_big_map ~key_t ~elt_t ~name ~continue "M_big_map"
+          map_or_big_map ~key_t ~elt_t ~name ~continue `Big_map
       | Lambda (_, _) ->
           let type_def, functions =
             make_variant_implementation
