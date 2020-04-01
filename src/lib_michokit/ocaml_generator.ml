@@ -373,7 +373,13 @@ module Ocaml = struct
                      (on top of `int`)")))
   end
 
-  let of_simple_type ?(options = Options.defaults) ~intro_blob ~name simple =
+  (** Constructors for use {i only} by {!of_simple_type}. *)
+  module Construct (O : sig
+    val options : Options.t
+  end) =
+  struct
+    open O
+
     let m ?(prelude = "") ?(kind = `Any) ?layout ?(type_def = "unit")
         ~functions ?(type_parameter = "") s =
       new_module s
@@ -383,14 +389,15 @@ module Ocaml = struct
           ; Option.value_map ~default:"(* no layout here *)" layout
               ~f:(fun s -> Fmt.str "let layout () : Pairing_layout.t = %s" s)
           ]
-        @ List.map functions ~f:Function.render ) in
-    let open Simpler_michelson_type in
+        @ List.map functions ~f:Function.render )
+
     let to_concrete (t, f) =
       Function.make ~name:"to_concrete"
         ~doc:"Convert a value to a string in concrete Michelson syntax." (t, f)
-    in
+
     let record_or_variant kind ~fields ~name ~type_def ~typedef_field ~continue
         =
+      let open Simpler_michelson_type in
       let modname = String.capitalize name in
       let modname_of_tag idx tag =
         Option.value_map tag ~f:String.capitalize
@@ -465,7 +472,8 @@ module Ocaml = struct
       let m =
         m modname ~kind ~type_def ~layout ~functions:to_concrete_functions
       in
-      (v, append deps m) in
+      (v, append deps m)
+
     let one_param ~name ~continue ~implementation what elt_t =
       let name = Fmt.str "%s_element" name in
       let velt, melt = continue ~name elt_t in
@@ -488,7 +496,8 @@ module Ocaml = struct
         to_concrete (t, f) in
       let m = m ~type_def ~type_parameter:"'a" what ~functions:[to_concrete] in
       ( Type.call_1 what velt (* Fmt.str "%s %s.t" velt what *)
-      , concat [melt; m] ) in
+      , concat [melt; m] )
+
     let map_or_big_map ~key_t ~elt_t ~name ~continue what =
       let kname = Fmt.str "%s_key" name in
       let ename = Fmt.str "%s_element" name in
@@ -505,10 +514,12 @@ module Ocaml = struct
       let m =
         m ~type_def:"('k * 'v) list" ~functions:[to_concrete]
           ~type_parameter:"('k, 'v)" what in
-      (Type.call_2 what vk ve, concat [mk; me; m]) in
-    let single ?type_def ~functions s = (Type.t0 s, m ~functions ?type_def s) in
-    let variant_0_arg tag as_string = `V0 (tag, as_string) in
-    let variant_1_arg tag typ to_string = `V1 (tag, typ, to_string) in
+      (Type.call_2 what vk ve, concat [mk; me; m])
+
+    let single ?type_def ~functions s = (Type.t0 s, m ~functions ?type_def s)
+    let variant_0_arg tag as_string = `V0 (tag, as_string)
+    let variant_1_arg tag typ to_string = `V1 (tag, typ, to_string)
+
     let make_variant_implementation variant =
       let type_def =
         List.map variant ~f:(function
@@ -523,15 +534,18 @@ module Ocaml = struct
             | `V0 (t, s) -> Fmt.str "%s -> %s" t s)
           |> String.concat ~sep:"\n| " in
         to_concrete ("t -> string", Fmt.str "function %s" pattern) in
-      (type_def, to_concrete) in
-    let quote_string = "Printf.sprintf \"%S\"" in
+      (type_def, to_concrete)
+
+    let quote_string = "Printf.sprintf \"%S\""
+
     let crypto_thing_implementation modname =
       let crypto_thing_implementation_variant =
         [ variant_1_arg "Raw_b58" "string" quote_string
         ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
       let type_def, to_concrete =
         make_variant_implementation crypto_thing_implementation_variant in
-      single modname ~type_def ~functions:[to_concrete] in
+      single modname ~type_def ~functions:[to_concrete]
+
     let int_implementation modname =
       let int_implementation_variant =
         [variant_1_arg "Int" "int" "string_of_int"]
@@ -541,14 +555,22 @@ module Ocaml = struct
             | `Zarith -> variant_1_arg "Z" "Z.t" "Z.to_string") in
       let type_def, to_concrete =
         make_variant_implementation int_implementation_variant in
-      single modname ~type_def ~functions:[to_concrete] in
+      single modname ~type_def ~functions:[to_concrete]
+
     let string_implementation modname =
       let crypto_thing_implementation_variant =
         [ variant_1_arg "Raw_string" "string" quote_string
         ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
       let type_def, to_concrete =
         make_variant_implementation crypto_thing_implementation_variant in
-      single modname ~type_def ~functions:[to_concrete] in
+      single modname ~type_def ~functions:[to_concrete]
+  end
+
+  let of_simple_type ?(options = Options.defaults) ~intro_blob ~name simple =
+    let open Construct (struct
+      let options = options
+    end) in
+    let open Simpler_michelson_type in
     let rec go ~name simple =
       let continue = go in
       match simple with
