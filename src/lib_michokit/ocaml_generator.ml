@@ -517,24 +517,78 @@ module Ocaml = struct
       (Type.call_2 what vk ve, concat [mk; me; m])
 
     let single ?type_def ~functions s = (Type.t0 s, m ~functions ?type_def s)
-    let variant_0_arg tag as_string = `V0 (tag, as_string)
-    let variant_1_arg tag typ to_string = `V1 (tag, typ, to_string)
+
+    module Micheline_type = struct
+      type t = Prim of string | Int of {of_string: string} | String | Bytes
+
+      let int of_string = Int {of_string}
+    end
+
+    type variant_implementation =
+      | V0 of
+          {tag: string; as_concrete_string: string; micheline: Micheline_type.t}
+      | V1 of
+          { tag: string
+          ; argument: string
+          ; to_concrete_string: string
+          ; micheline: Micheline_type.t option }
+
+    let variant_0_arg tag as_concrete_string micheline =
+      V0 {tag; as_concrete_string; micheline}
+
+    let variant_0_self tag =
+      variant_0_arg tag (Fmt.str "%S" tag) (Micheline_type.Prim tag)
+
+    let variant_1_arg ?micheline tag argument to_concrete_string =
+      V1 {tag; argument; to_concrete_string; micheline}
 
     let make_variant_implementation variant =
       let type_def =
         List.map variant ~f:(function
-          | `V1 (k, v, _) -> Fmt.str "%s of %s" k v
-          | `V0 (t, _) -> t)
+          | V1 {tag; argument; _} -> Fmt.str "%s of %s" tag argument
+          | V0 {tag; _} -> tag)
         |> String.concat ~sep:"\n| " in
       let to_concrete =
         let pattern =
           (* Printf.sprintf "%%S"  *)
           List.map variant ~f:(function
-            | `V1 (k, _, f) -> Fmt.str " %s x -> ((%s) x)" k f
-            | `V0 (t, s) -> Fmt.str "%s -> %s" t s)
+            | V1 {tag= k; to_concrete_string= f; _} ->
+                Fmt.str " %s x -> ((%s) x)" k f
+            | V0 {tag= t; as_concrete_string= s; _} -> Fmt.str "%s -> %s" t s)
           |> String.concat ~sep:"\n| " in
         to_concrete ("t -> string", Fmt.str "function %s" pattern) in
-      (type_def, to_concrete)
+      let of_json ~name patterns =
+        Function.make ~name:"of_json"
+          ~doc:"Parse “micheline” JSON representation."
+          ( "Json_value.t -> (t, [> `Of_json of string * Json_value.t]) result"
+          , Fmt.str
+              "function %s | other -> Error (`Of_json (\"wrong json for %s\", \
+               other))"
+              (String.concat ~sep:" | " patterns)
+              name ) in
+      let functions =
+        let patterns =
+          List.concat_map variant ~f:(function
+            | V0 {tag; micheline; _} ->
+                let patt =
+                  match micheline with
+                  | Prim s ->
+                      let p prefix =
+                        Fmt.str "`O (%s(\"prim\" , `String %S) :: _) -> Ok %s"
+                          prefix s tag in
+                      [p ""; p "_ :: "]
+                  | _ -> [] in
+                patt
+            | V1 {tag; micheline= Some (Int {of_string}); _} ->
+                let patt =
+                  Fmt.str
+                    "`O [\"int\", `String s] as j -> (try Ok (%s (%s s)) with \
+                     _ -> Error (`Of_json (\"%s exception for %s\", j))) "
+                    tag of_string of_string tag in
+                [patt]
+            | V1 {micheline= _; _} -> []) in
+        [to_concrete; of_json ~name:"TODO:NAME" patterns] in
+      (type_def, functions)
 
     let quote_string = "Printf.sprintf \"%S\""
 
@@ -542,28 +596,32 @@ module Ocaml = struct
       let crypto_thing_implementation_variant =
         [ variant_1_arg "Raw_b58" "string" quote_string
         ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
-      let type_def, to_concrete =
+      let type_def, functions =
         make_variant_implementation crypto_thing_implementation_variant in
-      single modname ~type_def ~functions:[to_concrete]
+      single modname ~type_def ~functions
 
     let int_implementation modname =
       let int_implementation_variant =
-        [variant_1_arg "Int" "int" "string_of_int"]
+        [ variant_1_arg "Int" "int" "string_of_int"
+            ~micheline:(Micheline_type.int "int_of_string") ]
+        (* For now only one of the representations can have a micheline. *)
         @ List.map options.integers ~f:(function
             | `Big_int ->
                 variant_1_arg "Big_int" "Big_int.t" "Big_int.string_of_big_int"
-            | `Zarith -> variant_1_arg "Z" "Z.t" "Z.to_string") in
-      let type_def, to_concrete =
+                (* ~micheline:(Micheline_type.int "Big_int.big_int_of_string") *)
+            | `Zarith -> variant_1_arg "Z" "Z.t" "Z.to_string")
+        (* ~micheline:(Micheline_type.int "Z.of_string") *) in
+      let type_def, functions =
         make_variant_implementation int_implementation_variant in
-      single modname ~type_def ~functions:[to_concrete]
+      single modname ~type_def ~functions
 
     let string_implementation modname =
       let crypto_thing_implementation_variant =
         [ variant_1_arg "Raw_string" "string" quote_string
         ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
-      let type_def, to_concrete =
+      let type_def, functions =
         make_variant_implementation crypto_thing_implementation_variant in
-      single modname ~type_def ~functions:[to_concrete]
+      single modname ~type_def ~functions
   end
 
   let of_simple_type ?(options = Options.defaults) ~intro_blob ~name simple =
@@ -575,9 +633,9 @@ module Ocaml = struct
       let continue = go in
       match simple with
       | Unit ->
-          let type_def, to_concrete =
-            make_variant_implementation [variant_0_arg "Unit" "\"Unit\""] in
-          single "M_unit" ~type_def ~functions:[to_concrete]
+          let type_def, functions =
+            make_variant_implementation [variant_0_self "Unit"] in
+          single "M_unit" ~type_def ~functions
       | Int -> int_implementation "M_int"
       | Nat -> int_implementation "M_nat"
       | Signature -> crypto_thing_implementation "M_signature"
@@ -587,18 +645,17 @@ module Ocaml = struct
       | Key_hash -> crypto_thing_implementation "M_key_hash"
       | Key -> crypto_thing_implementation "M_key"
       | Timestamp ->
-          let type_def, to_concrete =
+          let type_def, functions =
             make_variant_implementation
               [ variant_1_arg "Raw_string" "string" quote_string
               ; variant_1_arg "Raw_int" "int" "string_of_int" ] in
-          single "M_timestamp" ~type_def ~functions:[to_concrete]
+          single "M_timestamp" ~type_def ~functions
       | Address -> crypto_thing_implementation "M_address"
       | Bool ->
-          let type_def, to_concrete =
+          let type_def, functions =
             make_variant_implementation
-              [ variant_0_arg "True" "\"True\""
-              ; variant_0_arg "False" "\"False\"" ] in
-          single "M_bool" ~type_def ~functions:[to_concrete]
+              [variant_0_self "True"; variant_0_self "False"] in
+          single "M_bool" ~type_def ~functions
       | Chain_id -> crypto_thing_implementation "M_chain_id"
       | Operation ->
           single "M_operation" ~type_def:" | (* impossible to create *) "
@@ -626,11 +683,11 @@ module Ocaml = struct
       | Big_map (key_t, elt_t) ->
           map_or_big_map ~key_t ~elt_t ~name ~continue "M_big_map"
       | Lambda (_, _) ->
-          let type_def, to_concrete =
+          let type_def, functions =
             make_variant_implementation
               [ variant_1_arg "Concrete_raw_string" "string"
                   "Printf.sprintf \"%s\"" ] in
-          single "M_lambda" ~type_def ~functions:[to_concrete] in
+          single "M_lambda" ~type_def ~functions in
     let _, s = go ~name simple in
     concat
       [ comment intro_blob
@@ -646,6 +703,11 @@ module Ocaml = struct
                     \                     let pp_big_int ppf bi =\n\
                      Format.pp_print_string ppf (string_of_big_int bi)"))
       ; m "Pairing_layout" ~type_def:"[ `P of t * t | `V ]" ~functions:[]
+      ; m "Json_value"
+          ~type_def:
+            "[ `A of t list | `Bool of bool | `Float of float | `Null | `O of \
+             (string * t) list | `String of string ]"
+          ~functions:[]
       ; s ]
 end
 
