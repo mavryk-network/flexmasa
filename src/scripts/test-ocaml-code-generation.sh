@@ -62,6 +62,21 @@ let () =
     Parameter.to_concrete_entry_point setting_delegate in
   assert_string ep "set_delegate" ;
   assert_string lit "\"$one_address\"" ;
+  begin match (Parameter.of_json (\`O [
+     "prim", \`String "Left"; 
+     "args", \`A [
+        \`O[
+           "prim", \`String "Right"; 
+           "args", \`A [
+             \`O ["prim", \`String "Unit"; "args", \`A []]
+           ]
+       ]
+      ]
+    ])) with
+   | Ok (Parameter.Remove_delegate M_unit.Unit) -> ()
+   | Error (\`Of_json (s, _)) -> failwith s
+   | _other -> assert false
+  end;
   ()
 EOF
     test_one \

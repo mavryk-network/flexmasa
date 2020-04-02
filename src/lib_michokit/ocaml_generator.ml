@@ -427,13 +427,55 @@ module Ocaml = struct
               (String.concat ~sep:" | " patterns)
               name )
 
-      let parsing_error name = Fmt.str "(`Of_json (\"%s\", other))" name
+      let parsing_error ?(json = "other") name =
+        Fmt.str "(`Of_json (\"%s\", %s))" name json
 
       let pattern_prim ?args prim =
         Fmt.str "`O ((\"prim\", `String %S) ::%s _)" prim
           ( match args with
           | None -> ""
           | Some patt -> Fmt.str "(\"args\", %s) :: " patt )
+
+      let parse_list_of_elts ~name ~f_elts ~construct_from_list =
+        let elts = List.mapi f_elts ~f:(fun i f -> (Fmt.str "elt%d" i, f)) in
+        let args =
+          Fmt.str "`A [%s]" (String.concat ~sep:"; " (List.map ~f:fst elts))
+        in
+        let matches =
+          List.map elts ~f:(fun (e, f) -> Fmt.str "(%s %s)" f e)
+          |> String.concat ~sep:", " in
+        let oks =
+          List.map elts ~f:(fun (e, _) -> Fmt.str "(Ok %s)" e)
+          |> String.concat ~sep:", " in
+        let tuple =
+          List.map elts ~f:(fun (e, _) -> Fmt.str "%s" e)
+          |> String.concat ~sep:", " in
+        let err_patterns =
+          let nb = List.length elts in
+          List.init nb ~f:(fun i ->
+              Fmt.str "%s (Error _ as err)%s -> err"
+                ( List.init (nb - i - 1) ~f:(fun _ -> "_, ")
+                |> String.concat ~sep:"" )
+                (List.init i ~f:(fun _ -> ", _") |> String.concat ~sep:""))
+          |> String.concat ~sep:" | " in
+        Fmt.str
+          "`A elts ->\n\
+           ListLabels.fold_left elts ~init:(Ok []) ~f:(fun p e ->\n\
+           match p, e with\n\
+           | Error err, _ -> Error err\n\
+           | Ok prev, %s ->\n\
+           (match %s with\n\
+          \ | %s ->  Ok ((%s) :: prev)\n\
+          \ | %s)\n\
+           | _, other -> Error %s)\n\
+           |> (function\n\
+          \     | Ok l -> Ok (%s (List.rev l)) | Error _ as e -> e)"
+          (pattern_prim "Elt" ~args) matches oks tuple err_patterns
+          (Fmt.kstr parsing_error "element of %s" name)
+          construct_from_list
+
+      let try_catch f ~json ~name =
+        Fmt.str "(try Ok (%s) with _ -> Error %s)" f (parsing_error ~json name)
     end
 
     let record_or_variant kind ~fields ~name ~type_def ~typedef_field ~continue
@@ -502,6 +544,49 @@ module Ocaml = struct
                   Fmt.str "(Printf.sprintf \"(Pair %%s %%s)\" %s %s)" (make l)
                     (make r) in
             [make_default ~body:(make compiled_fields)] in
+      let of_json =
+        let patterns =
+          match kind with
+          | `Any -> []
+          | `Variant ->
+              let open Tree in
+              let patts = ref [] in
+              let rec make acc = function
+                | Leaf (name, (t, _)) ->
+                    let esc_name = Fmt.str "%s_v" name in
+                    patts :=
+                      Fmt.str "%s -> (%s %s) >>= fun %s -> Ok (%s %s)"
+                        (List.fold acc ~init:esc_name
+                           ~f:(fun prev left_right ->
+                             let args = Fmt.str "`A [%s]" prev in
+                             Of_json.pattern_prim left_right ~args))
+                        (Type.make_function_call t "of_json")
+                        esc_name esc_name (String.capitalize name) esc_name
+                      :: !patts
+                | Node (l, r) ->
+                    make ("Left" :: acc) l ;
+                    make ("Right" :: acc) r in
+              make [] compiled_fields ; !patts
+          | `Record ->
+              let open Tree in
+              let rec make = function
+                | Leaf (name, (t, _)) ->
+                    ( name
+                    , Fmt.str "(%s %s) >>= fun %s ->"
+                        (Type.make_function_call t "of_json")
+                        name name
+                    , name )
+                | Node (l, r) ->
+                    let lp, lc, lf = make l in
+                    let rp, rc, rf = make r in
+                    let args = Fmt.str "`A [%s ; %s]" lp rp in
+                    ( Of_json.pattern_prim "Pair" ~args
+                    , Fmt.str "%s\n%s" lc rc
+                    , Fmt.str "%s ; %s" lf rf ) in
+              let patt, monad_chain, record_fields = make compiled_fields in
+              [Fmt.str "%s ->\n%s\nOk {%s}" patt monad_chain record_fields]
+        in
+        Of_json.f ~name patterns in
       let deps = List.map compiled_fields_list ~f:(fun (_, (_, m)) -> m) in
       let layout =
         let open Tree in
@@ -511,8 +596,8 @@ module Ocaml = struct
         make fields in
       let v = Type.t0 modname in
       let m =
-        m modname ~kind ~type_def ~layout ~functions:to_concrete_functions
-      in
+        m modname ~kind ~type_def ~layout ~prelude:"open! Result_extras"
+          ~functions:(to_concrete_functions @ [of_json]) in
       (v, append deps m)
 
     let one_param ~name ~continue ~implementation what elt_t =
@@ -541,18 +626,8 @@ module Ocaml = struct
           ~name
           ( match implementation with
           | `List ->
-              [ Fmt.str
-                  "`A elts -> ListLabels.fold_left elts ~init:(Ok []) ~f:(fun \
-                   p e ->\n\n\
-                  \           match p, e with\n\
-                   | Error err, _ -> Error err\n\
-                   | Ok prev, %s ->\n\
-                   (match f_elt elt with Ok e -> Ok (e :: prev)\n\
-                   | Error _ as err -> err)\n\
-                   | _, other -> Error %s) |> (function\n\
-                   | Ok l -> Ok (List.rev l) | Error _ as e -> e)"
-                  (Of_json.pattern_prim "Elt" ~args:"`A [elt]")
-                  (Fmt.kstr Of_json.parsing_error "element of %s" name) ]
+              [ Of_json.parse_list_of_elts ~name ~f_elts:["f_elt"]
+                  ~construct_from_list:"" ]
           | `Option ->
               [ Fmt.str "`O ((\"prim\", `String \"None\") :: _) -> Ok None"
               ; Fmt.str
@@ -593,9 +668,27 @@ module Ocaml = struct
                 "%smatch x with List x -> (%s) | Int i -> string_of_int i" pre
                 deal_with_list in
         to_concrete (t, f) in
+      let of_json =
+        let patterns =
+          let common =
+            [ Of_json.parse_list_of_elts ~name ~f_elts:["f_key"; "f_value"]
+                ~construct_from_list:
+                  (match what with `Map -> "" | `Big_map -> "List ") ] in
+          match what with
+          | `Map -> common
+          | `Big_map ->
+              Fmt.str "`O [\"int\", `String i] as j -> %s"
+                (Of_json.try_catch "Int (int_of_string i)" ~name:"big-map-int"
+                   ~json:"j")
+              :: common in
+        Of_json.f
+          ~more_args:
+            [ ("'key", "(Json_value.t -> ('key, _) result)", "f_key")
+            ; ("'value", "(Json_value.t -> ('value, _) result)", "f_value") ]
+          ~name patterns in
       let m =
-        m ~type_def ~functions:[to_concrete] ~type_parameter:"('k, 'v)" m_name
-      in
+        m ~type_def ~functions:[to_concrete; of_json]
+          ~type_parameter:"('k, 'v)" m_name in
       (Type.call_2 m_name vk ve, concat [mk; me; m])
 
     let single ?type_def ~functions s = (Type.t0 s, m ~functions ?type_def s)
@@ -693,7 +786,9 @@ module Ocaml = struct
     let string_implementation modname =
       let crypto_thing_implementation_variant =
         [ variant_1_arg "Raw_string" "string" quote_string
-        ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x" ] in
+            ~micheline:Micheline_type.String
+        ; variant_1_arg "Raw_hex_bytes" "string" "fun x -> x"
+            ~micheline:Micheline_type.Bytes ] in
       make_variant_implementation modname crypto_thing_implementation_variant
   end
 
@@ -766,6 +861,8 @@ module Ocaml = struct
                     \                     let pp_big_int ppf bi =\n\
                      Format.pp_print_string ppf (string_of_big_int bi)"))
       ; m "Pairing_layout" ~type_def:"[ `P of t * t | `V ]" ~functions:[]
+      ; new_module "Result_extras"
+          ["let (>>=) x f = match x with Ok o -> f o | Error _ as e -> e"]
       ; Of_json.json_value_module; s ]
 end
 
