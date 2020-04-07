@@ -2,12 +2,11 @@ open Flextesa
 open Internal_pervasives
 module IFmt = More_fmt
 
-let run ?output_error_codes state ~and_annotations ~input_file ~output_file ()
-    =
+let run ?output_error_codes state ~on_annotations ~input_file ~output_file () =
   let open Michelson in
   File_io.read_file state input_file
   >>= fun expr ->
-  let transformed, error_codes = Transform.strip_errors ~and_annotations expr in
+  let transformed, error_codes = Transform.strip_errors ~on_annotations expr in
   File_io.write_file state ~path:output_file transformed
   >>= fun () ->
   Asynchronous_result.map_option output_error_codes ~f:(fun path ->
@@ -60,9 +59,9 @@ let make ?(command_name = "transform-michelson") () =
   in
   Test_command_line.Run_command.make ~pp_error
     ( pure
-        (fun input_file output_file and_annotations output_error_codes state ->
+        (fun input_file output_file on_annotations output_error_codes state ->
           ( state
-          , run state ~input_file ~output_file ~and_annotations
+          , run state ~input_file ~output_file ~on_annotations
               ?output_error_codes ))
     $ Arg.(
         required
@@ -72,9 +71,7 @@ let make ?(command_name = "transform-michelson") () =
         required
           (pos 1 (some string) None
              (info [] ~docv:"OUTPUT-PATH" ~doc:"Output file.")))
-    $ Arg.(
-        value
-          (flag (info ["strip-annotations"] ~doc:"Also remove annotations.")))
+    $ Michelson.Transform.On_annotations.cmdliner_term ()
     $ Arg.(
         value
           (opt (some string) None

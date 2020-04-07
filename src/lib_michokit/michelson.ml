@@ -38,7 +38,53 @@ end
 module Tz_protocol = Tezos_protocol_alpha.Protocol
 
 module Transform = struct
-  let strip_errors ?(and_annotations = false) expr =
+  module On_annotations = struct
+    type t = [`Keep | `Strip | `Replace of (string * string) list]
+
+    let perform (t : t) l =
+      match t with
+      | `Keep -> l
+      | `Replace replacements ->
+          List.map l ~f:(fun ann ->
+              match
+                List.find replacements ~f:(fun (k, _) -> String.equal ann k)
+              with
+              | None -> ann
+              | Some (_, v) -> v)
+      | `Strip -> []
+
+    let cmdliner_term () : t Cmdliner.Term.t =
+      let open Cmdliner in
+      let open Term in
+      term_result
+        ( const (fun keep strip replace ->
+              match (keep, strip, replace) with
+              | _, false, None -> Ok `Keep
+              | false, true, None -> Ok `Strip
+              | false, false, Some l -> Ok (`Replace l)
+              | _, _, _ ->
+                  Error
+                    (`Msg
+                      "Annotations (--*-annotations) options should be \
+                       mutually exclusive."))
+        $ Arg.(
+            value
+              (flag
+                 (info ["keep-annotations"]
+                    ~doc:"Keep annotations (the default).")))
+        $ Arg.(
+            value
+              (flag (info ["strip-annotations"] ~doc:"Remove all annotations.")))
+        $ Arg.(
+            value
+              (opt
+                 (some (list ~sep:',' (pair ~sep:':' string string)))
+                 None
+                 (info ["replace-annotations"]
+                    ~doc:"Perform replacement on annotations."))) )
+  end
+
+  let strip_errors ?(on_annotations = `Keep) expr =
     let open Tz_protocol.Environment.Micheline in
     let all_failwith_arguments = ref [] in
     let add_failwith_argument arg =
@@ -55,9 +101,12 @@ module Transform = struct
           id in
     let rec transform = function
       | (Int _ | String _ | Bytes _) as e -> e
-      | Prim (a, b, nl, _ann) when and_annotations ->
-          Prim (a, b, List.map ~f:transform nl, [])
-      | Prim (a, b, nl, ann) -> Prim (a, b, List.map ~f:transform nl, ann)
+      | Prim (a, b, nl, ann) ->
+          Prim
+            ( a
+            , b
+            , List.map ~f:transform nl
+            , On_annotations.perform on_annotations ann )
       | Seq (loc, node_list) ->
           let open Tz_protocol.Michelson_v1_primitives in
           let new_node_list =
