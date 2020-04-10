@@ -4,7 +4,11 @@ module IFmt = More_fmt
 
 module Concrete = struct
   module Parse_error = struct
-    type t = [`Michelson_parsing of string * exn]
+    type t =
+      [ `Michelson_parsing of
+        string
+        * [`Exn of exn | `Tz_errors of Tezos_error_monad.Error_monad.error list]
+      ]
 
     let pp ppf (`Michelson_parsing (code, ex)) =
       let open IFmt in
@@ -15,17 +19,21 @@ module Concrete = struct
           sp ppf () ;
           string ppf "->" ;
           sp ppf () ;
-          exn ppf ex)
+          match ex with
+          | `Exn e -> exn ppf e
+          | `Tz_errors l -> Tezos_error_monad.Error_monad.pp_print_error ppf l)
 
-    let fail s e = fail (`Michelson_parsing (s, e))
+    let fail s e = fail (`Michelson_parsing (s, e) : [> t])
   end
 
   let parse s =
     try
       Tezos_client_alpha.Michelson_v1_parser.(
-        (parse_toplevel s |> fst).expanded)
-      |> return
-    with e -> Parse_error.fail s e
+        let parsed, errors = parse_toplevel ~check:true s in
+        match errors with
+        | [] -> return parsed.expanded
+        | more -> Parse_error.fail s (`Tz_errors more))
+    with e -> Parse_error.fail s (`Exn e)
 
   let to_string e =
     let buf = Buffer.create 1000 in
@@ -150,7 +158,12 @@ module Json = struct
 end
 
 module File_io = struct
-  let read_file state input_file =
+  let read_file state input_file :
+      ( Tezos_protocol_alpha.Protocol.Alpha_context.Script.expr
+      , [> Concrete.Parse_error.t | Flextesa.Internal_pervasives.System_error.t]
+      )
+      Flextesa.Internal_pervasives.Attached_result.t
+      Lwt.t =
     match Caml.Filename.extension input_file with
     | ".tz" ->
         System.read_file state input_file
