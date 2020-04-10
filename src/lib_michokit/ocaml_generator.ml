@@ -492,8 +492,10 @@ module Ocaml = struct
       let compiled_fields_list = Tree.to_list compiled_fields in
       let type_def =
         type_def
-          ( List.map compiled_fields_list ~f:(fun (field_name, (typ, _)) ->
-                typedef_field field_name (typ : Type.t))
+          ( List.sort compiled_fields_list ~compare:(fun (fa, _) (fb, _) ->
+                String.compare fa fb)
+          |> List.map ~f:(fun (field_name, (typ, _)) ->
+                 typedef_field field_name (typ : Type.t))
           |> String.concat ~sep:"  " ) in
       let to_concrete_functions =
         let make_default ~body =
