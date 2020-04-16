@@ -2,11 +2,13 @@ open Flextesa
 open Internal_pervasives
 module IFmt = More_fmt
 
-let run ?output_error_codes state ~on_annotations ~input_file ~output_file () =
+let run ?output_error_codes state ~strip_errors ~on_annotations ~input_file
+    ~output_file () =
   let open Michelson in
   File_io.read_file state input_file
   >>= fun expr ->
-  let transformed, error_codes = Transform.strip_errors ~on_annotations expr in
+  let transformed, error_codes =
+    Transform.expression ~strip_errors ~on_annotations expr in
   File_io.write_file state ~path:output_file transformed
   >>= fun () ->
   Asynchronous_result.map_option output_error_codes ~f:(fun path ->
@@ -59,10 +61,21 @@ let make ?(command_name = "transform-michelson") () =
   in
   Test_command_line.Run_command.make ~pp_error
     ( pure
-        (fun input_file output_file on_annotations output_error_codes state ->
+        (fun strip_errors
+             input_file
+             output_file
+             on_annotations
+             output_error_codes
+             state
+             ->
           ( state
-          , run state ~input_file ~output_file ~on_annotations
+          , run state ~strip_errors ~input_file ~output_file ~on_annotations
               ?output_error_codes ))
+    $ Arg.(
+        value
+          (flag
+             (info ["strip-errors"]
+                ~doc:"Transform error messages into integers")))
     $ Arg.(
         required
           (pos 0 (some string) None
@@ -76,6 +89,8 @@ let make ?(command_name = "transform-michelson") () =
         value
           (opt (some string) None
              (info ["output-error-codes"]
-                ~doc:"Output the matching of error values to integers.")))
+                ~doc:
+                  "Output the matching of error values to integers (unless \
+                   `--strip-errors` is provided, the list will be empty).")))
     $ Test_command_line.cli_state ~name:"michokit-transform" () )
     (info command_name ~doc:"Perform transformations on Michelson code.")

@@ -92,7 +92,7 @@ module Transform = struct
                     ~doc:"Perform replacement on annotations."))) )
   end
 
-  let strip_errors ?(on_annotations = `Keep) expr =
+  let expression ?(strip_errors = true) ?(on_annotations = `Keep) expr =
     let open Tz_protocol.Environment.Micheline in
     let all_failwith_arguments = ref [] in
     let add_failwith_argument arg =
@@ -125,7 +125,8 @@ module Transform = struct
                     , (* [Prim (l2, T_string, ns, _anns); String (l3, s)] *)
                     _
                     , _annt ) as anything )
-              ; Prim (l4, I_FAILWITH, nf, _annf) ] ->
+              ; Prim (l4, I_FAILWITH, nf, _annf) ]
+              when strip_errors ->
                 (* Caml.Format.eprintf "\n\n\nFound failwith: %S\n%!" s ; *)
                 let id = add_failwith_argument (strip_locations anything) in
                 [ Prim
