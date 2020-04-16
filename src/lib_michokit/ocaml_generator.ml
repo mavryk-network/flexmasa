@@ -2,10 +2,18 @@ open Flextesa
 open Internal_pervasives
 module IFmt = More_fmt
 
-let dbg fmt = Fmt.epr Caml.("ocofmi: " ^^ fmt ^^ "\n%!")
+let dbg fmt =
+  let ppf =
+    let noop = Caml.Format.make_formatter (fun _ _ _ -> ()) (fun () -> ()) in
+    match Caml.Sys.getenv "ocofmi_debug" with
+    | "true" -> Caml.Format.err_formatter
+    | _ -> noop
+    | exception _ -> noop in
+  Fmt.pf ppf Caml.("ocofmi: " ^^ fmt ^^ "\n%!")
+
+(*
 let pp_field_annot ppf (`Field_annot fa) = Fmt.pf ppf "(FA: %s)" fa
 let pp_type_annot ppf (`Type_annot fa) = Fmt.pf ppf "(TA: %s)" fa
-
 let rec analyze_type ty =
   let open Tezos_raw_protocol_alpha.Script_ir_translator in
   let open Tezos_raw_protocol_alpha.Script_typed_ir in
@@ -21,6 +29,7 @@ let rec analyze_type ty =
       analyze_type (Ex_ty l) ;
       analyze_type (Ex_ty r)
   | Ex_ty _ty -> dbg "()"
+ *)
 
 module Simpler_michelson_type = struct
   (* open Tezos_raw_protocol_alpha.Script_ir_translator *)
