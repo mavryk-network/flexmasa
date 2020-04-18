@@ -96,7 +96,6 @@ $vendor/src/bin_signer/main_signer.exe:tezos-signer
 $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
-$(daemons 005-PsBabyM1)
 $(daemons 006-PsCARTHA)
 "
 build_interesting_binaries () {
@@ -141,6 +140,7 @@ RUN make vendors
 RUN opam config exec -- make
 EOF
     build_interesting_binaries >> Dockerfile
+    copy_interesting_binaries | sed 's/COPY --from=0/RUN sudo cp/' >> Dockerfile
 }
 make_run_dockerfile () {
     cat > Dockerfile <<EOF
@@ -152,10 +152,8 @@ EOF
     cat >> Dockerfile <<EOF
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/tutorial-box.sh /usr/bin/babylonbox
-RUN chmod a+rx /usr/bin/babylonbox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/carthagebox
-RUN sed -i s/default_protocol=Babylon/default_protocol=Carthage/ /usr/bin/carthagebox
+# RUN sed -i s/default_protocol=Babylon/default_protocol=Carthage/ /usr/bin/carthagebox
 RUN chmod a+rx /usr/bin/carthagebox
 EOF
 }
