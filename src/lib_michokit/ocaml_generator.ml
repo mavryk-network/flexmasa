@@ -625,7 +625,15 @@ module Ocaml = struct
           ^
           match implementation with
           | `List ->
-              "\"{ \" ^ StringLabels.concat ~sep:\" ; \" (ListLabels.map ~f \
+              "let f elt = (* hack around micheline's paren-weirdness *)\n\
+               let concrete_elt = f elt in\n\
+               let lgth = String.length concrete_elt in\n\
+               match concrete_elt.[0], concrete_elt.[lgth - 1] with\n\
+               | '(', ')' ->\n\
+              \   StringLabels.sub concrete_elt ~pos:1 ~len:(lgth - 2)\n\
+               | _, _ -> concrete_elt\n\
+               in\n\
+               \"{ \" ^ StringLabels.concat ~sep:\" ; \" (ListLabels.map ~f \
                x) ^ \"}\""
           | `Option ->
               "(match x with None -> \"None\" | Some v -> \"Some \" ^ f v)"
