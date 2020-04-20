@@ -476,10 +476,21 @@ module Ocaml = struct
            (match %s with\n\
           \ | %s ->  Ok ((%s) :: prev)\n\
           \ | %s)\n\
+           %s\n\
            | _, other -> Error %s)\n\
            |> (function\n\
           \     | Ok l -> Ok (%s (List.rev l)) | Error _ as e -> e)"
           (pattern_prim "Elt" ~args) matches oks tuple err_patterns
+          ( if List.length f_elts = 1 then
+            Fmt.str
+              "| Ok prev, (`O _ as elt0)\n\
+              \ (* Sometimes lists/set don't use Elt *)\n\
+               ->\n\
+               (match %s with\n\
+               | %s -> Ok ((%s) :: prev)\n\
+               | %s)\n"
+              matches oks tuple err_patterns
+          else "" )
           (Fmt.kstr parsing_error "element of %s" name)
           construct_from_list
 
