@@ -150,5 +150,6 @@ let () =
     (Term.eval_choice
        (help : unit Term.t * _)
        ( Small_utilities.all ~pp_error ()
-       @ [Michokit.Command.make (); Flextesa.Interactive_mini_network.cmd ()]
-       ))
+       @ [ Michokit.Transform_command.make ()
+         ; Michokit.Ocaml_generator.Command.make ()
+         ; Flextesa.Interactive_mini_network.cmd () ] ))

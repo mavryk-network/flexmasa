@@ -1,6 +1,6 @@
 #! /bin/sh
 
-default_protocol=Babylon
+default_protocol=Carthage
 
 all_commands="
 * usage | help | --help | -h: Display this help message."
@@ -19,10 +19,6 @@ EOF
 }
 
 case "$default_protocol" in
-    "Babylon" )
-        daemon_suffix=005-PsBabyM1
-        protocol_hash=PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
-        ;;
     "Carthage" )
         daemon_suffix=006-PsCARTHA
         protocol_hash=PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb
