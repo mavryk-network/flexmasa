@@ -27,7 +27,7 @@ let clear_root state =
   | Unix.WEXITED 0 -> return ()
   | _ -> System_error.fail_fatalf "cannot delete root path (%S)" root
 
-let wait_for ?(attempts_factor = 0.) state ~attempts ~seconds f =
+let wait_for ?(attempts_factor = 0.) state ~attempts ~seconds ~silent f =
   let rec attempt nth =
     let again () = attempt (nth + 1) in
     f nth
@@ -35,10 +35,12 @@ let wait_for ?(attempts_factor = 0.) state ~attempts ~seconds f =
     | `Done x -> return x
     | `Not_done msg when nth < attempts ->
         let sleep_time = Float.((attempts_factor * of_int nth) + seconds) in
-        say state
-          EF.(
-            wf "%s: attempt %d/%d, sleeping %.02f seconds" msg nth attempts
-              sleep_time)
+        ( if not silent then
+          say state
+            EF.(
+              wf "%s: attempt %d/%d, sleeping %.02f seconds" msg nth attempts
+                sleep_time)
+        else return () )
         >>= fun () -> System.sleep sleep_time >>= fun () -> again ()
     | `Not_done msg -> fail (`Waiting_for (msg, `Time_out)) in
   attempt 1
@@ -323,8 +325,9 @@ end
 
 module Timing = struct
   let duration f x =
-    let start = Unix.gettimeofday ()
-    in let res = f x
-    in let stop = Unix.gettimeofday ()
-    in (res, stop -. start)
+    let start = Unix.gettimeofday () in
+    f x
+    >>= fun res ->
+    let stop = Unix.gettimeofday () in
+    return (res, stop -. start)
 end

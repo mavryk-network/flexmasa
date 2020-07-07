@@ -204,7 +204,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.
       [ generate_traffic_command state
-          ~clients:(List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc)) ] ;
+          ~clients:(List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc))
+          ~nodes ] ;
   ( if with_baking then
     let accusers =
       List.map nodes ~f:(fun node ->
@@ -214,6 +215,9 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         Running_processes.start state (Tezos_daemon.process state acc)
         >>= fun {process= _; lwt= _} -> return ())
     >>= fun () ->
+    (* TODO: shouldn't need this: *)
+    (* avoiding intermittent error in register_as_delegate *)
+    let _ = Unix.sleep 5 in
     List_sequential.iter keys_and_daemons
       ~f:(fun (_acc, client, kc, daemons) ->
         Tezos_client.wait_for_node_bootstrap state client

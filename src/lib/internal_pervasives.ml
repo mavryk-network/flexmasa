@@ -135,7 +135,6 @@ module Attached_result = struct
 
   type ('ok, 'error) t =
     {result: ('ok, 'error) Result.t; attachments: (string * content) list}
-    constraint 'error = [> ]
 
   let ok ?(attachments = []) o = {result= Ok o; attachments}
   let error ?(attachments = []) o = {result= Error o; attachments}
@@ -268,10 +267,20 @@ module Asynchronous_result = struct
     Lwt.return {result; attachments= attachments @ attach}
 
   (** The module opened everywhere. *)
+  module M = Base.Monad.Make2 (struct
+    type nonrec ('a, 'b) t = ('a, 'b) t
+
+    let return x = return x
+    let bind x ~f = bind x f
+    let map = `Define_using_bind
+  end)
+
   module Std = struct
     let ( >>= ) = bind let return = return let fail = fail
   end
 
+  (* We get all of JaneSt's functions and then overwrite some with our own: *)
+  include M
   open Std
 
   let run r on_error =

@@ -18,6 +18,7 @@ val wait_for :
   -> < application_name: string ; console: Console.t ; .. >
   -> attempts:int
   -> seconds:float
+  -> silent:bool
   -> (   int
       -> ( [`Done of 'a | `Not_done of string]
          , ([> System_error.t | `Waiting_for of string * [`Time_out]]
@@ -116,8 +117,8 @@ end
 
 module Timing : sig
   val duration :
-       ('a -> 'b)
+       ('a -> ('b, 'c) Asynchronous_result.t)
     -> 'a
-    -> 'b * float
+    -> ('b * float, 'c) Asynchronous_result.t
   (** Time the duration of a function *)
 end

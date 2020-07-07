@@ -149,6 +149,7 @@ module Queries : sig
   val wait_for_all_levels_to_be :
        ?attempts_factor:float
     -> ?chain:string
+    -> ?silent:bool
     -> < application_name: string
        ; console: Console.t
        ; paths: Paths.t

@@ -322,7 +322,9 @@ module Commands = struct
                    let tz i = Float.of_int i /. 1_000_000. in
                    desc (haf "%s:" hsh)
                      ( if init = cur then af "%f (unchanged)" (tz cur)
-                     else af "%f → %f (delta: %f)" (tz init) (tz cur) (tz (cur - init)) )))))
+                     else
+                       af "%f → %f (delta: %f)" (tz init) (tz cur)
+                         (tz (cur - init)) )))))
 
   let better_call_dev state ~default_port =
     Console.Prompt.unit_and_loop
@@ -493,6 +495,8 @@ module Commands = struct
           cmdline_fail "%s -> Error: %a" msg Process_result.Error.pp e
       | #System_error.t as e ->
           cmdline_fail "%s -> Error: %a" msg System_error.pp e
+      | `Waiting_for (msg, `Time_out) ->
+          cmdline_fail "WAITING-FOR “%s”: Time-out" msg
       | `Command_line _ as e -> fail e)
 
   let bake_command state ~clients =
@@ -520,7 +524,42 @@ module Commands = struct
         protect_with_keyed_client "manual-baking" ~client ~f:(fun () ->
             Tezos_client.Keyed.bake state client "Manual baking !"))
 
-  let generate_traffic_command state ~clients =
+  let signer_names =
+    [ "Alice"; "Bob"; "Charlie"; "David"; "Elsa"; "Frank"; "Gail"; "Harry"
+    ; "Ivan"; "Jane"; "Iris"; "Jackie"; "Linda"; "Mary"; "Nemo"; "Opal"; "Paul"
+    ; ""; "Rhonda"; "Steve"; "Theodore"; "Uma"; "Venus"; "Wimpy"; "Xaviar"
+    ; "Yuri"; "Zed" ]
+
+  let import_keys state client names =
+    Console.say state
+      EF.(
+        desc
+          (af "Importing keys for these signers:")
+          (list (List.map names ~f:(fun name -> desc (haf "%s" name) (af "")))))
+    >>= fun () ->
+    List.fold names ~init:(return ()) ~f:(fun previous_m s ->
+        previous_m
+        >>= fun () ->
+        let kp = Tezos_protocol.Account.of_name s in
+        Tezos_client.import_secret_key state client
+          ~name:(Tezos_protocol.Account.name kp)
+          ~key:(Tezos_protocol.Account.private_key kp))
+
+  let wait_for_bake state ~nodes =
+    Test_scenario.Queries.all_levels state ~nodes
+    >>= fun results ->
+    let levels =
+      List.map results ~f:(fun (_, result) ->
+          match result with `Level i -> i | _ -> 0) in
+    let max_level =
+      match List.max_elt ~compare:Int.compare levels with
+      | Some n -> n
+      | None -> 0 in
+    Test_scenario.Queries.wait_for_all_levels_to_be state ~silent:true
+      ~attempts:20 ~seconds:0.5 ~attempts_factor:0.8 nodes
+      (`At_least (max_level + 1))
+
+  let generate_traffic_command state ~clients ~nodes =
     Console.Prompt.unit_and_loop
       ~description:
         Fmt.(
@@ -559,6 +598,14 @@ module Commands = struct
         let level_option =
           Sexp_options.make_option "level" ~placeholders:["<int>"] "The level."
         in
+        let contract_repeat_option =
+          Sexp_options.make_option "contract-repeat" ~placeholders:["<int>"]
+            "The number of repeated calls to execute the fully-signed multi-sig\n\
+            \             contract (default: 1)." in
+        let num_signers_option =
+          Sexp_options.make_option "num-signers" ~placeholders:["<int>"]
+            "The number of signers required for the multi-sig\n\
+            \             contract (default: 3)." in
         let branch client =
           Tezos_client.rpc state ~client:client.Tezos_client.Keyed.client `Get
             ~path:"/chains/main/blocks/head/hash"
@@ -580,9 +627,13 @@ module Commands = struct
                 fun ppf () ->
                   pf ppf "Generating traffic: TODO" ;
                   cmd ppf "batch"
-                    (const text
-                       "Make a batch operation (only transfers for now).")
+                    (const text "Make a batch operation (simple transfers).")
                     [counter_option; size_option; fee_option] ;
+                  cmd ppf "multisig-batch"
+                    (const text
+                       "Make a batch operation (multi-sig transacitons).")
+                    [ counter_option; contract_repeat_option; num_signers_option
+                    ; size_option; fee_option ] ;
                   cmd ppf "endorsement"
                     (const text "Make an endorsement for a given level")
                     [level_option])
@@ -599,8 +650,6 @@ module Commands = struct
                 Console.sayf state
                   More_fmt.(fun ppf () -> json ppf json_result))
         | Atom "batch" :: more_args ->
-
-
             protect_with_keyed_client "forge-and-inject" ~client ~f:(fun () ->
                 branch client
                 >>= fun branch ->
@@ -624,19 +673,81 @@ module Commands = struct
                   ~f:Sexp_options.get_float_exn ~default:(fun () ->
                     return 0.02)
                 >>= fun fee ->
-                let (m, sec) = Helpers.Timing.duration (fun aFee ->
-                  let json =
-                    Traffic_generation.Forge.batch_transfer ~src ~counter ~fee:aFee
-                      ~branch size in
-                  Tezos_client.Keyed.forge_and_inject state client ~json
-                  >>= fun (json_result) ->
+                Helpers.Timing.duration
+                  (fun aFee ->
+                    let json =
+                      Traffic_generation.Forge.batch_transfer ~src ~counter
+                        ~fee:aFee ~branch size in
+                    Tezos_client.Keyed.forge_and_inject state client ~json
+                    >>= fun json_result ->
                     Console.sayf state
-                      More_fmt.(fun ppf () -> json ppf json_result)) fee
-                in m >>= fun () ->
-                  Console.say state
-                    EF.(
-                      desc (haf "Execution time:")
-                        (af " %fs\n%!" sec)))
+                      More_fmt.(fun ppf () -> json ppf json_result))
+                  fee
+                >>= fun ((), sec) ->
+                Console.say state
+                  EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
+        | Atom "multisig-batch" :: more_args ->
+            protect_with_keyed_client "gen multisig-batch" ~client
+              ~f:(fun () ->
+                Sexp_options.get size_option more_args
+                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 10)
+                >>= fun size ->
+                Sexp_options.get contract_repeat_option more_args
+                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
+                >>= fun contract_repeat ->
+                Sexp_options.get num_signers_option more_args
+                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
+                >>= fun n_signers ->
+                let num_signers =
+                  if n_signers > List.length signer_names then
+                    List.length signer_names
+                  else n_signers in
+                Helpers.Timing.duration
+                  (fun () ->
+                    (*loop through batch size *)
+                    Loop.n_times size (fun n ->
+                        (* generate and import keys *)
+                        let signer_names = List.take signer_names num_signers in
+                        import_keys state client.client signer_names
+                        (* deploy the multisig contract *)
+                        >>= fun () ->
+                        wait_for_bake state ~nodes
+                        (* required to avoid "counter" errors *)
+                        >>= fun () ->
+                        let multisig_name = "msig-" ^ Int.to_string n in
+                        Tezos_client.Keyed.deploy_multisig state client
+                          ~name:multisig_name ~amt:100.0 ~from_acct:"bootacc-0"
+                          ~threshold:num_signers ~signer_names ~burn_cap:100.0
+                        >>= fun () ->
+                        wait_for_bake state ~nodes
+                        >>= fun () ->
+                        (* for each signer, sign the contract *)
+                        let m_sigs =
+                          List.map signer_names ~f:(fun s ->
+                              Tezos_client.Keyed.sign_multisig state client
+                                ~name:multisig_name ~amt:100.0 ~to_acct:"Bob"
+                                ~signer_name:s) in
+                        Asynchronous_result.all m_sigs
+                        >>= fun signatures ->
+                        (* submit the fully signed multisig contract *)
+                        Loop.n_times contract_repeat (fun k ->
+                            Tezos_client.Keyed.from_multisig state client
+                              ~name:multisig_name ~amt:100.0 ~to_acct:"Bob"
+                              ~on_behalf_acct:"bootacc-0" ~signatures
+                              ~burn_cap:100.0
+                            >>= fun () ->
+                            Console.say state
+                              EF.(
+                                desc
+                                  (haf "Multi-sig contract generation")
+                                  (af "Fully signed contract %s (%n) submitted"
+                                     multisig_name k)))))
+                  (*end: loop through batch size *)
+                  ()
+                (* end: duration function *)
+                >>= fun ((), sec) ->
+                Console.say state
+                  EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
         | other ->
             Fmt.kstr failwith "Wrong command line: %a" Sexp.pp (List other))
 
