@@ -113,3 +113,11 @@ module Shell_environement : sig
     -> path:string
     -> Console.Prompt.item
 end
+
+module Timing : sig
+  val duration :
+       ('a -> 'b)
+    -> 'a
+    -> 'b * float
+  (** Time the duration of a function *)
+end

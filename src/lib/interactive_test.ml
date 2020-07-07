@@ -322,7 +322,7 @@ module Commands = struct
                    let tz i = Float.of_int i /. 1_000_000. in
                    desc (haf "%s:" hsh)
                      ( if init = cur then af "%f (unchanged)" (tz cur)
-                     else af "%f → %f" (tz init) (tz cur) )))))
+                     else af "%f → %f (delta: %f)" (tz init) (tz cur) (tz (cur - init)) )))))
 
   let better_call_dev state ~default_port =
     Console.Prompt.unit_and_loop
@@ -599,6 +599,8 @@ module Commands = struct
                 Console.sayf state
                   More_fmt.(fun ppf () -> json ppf json_result))
         | Atom "batch" :: more_args ->
+
+
             protect_with_keyed_client "forge-and-inject" ~client ~f:(fun () ->
                 branch client
                 >>= fun branch ->
@@ -622,13 +624,19 @@ module Commands = struct
                   ~f:Sexp_options.get_float_exn ~default:(fun () ->
                     return 0.02)
                 >>= fun fee ->
-                let json =
-                  Traffic_generation.Forge.batch_transfer ~src ~counter ~fee
-                    ~branch size in
-                Tezos_client.Keyed.forge_and_inject state client ~json
-                >>= fun json_result ->
-                Console.sayf state
-                  More_fmt.(fun ppf () -> json ppf json_result))
+                let (m, sec) = Helpers.Timing.duration (fun aFee ->
+                  let json =
+                    Traffic_generation.Forge.batch_transfer ~src ~counter ~fee:aFee
+                      ~branch size in
+                  Tezos_client.Keyed.forge_and_inject state client ~json
+                  >>= fun (json_result) ->
+                    Console.sayf state
+                      More_fmt.(fun ppf () -> json ppf json_result)) fee
+                in m >>= fun () ->
+                  Console.say state
+                    EF.(
+                      desc (haf "Execution time:")
+                        (af " %fs\n%!" sec)))
         | other ->
             Fmt.kstr failwith "Wrong command line: %a" Sexp.pp (List other))
 

@@ -320,3 +320,11 @@ module Shell_environement = struct
                     pick_and_alias () ;
                   cut ppf ())))
 end
+
+module Timing = struct
+  let duration f x =
+    let start = Unix.gettimeofday ()
+    in let res = f x
+    in let stop = Unix.gettimeofday ()
+    in (res, stop -. start)
+end
