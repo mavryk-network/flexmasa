@@ -15,10 +15,10 @@ val clear_root :
 
 val wait_for :
      ?attempts_factor:float
+  -> ?silent:bool
   -> < application_name: string ; console: Console.t ; .. >
   -> attempts:int
   -> seconds:float
-  -> silent:bool
   -> (   int
       -> ( [`Done of 'a | `Not_done of string]
          , ([> System_error.t | `Waiting_for of string * [`Time_out]]

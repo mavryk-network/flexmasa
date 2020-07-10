@@ -27,7 +27,8 @@ let clear_root state =
   | Unix.WEXITED 0 -> return ()
   | _ -> System_error.fail_fatalf "cannot delete root path (%S)" root
 
-let wait_for ?(attempts_factor = 0.) state ~attempts ~seconds ~silent f =
+let wait_for ?(attempts_factor = 0.) ?(silent = false) state ~attempts ~seconds
+    f =
   let rec attempt nth =
     let again () = attempt (nth + 1) in
     f nth

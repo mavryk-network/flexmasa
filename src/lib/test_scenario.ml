@@ -209,7 +209,7 @@ module Queries = struct
             (Option.value_map chain ~default:"" ~f:(sprintf ", chain: %s")))
     else return () )
     >>= fun () ->
-    Helpers.wait_for state ?attempts_factor ~attempts ~seconds ~silent
+    Helpers.wait_for state ?attempts_factor ~silent ~attempts ~seconds
       (fun _nth ->
         all_levels state ~nodes ?chain
         >>= fun results ->
