@@ -184,7 +184,9 @@ module Commands : sig
     -> clients:Tezos_client.Keyed.t list
     -> Console.Prompt.item
 
-  val import_keys :
+  val get_signer_names : string list -> int -> string list
+
+  val generate_and_import_keys :
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t

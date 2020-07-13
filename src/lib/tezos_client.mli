@@ -384,7 +384,7 @@ module Keyed : sig
 
   (* sign a multisig contract *)
 
-  val from_multisig :
+  val transfer_from_multisig :
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t

@@ -429,8 +429,8 @@ module Keyed = struct
       ]
     >>= fun sign_res -> return (String.concat ~sep:"" sign_res#out)
 
-  let from_multisig state cli ~name ~amt ~to_acct ~on_behalf_acct ~signatures
-      ~burn_cap =
+  let transfer_from_multisig state cli ~name ~amt ~to_acct ~on_behalf_acct
+      ~signatures ~burn_cap =
     successful_client_cmd state ~client:cli.client
       (List.concat
          [ [ "from"; "multisig"; "contract"; name; "transfer"; sprintf "%f" amt
