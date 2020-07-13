@@ -204,7 +204,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.
       [ generate_traffic_command state
-          ~clients:(List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc)) ] ;
+          ~clients:(List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc))
+          ~nodes ] ;
   ( if with_baking then
     let accusers =
       List.map nodes ~f:(fun node ->

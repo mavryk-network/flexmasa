@@ -46,13 +46,13 @@ val wait_for_node_bootstrap :
 (** Wait for the node to be bootstrapped. *)
 
 val import_secret_key :
-     < paths: Paths.t
+     < application_name: string
      ; console: Console.t
+     ; paths: Paths.t
      ; runner: Running_processes.State.t
      ; env_config: Environment_configuration.t
      ; .. >
-     Base_state.t
-  -> t
+  -> client
   -> name:string
   -> key:string
   -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
@@ -188,6 +188,19 @@ val list_known_addresses :
      ; .. >
   -> client:t
   -> ( (string * string) list
+     , [> Process_result.Error.t | System_error.t] )
+     Asynchronous_result.t
+
+val show_known_contract :
+     < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; env_config: Environment_configuration.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> t
+  -> name:string
+  -> ( string
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
@@ -332,4 +345,62 @@ module Keyed : sig
     -> ( Ezjsonm.value
        , [> Process_result.Error.t | System_error.t] )
        Asynchronous_result.t
+
+  val deploy_multisig :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> name:string
+    -> amt:float
+    -> from_acct:string
+    -> threshold:int
+    -> signer_names:string list
+    -> burn_cap:float
+    -> ( unit
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  (* Deploy the general multisig contract *)
+
+  val sign_multisig :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> name:string
+    -> amt:float
+    -> to_acct:string
+    -> signer_name:string
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  (* sign a multisig contract *)
+
+  val transfer_from_multisig :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> name:string
+    -> amt:float
+    -> to_acct:string
+    -> on_behalf_acct:string
+    -> signatures:string list
+    -> burn_cap:float
+    -> ( unit
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  (* Submit the fully-signed multisig contract *)
 end

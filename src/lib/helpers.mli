@@ -15,6 +15,7 @@ val clear_root :
 
 val wait_for :
      ?attempts_factor:float
+  -> ?silent:bool
   -> < application_name: string ; console: Console.t ; .. >
   -> attempts:int
   -> seconds:float
@@ -112,4 +113,12 @@ module Shell_environement : sig
     -> t
     -> path:string
     -> Console.Prompt.item
+end
+
+module Timing : sig
+  val duration :
+       ('a -> ('b, 'c) Asynchronous_result.t)
+    -> 'a
+    -> ('b * float, 'c) Asynchronous_result.t
+  (** Time the duration of a function *)
 end

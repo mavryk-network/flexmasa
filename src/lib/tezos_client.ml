@@ -238,6 +238,10 @@ let list_known_addresses state ~client =
              | None -> None
              | Some matches -> Some (Group.get matches 1, Group.get matches 2)))
 
+let show_known_contract state client ~name =
+  successful_client_cmd state ~client ["show"; "known"; "contract"; name]
+  >>= fun res -> return (String.concat res#out)
+
 module Ledger = struct
   type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
 
@@ -406,4 +410,33 @@ module Keyed = struct
     >>= fun () ->
     rpc state ~client ~path:"/injection/operation?chain=main"
       (`Post (sprintf "\"%s%s\"" operation_bytes actual_signature))
+
+  let deploy_multisig state cli ~name ~amt ~from_acct ~threshold ~signer_names
+      ~burn_cap =
+    successful_client_cmd state ~client:cli.client
+      (List.concat
+         [ [ "deploy"; "multisig"; name; "transferring"; sprintf "%f" amt
+           ; "from"; from_acct; "with"; "threshold"; Int.to_string threshold
+           ; "on"; "public"; "keys" ]
+         ; signer_names
+         ; ["--burn-cap"; sprintf "%f" burn_cap; "--force"] ])
+    >>= fun _ -> return ()
+
+  let sign_multisig state cli ~name ~amt ~to_acct ~signer_name =
+    successful_client_cmd state ~client:cli.client
+      [ "sign"; "multisig"; "transaction"; "on"; name; "transferring"
+      ; sprintf "%f" amt; "to"; to_acct; "using"; "secret"; "key"; signer_name
+      ]
+    >>= fun sign_res -> return (String.concat ~sep:"" sign_res#out)
+
+  let transfer_from_multisig state cli ~name ~amt ~to_acct ~on_behalf_acct
+      ~signatures ~burn_cap =
+    successful_client_cmd state ~client:cli.client
+      (List.concat
+         [ [ "from"; "multisig"; "contract"; name; "transfer"; sprintf "%f" amt
+           ; "to"; to_acct; "on"; "behalf"; "of"; on_behalf_acct; "with"
+           ; "signatures" ]
+         ; signatures
+         ; ["--burn-cap"; sprintf "%f" burn_cap] ])
+    >>= fun _ -> return ()
 end

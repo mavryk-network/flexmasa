@@ -179,8 +179,8 @@ module Queries = struct
     in
     return sorted
 
-  let wait_for_all_levels_to_be ?attempts_factor ?chain state ~attempts
-      ~seconds nodes level =
+  let wait_for_all_levels_to_be ?attempts_factor ?chain ?(silent = false) state
+      ~attempts ~seconds nodes level =
     let check_level =
       match level with
       | `Equal_to l -> ( = ) l
@@ -200,14 +200,17 @@ module Queries = struct
       sprintf "Waiting for %s to reach level %s"
         (String.concat (List.map ~f:show_node ids) ~sep:", ")
         level_string in
-    Console.say state
-      EF.(
-        wf "Checking for all levels to be %s (nodes: %s%s)" level_string
-          (String.concat ~sep:", "
-             (List.map nodes ~f:(fun n -> n.Tezos_node.id)))
-          (Option.value_map chain ~default:"" ~f:(sprintf ", chain: %s")))
+    ( if not silent then
+      Console.say state
+        EF.(
+          wf "Checking for all levels to be %s (nodes: %s%s)" level_string
+            (String.concat ~sep:", "
+               (List.map nodes ~f:(fun n -> n.Tezos_node.id)))
+            (Option.value_map chain ~default:"" ~f:(sprintf ", chain: %s")))
+    else return () )
     >>= fun () ->
-    Helpers.wait_for state ?attempts_factor ~attempts ~seconds (fun _nth ->
+    Helpers.wait_for state ?attempts_factor ~silent ~attempts ~seconds
+      (fun _nth ->
         all_levels state ~nodes ?chain
         >>= fun results ->
         let not_readys =

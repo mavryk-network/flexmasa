@@ -1,2 +1,4 @@
-/_build/
-.merlin
+**/_build/**
+**/.merlin
+/local-vendor/
+/flextesa
