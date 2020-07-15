@@ -44,6 +44,98 @@ module Michelson = struct
     return origination
 end
 
+module Forge = struct
+  let batch_transfer
+      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
+      ?(counter = 0) ?(dst = [("tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F", 1)])
+      ~src ~fee ~branch n : Ezjsonm.value =
+    let open Ezjsonm in
+    ignore protocol_kind ;
+    dict
+      [ ("branch", `String branch)
+      ; ( "contents"
+        , `A
+            (List.map (List.range 0 n) ~f:(fun i ->
+                 let dest, amount = List.nth_exn dst (i % List.length dst) in
+                 `O
+                   [ ("kind", `String "transaction")
+                   ; ("source", `String src)
+                   ; ("destination", `String dest)
+                   ; ("amount", `String (Int.to_string amount))
+                   ; ( "fee"
+                     , `String (Int.to_string (Float.to_int (fee *. 1000000.)))
+                     )
+                   ; ("counter", `String (Int.to_string (counter + i)))
+                   ; ("gas_limit", `String (Int.to_string 127))
+                   ; ("storage_limit", `String (Int.to_string 277)) ])) ) ]
+
+  let endorsement ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
+      ~branch level : Ezjsonm.value =
+    let open Ezjsonm in
+    ignore protocol_kind ;
+    dict
+      [ ("branch", `String branch)
+      ; ( "contents"
+        , `A [`O [("kind", `String "endorsement"); ("level", int level)]] ) ]
+
+  let signer_names_base =
+    [ "Alice"; "Bob"; "Charlie"; "David"; "Elsa"; "Frank"; "Gail"; "Harry"
+    ; "Ivan"; "Jane"; "Iris"; "Jackie"; "Linda"; "Mary"; "Nemo"; "Opal"; "Paul"
+    ; "Quincy"; "Rhonda"; "Steve"; "Theodore"; "Uma"; "Venus"; "Wimpy"
+    ; "Xaviar"; "Yuri"; "Zed" ]
+
+  let get_signer_names signers n =
+    let k = List.length signers in
+    let rec append = function 0 -> signers | x -> signers @ append (x - 1) in
+    let suffix = function 0 -> "" | n -> "-" ^ Int.to_string (n + 1) in
+    let fold_f ((xs, i) : string list * int) (x : string) : string list * int =
+      let fst = List.cons (x ^ suffix (i / k)) xs in
+      (fst, i + 1) in
+    let big_list = List.take (append (n / k)) n in
+    let result, _ = List.fold big_list ~init:([], 0) ~f:fold_f in
+    List.rev result
+
+  (* TODO: Do we want this here?  The API is quite different from the others *)
+  let run_multi_sig state client nodes ~num_signers ~outer_repeat
+      ~contract_repeat =
+    let signer_names = get_signer_names signer_names_base num_signers in
+    (*loop through batch size *)
+    Loop.n_times outer_repeat (fun n ->
+        (* generate and import keys *)
+        let signer_names = List.take signer_names num_signers in
+        Helpers.import_keys state client signer_names
+        (* deploy the multisig contract *)
+        >>= fun _ ->
+        Test_scenario.Queries.wait_for_bake state ~nodes
+        (* required to avoid "counter" errors *)
+        >>= fun () ->
+        let multisig_name = "msig-" ^ Int.to_string n in
+        Tezos_client.deploy_multisig state client ~name:multisig_name
+          ~amt:100.0 ~from_acct:"bootacc-0" ~threshold:num_signers
+          ~signer_names ~burn_cap:100.0
+        >>= fun () ->
+        Test_scenario.Queries.wait_for_bake state ~nodes
+        >>= fun () ->
+        (* for each signer, sign the contract *)
+        let m_sigs =
+          List.map signer_names ~f:(fun s ->
+              Tezos_client.sign_multisig state client ~name:multisig_name
+                ~amt:100.0 ~to_acct:"Bob" ~signer_name:s) in
+        Asynchronous_result.all m_sigs
+        >>= fun signatures ->
+        (* submit the fully signed multisig contract *)
+        Loop.n_times contract_repeat (fun k ->
+            Tezos_client.transfer_from_multisig state client
+              ~name:multisig_name ~amt:100.0 ~to_acct:"Bob"
+              ~on_behalf_acct:"bootacc-0" ~signatures ~burn_cap:100.0
+            >>= fun () ->
+            Console.say state
+              EF.(
+                desc
+                  (haf "Multi-sig contract generation")
+                  (af "Fully signed contract %s (%n) submitted" multisig_name k))))
+end
+
 module Random = struct
   let run state ~protocol ~nodes ~clients ~until_level kind =
     assert (Poly.equal kind `Any) ;
@@ -75,7 +167,8 @@ module Random = struct
             | _ -> false)
         then info "Max-level reached: %d" until_level
         else loop (iteration + 1) in
-      List.random_element [`Sleep; `Add_contract; `Call_contract]
+      List.random_element
+        [`Sleep; `Add_contract; `Call_contract; `Multisig_contract]
       |> function
       | Some `Sleep ->
           let secs =
@@ -116,41 +209,13 @@ module Random = struct
           info "Origination of `%s` (%s : %s): `%a`." name init_storage
             parameter pp_success success
           >>= fun () -> continue_or_not ()
+      | Some `Multisig_contract ->
+          let num_signers = Random.int 5 + 1 in
+          let outer_repeat = Random.int 5 + 1 in
+          let contract_repeat = Random.int 5 + 1 in
+          Forge.run_multi_sig state client nodes ~num_signers ~outer_repeat
+            ~contract_repeat
+          >>= fun () -> continue_or_not ()
       | None -> continue_or_not () in
     loop 0
-end
-
-module Forge = struct
-  let batch_transfer
-      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
-      ?(counter = 0) ?(dst = [("tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F", 1)])
-      ~src ~fee ~branch n : Ezjsonm.value =
-    let open Ezjsonm in
-    ignore protocol_kind ;
-    dict
-      [ ("branch", `String branch)
-      ; ( "contents"
-        , `A
-            (List.map (List.range 0 n) ~f:(fun i ->
-                 let dest, amount = List.nth_exn dst (i % List.length dst) in
-                 `O
-                   [ ("kind", `String "transaction")
-                   ; ("source", `String src)
-                   ; ("destination", `String dest)
-                   ; ("amount", `String (Int.to_string amount))
-                   ; ( "fee"
-                     , `String (Int.to_string (Float.to_int (fee *. 1000000.)))
-                     )
-                   ; ("counter", `String (Int.to_string (counter + i)))
-                   ; ("gas_limit", `String (Int.to_string 127))
-                   ; ("storage_limit", `String (Int.to_string 277)) ])) ) ]
-
-  let endorsement ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
-      ~branch level : Ezjsonm.value =
-    let open Ezjsonm in
-    ignore protocol_kind ;
-    dict
-      [ ("branch", `String branch)
-      ; ( "contents"
-        , `A [`O [("kind", `String "endorsement"); ("level", int level)]] ) ]
 end

@@ -29,7 +29,9 @@ module Random : sig
     -> clients:Tezos_client.t list
     -> until_level:int
     -> [> `Any]
-    -> (unit, [> System_error.t]) Asynchronous_result.t
+    -> ( unit
+       , [> System_error.t | `Waiting_for of string * [`Time_out]] )
+       Asynchronous_result.t
 end
 
 module Forge : sig
@@ -48,4 +50,22 @@ module Forge : sig
     -> branch:string
     -> int
     -> Ezjsonm.value
+
+  val get_signer_names : string list -> int -> string list
+
+  val run_multi_sig :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; env_config: Environment_configuration.t
+       ; .. >
+    -> Tezos_client.t
+    -> Tezos_node.t list
+    -> num_signers:int
+    -> outer_repeat:int
+    -> contract_repeat:int
+    -> ( unit
+       , [> System_error.t | `Waiting_for of string * [`Time_out]] )
+       Asynchronous_result.t
 end

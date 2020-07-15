@@ -220,6 +220,20 @@ module Queries = struct
         match not_readys with
         | [] -> return (`Done ())
         | ids -> return (`Not_done (msg ids)))
+
+  let wait_for_bake state ~nodes =
+    all_levels state ~nodes
+    >>= fun results ->
+    let levels =
+      List.map results ~f:(fun (_, result) ->
+          match result with `Level i -> i | _ -> 0) in
+    let max_level =
+      match List.max_elt ~compare:Int.compare levels with
+      | Some n -> n
+      | None -> 0 in
+    wait_for_all_levels_to_be state ~silent:true ~attempts:20 ~seconds:1.0
+      ~attempts_factor:0.8 nodes
+      (`At_least (max_level + 1))
 end
 
 module Network = struct

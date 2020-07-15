@@ -65,6 +65,24 @@ let restart_node ~client_exec state nod =
     EF.(wf "Started node %s, waiting for bootstrap …" nod.Tezos_node.id)
   >>= fun () -> Tezos_client.wait_for_node_bootstrap state client
 
+let import_keys state client names =
+  Console.say state
+    EF.(
+      desc
+        (af "Importing keys for these signers:")
+        (list (List.map names ~f:(fun name -> desc (haf "%s" name) (af "")))))
+  >>= fun () ->
+  List.fold names ~init:(return "") ~f:(fun previous_m s ->
+      previous_m
+      >>= fun _ ->
+      let kp = Tezos_protocol.Account.of_name s in
+      Tezos_client.client_cmd state ~client
+        [ "import"; "secret"; "key"
+        ; Tezos_protocol.Account.name kp
+        ; Tezos_protocol.Account.private_key kp
+        ; "--force" ]
+      >>= fun (_, sign_res) -> return (String.concat ~sep:"" sign_res#out))
+
 module Counter_log = struct
   type t = (string * int) list ref
 
