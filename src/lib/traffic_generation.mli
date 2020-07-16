@@ -50,10 +50,10 @@ module Forge : sig
     -> branch:string
     -> int
     -> Ezjsonm.value
+end
 
-  val get_signer_names : string list -> int -> string list
-
-  val run_multi_sig :
+module Multisig : sig
+  val deploy_and_transfer :
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t
@@ -68,4 +68,6 @@ module Forge : sig
     -> ( unit
        , [> System_error.t | `Waiting_for of string * [`Time_out]] )
        Asynchronous_result.t
+
+  val get_signer_names : string list -> int -> string list
 end

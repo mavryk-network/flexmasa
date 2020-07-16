@@ -77,7 +77,9 @@ module Forge = struct
       [ ("branch", `String branch)
       ; ( "contents"
         , `A [`O [("kind", `String "endorsement"); ("level", int level)]] ) ]
+end
 
+module Multisig = struct
   let signer_names_base =
     [ "Alice"; "Bob"; "Charlie"; "David"; "Elsa"; "Frank"; "Gail"; "Harry"
     ; "Ivan"; "Jane"; "Iris"; "Jackie"; "Linda"; "Mary"; "Nemo"; "Opal"; "Paul"
@@ -95,15 +97,14 @@ module Forge = struct
     let result, _ = List.fold big_list ~init:([], 0) ~f:fold_f in
     List.rev result
 
-  (* TODO: Do we want this here?  The API is quite different from the others *)
-  let run_multi_sig state client nodes ~num_signers ~outer_repeat
+  let deploy_and_transfer state client nodes ~num_signers ~outer_repeat
       ~contract_repeat =
-    let signer_names = get_signer_names signer_names_base num_signers in
+    let signer_names_plus = get_signer_names signer_names_base num_signers in
     (*loop through batch size *)
     Loop.n_times outer_repeat (fun n ->
         (* generate and import keys *)
-        let signer_names = List.take signer_names num_signers in
-        Helpers.import_keys state client signer_names
+        let signer_names = List.take signer_names_plus num_signers in
+        Helpers.import_keys_from_seeds state client ~seeds:signer_names
         (* deploy the multisig contract *)
         >>= fun _ ->
         Test_scenario.Queries.wait_for_bake state ~nodes
@@ -213,8 +214,8 @@ module Random = struct
           let num_signers = Random.int 5 + 1 in
           let outer_repeat = Random.int 5 + 1 in
           let contract_repeat = Random.int 5 + 1 in
-          Forge.run_multi_sig state client nodes ~num_signers ~outer_repeat
-            ~contract_repeat
+          Multisig.deploy_and_transfer state client nodes ~num_signers
+            ~outer_repeat ~contract_repeat
           >>= fun () -> continue_or_not ()
       | None -> continue_or_not () in
     loop 0

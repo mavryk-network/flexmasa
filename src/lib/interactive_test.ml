@@ -680,8 +680,9 @@ module Commands = struct
                 >>= fun num_signers ->
                 Helpers.Timing.duration
                   (fun () ->
-                    Traffic_generation.Forge.run_multi_sig state client.client
-                      nodes ~num_signers ~outer_repeat ~contract_repeat)
+                    Traffic_generation.Multisig.deploy_and_transfer state
+                      client.client nodes ~num_signers ~outer_repeat
+                      ~contract_repeat)
                   ()
                 >>= fun ((), sec) ->
                 Console.say state

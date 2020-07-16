@@ -48,7 +48,7 @@ val restart_node :
   -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 (** Restart a killed node. *)
 
-val import_keys :
+val import_keys_from_seeds :
      < application_name: string
      ; console: Console.t
      ; paths: Paths.t
@@ -56,9 +56,9 @@ val import_keys :
      ; env_config: Environment_configuration.t
      ; .. >
   -> Tezos_client.t
-  -> string list
+  -> seeds:string list
   -> (string, [> System_error.t]) Asynchronous_result.t
-(** Import keys from a list of names *)
+(** Import keys from a list of name seeds *)
 
 (** Stateful “message × count” log, see its use in, e.g.,
     ["./src/bin_flextesa/command_voting.ml"] where baked-levels
