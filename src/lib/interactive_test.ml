@@ -524,23 +524,6 @@ module Commands = struct
         protect_with_keyed_client "manual-baking" ~client ~f:(fun () ->
             Tezos_client.Keyed.bake state client "Manual baking !"))
 
-  let signer_names =
-    [ "Alice"; "Bob"; "Charlie"; "David"; "Elsa"; "Frank"; "Gail"; "Harry"
-    ; "Ivan"; "Jane"; "Iris"; "Jackie"; "Linda"; "Mary"; "Nemo"; "Opal"; "Paul"
-    ; "Quincy"; "Rhonda"; "Steve"; "Theodore"; "Uma"; "Venus"; "Wimpy"
-    ; "Xaviar"; "Yuri"; "Zed" ]
-
-  let get_signer_names signers n =
-    let k = List.length signers in
-    let rec append = function 0 -> signers | x -> signers @ append (x - 1) in
-    let suffix = function 0 -> "" | n -> "-" ^ Int.to_string (n + 1) in
-    let fold_f ((xs, i) : string list * int) (x : string) : string list * int =
-      let fst = List.cons (x ^ suffix (i / k)) xs in
-      (fst, i + 1) in
-    let big_list = List.take (append (n / k)) n in
-    let result, _ = List.fold big_list ~init:([], 0) ~f:fold_f in
-    List.rev result
-
   let generate_and_import_keys state client names =
     Console.say state
       EF.(
@@ -555,20 +538,6 @@ module Commands = struct
         Tezos_client.import_secret_key state client
           ~name:(Tezos_protocol.Account.name kp)
           ~key:(Tezos_protocol.Account.private_key kp))
-
-  let wait_for_bake state ~nodes =
-    Test_scenario.Queries.all_levels state ~nodes
-    >>= fun results ->
-    let levels =
-      List.map results ~f:(fun (_, result) ->
-          match result with `Level i -> i | _ -> 0) in
-    let max_level =
-      match List.max_elt ~compare:Int.compare levels with
-      | Some n -> n
-      | None -> 0 in
-    Test_scenario.Queries.wait_for_all_levels_to_be state ~silent:true
-      ~attempts:20 ~seconds:1.0 ~attempts_factor:0.8 nodes
-      (`At_least (max_level + 1))
 
   let generate_traffic_command state ~clients ~nodes =
     Console.Prompt.unit_and_loop
@@ -702,57 +671,19 @@ module Commands = struct
               ~f:(fun () ->
                 Sexp_options.get size_option more_args
                   ~f:Sexp_options.get_int_exn ~default:(fun () -> return 10)
-                >>= fun size ->
+                >>= fun outer_repeat ->
                 Sexp_options.get contract_repeat_option more_args
                   ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
                 >>= fun contract_repeat ->
                 Sexp_options.get num_signers_option more_args
                   ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
                 >>= fun num_signers ->
-                let the_names = get_signer_names signer_names num_signers in
                 Helpers.Timing.duration
                   (fun () ->
-                    (*loop through batch size *)
-                    Loop.n_times size (fun n ->
-                        (* generate and import keys *)
-                        generate_and_import_keys state client.client the_names
-                        (* deploy the multisig contract *)
-                        >>= fun () ->
-                        wait_for_bake state ~nodes
-                        (* required to avoid "counter" errors *)
-                        >>= fun () ->
-                        let multisig_name = "msig-" ^ Int.to_string n in
-                        Tezos_client.Keyed.deploy_multisig state client
-                          ~name:multisig_name ~amt:100.0 ~from_acct:"bootacc-0"
-                          ~threshold:num_signers ~signer_names:the_names
-                          ~burn_cap:100.0
-                        >>= fun () ->
-                        wait_for_bake state ~nodes
-                        >>= fun () ->
-                        (* for each signer, sign the contract *)
-                        let m_sigs =
-                          List.map the_names ~f:(fun s ->
-                              Tezos_client.Keyed.sign_multisig state client
-                                ~name:multisig_name ~amt:100.0 ~to_acct:"Bob"
-                                ~signer_name:s) in
-                        Asynchronous_result.all m_sigs
-                        >>= fun signatures ->
-                        (* submit the fully signed multisig opearation *)
-                        Loop.n_times contract_repeat (fun k ->
-                            Tezos_client.Keyed.transfer_from_multisig state
-                              client ~name:multisig_name ~amt:100.0
-                              ~to_acct:"Bob" ~on_behalf_acct:"bootacc-0"
-                              ~signatures ~burn_cap:100.0
-                            >>= fun () ->
-                            Console.say state
-                              EF.(
-                                desc
-                                  (haf "Multi-sig contract generation")
-                                  (af "Fully signed contract %s (%n) submitted"
-                                     multisig_name k)))))
-                  (*end: loop through batch size *)
+                    Traffic_generation.Multisig.deploy_and_transfer state
+                      client.client nodes ~num_signers ~outer_repeat
+                      ~contract_repeat)
                   ()
-                (* end: duration function *)
                 >>= fun ((), sec) ->
                 Console.say state
                   EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))

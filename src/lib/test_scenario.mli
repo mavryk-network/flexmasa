@@ -163,4 +163,17 @@ module Queries : sig
        , [> System_error.t | `Waiting_for of string * [`Time_out]] )
        Asynchronous_result.t
   (** Try-sleep-loop waiting for all given nodes to reach a given level. *)
+
+  val wait_for_bake :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> nodes:Tezos_node.t list
+    -> ( unit
+       , [> System_error.t | `Waiting_for of string * [`Time_out]] )
+       Asynchronous_result.t
+  (** wait until at least one block is baked on all nodes *)
 end
