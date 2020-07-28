@@ -4,6 +4,28 @@ open Internal_pervasives
 
 (** Implementations of common {!Console.Prompt.item}. *)
 module Commands : sig
+  module Sexp_options : sig
+    type t = {name: string; placeholders: string list; description: string}
+    type option = t
+
+    val make_option : string -> ?placeholders:string list -> string -> option
+  end
+
+  type batch_action = {src: string; counter: int; size: int; fee: float}
+
+  type multisig_action =
+    {num_signers: int; outer_repeat: int; contract_repeat: int}
+
+  type action =
+    [`Batch_action of batch_action | `Multisig_action of multisig_action]
+
+  type all_options =
+    { counter_option: Sexp_options.option
+    ; size_option: Sexp_options.option
+    ; fee_option: Sexp_options.option
+    ; num_signers_option: Sexp_options.option
+    ; contract_repeat_option: Sexp_options.option }
+
   val cmdline_fail :
        ( 'a
        , Caml.Format.formatter
@@ -195,6 +217,143 @@ module Commands : sig
     -> string list
     -> ( unit
        , [> System_error.t | Process_result.Error.t] )
+       Asynchronous_result.t
+
+  val branch :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> Tezos_client.Keyed.t
+    -> ( string
+       , [> `Process_error of Process_result.Error.error
+         | `System_error of [`Fatal] * System_error.static ] )
+       Asynchronous_result.t
+
+  val get_batch_args :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> all_options
+    -> Sexplib0.Sexp.t list
+    -> ( [> `Batch_action of batch_action]
+       , [> `Command_line of string] )
+       Asynchronous_result.t
+
+  val get_multisig_args :
+       all_options
+    -> Sexplib0.Sexp.t list
+    -> ( [`Multisig_action of multisig_action]
+       , [> `Command_line of string] )
+       Asynchronous_result.t
+
+  val to_action :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> all_options
+    -> Sexplib0.Sexp.t
+    -> ( [> `Batch_action of batch_action | `Multisig_action of multisig_action]
+       , [> `Command_line of string
+         | `Process_error of Process_result.Error.error
+         | `System_error of [`Fatal] * System_error.static ] )
+       Asynchronous_result.t
+
+  val process_repeat_action : Sexplib0.Sexp.t -> int * Sexplib0.Sexp.t
+  val process_random_choice : Sexplib0.Sexp.t -> bool * Sexplib0.Sexp.t
+
+  val process_action_cmds :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> all_options
+    -> Sexplib0.Sexp.t
+    -> random_choice:bool
+    -> ( action list
+       , [> `Command_line of string
+         | `Process_error of Process_result.Error.error
+         | `System_error of [`Fatal] * System_error.static ] )
+       Asynchronous_result.t
+
+  val process_gen_batch :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> batch_action
+    -> ( unit
+       , [> `Command_line of string | Process_result.Error.t] )
+       Asynchronous_result.t
+
+  val process_gen_multi_sig :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> nodes:Tezos_node.t list
+    -> multisig_action
+    -> (unit, [> `Command_line of string]) Asynchronous_result.t
+
+  val run_actions :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> nodes:Tezos_node.t list
+    -> actions:[< `Batch_action of batch_action
+               | `Multisig_action of multisig_action ]
+               list
+    -> counter:int
+    -> ( unit
+       , [> `Command_line of string | Process_result.Error.t] )
+       Asynchronous_result.t
+
+  val process_dsl :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> nodes:Tezos_node.t list
+    -> all_options
+    -> Sexplib0.Sexp.t
+    -> ( unit
+       , [> `Command_line of string
+         | Process_result.Error.t
+         | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
 
   val generate_traffic_command :
