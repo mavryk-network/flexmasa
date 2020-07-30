@@ -252,7 +252,8 @@ module Commands : sig
        all_options
     -> Sexplib0.Sexp.t list
     -> ( [`Multisig_action of multisig_action]
-       , [> `Command_line of string] )
+       , [> `Command_line of string
+         | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
 
   val to_action :

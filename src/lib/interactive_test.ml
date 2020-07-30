@@ -42,15 +42,25 @@ module Commands = struct
           Sexp.(
             function
             | List (Atom a :: more)
-              when String.equal a opt.name
+              when (String.equal a opt.name || String.equal a (":" ^ opt.name))
                    && Int.(List.length more = List.length opt.placeholders) ->
                 Some (f more)
             | _ -> None)
 
+    let find_new opt sexps g =
+      let sub_list =
+        List.drop_while sexps ~f:(function
+          | Sexp.Atom a when String.equal a (":" ^ opt.name) -> false
+          | _ -> true) in
+      match sub_list with
+      | Sexp.Atom _ :: Sexp.Atom o :: _ -> Some (g [Sexp.Atom o])
+      | _ -> None
+
     let get opt sexps ~default ~f =
-      match find opt sexps f with
+      match find_new opt sexps f with
       | Some n -> return n
-      | None -> default ()
+      | None -> (
+        match find opt sexps f with Some n -> return n | None -> default () )
       | exception e -> cmdline_fail "Getting option %s: %a" opt.name Exn.pp e
 
     let get_int_exn = function
@@ -587,7 +597,7 @@ module Commands = struct
           (`Batch_action
             {src= the_src; counter= the_counter; size= the_size; fee= the_fee}))
 
-  let get_multisig_args opts more_args =
+  let get_multisig_args opts (more_args : Sexp.t list) =
     Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
       ~default:(fun () -> return 10)
     >>= fun the_outer_repeat ->
