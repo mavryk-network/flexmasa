@@ -33,7 +33,7 @@ module Prompt : sig
     ; description: string
     ; details: unit Fmt.t option
     ; action:
-           Sexplib0.Sexp.t list
+           Base.Sexp.t list
         -> ( [`Help | `Loop | `Quit]
            , [`Command_line of string | System_error.t] )
            Asynchronous_result.t }
@@ -42,7 +42,7 @@ module Prompt : sig
        ?details:unit Fmt.t
     -> description:string
     -> string list
-    -> (   Sexplib0.Sexp.t list
+    -> (   Base.Sexp.t list
         -> ( [`Help | `Loop | `Quit]
            , [`Command_line of string | System_error.t] )
            Asynchronous_result.t)
@@ -58,7 +58,7 @@ module Prompt : sig
        ?details:unit Fmt.t
     -> description:string
     -> string list
-    -> (   Sexplib0.Sexp.t list
+    -> (   Base.Sexp.t list
         -> ( unit
            , [`Command_line of string | System_error.t] )
            Asynchronous_result.t)

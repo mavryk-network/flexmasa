@@ -29,12 +29,12 @@ module Commands = struct
               wrapping_box ~indent:2 ppf (fun ppf ->
                   let opt_ex ppf () =
                     prompt ppf (fun ppf ->
-                        pf ppf "(%s%s)" name
+                        pf ppf ":%s%s" name
                           ( if Poly.equal placeholders [] then ""
                           else
                             List.map ~f:(str " %s") placeholders
                             |> String.concat ~sep:"" )) in
-                  pf ppf "* %a: %a" opt_ex () text description)))
+                  pf ppf "* %a  %a" opt_ex () text description)))
 
     let find opt sexps f =
       List.find_map sexps
@@ -574,7 +574,7 @@ module Commands = struct
 
   let get_batch_args state ~client opts more_args =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
-        let the_src =
+        let src =
           client.key_name |> Tezos_protocol.Account.of_name
           |> Tezos_protocol.Account.pubkey_hash in
         Sexp_options.get opts.counter_option more_args
@@ -582,36 +582,28 @@ module Commands = struct
             Tezos_client.rpc state ~client:client.client `Get
               ~path:
                 (Fmt.str
-                   "/chains/main/blocks/head/context/contracts/%s/counter"
-                   the_src)
+                   "/chains/main/blocks/head/context/contracts/%s/counter" src)
             >>= fun counter_json ->
             return ((Jqo.get_string counter_json |> Int.of_string) + 1))
-        >>= fun the_counter ->
+        >>= fun counter ->
         Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
           ~default:(fun () -> return 10)
-        >>= fun the_size ->
+        >>= fun size ->
         Sexp_options.get opts.fee_option more_args
           ~f:Sexp_options.get_float_exn ~default:(fun () -> return 0.02)
-        >>= fun the_fee ->
-        return
-          (`Batch_action
-            {src= the_src; counter= the_counter; size= the_size; fee= the_fee}))
+        >>= fun fee -> return (`Batch_action {src; counter; size; fee}))
 
   let get_multisig_args opts (more_args : Sexp.t list) =
     Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
       ~default:(fun () -> return 10)
-    >>= fun the_outer_repeat ->
+    >>= fun outer_repeat ->
     Sexp_options.get opts.contract_repeat_option more_args
       ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
-    >>= fun the_contract_repeat ->
+    >>= fun contract_repeat ->
     Sexp_options.get opts.num_signers_option more_args
       ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
-    >>= fun the_num_signers ->
-    return
-      (`Multisig_action
-        { num_signers= the_num_signers
-        ; outer_repeat= the_outer_repeat
-        ; contract_repeat= the_contract_repeat })
+    >>= fun num_signers ->
+    return (`Multisig_action {num_signers; outer_repeat; contract_repeat})
 
   let to_action state ~client opts sexp =
     match sexp with
@@ -649,7 +641,7 @@ module Commands = struct
           "process_random_choice - expecting a list but got: %a" Sexp.pp other
 
   let process_action_cmds state ~client opts sexp ~random_choice =
-    let rec loop (actions : action list) (exps : Sexplib0.Sexp.t list) =
+    let rec loop (actions : action list) (exps : Base.Sexp.t list) =
       match exps with
       | [x] -> to_action state ~client opts x >>= fun a -> return (a :: actions)
       | x :: xs ->
@@ -720,10 +712,11 @@ module Commands = struct
                 process_gen_multi_sig state ~client ~nodes ma))
 
   let process_dsl state ~client ~nodes opts sexp =
-    let n, sexp2 = process_repeat_action sexp in
-    let b, sexp3 = process_random_choice sexp2 in
-    process_action_cmds state ~client opts sexp3 ~random_choice:b
-    >>= fun actions -> run_actions state ~client ~nodes ~actions ~counter:n
+    protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
+        let n, sexp2 = process_repeat_action sexp in
+        let b, sexp3 = process_random_choice sexp2 in
+        process_action_cmds state ~client opts sexp3 ~random_choice:b
+        >>= fun actions -> run_actions state ~client ~nodes ~actions ~counter:n)
 
   let generate_traffic_command state ~clients ~nodes =
     Console.Prompt.unit_and_loop
@@ -752,32 +745,41 @@ module Commands = struct
           | Some c -> c
           | exception _ ->
               Fmt.kstr failwith "Wrong command line: %a" pp (List sexps) in
-        let the_counter_option =
+        let counter_option =
           Sexp_options.make_option "counter" ~placeholders:["<int>"]
             "The counter to provide (get it from the node by default)." in
-        let the_size_option =
+        let size_option =
           Sexp_options.make_option "size" ~placeholders:["<int>"]
             "The batch size (default: 10)." in
-        let the_fee_option =
+        let fee_option =
           Sexp_options.make_option "fee" ~placeholders:["<float-tz>"]
             "The fee per operation (default: 0.02)." in
         let level_option =
           Sexp_options.make_option "level" ~placeholders:["<int>"] "The level."
         in
-        let the_contract_repeat_option =
+        let contract_repeat_option =
           Sexp_options.make_option "contract-repeat" ~placeholders:["<int>"]
-            "The number of repeated calls to execute the fully-signed multi-sig\n\
-            \             contract (default: 1)." in
-        let the_num_signers_option =
+            "The number of repeated calls to execute the fully-signed \
+             multi-sig contract (default: 1)." in
+        let num_signers_option =
           Sexp_options.make_option "num-signers" ~placeholders:["<int>"]
-            "The number of signers required for the multi-sig\n\
-            \             contract (default: 3)." in
+            "The number of signers required for the multi-sig contract \
+             (default: 3)." in
+        let repeat_all_option =
+          Sexp_options.make_option "repeat"
+            ~placeholders:[":times"; "<int>"; "<list of commands>"]
+            "The number of times to repeat any dsl commands that follow \
+             (default: 1)." in
+        let random_choice_option =
+          Sexp_options.make_option "random-choice"
+            ~placeholders:["<list of commands>"]
+            "Randomly chose a command from a list of dsl commands." in
         let all_opts : all_options =
-          { counter_option= the_counter_option
-          ; size_option= the_size_option
-          ; fee_option= the_fee_option
-          ; num_signers_option= the_num_signers_option
-          ; contract_repeat_option= the_contract_repeat_option } in
+          { counter_option
+          ; size_option
+          ; fee_option
+          ; num_signers_option
+          ; contract_repeat_option } in
         match sexps with
         | Atom "help" :: __ ->
             Console.sayf state
@@ -794,13 +796,20 @@ module Commands = struct
                   pf ppf "Generating traffic: TODO" ;
                   cmd ppf "batch"
                     (const text "Make a batch operation (simple transfers).")
-                    [the_counter_option; the_size_option; the_fee_option] ;
+                    [counter_option; size_option; fee_option] ;
                   cmd ppf "multisig-batch"
                     (const text
                        "Make a batch operation (multi-sig transacitons).")
-                    [ the_counter_option; the_contract_repeat_option
-                    ; the_num_signers_option; the_size_option; the_fee_option
-                    ] ;
+                    [ counter_option; contract_repeat_option; num_signers_option
+                    ; size_option; fee_option ] ;
+                  cmd ppf "dsl"
+                    (const text
+                       "Invoke commands using the dsl syntax. Example: \n\
+                       \  dsl (repeat :times 5 (random-choice \n\
+                       \  ((multisig-batch :size 5 :contract-repeat 3 \
+                        :num-signers 4)\n\
+                       \  (batch :size 10))))")
+                    [repeat_all_option; random_choice_option] ;
                   cmd ppf "endorsement"
                     (const text "Make an endorsement for a given level")
                     [level_option])

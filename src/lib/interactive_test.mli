@@ -37,7 +37,7 @@ module Commands : sig
   val no_args :
     'a list -> (unit, [> `Command_line of string]) Asynchronous_result.t
 
-  val flag : string -> Sexplib0.Sexp.t list -> bool
+  val flag : string -> Base.Sexp.t list -> bool
 
   val unit_loop_no_args :
        description:string
@@ -243,14 +243,12 @@ module Commands : sig
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> all_options
-    -> Sexplib0.Sexp.t list
-    -> ( [> `Batch_action of batch_action]
-       , [> `Command_line of string] )
-       Asynchronous_result.t
+    -> Base.Sexp.t list
+    -> ([> action], [> `Command_line of string]) Asynchronous_result.t
 
   val get_multisig_args :
        all_options
-    -> Sexplib0.Sexp.t list
+    -> Base.Sexp.t list
     -> ( [`Multisig_action of multisig_action]
        , [> `Command_line of string
          | `System_error of [`Fatal] * System_error.static ] )
@@ -266,15 +264,15 @@ module Commands : sig
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> all_options
-    -> Sexplib0.Sexp.t
-    -> ( [> `Batch_action of batch_action | `Multisig_action of multisig_action]
+    -> Base.Sexp.t
+    -> ( [> action]
        , [> `Command_line of string
          | `Process_error of Process_result.Error.error
          | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
 
-  val process_repeat_action : Sexplib0.Sexp.t -> int * Sexplib0.Sexp.t
-  val process_random_choice : Sexplib0.Sexp.t -> bool * Sexplib0.Sexp.t
+  val process_repeat_action : Base.Sexp.t -> int * Base.Sexp.t
+  val process_random_choice : Base.Sexp.t -> bool * Base.Sexp.t
 
   val process_action_cmds :
        < application_name: string
@@ -286,7 +284,7 @@ module Commands : sig
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> all_options
-    -> Sexplib0.Sexp.t
+    -> Base.Sexp.t
     -> random_choice:bool
     -> ( action list
        , [> `Command_line of string
@@ -331,9 +329,7 @@ module Commands : sig
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
-    -> actions:[< `Batch_action of batch_action
-               | `Multisig_action of multisig_action ]
-               list
+    -> actions:[< action] list
     -> counter:int
     -> ( unit
        , [> `Command_line of string | Process_result.Error.t] )
@@ -350,7 +346,7 @@ module Commands : sig
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
     -> all_options
-    -> Sexplib0.Sexp.t
+    -> Base.Sexp.t
     -> ( unit
        , [> `Command_line of string
          | Process_result.Error.t

@@ -75,8 +75,7 @@ let call ?comment ?(expect = `Status `OK) ?(show_body = `All)
         cut ppf () ;
         pf ppf "* Response:" ;
         cut ppf () ;
-        Sexplib0.Sexp.pp_hum_indent 4 ppf (Cohttp.Response.sexp_of_t coresp)
-      in
+        Base.Sexp.pp_hum_indent 4 ppf (Cohttp.Response.sexp_of_t coresp) in
       let rec un_option_show f = function
         | `On_error _ when Poly.equal test_status `Ok -> ()
         | `On_error l -> un_option_show f l
