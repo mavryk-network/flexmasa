@@ -150,7 +150,10 @@ module Prompt = struct
         with
         | Some {action; _} -> (
             Asynchronous_result.bind_on_error
-              ( try action more
+              ( try
+                  Lwt.catch
+                    (fun () -> action more >>= fun res -> return res)
+                    (fun e -> System_error.fail_fatalf "Exn: %a" Exn.pp e)
                 with e -> System_error.fail_fatalf "Exn: %a" Exn.pp e )
               ~f:(fun ~result _ ->
                 say state

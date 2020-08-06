@@ -14,7 +14,8 @@ module Commands = struct
         no_args sexps >>= fun () -> f ())
 
   module Sexp_options = struct
-    type option = {name: string; placeholders: string list; description: string}
+    type t = {name: string; placeholders: string list; description: string}
+    type option = t
 
     let make_option name ?(placeholders = []) description =
       {name; placeholders; description}
@@ -28,12 +29,12 @@ module Commands = struct
               wrapping_box ~indent:2 ppf (fun ppf ->
                   let opt_ex ppf () =
                     prompt ppf (fun ppf ->
-                        pf ppf "(%s%s)" name
+                        pf ppf "%s%s" name
                           ( if Poly.equal placeholders [] then ""
                           else
                             List.map ~f:(str " %s") placeholders
                             |> String.concat ~sep:"" )) in
-                  pf ppf "* %a: %a" opt_ex () text description)))
+                  pf ppf "* %a  %a" opt_ex () text description)))
 
     let find opt sexps f =
       List.find_map sexps
@@ -41,15 +42,25 @@ module Commands = struct
           Sexp.(
             function
             | List (Atom a :: more)
-              when String.equal a opt.name
+              when (String.equal a opt.name || String.equal a (":" ^ opt.name))
                    && Int.(List.length more = List.length opt.placeholders) ->
                 Some (f more)
             | _ -> None)
 
+    let find_new opt sexps g =
+      let sub_list =
+        List.drop_while sexps ~f:(function
+          | Sexp.Atom a when String.equal a (":" ^ opt.name) -> false
+          | _ -> true) in
+      match sub_list with
+      | Sexp.Atom _ :: Sexp.Atom o :: _ -> Some (g [Sexp.Atom o])
+      | _ -> None
+
     let get opt sexps ~default ~f =
-      match find opt sexps f with
+      match find_new opt sexps f with
       | Some n -> return n
-      | None -> default ()
+      | None -> (
+        match find opt sexps f with Some n -> return n | None -> default () )
       | exception e -> cmdline_fail "Getting option %s: %a" opt.name Exn.pp e
 
     let get_int_exn = function
@@ -539,6 +550,174 @@ module Commands = struct
           ~name:(Tezos_protocol.Account.name kp)
           ~key:(Tezos_protocol.Account.private_key kp))
 
+  let branch state client =
+    Tezos_client.rpc state ~client:client.Tezos_client.Keyed.client `Get
+      ~path:"/chains/main/blocks/head/hash"
+    >>= fun br ->
+    let branch = Jqo.get_string br in
+    return branch
+
+  type batch_action = {src: string; counter: int; size: int; fee: float}
+
+  type multisig_action =
+    {num_signers: int; outer_repeat: int; contract_repeat: int}
+
+  type action =
+    [`Batch_action of batch_action | `Multisig_action of multisig_action]
+
+  type all_options =
+    { counter_option: Sexp_options.option
+    ; size_option: Sexp_options.option
+    ; fee_option: Sexp_options.option
+    ; num_signers_option: Sexp_options.option
+    ; contract_repeat_option: Sexp_options.option }
+
+  let get_batch_args state ~client opts more_args =
+    protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
+        let src =
+          client.key_name |> Tezos_protocol.Account.of_name
+          |> Tezos_protocol.Account.pubkey_hash in
+        Sexp_options.get opts.counter_option more_args
+          ~f:Sexp_options.get_int_exn ~default:(fun () ->
+            Tezos_client.rpc state ~client:client.client `Get
+              ~path:
+                (Fmt.str
+                   "/chains/main/blocks/head/context/contracts/%s/counter" src)
+            >>= fun counter_json ->
+            return ((Jqo.get_string counter_json |> Int.of_string) + 1))
+        >>= fun counter ->
+        Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
+          ~default:(fun () -> return 10)
+        >>= fun size ->
+        Sexp_options.get opts.fee_option more_args
+          ~f:Sexp_options.get_float_exn ~default:(fun () -> return 0.02)
+        >>= fun fee -> return (`Batch_action {src; counter; size; fee}))
+
+  let get_multisig_args opts (more_args : Sexp.t list) =
+    Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
+      ~default:(fun () -> return 10)
+    >>= fun outer_repeat ->
+    Sexp_options.get opts.contract_repeat_option more_args
+      ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
+    >>= fun contract_repeat ->
+    Sexp_options.get opts.num_signers_option more_args
+      ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
+    >>= fun num_signers ->
+    return (`Multisig_action {num_signers; outer_repeat; contract_repeat})
+
+  let to_action state ~client opts sexp =
+    match sexp with
+    | Sexp.List (Atom "batch" :: more_args) ->
+        get_batch_args state ~client opts more_args
+    | Sexp.List (Atom "multisig-batch" :: more_args) ->
+        get_multisig_args opts more_args
+    | Sexp.List (Atom a :: _) ->
+        Fmt.kstr failwith "to_action - unexpected atom inside list: %s" a
+    | Sexp.List z ->
+        Fmt.kstr failwith "to_action - unexpected list. %s"
+          (Sexp.to_string (List z))
+    | Sexp.Atom b -> Fmt.kstr failwith "to_action - unexpected atom. %s" b
+
+  let process_repeat_action sexp =
+    match sexp with
+    | Sexp.List (y :: _) -> (
+      match y with
+      | Sexp.List (Atom "repeat" :: Atom ":times" :: Atom n :: more_args) ->
+          let c = Int.of_string n in
+          let count = if c <= 0 then 1 else c in
+          (count, Sexp.List more_args)
+      | _ -> (1, sexp) )
+    | _ -> (1, sexp)
+
+  let process_random_choice sexp =
+    match sexp with
+    | Sexp.List (y :: _) -> (
+      match y with
+      | Sexp.List (Atom "random-choice" :: more_args) ->
+          (true, Sexp.List more_args)
+      | _ -> (false, sexp) )
+    | other ->
+        Fmt.kstr failwith
+          "process_random_choice - expecting a list but got: %a" Sexp.pp other
+
+  let process_action_cmds state ~client opts sexp ~random_choice =
+    let rec loop (actions : action list) (exps : Base.Sexp.t list) =
+      match exps with
+      | [x] -> to_action state ~client opts x >>= fun a -> return (a :: actions)
+      | x :: xs ->
+          to_action state ~client opts x >>= fun a -> loop (a :: actions) xs
+      | other ->
+          Fmt.kstr failwith "process_action_cmds - something weird: %a" Sexp.pp
+            (List other) in
+    let exp_list =
+      match sexp with
+      | Sexp.List (y :: _) -> (
+        match y with
+        | Sexp.List z -> z
+        | other ->
+            Fmt.kstr failwith
+              "process_action_cmds - inner fail - expecting a list within a \
+               list but got: %a"
+              Sexp.pp other )
+      | other ->
+          Fmt.kstr failwith
+            "process_action_cmds - outer fail - expecting a list within a \
+             list but got: %a"
+            Sexp.pp other in
+    loop [] exp_list
+    >>= fun action_list ->
+    if not random_choice then return action_list
+    else
+      let len = List.length action_list in
+      if len = 0 then return []
+      else
+        let rand = Random.int len in
+        let one_action = (List.to_array action_list).(rand) in
+        return [one_action]
+
+  let process_gen_batch state ~client act =
+    protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
+        Helpers.Timing.duration
+          (fun aFee ->
+            branch state client
+            >>= fun the_branch ->
+            let json =
+              Traffic_generation.Forge.batch_transfer ~src:act.src
+                ~counter:act.counter ~fee:aFee ~branch:the_branch act.size
+            in
+            Tezos_client.Keyed.forge_and_inject state client ~json
+            >>= fun json_result ->
+            Console.sayf state More_fmt.(fun ppf () -> json ppf json_result))
+          act.fee
+        >>= fun ((), sec) ->
+        Console.say state EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
+
+  let process_gen_multi_sig state ~client ~nodes act =
+    protect_with_keyed_client "generate multisig" ~client ~f:(fun () ->
+        Helpers.Timing.duration
+          (fun () ->
+            Traffic_generation.Multisig.deploy_and_transfer state client.client
+              nodes ~num_signers:act.num_signers ~outer_repeat:act.outer_repeat
+              ~contract_repeat:act.contract_repeat)
+          ()
+        >>= fun ((), sec) ->
+        Console.say state EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
+
+  let run_actions state ~client ~nodes ~actions ~counter =
+    Loop.n_times counter (fun _ ->
+        List_sequential.iter actions ~f:(fun a ->
+            match a with
+            | `Batch_action ba -> process_gen_batch state ~client ba
+            | `Multisig_action ma ->
+                process_gen_multi_sig state ~client ~nodes ma))
+
+  let process_dsl state ~client ~nodes opts sexp =
+    protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
+        let n, sexp2 = process_repeat_action sexp in
+        let b, sexp3 = process_random_choice sexp2 in
+        process_action_cmds state ~client opts sexp3 ~random_choice:b
+        >>= fun actions -> run_actions state ~client ~nodes ~actions ~counter:n)
+
   let generate_traffic_command state ~clients ~nodes =
     Console.Prompt.unit_and_loop
       ~description:
@@ -567,31 +746,40 @@ module Commands = struct
           | exception _ ->
               Fmt.kstr failwith "Wrong command line: %a" pp (List sexps) in
         let counter_option =
-          Sexp_options.make_option "counter" ~placeholders:["<int>"]
+          Sexp_options.make_option ":counter" ~placeholders:["<int>"]
             "The counter to provide (get it from the node by default)." in
         let size_option =
-          Sexp_options.make_option "size" ~placeholders:["<int>"]
+          Sexp_options.make_option ":size" ~placeholders:["<int>"]
             "The batch size (default: 10)." in
         let fee_option =
-          Sexp_options.make_option "fee" ~placeholders:["<float-tz>"]
+          Sexp_options.make_option ":fee" ~placeholders:["<float-tz>"]
             "The fee per operation (default: 0.02)." in
         let level_option =
-          Sexp_options.make_option "level" ~placeholders:["<int>"] "The level."
-        in
+          Sexp_options.make_option ":level" ~placeholders:["<int>"]
+            "The level." in
         let contract_repeat_option =
-          Sexp_options.make_option "contract-repeat" ~placeholders:["<int>"]
-            "The number of repeated calls to execute the fully-signed multi-sig\n\
-            \             contract (default: 1)." in
+          Sexp_options.make_option ":operation-repeat" ~placeholders:["<int>"]
+            "The number of repeated calls to execute the fully-signed \
+             multi-sig contract (default: 1)." in
         let num_signers_option =
-          Sexp_options.make_option "num-signers" ~placeholders:["<int>"]
-            "The number of signers required for the multi-sig\n\
-            \             contract (default: 3)." in
-        let branch client =
-          Tezos_client.rpc state ~client:client.Tezos_client.Keyed.client `Get
-            ~path:"/chains/main/blocks/head/hash"
-          >>= fun br ->
-          let branch = Jqo.get_string br in
-          return branch in
+          Sexp_options.make_option ":num-signers" ~placeholders:["<int>"]
+            "The number of signers required for the multi-sig contract \
+             (default: 3)." in
+        let repeat_all_option =
+          Sexp_options.make_option "repeat"
+            ~placeholders:[":times"; "<int>"; "<list of commands>"]
+            "The number of times to repeat any dsl commands that follow \
+             (default: 1)." in
+        let random_choice_option =
+          Sexp_options.make_option "random-choice"
+            ~placeholders:["<list of commands>"]
+            "Randomly chose a command from a list of dsl commands." in
+        let all_opts : all_options =
+          { counter_option
+          ; size_option
+          ; fee_option
+          ; num_signers_option
+          ; contract_repeat_option } in
         match sexps with
         | Atom "help" :: __ ->
             Console.sayf state
@@ -614,12 +802,20 @@ module Commands = struct
                        "Make a batch operation (multi-sig transacitons).")
                     [ counter_option; contract_repeat_option; num_signers_option
                     ; size_option; fee_option ] ;
+                  cmd ppf "dsl"
+                    (const text
+                       "Invoke commands using the dsl syntax. Example: \n\
+                       \  dsl (repeat :times 5 (random-choice \n\
+                       \  ((multisig-batch :size 5 :contract-repeat 3 \
+                        :num-signers 4)\n\
+                       \  (batch :size 10))))")
+                    [repeat_all_option; random_choice_option] ;
                   cmd ppf "endorsement"
                     (const text "Make an endorsement for a given level")
                     [level_option])
         | Atom "endorsement" :: more_args ->
             protect_with_keyed_client "forge-and-inject" ~client ~f:(fun () ->
-                branch client
+                branch state client
                 >>= fun branch ->
                 Sexp_options.get level_option more_args
                   ~f:Sexp_options.get_int_exn ~default:(fun () -> return 42)
@@ -630,63 +826,18 @@ module Commands = struct
                 Console.sayf state
                   More_fmt.(fun ppf () -> json ppf json_result))
         | Atom "batch" :: more_args ->
-            protect_with_keyed_client "forge-and-inject" ~client ~f:(fun () ->
-                branch client
-                >>= fun branch ->
-                let src =
-                  client.key_name |> Tezos_protocol.Account.of_name
-                  |> Tezos_protocol.Account.pubkey_hash in
-                Sexp_options.get counter_option more_args
-                  ~f:Sexp_options.get_int_exn ~default:(fun () ->
-                    Tezos_client.rpc state ~client:client.client `Get
-                      ~path:
-                        (Fmt.str
-                           "/chains/main/blocks/head/context/contracts/%s/counter"
-                           src)
-                    >>= fun counter_json ->
-                    return ((Jqo.get_string counter_json |> Int.of_string) + 1))
-                >>= fun counter ->
-                Sexp_options.get size_option more_args
-                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 10)
-                >>= fun size ->
-                Sexp_options.get fee_option more_args
-                  ~f:Sexp_options.get_float_exn ~default:(fun () ->
-                    return 0.02)
-                >>= fun fee ->
-                Helpers.Timing.duration
-                  (fun aFee ->
-                    let json =
-                      Traffic_generation.Forge.batch_transfer ~src ~counter
-                        ~fee:aFee ~branch size in
-                    Tezos_client.Keyed.forge_and_inject state client ~json
-                    >>= fun json_result ->
-                    Console.sayf state
-                      More_fmt.(fun ppf () -> json ppf json_result))
-                  fee
-                >>= fun ((), sec) ->
-                Console.say state
-                  EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
+            get_batch_args state ~client all_opts more_args
+            >>= fun ba ->
+            run_actions state ~client ~nodes ~actions:[ba] ~counter:1
         | Atom "multisig-batch" :: more_args ->
-            protect_with_keyed_client "gen multisig-batch" ~client
-              ~f:(fun () ->
-                Sexp_options.get size_option more_args
-                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 10)
-                >>= fun outer_repeat ->
-                Sexp_options.get contract_repeat_option more_args
-                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
-                >>= fun contract_repeat ->
-                Sexp_options.get num_signers_option more_args
-                  ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
-                >>= fun num_signers ->
-                Helpers.Timing.duration
-                  (fun () ->
-                    Traffic_generation.Multisig.deploy_and_transfer state
-                      client.client nodes ~num_signers ~outer_repeat
-                      ~contract_repeat)
-                  ()
-                >>= fun ((), sec) ->
-                Console.say state
-                  EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
+            get_multisig_args all_opts more_args
+            >>= fun ma ->
+            run_actions state ~client ~nodes ~actions:[ma] ~counter:1
+        | Atom "dsl" :: dsl_sexp ->
+            let str = Sexp.to_string (Sexp.List dsl_sexp) in
+            Console.say state EF.(desc (haf "dsl_sexp") (af " %s\n%!" str))
+            >>= fun () ->
+            process_dsl state ~client ~nodes all_opts (Sexp.List dsl_sexp)
         | other ->
             Fmt.kstr failwith "Wrong command line: %a" Sexp.pp (List other))
 
