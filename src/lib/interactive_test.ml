@@ -29,7 +29,7 @@ module Commands = struct
               wrapping_box ~indent:2 ppf (fun ppf ->
                   let opt_ex ppf () =
                     prompt ppf (fun ppf ->
-                        pf ppf ":%s%s" name
+                        pf ppf "%s%s" name
                           ( if Poly.equal placeholders [] then ""
                           else
                             List.map ~f:(str " %s") placeholders
@@ -746,23 +746,23 @@ module Commands = struct
           | exception _ ->
               Fmt.kstr failwith "Wrong command line: %a" pp (List sexps) in
         let counter_option =
-          Sexp_options.make_option "counter" ~placeholders:["<int>"]
+          Sexp_options.make_option ":counter" ~placeholders:["<int>"]
             "The counter to provide (get it from the node by default)." in
         let size_option =
-          Sexp_options.make_option "size" ~placeholders:["<int>"]
+          Sexp_options.make_option ":size" ~placeholders:["<int>"]
             "The batch size (default: 10)." in
         let fee_option =
-          Sexp_options.make_option "fee" ~placeholders:["<float-tz>"]
+          Sexp_options.make_option ":fee" ~placeholders:["<float-tz>"]
             "The fee per operation (default: 0.02)." in
         let level_option =
-          Sexp_options.make_option "level" ~placeholders:["<int>"] "The level."
-        in
+          Sexp_options.make_option ":level" ~placeholders:["<int>"]
+            "The level." in
         let contract_repeat_option =
-          Sexp_options.make_option "contract-repeat" ~placeholders:["<int>"]
+          Sexp_options.make_option ":operation-repeat" ~placeholders:["<int>"]
             "The number of repeated calls to execute the fully-signed \
              multi-sig contract (default: 1)." in
         let num_signers_option =
-          Sexp_options.make_option "num-signers" ~placeholders:["<int>"]
+          Sexp_options.make_option ":num-signers" ~placeholders:["<int>"]
             "The number of signers required for the multi-sig contract \
              (default: 3)." in
         let repeat_all_option =
