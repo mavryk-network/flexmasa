@@ -42,7 +42,7 @@ module Commands = struct
           Sexp.(
             function
             | List (Atom a :: more)
-              when (String.equal a opt.name || String.equal a (":" ^ opt.name))
+              when String.equal a opt.name
                    && Int.(List.length more = List.length opt.placeholders) ->
                 Some (f more)
             | _ -> None)
@@ -50,7 +50,7 @@ module Commands = struct
     let find_new opt sexps g =
       let sub_list =
         List.drop_while sexps ~f:(function
-          | Sexp.Atom a when String.equal a (":" ^ opt.name) -> false
+          | Sexp.Atom a when String.equal a opt.name -> false
           | _ -> true) in
       match sub_list with
       | Sexp.Atom _ :: Sexp.Atom o :: _ -> Some (g [Sexp.Atom o])
