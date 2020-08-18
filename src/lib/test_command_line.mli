@@ -4,8 +4,10 @@ open Internal_pervasives
 
 module Common_errors : sig
   type t =
-    [ `Die of int
+    [ `Command_line of string
+    | `Die of int
     | `Empty_protocol_list
+    | `Msg of string
     | `Precheck_failure of string
     | Process_result.Error.t
     | `Scenario_error of string
