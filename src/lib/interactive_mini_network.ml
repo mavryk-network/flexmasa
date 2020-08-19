@@ -265,6 +265,21 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   | `Interactive ->
       Interactive_test.Pauser.generic ~force:true state
         EF.[haf "Sandbox is READY \\o/"]
+  | `Dsl_traffic (`Dsl_command dsl_command) -> (
+      let kcs = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in
+      let parsed_cmd =
+        Parsexp.Single.parse_string (sprintf "( %s )" dsl_command) in
+      match parsed_cmd with
+      | Error err ->
+          fail
+            (`Msg
+              ( "Error: Parsing dsl command produced an error: "
+              ^ Parsexp.Parse_error.message err
+              ^ "for input string: " ^ dsl_command ))
+      | Ok sexp ->
+          return sexp
+          >>= fun dsl_sexp ->
+          Traffic_generation.Dsl.run state ~nodes ~clients:kcs dsl_sexp )
   | `Random_traffic (`Any, `Until level) ->
       System.sleep 10.
       >>= fun () ->
@@ -320,16 +335,28 @@ let cmd () =
         Arg.(
           pure
             Result.(
-              fun level_opt random_traffic ->
-                match (level_opt, random_traffic) with
-                | Some l, None -> return (`Wait_level (`At_least l))
-                | None, None -> return `Interactive
-                | Some l, Some kind ->
+              fun level_opt random_traffic dsl_cmd ->
+                match (level_opt, random_traffic, dsl_cmd) with
+                | None, None, None -> return `Interactive
+                | Some l, None, None -> return (`Wait_level (`At_least l))
+                | Some l, Some kind, None ->
                     return (`Random_traffic (kind, `Until l))
-                | None, Some _ ->
+                | None, None, Some cmd ->
+                    return (`Dsl_traffic (`Dsl_command cmd))
+                | _, Some _, Some _ ->
+                    fail
+                      (`Msg
+                        "Error: option `--random-traffic` can't be combined \
+                         with  `--traffic`.")
+                | None, Some _, None ->
                     fail
                       (`Msg
                         "Error: option `--random-traffic` requires also \
+                         `--until-level`.")
+                | Some _, _, Some _ ->
+                    fail
+                      (`Msg
+                        "Error: option `--traffic` can't be combined with  \
                          `--until-level`."))
           $ value
               (opt (some int) None
@@ -341,7 +368,12 @@ let cmd () =
                  (some (enum [("any", `Any)]))
                  None
                  (info ["random-traffic"] ~docs
-                    ~doc:"Generate random traffic (requires `--until-level`).")))
+                    ~doc:"Generate random traffic (requires `--until-level`)."))
+          $ value
+              (opt (some string) None
+                 (info ["traffic"] ~docs
+                    ~doc:
+                      "Generate traffic using the dsl syntax (not interactive)")))
     $ Arg.(
         pure (fun kr -> `Clear_root (not kr))
         $ value

@@ -29,8 +29,10 @@ end
 
 module Common_errors = struct
   type t =
-    [ `Die of int
+    [ `Command_line of string
+    | `Die of int
     | `Empty_protocol_list
+    | `Msg of string
     | `Precheck_failure of string
     | Process_result.Error.t
     | `Scenario_error of string
@@ -50,6 +52,8 @@ module Common_errors = struct
         Caml.Format.fprintf ppf "WAITING-FOR “%s”: Time-out" msg
     | `Precheck_failure _ as p -> Helpers.System_dependencies.Error.pp ppf p
     | `Die n -> Caml.Format.fprintf ppf "Exiting with %d" n
+    | `Command_line s -> Caml.Format.fprintf ppf "%s" s
+    | `Msg s -> Caml.Format.fprintf ppf "%s" s
 end
 
 module Run_command = struct
