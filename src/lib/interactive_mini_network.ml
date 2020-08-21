@@ -118,6 +118,31 @@ module Genesis_block_hash = struct
         >>= fun () -> return hash
 end
 
+let run_dsl_cmd keys_and_daemons state nodes dsl_command =
+  let kcs = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in
+  let parsed_cmd = Parsexp.Single.parse_string (sprintf "( %s )" dsl_command) in
+  match parsed_cmd with
+  | Error err ->
+      fail
+        (`Msg
+          ( "Error: Parsing dsl command produced an error: "
+          ^ Parsexp.Parse_error.message err
+          ^ "for input string: " ^ dsl_command ))
+  | Ok sexp ->
+      return sexp
+      >>= fun dsl_sexp ->
+      Traffic_generation.Dsl.run state ~nodes ~clients:kcs dsl_sexp
+
+let run_wait_level protocol state nodes opt lvl =
+  let seconds =
+    let tbb =
+      protocol.Tezos_protocol.time_between_blocks |> List.hd
+      |> Option.value ~default:10 in
+    Float.of_int tbb *. 3. in
+  let attempts = lvl in
+  Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds
+    nodes opt
+
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     ~with_baking ?generate_kiln_config node_exec client_exec baker_exec
@@ -265,35 +290,23 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   | `Interactive ->
       Interactive_test.Pauser.generic ~force:true state
         EF.[haf "Sandbox is READY \\o/"]
-  | `Dsl_traffic (`Dsl_command dsl_command) -> (
-      let kcs = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in
-      let parsed_cmd =
-        Parsexp.Single.parse_string (sprintf "( %s )" dsl_command) in
-      match parsed_cmd with
-      | Error err ->
-          fail
-            (`Msg
-              ( "Error: Parsing dsl command produced an error: "
-              ^ Parsexp.Parse_error.message err
-              ^ "for input string: " ^ dsl_command ))
-      | Ok sexp ->
-          return sexp
-          >>= fun dsl_sexp ->
-          Traffic_generation.Dsl.run state ~nodes ~clients:kcs dsl_sexp )
+  | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
+      run_dsl_cmd keys_and_daemons state nodes dsl_command
+      >>= fun () ->
+      Interactive_test.Pauser.generic ~force:true state
+        EF.[haf "Sandbox is READY \\o/"]
+  | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
+      run_dsl_cmd keys_and_daemons state nodes dsl_command
+      >>= fun () ->
+      let opt = `At_least lvl in
+      run_wait_level protocol state nodes opt lvl
   | `Random_traffic (`Any, `Until level) ->
       System.sleep 10.
       >>= fun () ->
       Traffic_generation.Random.run state ~protocol ~nodes ~clients
         ~until_level:level `Any
   | `Wait_level (`At_least lvl as opt) ->
-      let seconds =
-        let tbb =
-          protocol.Tezos_protocol.time_between_blocks |> List.hd
-          |> Option.value ~default:10 in
-        Float.of_int tbb *. 3. in
-      let attempts = lvl in
-      Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds
-        nodes opt
+      run_wait_level protocol state nodes opt lvl
 
 let cmd () =
   let open Cmdliner in
@@ -342,7 +355,10 @@ let cmd () =
                 | Some l, Some kind, None ->
                     return (`Random_traffic (kind, `Until l))
                 | None, None, Some cmd ->
-                    return (`Dsl_traffic (`Dsl_command cmd))
+                    return
+                      (`Dsl_traffic (`Dsl_command cmd, `After `Interactive))
+                | Some l, None, Some cmd ->
+                    return (`Dsl_traffic (`Dsl_command cmd, `After (`Until l)))
                 | _, Some _, Some _ ->
                     fail
                       (`Msg
@@ -352,11 +368,6 @@ let cmd () =
                     fail
                       (`Msg
                         "Error: option `--random-traffic` requires also \
-                         `--until-level`.")
-                | Some _, _, Some _ ->
-                    fail
-                      (`Msg
-                        "Error: option `--traffic` can't be combined with  \
                          `--until-level`."))
           $ value
               (opt (some int) None
@@ -373,7 +384,12 @@ let cmd () =
               (opt (some string) None
                  (info ["traffic"] ~docs
                     ~doc:
-                      "Generate traffic using the dsl syntax (not interactive)")))
+                      "Generate traffic using the dsl syntax. Upon completion \
+                       of the specified commands, the program will wait until \
+                       the block heigh specified by `--until-level` is \
+                       reached, and then exit.  If `--until-level is not \
+                       supplied, the interactive mode will be entered upon \
+                       completion of the commands. ")))
     $ Arg.(
         pure (fun kr -> `Clear_root (not kr))
         $ value
