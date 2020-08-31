@@ -137,90 +137,6 @@ module Multisig = struct
                   (af "Fully signed contract %s (%n) submitted" multisig_name k))))
 end
 
-module Random = struct
-  let run state ~protocol ~nodes ~clients ~until_level kind =
-    assert (Poly.equal kind `Any) ;
-    let tbb =
-      protocol.Tezos_protocol.time_between_blocks |> List.hd
-      |> Option.value ~default:10 in
-    let info fmt =
-      Fmt.kstr
-        (fun s ->
-          Console.sayf state Fmt.(fun ppf () -> pf ppf "Randomizer: %s" s))
-        fmt in
-    let from = "bootacc-0" in
-    let client = List.hd_exn clients in
-    let pp_success ppf = function
-      | true -> Fmt.pf ppf "Success"
-      | false -> Fmt.pf ppf "Failure" in
-    let valid_contracts = ref [] in
-    let rec loop iteration =
-      let client_cmd name l =
-        Tezos_client.client_cmd ~verbose:false state ~client
-          ~id_prefix:(Fmt.str "randomizer-%04d-%s" iteration name)
-          l in
-      let continue_or_not () =
-        Test_scenario.Queries.all_levels state ~nodes
-        >>= fun all_levels ->
-        if
-          List.for_all all_levels ~f:(function
-            | _, `Level l when l >= until_level -> true
-            | _ -> false)
-        then info "Max-level reached: %d" until_level
-        else loop (iteration + 1) in
-      List.random_element
-        [`Sleep; `Add_contract; `Call_contract; `Multisig_contract]
-      |> function
-      | Some `Sleep ->
-          let secs =
-            Float.(Random.float_range (of_int tbb * 0.3) (of_int tbb * 1.5))
-          in
-          info "Sleeping %.2f seconds." secs
-          >>= fun () -> System.sleep secs >>= fun () -> continue_or_not ()
-      | Some `Call_contract ->
-          ( match List.random_element !valid_contracts with
-          | None -> info "No valid contracts to call."
-          | Some (name, params) ->
-              client_cmd
-                (Fmt.str "transfer-%s" name)
-                ["transfer"; "1"; "from"; from; "to"; name; "--arg"; params]
-              >>= fun (success, _) ->
-              info "Called %s(%s): %a" name params pp_success success )
-          >>= fun () -> continue_or_not ()
-      | Some `Add_contract ->
-          let name = Fmt.str "contract-%d" iteration in
-          let push_drops = Random.int 100 in
-          let parameter, init_storage =
-            match List.random_element [`Unit; `String] with
-            | Some `String ->
-                ( "string"
-                , Fmt.str "%S"
-                    (String.init
-                       (Random.int 42 + 1)
-                       ~f:(fun _ -> Random.int 20 + 40 |> Char.of_int_exn)) )
-            | _ -> ("unit", "Unit") in
-          Michelson.prepare_origination_of_id_script state ~name ~from
-            ~protocol_kind:protocol.Tezos_protocol.kind ~parameter
-            ~init_storage ~push_drops
-          >>= fun origination ->
-          client_cmd (Fmt.str "originate-%s" name) origination
-          >>= fun (success, _) ->
-          if success then
-            valid_contracts := (name, init_storage) :: !valid_contracts ;
-          info "Origination of `%s` (%s : %s): `%a`." name init_storage
-            parameter pp_success success
-          >>= fun () -> continue_or_not ()
-      | Some `Multisig_contract ->
-          let num_signers = Random.int 5 + 1 in
-          let outer_repeat = Random.int 5 + 1 in
-          let contract_repeat = Random.int 5 + 1 in
-          Multisig.deploy_and_transfer state client nodes ~num_signers
-            ~outer_repeat ~contract_repeat
-          >>= fun () -> continue_or_not ()
-      | None -> continue_or_not () in
-    loop 0
-end
-
 module Commands = struct
   let cmdline_fail fmt = Fmt.kstr (fun s -> fail (`Command_line s)) fmt
 
@@ -347,12 +263,15 @@ module Commands = struct
     ; contract_repeat_option: Sexp_options.option }
 
   type batch_action = {src: string; counter: int; size: int; fee: float}
+  [@@deriving sexp]
 
   type multisig_action =
-    {num_signers: int; outer_repeat: int; contract_repeat: int}
+    {src: string; num_signers: int; outer_repeat: int; contract_repeat: int}
+  [@@deriving sexp]
 
   type action =
     [`Batch_action of batch_action | `Multisig_action of multisig_action]
+  [@@deriving sexp]
 
   let counter_option =
     Sexp_options.make_option ":counter" ~placeholders:["<int>"]
@@ -402,6 +321,27 @@ module Commands = struct
     let branch = Jqo.get_string br in
     return branch
 
+  let history_file_path (state : < paths: Paths.t ; .. >) =
+    Paths.root state ^ "/command-history.txt"
+
+  let get_timestamp () =
+    let date =
+      Tezos_stdlib_unix.Systime_os.now () |> Tezos_base.Time.System.to_notation
+    in
+    sprintf "[%s]" date
+
+  let init_cmd_history state =
+    System.write_file state (history_file_path state) ~content:""
+
+  let get_cmd_history state = System.read_file state (history_file_path state)
+
+  let add_cmd_to_history state ~new_cmd ~start_time ~end_time =
+    get_cmd_history state
+    >>= fun prev ->
+    let content =
+      prev ^ start_time ^ "\n" ^ new_cmd ^ "\n" ^ end_time ^ "\n\n" in
+    System.write_file state (history_file_path state) ~content
+
   let get_batch_args state ~client opts more_args =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
         let src =
@@ -423,24 +363,29 @@ module Commands = struct
           ~f:Sexp_options.get_float_exn ~default:(fun () -> return 0.02)
         >>= fun fee -> return (`Batch_action {src; counter; size; fee}))
 
-  let get_multisig_args opts (more_args : Sexp.t list) =
-    Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
-      ~default:(fun () -> return 10)
-    >>= fun outer_repeat ->
-    Sexp_options.get opts.contract_repeat_option more_args
-      ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
-    >>= fun contract_repeat ->
-    Sexp_options.get opts.num_signers_option more_args
-      ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
-    >>= fun num_signers ->
-    return (`Multisig_action {num_signers; outer_repeat; contract_repeat})
+  let get_multisig_args ~client opts (more_args : Sexp.t list) =
+    protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
+        let src =
+          client.key_name |> Tezos_protocol.Account.of_name
+          |> Tezos_protocol.Account.pubkey_hash in
+        Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
+          ~default:(fun () -> return 10)
+        >>= fun outer_repeat ->
+        Sexp_options.get opts.contract_repeat_option more_args
+          ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
+        >>= fun contract_repeat ->
+        Sexp_options.get opts.num_signers_option more_args
+          ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
+        >>= fun num_signers ->
+        return
+          (`Multisig_action {src; num_signers; outer_repeat; contract_repeat}))
 
   let to_action state ~client opts sexp =
     match sexp with
     | Sexp.List (Atom "batch" :: more_args) ->
         get_batch_args state ~client opts more_args
     | Sexp.List (Atom "multisig-batch" :: more_args) ->
-        get_multisig_args opts more_args
+        get_multisig_args ~client opts more_args
     | Sexp.List (Atom a :: _) ->
         Fmt.kstr failwith "to_action - unexpected atom inside list: %s" a
     | Sexp.List z ->
@@ -510,6 +455,7 @@ module Commands = struct
         return [one_action]
 
   let process_gen_batch state ~client act =
+    let start_time = get_timestamp () in
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
         Helpers.Timing.duration
           (fun aFee ->
@@ -524,8 +470,13 @@ module Commands = struct
           act.fee
         >>= fun ((), sec) ->
         Console.say state EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
+    >>= fun () ->
+    let batch_str = "batch: " ^ Sexp.to_string_hum (sexp_of_batch_action act) in
+    add_cmd_to_history state ~new_cmd:batch_str ~start_time
+      ~end_time:(get_timestamp ())
 
   let process_gen_multi_sig state ~client ~nodes act =
+    let start_time = get_timestamp () in
     protect_with_keyed_client "generate multisig" ~client ~f:(fun () ->
         Helpers.Timing.duration
           (fun () ->
@@ -535,6 +486,11 @@ module Commands = struct
           ()
         >>= fun ((), sec) ->
         Console.say state EF.(desc (haf "Execution time:") (af " %fs\n%!" sec)))
+    >>= fun () ->
+    let multisig_str =
+      "multisig: " ^ Sexp.to_string_hum (sexp_of_multisig_action act) in
+    add_cmd_to_history state ~new_cmd:multisig_str ~start_time
+      ~end_time:(get_timestamp ())
 
   let run_actions state ~client ~nodes ~actions ~counter =
     Loop.n_times counter (fun _ ->
@@ -543,6 +499,125 @@ module Commands = struct
             | `Batch_action ba -> process_gen_batch state ~client ba
             | `Multisig_action ma ->
                 process_gen_multi_sig state ~client ~nodes ma))
+end
+
+module Random = struct
+  let run state ~protocol ~nodes ~clients ~until_level kind =
+    assert (Poly.equal kind `Any) ;
+    let tbb =
+      protocol.Tezos_protocol.time_between_blocks |> List.hd
+      |> Option.value ~default:10 in
+    let info fmt =
+      Fmt.kstr
+        (fun s ->
+          Console.sayf state Fmt.(fun ppf () -> pf ppf "Randomizer: %s" s))
+        fmt in
+    let from = "bootacc-0" in
+    let keyed_client = List.hd_exn clients in
+    let client = keyed_client.Tezos_client.Keyed.client in
+    let pp_success ppf = function
+      | true -> Fmt.pf ppf "Success"
+      | false -> Fmt.pf ppf "Failure" in
+    let valid_contracts = ref [] in
+    let rec loop iteration =
+      let client_cmd name l =
+        Tezos_client.client_cmd ~verbose:false state ~client
+          ~id_prefix:(Fmt.str "randomizer-%04d-%s" iteration name)
+          l in
+      let continue_or_not () =
+        Test_scenario.Queries.all_levels state ~nodes
+        >>= fun all_levels ->
+        if
+          List.for_all all_levels ~f:(function
+            | _, `Level l when l >= until_level -> true
+            | _ -> false)
+        then info "Max-level reached: %d" until_level
+        else loop (iteration + 1) in
+      List.random_element
+        [`Sleep; `Add_contract; `Call_contract; `Multisig_contract]
+      |> function
+      | Some `Sleep ->
+          let secs =
+            Float.(Random.float_range (of_int tbb * 0.3) (of_int tbb * 1.5))
+          in
+          info "Sleeping %.2f seconds." secs
+          >>= fun () ->
+          let start_time = Commands.get_timestamp () in
+          System.sleep secs
+          >>= fun () ->
+          let sleep_str = sprintf "Sleep for %.2f seconds" secs in
+          Commands.add_cmd_to_history state ~new_cmd:sleep_str ~start_time
+            ~end_time:(Commands.get_timestamp ())
+          >>= fun () -> continue_or_not ()
+      | Some `Call_contract ->
+          let start_time = Commands.get_timestamp () in
+          ( match List.random_element !valid_contracts with
+          | None -> info "No valid contracts to call."
+          | Some (name, params) ->
+              Tezos_client.show_address state ~show_secret_key:false ~client
+                ~address:from
+              >>= fun show_from ->
+              Tezos_client.show_known_contract state client ~name
+              >>= fun show_to ->
+              client_cmd
+                (Fmt.str "transfer-%s" name)
+                ["transfer"; "1"; "from"; from; "to"; name; "--arg"; params]
+              >>= fun (success, _) ->
+              info "Called %s(%s): %a" name params pp_success success
+              >>= fun () ->
+              let call_str =
+                sprintf "Call_contract: (from: %s (%s)) (to: %s (Hash: %s))"
+                  from show_from name show_to in
+              Commands.add_cmd_to_history state ~new_cmd:call_str ~start_time
+                ~end_time:(Commands.get_timestamp ()) )
+          >>= fun () -> continue_or_not ()
+      | Some `Add_contract ->
+          let start_time = Commands.get_timestamp () in
+          let name = Fmt.str "contract-%d" iteration in
+          let push_drops = Random.int 100 in
+          let parameter, init_storage =
+            match List.random_element [`Unit; `String] with
+            | Some `String ->
+                ( "string"
+                , Fmt.str "%S"
+                    (String.init
+                       (Random.int 42 + 1)
+                       ~f:(fun _ -> Random.int 20 + 40 |> Char.of_int_exn)) )
+            | _ -> ("unit", "Unit") in
+          Michelson.prepare_origination_of_id_script state ~name ~from
+            ~protocol_kind:protocol.Tezos_protocol.kind ~parameter
+            ~init_storage ~push_drops
+          >>= fun origination ->
+          client_cmd (Fmt.str "originate-%s" name) origination
+          >>= fun (success, _) ->
+          if success then
+            valid_contracts := (name, init_storage) :: !valid_contracts ;
+          info "Origination of `%s` (%s : %s): `%a`." name init_storage
+            parameter pp_success success
+          >>= fun () ->
+          Tezos_client.show_known_contract state client ~name
+          >>= fun show_name ->
+          let add_str = sprintf "Add_contract: (name: %s)" show_name in
+          Commands.add_cmd_to_history state ~new_cmd:add_str ~start_time
+            ~end_time:(Commands.get_timestamp ())
+          >>= fun () -> continue_or_not ()
+      | Some `Multisig_contract ->
+          Commands.protect_with_keyed_client "generate batch"
+            ~client:keyed_client ~f:(fun () ->
+              let src =
+                keyed_client.key_name |> Tezos_protocol.Account.of_name
+                |> Tezos_protocol.Account.pubkey_hash in
+              let num_signers = Random.int 5 + 1 in
+              let outer_repeat = Random.int 5 + 1 in
+              let contract_repeat = Random.int 5 + 1 in
+              let act =
+                ( {src; num_signers; outer_repeat; contract_repeat}
+                  : Commands.multisig_action ) in
+              Commands.process_gen_multi_sig state ~client:keyed_client ~nodes
+                act)
+          >>= fun () -> continue_or_not ()
+      | None -> continue_or_not () in
+    loop 0
 end
 
 module Dsl = struct

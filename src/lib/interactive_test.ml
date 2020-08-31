@@ -522,7 +522,7 @@ module Commands = struct
             >>= fun ba ->
             run_actions state ~client ~nodes ~actions:[ba] ~counter:1
         | Atom "multisig-batch" :: more_args ->
-            get_multisig_args all_opts more_args
+            get_multisig_args ~client all_opts more_args
             >>= fun ma ->
             run_actions state ~client ~nodes ~actions:[ma] ~counter:1
         | Atom "dsl" :: dsl_sexp ->

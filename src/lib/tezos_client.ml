@@ -238,6 +238,12 @@ let list_known_addresses state ~client =
              | None -> None
              | Some matches -> Some (Group.get matches 1, Group.get matches 2)))
 
+let show_address state ?(show_secret_key = false) ~client ~address =
+  let show_secret = if show_secret_key then ["--show-secret"] else [] in
+  successful_client_cmd state ~client
+    (["show"; "address"; address] @ show_secret)
+  >>= fun res -> return (String.concat ~sep:" " res#out)
+
 let show_known_contract state client ~name =
   successful_client_cmd state ~client ["show"; "known"; "contract"; name]
   >>= fun res -> return (String.concat res#out)

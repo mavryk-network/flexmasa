@@ -191,6 +191,20 @@ val list_known_addresses :
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
+val show_address :
+     < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; env_config: Environment_configuration.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> ?show_secret_key:bool
+  -> client:t
+  -> address:string
+  -> ( string
+     , [> Process_result.Error.t | System_error.t] )
+     Asynchronous_result.t
+
 val show_known_contract :
      < application_name: string
      ; console: Console.t

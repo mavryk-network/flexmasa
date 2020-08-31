@@ -2,6 +2,7 @@
  (name flextesa)
  (public_name flextesa)
  (flags (:standard -safe-string))
+ (preprocess (pps ppx_sexp_conv))
  (libraries
     fmt
     cohttp-lwt-unix
@@ -15,5 +16,4 @@
     tezos-stdlib-unix
     tezos-crypto
     tezos-base
-    ))
-
+ ))

@@ -118,8 +118,7 @@ module Genesis_block_hash = struct
         >>= fun () -> return hash
 end
 
-let run_dsl_cmd keys_and_daemons state nodes dsl_command =
-  let kcs = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in
+let run_dsl_cmd state clients nodes dsl_command =
   let parsed_cmd = Parsexp.Single.parse_string (sprintf "( %s )" dsl_command) in
   match parsed_cmd with
   | Error err ->
@@ -131,7 +130,7 @@ let run_dsl_cmd keys_and_daemons state nodes dsl_command =
   | Ok sexp ->
       return sexp
       >>= fun dsl_sexp ->
-      Traffic_generation.Dsl.run state ~nodes ~clients:kcs dsl_sexp
+      Traffic_generation.Dsl.run state ~nodes ~clients dsl_sexp
 
 let run_wait_level protocol state nodes opt lvl =
   let seconds =
@@ -275,6 +274,14 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       Interactive_test.Commands.[bake_command state ~clients] ;
     return () )
   >>= fun () ->
+  Console.say state
+    EF.(
+      wf "initiailizing history file: `%s`"
+        (Traffic_generation.Commands.history_file_path state))
+  >>= fun () ->
+  Traffic_generation.Commands.init_cmd_history state
+  (* clear the command history file *)
+  >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in
@@ -286,25 +293,26 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       (shell_env_help :: all_defaults state ~nodes)
       @ [secret_keys state ~protocol]
       @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
+  let keyed_clients = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in
   match test_kind with
   | `Interactive ->
       Interactive_test.Pauser.generic ~force:true state
         EF.[haf "Sandbox is READY \\o/"]
   | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
-      run_dsl_cmd keys_and_daemons state nodes dsl_command
+      run_dsl_cmd state keyed_clients nodes dsl_command
       >>= fun () ->
       Interactive_test.Pauser.generic ~force:true state
         EF.[haf "Sandbox is READY \\o/"]
   | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
-      run_dsl_cmd keys_and_daemons state nodes dsl_command
+      run_dsl_cmd state keyed_clients nodes dsl_command
       >>= fun () ->
       let opt = `At_least lvl in
       run_wait_level protocol state nodes opt lvl
   | `Random_traffic (`Any, `Until level) ->
       System.sleep 10.
       >>= fun () ->
-      Traffic_generation.Random.run state ~protocol ~nodes ~clients
-        ~until_level:level `Any
+      Traffic_generation.Random.run state ~protocol ~nodes
+        ~clients:keyed_clients ~until_level:level `Any
   | `Wait_level (`At_least lvl as opt) ->
       run_wait_level protocol state nodes opt lvl
 
