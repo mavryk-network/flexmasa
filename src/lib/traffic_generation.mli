@@ -171,7 +171,13 @@ module Commands : sig
     -> ([> action], [> `Command_line of string]) Asynchronous_result.t
 
   val get_multisig_args :
-       client:Tezos_client.Keyed.t
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
     -> all_options
     -> Base.Sexp.t list
     -> ( [> `Multisig_action of multisig_action]

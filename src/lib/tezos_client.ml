@@ -238,11 +238,22 @@ let list_known_addresses state ~client =
              | None -> None
              | Some matches -> Some (Group.get matches 1, Group.get matches 2)))
 
-let show_address state ?(show_secret_key = false) ~client ~address =
-  let show_secret = if show_secret_key then ["--show-secret"] else [] in
-  successful_client_cmd state ~client
-    (["show"; "address"; address] @ show_secret)
-  >>= fun res -> return (String.concat ~sep:" " res#out)
+let rec prefix_from_list ~prefix = function
+  | [] -> ""
+  | x :: xs ->
+      if not (String.is_prefix x ~prefix) then prefix_from_list ~prefix xs
+      else
+        String.lstrip (String.chop_prefix x ~prefix |> Option.value ~default:x)
+
+let parse_account ~name ~lines =
+  let pubkey_hash = prefix_from_list ~prefix:"Hash:" lines in
+  let pubkey = prefix_from_list ~prefix:"Public Key:" lines in
+  let private_key = prefix_from_list ~prefix:"Secret Key:" lines in
+  Tezos_protocol.Account.key_pair name ~pubkey ~pubkey_hash ~private_key
+
+let get_account state ~client ~name =
+  successful_client_cmd state ~client ["show"; "address"; name; "--show-secret"]
+  >>= fun res -> return (parse_account ~name ~lines:res#out)
 
 let show_known_contract state client ~name =
   successful_client_cmd state ~client ["show"; "known"; "contract"; name]

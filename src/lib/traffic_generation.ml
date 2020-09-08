@@ -322,7 +322,7 @@ module Commands = struct
     return branch
 
   let history_file_path (state : < paths: Paths.t ; .. >) =
-    Paths.root state ^ "/command-history.txt"
+    Paths.root state ^ "/traffic-generation-history.txt"
 
   let get_timestamp () =
     let date =
@@ -344,9 +344,10 @@ module Commands = struct
 
   let get_batch_args state ~client opts more_args =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
-        let src =
-          client.key_name |> Tezos_protocol.Account.of_name
-          |> Tezos_protocol.Account.pubkey_hash in
+        Tezos_client.get_account state ~client:client.client
+          ~name:client.key_name
+        >>= fun acct ->
+        let src = Tezos_protocol.Account.pubkey_hash acct in
         Sexp_options.get opts.counter_option more_args
           ~f:Sexp_options.get_int_exn ~default:(fun () ->
             Tezos_client.rpc state ~client:client.client `Get
@@ -363,11 +364,12 @@ module Commands = struct
           ~f:Sexp_options.get_float_exn ~default:(fun () -> return 0.02)
         >>= fun fee -> return (`Batch_action {src; counter; size; fee}))
 
-  let get_multisig_args ~client opts (more_args : Sexp.t list) =
+  let get_multisig_args state ~client opts (more_args : Sexp.t list) =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
-        let src =
-          client.key_name |> Tezos_protocol.Account.of_name
-          |> Tezos_protocol.Account.pubkey_hash in
+        Tezos_client.get_account state ~client:client.client
+          ~name:client.key_name
+        >>= fun acct ->
+        let src = Tezos_protocol.Account.pubkey_hash acct in
         Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
           ~default:(fun () -> return 10)
         >>= fun outer_repeat ->
@@ -385,7 +387,7 @@ module Commands = struct
     | Sexp.List (Atom "batch" :: more_args) ->
         get_batch_args state ~client opts more_args
     | Sexp.List (Atom "multisig-batch" :: more_args) ->
-        get_multisig_args ~client opts more_args
+        get_multisig_args state ~client opts more_args
     | Sexp.List (Atom a :: _) ->
         Fmt.kstr failwith "to_action - unexpected atom inside list: %s" a
     | Sexp.List z ->
@@ -554,9 +556,9 @@ module Random = struct
           ( match List.random_element !valid_contracts with
           | None -> info "No valid contracts to call."
           | Some (name, params) ->
-              Tezos_client.show_address state ~show_secret_key:false ~client
-                ~address:from
-              >>= fun show_from ->
+              Tezos_client.get_account state ~client ~name:from
+              >>= fun acct ->
+              let show_from = Tezos_protocol.Account.pubkey_hash acct in
               Tezos_client.show_known_contract state client ~name
               >>= fun show_to ->
               client_cmd
@@ -604,9 +606,10 @@ module Random = struct
       | Some `Multisig_contract ->
           Commands.protect_with_keyed_client "generate batch"
             ~client:keyed_client ~f:(fun () ->
-              let src =
-                keyed_client.key_name |> Tezos_protocol.Account.of_name
-                |> Tezos_protocol.Account.pubkey_hash in
+              Tezos_client.get_account state ~client
+                ~name:keyed_client.key_name
+              >>= fun acct ->
+              let src = Tezos_protocol.Account.pubkey_hash acct in
               let num_signers = Random.int 5 + 1 in
               let outer_repeat = Random.int 5 + 1 in
               let contract_repeat = Random.int 5 + 1 in
