@@ -273,6 +273,7 @@ module Random : sig
   val run :
        < application_name: string
        ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t

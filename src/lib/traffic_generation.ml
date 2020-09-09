@@ -592,14 +592,17 @@ module Random = struct
           >>= fun origination ->
           client_cmd (Fmt.str "originate-%s" name) origination
           >>= fun (success, _) ->
-          if success then
+          ( if success then (
             valid_contracts := (name, init_storage) :: !valid_contracts ;
-          info "Origination of `%s` (%s : %s): `%a`." name init_storage
-            parameter pp_success success
-          >>= fun () ->
-          Tezos_client.show_known_contract state client ~name
-          >>= fun show_name ->
-          let add_str = sprintf "Add_contract: (name: %s)" show_name in
+            info "Origination of `%s` (%s : %s): `%a`." name init_storage
+              parameter pp_success success
+            >>= fun () -> Tezos_client.show_known_contract state client ~name )
+          else
+            info "Failure during Origination of `%s` (%s : %s): `%a`." name
+              init_storage parameter pp_success success
+            >>= fun () -> return "<error>" )
+          >>= fun contract_pk_hash ->
+          let add_str = sprintf "Add_contract: (name: %s)" contract_pk_hash in
           Commands.add_cmd_to_history state ~new_cmd:add_str ~start_time
             ~end_time:(Commands.get_timestamp ())
           >>= fun () -> continue_or_not ()
