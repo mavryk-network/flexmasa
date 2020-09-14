@@ -115,7 +115,8 @@ module Prompt = struct
     ; action:
            Base.Sexp.t list
         -> ( [`Help | `Quit | `Loop]
-           , [System_error.t | `Command_line of string] )
+           , [System_error.t | Process_result.Error.t | `Command_line of string]
+           )
            Asynchronous_result.t }
 
   let item ?details ~description commands action =
@@ -164,6 +165,8 @@ module Prompt = struct
                              ~pp_error:(fun fmt ->
                              function
                              | #System_error.t as e -> System_error.pp fmt e
+                             | #Process_result.Error.t as e ->
+                                 Process_result.Error.pp fmt e
                              | `Command_line s ->
                                  Fmt.pf fmt "Wrong command line: %s" s))))
                 >>= fun () -> return `Loop)

@@ -16,24 +16,6 @@ module Michelson : sig
     -> (string list, [> System_error.t]) Asynchronous_result.t
 end
 
-module Random : sig
-  val run :
-       < application_name: string
-       ; console: Console.t
-       ; env_config: Environment_configuration.t
-       ; paths: Paths.t
-       ; runner: Running_processes.State.t
-       ; .. >
-    -> protocol:Tezos_protocol.t
-    -> nodes:Tezos_node.t list
-    -> clients:Tezos_client.t list
-    -> until_level:int
-    -> [> `Any]
-    -> ( unit
-       , [> System_error.t | `Waiting_for of string * [`Time_out]] )
-       Asynchronous_result.t
-end
-
 module Commands : sig
   module Sexp_options : sig
     type t = {name: string; placeholders: string list; description: string}
@@ -98,7 +80,9 @@ module Commands : sig
                | System_error.t
                | `Waiting_for of string * [< `Time_out] ] )
              Asynchronous_result.t)
-    -> ('a, [> `Command_line of string]) Asynchronous_result.t
+    -> ( 'a
+       , [> `Command_line of string | Process_result.Error.t] )
+       Asynchronous_result.t
 
   val counter_option : Sexp_options.option
   val size_option : Sexp_options.option
@@ -119,12 +103,15 @@ module Commands : sig
   val all_opts : all_options
 
   type batch_action = {src: string; counter: int; size: int; fee: float}
+  [@@deriving sexp]
 
   type multisig_action =
-    {num_signers: int; outer_repeat: int; contract_repeat: int}
+    {src: string; num_signers: int; outer_repeat: int; contract_repeat: int}
+  [@@deriving sexp]
 
   type action =
     [`Batch_action of batch_action | `Multisig_action of multisig_action]
+  [@@deriving sexp]
 
   val branch :
        < application_name: string
@@ -139,6 +126,39 @@ module Commands : sig
          | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
 
+  val history_file_path : < paths: Paths.t ; .. > -> string
+  val get_timestamp : unit -> string
+
+  val init_cmd_history :
+       < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> (unit, [> System_error.t]) Attached_result.t Lwt.t
+
+  val get_cmd_history :
+       < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> (string, [> System_error.t]) Attached_result.t Lwt.t
+
+  val add_cmd_to_history :
+       < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> new_cmd:string
+    -> start_time:string
+    -> end_time:string
+    -> (unit, [> System_error.t]) Attached_result.t Lwt.t
+
   val get_batch_args :
        < application_name: string
        ; console: Console.t
@@ -149,14 +169,22 @@ module Commands : sig
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> all_options
+    -> Tezos_protocol.Account.t
     -> Base.Sexp.t list
     -> ([> action], [> `Command_line of string]) Asynchronous_result.t
 
   val get_multisig_args :
-       all_options
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.Keyed.t
+    -> all_options
     -> Base.Sexp.t list
     -> ( [> `Multisig_action of multisig_action]
-       , [> `Command_line of string] )
+       , [> `Command_line of string | Process_result.Error.t] )
        Asynchronous_result.t
 
   val to_action :
@@ -208,7 +236,8 @@ module Commands : sig
     -> client:Tezos_client.Keyed.t
     -> batch_action
     -> ( unit
-       , [> `Command_line of string | Process_result.Error.t] )
+       , [> `Command_line of string | System_error.t | Process_result.Error.t]
+       )
        Asynchronous_result.t
 
   val process_gen_multi_sig :
@@ -222,7 +251,9 @@ module Commands : sig
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
     -> multisig_action
-    -> (unit, [> `Command_line of string]) Asynchronous_result.t
+    -> ( unit
+       , [> `Command_line of string | System_error.t] )
+       Asynchronous_result.t
 
   val run_actions :
        < application_name: string
@@ -236,7 +267,30 @@ module Commands : sig
     -> nodes:Tezos_node.t list
     -> actions:[< action] list
     -> counter:int
-    -> (unit, [> `Command_line of string]) Asynchronous_result.t
+    -> ( unit
+       , [> `Command_line of string | System_error.t | Process_result.Error.t]
+       )
+       Asynchronous_result.t
+end
+
+module Random : sig
+  val run :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> protocol:Tezos_protocol.t
+    -> nodes:Tezos_node.t list
+    -> clients:Tezos_client.Keyed.t list
+    -> until_level:int
+    -> [> `Any]
+    -> ( unit
+       , [> `Command_line of string | System_error.t | Process_result.Error.t]
+       )
+       Asynchronous_result.t
 end
 
 module Dsl : sig
@@ -252,7 +306,9 @@ module Dsl : sig
     -> nodes:Tezos_node.t list
     -> Commands.all_options
     -> Base.Sexp.t
-    -> (unit, [> `Command_line of string]) Asynchronous_result.t
+    -> ( unit
+       , [> `Command_line of string | Process_result.Error.t] )
+       Asynchronous_result.t
 
   val run :
        < application_name: string

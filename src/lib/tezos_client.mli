@@ -191,6 +191,28 @@ val list_known_addresses :
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
+val prefix_from_list : prefix:string -> string list -> string option
+
+val parse_account :
+  name:string -> lines:string list -> Tezos_protocol.Account.t option
+(** Parse Account from client output of the form:
+ * Hash: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
+ * Public Key: edpkuTpUWcNgn4QYcBVGDLy6rmpJ3WSTSV2bdiJFwyoDk5fSwxyV5k
+ * Secret Key: unencrypted:edsk3RFgDiCt7tWB2oe96w1eRw72iYiiqZPLu9nnEY23MYRp2d8Kkx *)
+
+val get_account :
+     < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; env_config: Environment_configuration.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> client:t
+  -> name:string
+  -> ( Tezos_protocol.Account.t option
+     , [> Process_result.Error.t | System_error.t] )
+     Asynchronous_result.t
+
 val show_known_contract :
      < application_name: string
      ; console: Console.t
@@ -353,7 +375,8 @@ module Keyed : sig
     -> t
     -> string
     -> ( unit
-       , [> Process_result.Error.t | System_error.t] )
+       , [> Process_result.Error.t | System_error.t | Process_result.Error.t]
+       )
        Asynchronous_result.t
 
   val endorse :

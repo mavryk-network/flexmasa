@@ -34,8 +34,9 @@ module Prompt : sig
     ; details: unit Fmt.t option
     ; action:
            Base.Sexp.t list
-        -> ( [`Help | `Loop | `Quit]
-           , [`Command_line of string | System_error.t] )
+        -> ( [`Help | `Quit | `Loop]
+           , [System_error.t | Process_result.Error.t | `Command_line of string]
+           )
            Asynchronous_result.t }
 
   val item :
@@ -44,7 +45,8 @@ module Prompt : sig
     -> string list
     -> (   Base.Sexp.t list
         -> ( [`Help | `Loop | `Quit]
-           , [`Command_line of string | System_error.t] )
+           , [`Command_line of string | System_error.t | Process_result.Error.t]
+           )
            Asynchronous_result.t)
     -> item
   (** [item description command_aliases action] creates a command
@@ -60,7 +62,8 @@ module Prompt : sig
     -> string list
     -> (   Base.Sexp.t list
         -> ( unit
-           , [`Command_line of string | System_error.t] )
+           , [`Command_line of string | Process_result.Error.t | System_error.t]
+           )
            Asynchronous_result.t)
     -> item
 
