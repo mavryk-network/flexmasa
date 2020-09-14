@@ -518,7 +518,13 @@ module Commands = struct
                 Console.sayf state
                   More_fmt.(fun ppf () -> json ppf json_result))
         | Atom "batch" :: more_args ->
-            get_batch_args state ~client all_opts more_args
+            Tezos_client.get_account state ~client:client.client
+              ~name:client.key_name
+            >>= fun acct ->
+            ( match acct with
+            | Some a -> get_batch_args state ~client all_opts a more_args
+            | None -> Fmt.kstr failwith "to_action - failed to parse account."
+            )
             >>= fun ba ->
             run_actions state ~client ~nodes ~actions:[ba] ~counter:1
         | Atom "multisig-batch" :: more_args ->

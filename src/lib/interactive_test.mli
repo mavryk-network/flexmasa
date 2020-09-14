@@ -14,7 +14,8 @@ module Commands : sig
     -> string list
     -> (   unit
         -> ( unit
-           , [`Command_line of string | System_error.t] )
+           , [`Command_line of string | System_error.t | Process_result.Error.t]
+           )
            Asynchronous_result.t)
     -> Console.Prompt.item
 

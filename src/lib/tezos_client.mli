@@ -191,10 +191,10 @@ val list_known_addresses :
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
-val prefix_from_list : prefix:string -> string list -> string
+val prefix_from_list : prefix:string -> string list -> string option
 
 val parse_account :
-  name:string -> lines:string list -> Tezos_protocol.Account.t
+  name:string -> lines:string list -> Tezos_protocol.Account.t option
 (** Parse Account from client output of the form:
  * Hash: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
  * Public Key: edpkuTpUWcNgn4QYcBVGDLy6rmpJ3WSTSV2bdiJFwyoDk5fSwxyV5k
@@ -209,7 +209,7 @@ val get_account :
      ; .. >
   -> client:t
   -> name:string
-  -> ( Tezos_protocol.Account.t
+  -> ( Tezos_protocol.Account.t option
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
@@ -375,7 +375,8 @@ module Keyed : sig
     -> t
     -> string
     -> ( unit
-       , [> Process_result.Error.t | System_error.t] )
+       , [> Process_result.Error.t | System_error.t | Process_result.Error.t]
+       )
        Asynchronous_result.t
 
   val endorse :

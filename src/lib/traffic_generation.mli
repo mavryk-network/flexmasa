@@ -80,7 +80,9 @@ module Commands : sig
                | System_error.t
                | `Waiting_for of string * [< `Time_out] ] )
              Asynchronous_result.t)
-    -> ('a, [> `Command_line of string]) Asynchronous_result.t
+    -> ( 'a
+       , [> `Command_line of string | Process_result.Error.t] )
+       Asynchronous_result.t
 
   val counter_option : Sexp_options.option
   val size_option : Sexp_options.option
@@ -167,6 +169,7 @@ module Commands : sig
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> all_options
+    -> Tezos_protocol.Account.t
     -> Base.Sexp.t list
     -> ([> action], [> `Command_line of string]) Asynchronous_result.t
 
@@ -181,7 +184,7 @@ module Commands : sig
     -> all_options
     -> Base.Sexp.t list
     -> ( [> `Multisig_action of multisig_action]
-       , [> `Command_line of string] )
+       , [> `Command_line of string | Process_result.Error.t] )
        Asynchronous_result.t
 
   val to_action :
@@ -265,7 +268,8 @@ module Commands : sig
     -> actions:[< action] list
     -> counter:int
     -> ( unit
-       , [> `Command_line of string | System_error.t] )
+       , [> `Command_line of string | System_error.t | Process_result.Error.t]
+       )
        Asynchronous_result.t
 end
 
@@ -302,7 +306,9 @@ module Dsl : sig
     -> nodes:Tezos_node.t list
     -> Commands.all_options
     -> Base.Sexp.t
-    -> (unit, [> `Command_line of string]) Asynchronous_result.t
+    -> ( unit
+       , [> `Command_line of string | Process_result.Error.t] )
+       Asynchronous_result.t
 
   val run :
        < application_name: string

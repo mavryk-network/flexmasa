@@ -342,11 +342,8 @@ module Commands = struct
       prev ^ start_time ^ "\n" ^ new_cmd ^ "\n" ^ end_time ^ "\n\n" in
     System.write_file state (history_file_path state) ~content
 
-  let get_batch_args state ~client opts more_args =
+  let get_batch_args state ~client opts acct more_args =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
-        Tezos_client.get_account state ~client:client.client
-          ~name:client.key_name
-        >>= fun acct ->
         let src = Tezos_protocol.Account.pubkey_hash acct in
         Sexp_options.get opts.counter_option more_args
           ~f:Sexp_options.get_int_exn ~default:(fun () ->
@@ -364,12 +361,17 @@ module Commands = struct
           ~f:Sexp_options.get_float_exn ~default:(fun () -> return 0.02)
         >>= fun fee -> return (`Batch_action {src; counter; size; fee}))
 
+  let get_src_str acctOpt err_str =
+    match acctOpt with
+    | Some a -> Tezos_protocol.Account.pubkey_hash a
+    | None -> err_str
+
   let get_multisig_args state ~client opts (more_args : Sexp.t list) =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
         Tezos_client.get_account state ~client:client.client
           ~name:client.key_name
         >>= fun acct ->
-        let src = Tezos_protocol.Account.pubkey_hash acct in
+        let src = get_src_str acct "<Unable to parse account>" in
         Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
           ~default:(fun () -> return 10)
         >>= fun outer_repeat ->
@@ -382,10 +384,15 @@ module Commands = struct
         return
           (`Multisig_action {src; num_signers; outer_repeat; contract_repeat}))
 
-  let to_action state ~client opts sexp =
+  let to_action state ~(client : Tezos_client.Keyed.t) opts sexp =
     match sexp with
-    | Sexp.List (Atom "batch" :: more_args) ->
-        get_batch_args state ~client opts more_args
+    | Sexp.List (Atom "batch" :: more_args) -> (
+        Tezos_client.get_account state ~client:client.client
+          ~name:client.key_name
+        >>= fun acct ->
+        match acct with
+        | Some a -> get_batch_args state ~client opts a more_args
+        | None -> Fmt.kstr failwith "to_action - failed to parse account." )
     | Sexp.List (Atom "multisig-batch" :: more_args) ->
         get_multisig_args state ~client opts more_args
     | Sexp.List (Atom a :: _) ->
@@ -558,7 +565,8 @@ module Random = struct
           | Some (name, params) ->
               Tezos_client.get_account state ~client ~name:from
               >>= fun acct ->
-              let show_from = Tezos_protocol.Account.pubkey_hash acct in
+              let show_from =
+                Commands.get_src_str acct "Unable to parse account>" in
               Tezos_client.show_known_contract state client ~name
               >>= fun show_to ->
               client_cmd
@@ -612,7 +620,7 @@ module Random = struct
               Tezos_client.get_account state ~client
                 ~name:keyed_client.key_name
               >>= fun acct ->
-              let src = Tezos_protocol.Account.pubkey_hash acct in
+              let src = Commands.get_src_str acct "<Unable to parse account>" in
               let num_signers = Random.int 5 + 1 in
               let outer_repeat = Random.int 5 + 1 in
               let contract_repeat = Random.int 5 + 1 in
