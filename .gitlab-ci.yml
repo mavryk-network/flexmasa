@@ -54,6 +54,7 @@ opam-test:
   script:
      - bash -c "$SHOW_INFO"
      - make vendors
+     - opam remote add m https://github.com/ocaml/opam-repository.git
      - opam config exec -- sh src/scripts/opam-test.sh
 
 codegen-test:

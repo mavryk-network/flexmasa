@@ -1,17 +1,28 @@
 #!/bin/sh
 
-opam pin -n add secp256k1 local-vendor/tezos-master/vendors/ocaml-secp256k1/
-opam pin -n add ocplib-resto-directory local-vendor/tezos-master/vendors/ocplib-resto/lib_resto-directory/
-opam pin -n add ocplib-resto local-vendor/tezos-master/vendors/ocplib-resto/lib_resto/
-opam pin -n add tezos-rpc local-vendor/tezos-master/src/lib_rpc/
-opam pin -n add tezos-clic local-vendor/tezos-master/src/lib_clic/
-opam pin -n add tezos-micheline local-vendor/tezos-master/src/lib_micheline/
-opam pin -n add tezos-event-logging local-vendor/tezos-master/src/lib_event_logging/
-opam pin -n add tezos-error-monad local-vendor/tezos-master/src/lib_error_monad/
-opam pin -n add tezos-data-encoding local-vendor/tezos-master/src/lib_data_encoding/
-opam pin -n add tezos-crypto local-vendor/tezos-master/src/lib_crypto/
-opam pin -n add tezos-stdlib local-vendor/tezos-master/src/lib_stdlib/
-opam pin -n add tezos-base local-vendor/tezos-master/src/lib_base/
-opam pin -n add tezos-stdlib-unix local-vendor/tezos-master/src/lib_stdlib_unix/
+# Current version of tezos-crypto uses `conf-rust` just for show.
+mkdir -p /tmp/bin
+echo "#!/bin/sh" > /tmp/bin/cargo
+echo "#!/bin/sh" > /tmp/bin/rustc
+chmod a+x /tmp/bin/*
+export PATH=/tmp/bin:$PATH
+
+vendor=local-vendor/tezos-master
+
+# We still need a more recent tezos-crypto (API change) and others (stdlib):
+opam pin -n add tezos-stdlib "$vendor/src/lib_stdlib/"
+opam pin -n add tezos-error-monad "$vendor/src/lib_error_monad/"
+opam pin -n add tezos-lwt-result-stdlib "$vendor/src/lib_lwt_result_stdlib/"
+opam pin -n add tezos-event-logging "$vendor/src/lib_event_logging/"
+opam pin -n add tezos-stdlib-unix "$vendor/src/lib_stdlib_unix/"
+opam pin -n add tezos-clic "$vendor/src/lib_clic/"
+opam pin -n add tezos-crypto "$vendor/src/lib_crypto/"
+opam pin -n add tezos-base "$vendor/src/lib_base/"
+opam install --yes ringo hacl-star tezos-lwt-result-stdlib tezos-error-monad tezos-stdlib tezos-event-logging tezos-stdlib-unix tezos-clic tezos-crypto
+# There is seems to be a dependency missing:
+opam install --yes tezos-base
+
+# Now the test:
 opam pin -n add flextesa src/lib/
 opam install --yes flextesa
+
