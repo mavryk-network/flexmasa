@@ -72,7 +72,7 @@ alpine_setup () {
 RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories"
 RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories"
 RUN $sudo apk update
-RUN $sudo apk add $tezos_depexts curl net-tools rlwrap@testing
+RUN $sudo apk add $tezos_depexts curl net-tools rlwrap@testing libffi-dev
 EOF
 }
 
