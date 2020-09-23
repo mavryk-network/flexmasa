@@ -201,9 +201,21 @@ module Typed_ir = struct
 
   let make_fresh_context () =
     of_tz_error_monad pp_tz_error (fun () ->
-        Tezos_client_alpha.Mockup.mem_init
+        Tezos_client_alpha.Mockup.initial_context
+          (* src/proto_alpha/lib_client/mockup.ml *)
+          (let predecessor =
+             Tezos_crypto.Block_hash.of_b58check_exn
+               "BLockGenesisGenesisGenesisGenesisGenesisCCCCCeZiLHU" in
+           let timestamp =
+             Tezos_protocol_environment_alpha.Environment.Time.(of_seconds 2L)
+           in
+           let operations_hash = Tezos_crypto.Operation_list_list_hash.zero in
+           Tezos_client_alpha.Mockup.Forge.(
+             make_shell ~level:0l ~predecessor ~timestamp
+               ~fitness:(Tz_protocol.Fitness_repr.from_int64 0L)
+               ~operations_hash))
           Tezos_client_alpha.Mockup.default_mockup_parameters)
-    >>= fun {context; _} ->
+    >>= fun context ->
     of_tz_error_monad pp_protocol_error (fun () ->
         Tezos_raw_protocol_alpha.Alpha_context.prepare context ~level:1l
           ~predecessor_timestamp:
