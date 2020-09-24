@@ -154,7 +154,8 @@ EOF
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 ADD ./src/scripts/tutorial-box.sh /usr/bin/carthagebox
-# RUN sed -i s/default_protocol=Babylon/default_protocol=Carthage/ /usr/bin/carthagebox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/delphibox
+RUN sed -i s/default_protocol=Carthage/default_protocol=Delphi/ /usr/bin/delphibox
 RUN chmod a+rx /usr/bin/carthagebox
 EOF
 }

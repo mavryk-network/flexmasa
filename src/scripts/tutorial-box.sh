@@ -23,6 +23,10 @@ case "$default_protocol" in
         daemon_suffix=006-PsCARTHA
         protocol_hash=PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb
         ;;
+    "Delphi")
+        daemon_suffix=007-PsDELPH1
+        protocol_hash=PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo
+        ;;
     * )
         echo "Cannot understand protocol kind: '$default_protocol'"
         usage ;;
