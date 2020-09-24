@@ -49,7 +49,7 @@ start () {
              --add-bootstrap-account="$bob@2_000_000_000_000" \
              --no-daemons-for=alice \
              --no-daemons-for=bob \
-             --until-level 2_000_000 \
+             --until-level 200_000_000 \
              --tezos-baker "tezos-baker-$daemon_suffix" \
              --tezos-endor "tezos-endorser-$daemon_suffix" \
              --tezos-accus "tezos-accuser-$daemon_suffix" \
