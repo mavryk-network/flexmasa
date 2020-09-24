@@ -157,6 +157,7 @@ ADD ./src/scripts/tutorial-box.sh /usr/bin/carthagebox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/delphibox
 RUN sed -i s/default_protocol=Carthage/default_protocol=Delphi/ /usr/bin/delphibox
 RUN chmod a+rx /usr/bin/carthagebox
+RUN chmod a+rx /usr/bin/delphibox
 EOF
 }
 
