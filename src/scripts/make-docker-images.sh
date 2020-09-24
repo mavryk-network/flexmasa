@@ -97,6 +97,7 @@ $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
 $(daemons 006-PsCARTHA)
+$(daemons 007-PsDELPH1)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
