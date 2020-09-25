@@ -12,48 +12,79 @@ module Genesis_block_hash = struct
       ["NetXKMbjQL2SBox"] *)
   let default = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf"
 
+  let of_protocol_kind : Tezos_protocol.Protocol_kind.t -> string =
+    (*
+      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box6
+     Flextesa.vanity-chain-id:  Looking for "Box6"
+     Flextesa.vanity-chain-id:
+       Results:
+         * Seed: "tutobox-99116"
+           → block: "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
+           → chain-id: "NetXyJVJ3mkBox6"
+      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box7
+     Flextesa.vanity-chain-id:  Looking for "Box7"
+     Flextesa.vanity-chain-id:
+       Results:
+         * Seed: "tutobox-21176358"
+           → block: "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
+           → chain-id: "NetXMFJWfpUBox7"
+    *)
+    function
+    | `Carthage -> "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
+    | `Delphi -> "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
+    | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
+
   module Choice = struct
-    type t = [`Random | `Force of string | `Default]
+    type t = [`Random | `Force of string | `Old_default | `From_protocol_kind]
 
     let pp : t Fmt.t =
      fun ppf ->
       let open Fmt in
       function
       | `Random -> pf ppf "Random"
-      | `Default -> pf ppf "Default:%s" default
+      | `Old_default -> pf ppf "Old-Default:%s" default
       | `Force v -> pf ppf "Forced:%s" v
+      | `From_protocol_kind -> pf ppf "From-protocol-kind"
 
     let pp_short : t Fmt.t =
      fun ppf ->
       let open Fmt in
       function
       | `Random -> pf ppf "Random"
-      | `Default -> pf ppf "Default"
+      | `Old_default -> pf ppf "Old-default"
       | `Force _ -> pf ppf "Forced"
+      | `From_protocol_kind -> pf ppf "From-protocol-kind"
 
     let cmdliner_term () : t Cmdliner.Term.t =
       let open Cmdliner in
       let open Term in
       ret
         ( pure (function
-            | None | Some "default" -> `Ok `Default
+            | None | Some "from-protocol-kind" | Some "default" ->
+                `Ok `From_protocol_kind
+            | Some "legacy-default" -> `Ok `Old_default
             | Some "random" -> `Ok `Random
             | Some force -> `Ok (`Force force))
         $ Arg.(
             let doc =
               Fmt.str
-                "Set the genesis block hash (from which the chain-id is \
-                 derived). The default (or the string %S) is `%s...`, %S \
-                 means pick-one-at-random. This option is ignored when the \
-                 `--keep-root` option allows the chain to resume (the \
-                 previously chosen genesis-hash will be still in effect)."
-                "default"
-                (String.sub default ~pos:0 ~len:8)
-                "random" in
+                {md|Set the genesis block hash (from which the chain-id is derived).
+The default behavior (or the values "default" or "from-protocol-kind") is to pick
+a "vanity-suffix-chain-id" which depends on the kind of protocol:
+`Box6` for Carthage
+and `Box7` for Delphi.
+The value "random" means to pick a random number.
+The value "legacy-default" picks the same default as older versions of Flextesa.
+Any other value is treated as a custom block hash.
+This option is ignored when the `--keep-root` option allows
+the chain to resume
+(the previously chosen genesis-hash will be still in effect).
+|md}
+            in
             value
               (opt (some string) None
-                 (info ["genesis-block-hash"] ~docv:"BLOCK-HASH|random|default"
-                    ~doc))) )
+                 (info ["genesis-block-hash"]
+                    ~docv:"BLOCK-HASH|<special-value>" ~doc))) )
   end
 
   let chain_id_of_hash hash =
@@ -61,7 +92,7 @@ module Genesis_block_hash = struct
     Option.map (Block_hash.of_b58check_opt hash) ~f:(fun bh ->
         bh |> Chain_id.of_block_hash |> Chain_id.to_b58check)
 
-  let process_choice state choice =
+  let process_choice state ~protocol_kind choice =
     let json_file = path state in
     let pp_hash_fancily ppf h =
       let open More_fmt in
@@ -84,7 +115,7 @@ module Genesis_block_hash = struct
             fun ppf () ->
               wf ppf "Genesis-block-hash already set: %a%a" pp_hash_fancily
                 hash
-                (fun ppf -> function `Default -> pf ppf "."
+                (fun ppf -> function `From_protocol_kind -> pf ppf "."
                   | choice ->
                       pf ppf " (user choice “%a” is then ignored)."
                         Choice.pp choice)
@@ -93,8 +124,9 @@ module Genesis_block_hash = struct
     | false ->
         let hash =
           match choice with
-          | `Default -> default
+          | `Old_default -> default
           | `Force v -> v
+          | `From_protocol_kind -> of_protocol_kind protocol_kind
           | `Random ->
               let seed =
                 Fmt.str "%d:%f" (Random.int 1_000_000) (Unix.gettimeofday ())
@@ -151,7 +183,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     >>= fun () -> Helpers.clear_root state
   else Console.say state EF.(wf "Keeping root: `%s`" (Paths.root state)) )
   >>= fun () ->
-  Genesis_block_hash.process_choice state genesis_block_choice
+  Genesis_block_hash.process_choice state
+    ~protocol_kind:protocol.Tezos_protocol.kind genesis_block_choice
   >>= fun genesis_block_hash ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
