@@ -27,7 +27,7 @@ if [ "$*" != "" ] ; then
 fi
 
 # We use the following pointer to the main repo's master branch:
-tezos_branch=master-20200417
+tezos_branch=master-20200923
 tezos_remote=https://gitlab.com/smondet/tezos.git
 
 say "Vendoring tezos @ %10s" "$tezos_commit"

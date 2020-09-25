@@ -23,6 +23,10 @@ case "$default_protocol" in
         daemon_suffix=006-PsCARTHA
         protocol_hash=PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb
         ;;
+    "Delphi")
+        daemon_suffix=007-PsDELPH1
+        protocol_hash=PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo
+        ;;
     * )
         echo "Cannot understand protocol kind: '$default_protocol'"
         usage ;;
@@ -45,7 +49,7 @@ start () {
              --add-bootstrap-account="$bob@2_000_000_000_000" \
              --no-daemons-for=alice \
              --no-daemons-for=bob \
-             --until-level 2_000_000 \
+             --until-level 200_000_000 \
              --tezos-baker "tezos-baker-$daemon_suffix" \
              --tezos-endor "tezos-endorser-$daemon_suffix" \
              --tezos-accus "tezos-accuser-$daemon_suffix" \
