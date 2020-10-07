@@ -405,19 +405,22 @@ module Commands = struct
     :: arbitrary_commands_for_each_client state ?make_admin ~clients
          ?make_command_names:make_individual_command_names
 
+  let client_list_in_help_messages clients =
+    match clients with
+    | [] -> "NO CLIENT, this is just wrong"
+    | [one] -> one.Tezos_client.Keyed.client.id
+    | m ->
+        Fmt.str "one of %s"
+          ( List.mapi m ~f:(fun ith one ->
+                Fmt.str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+          |> String.concat ~sep:", " )
+
   let bake_command state ~clients =
     Console.Prompt.unit_and_loop
       ~description:
         Fmt.(
           str "Manually bake a block (with %s)."
-            ( match clients with
-            | [] -> "NO CLIENT, this is just wrong"
-            | [one] -> one.Tezos_client.Keyed.client.id
-            | m ->
-                str "one of %s"
-                  ( List.mapi m ~f:(fun ith one ->
-                        str "%d: %s" ith one.Tezos_client.Keyed.client.id)
-                  |> String.concat ~sep:", " ) ))
+            (client_list_in_help_messages clients))
       ["bake"]
       (fun sexps ->
         let client =
@@ -429,6 +432,57 @@ module Commands = struct
         in
         protect_with_keyed_client "manual-baking" ~client ~f:(fun () ->
             Tezos_client.Keyed.bake state client "Manual baking !"))
+
+  let forge_and_inject_peice_of_json state ~clients =
+    Console.Prompt.unit_and_loop
+      ~description:
+        Fmt.(
+          str "Manually create an operation to inject (with %s)."
+            (client_list_in_help_messages clients))
+      ["forge-and-inject"; "fi"]
+      (fun sexps ->
+        let client =
+          let open Base.Sexp in
+          match sexps with
+          | [] -> List.nth_exn clients 0
+          | [Atom s] -> List.nth_exn clients (Int.of_string s)
+          | _ -> Fmt.kstrf failwith "Wrong command line: %a" pp (List sexps)
+        in
+        protect_with_keyed_client "manual-forge" ~client ~f:(fun () ->
+            Traffic_generation.Commands.branch state client
+            >>= fun branch ->
+            Tezos_client.get_account state ~client:client.client
+              ~name:client.key_name
+            >>= function
+            | Some acct -> (
+                let json =
+                  Traffic_generation.Forge.batch_transfer
+                    ~src:(Tezos_protocol.Account.pubkey_hash acct)
+                    ~fee:3. ~branch 2 in
+                let tmp = Caml.Filename.temp_file "flextesa-forge" ".json" in
+                System.write_file state tmp
+                  ~content:(Ezjsonm.value_to_string ~minify:false json)
+                >>= fun () ->
+                System.editor state
+                >>= fun editor ->
+                Fmt.kstr (System.command state) "%s %s" editor tmp
+                >>= function
+                | true ->
+                    System.read_file state tmp
+                    >>= fun content ->
+                    let json = Ezjsonm.value_from_string content in
+                    Tezos_client.Keyed.forge_and_inject state client ~json
+                    >>= fun res_json ->
+                    Console.sayf state
+                      Fmt.(
+                        fun ppf () ->
+                          pf ppf "Forge and inject returned:@ %a" More_fmt.json
+                            res_json)
+                | false ->
+                    Fmt.failwith "Editor ('%s') failed to edit %S" editor tmp )
+            | None ->
+                Fmt.kstr failwith "Cannot retrieve account for %S"
+                  client.key_name))
 
   let generate_and_import_keys state client names =
     Console.say state

@@ -526,6 +526,28 @@ module System = struct
       (fun () ->
         Lwt_io.with_file ~mode:Lwt_io.input path (fun out -> Lwt_io.read out))
       ()
+
+  let command (_state : _ Base_state.t) s =
+    System_error.catch Lwt_unix.system s
+    >>= fun status -> return Poly.(status = Lwt_unix.WEXITED 0)
+
+  let editor_opt state =
+    let attempts =
+      let defaults = ["nano"; "vi"] in
+      try Caml.Sys.getenv "EDITOR" :: defaults with _ -> defaults in
+    List.fold attempts ~init:(return None) ~f:(fun prevm attempt ->
+        prevm
+        >>= function
+        | Some s -> return (Some s)
+        | None -> (
+            Fmt.kstr (command state) "which %s > /dev/null 2>&1" attempt
+            >>= function true -> return (Some attempt) | false -> return None ))
+
+  let editor state =
+    editor_opt state
+    >>= function
+    | Some s -> return s
+    | None -> System_error.fail_fatalf "Cannot find any editor."
 end
 
 (** WIP [jq]-like manipulation in pure OCaml. *)
