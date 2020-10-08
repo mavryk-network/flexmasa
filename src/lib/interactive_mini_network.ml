@@ -326,7 +326,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     Interactive_test.Commands.(
       (shell_env_help :: all_defaults state ~nodes)
       @ [ secret_keys state ~protocol
-        ; forge_and_inject_peice_of_json state ~clients:keyed_clients ]
+        ; forge_and_inject_piece_of_json state ~clients:keyed_clients ]
       @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
   match test_kind with
   | `Interactive ->

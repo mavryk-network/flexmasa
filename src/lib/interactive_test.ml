@@ -477,7 +477,7 @@ module Commands = struct
 |json}
       branch src key_name fee_mutez counter
 
-  let forge_and_inject_peice_of_json state ~clients =
+  let forge_and_inject_piece_of_json state ~clients =
     Console.Prompt.unit_and_loop
       ~description:
         Fmt.(

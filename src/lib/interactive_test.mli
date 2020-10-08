@@ -181,7 +181,7 @@ module Commands : sig
     -> clients:Tezos_client.Keyed.t list
     -> Console.Prompt.item
 
-  val forge_and_inject_peice_of_json :
+  val forge_and_inject_piece_of_json :
        < application_name: string
        ; console: Console.t
        ; env_config: Environment_configuration.t
