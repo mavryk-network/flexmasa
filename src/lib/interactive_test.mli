@@ -181,6 +181,16 @@ module Commands : sig
     -> clients:Tezos_client.Keyed.t list
     -> Console.Prompt.item
 
+  val forge_and_inject_piece_of_json :
+       < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> clients:Tezos_client.Keyed.t list
+    -> Console.Prompt.item
+
   val generate_and_import_keys :
        < application_name: string
        ; console: Console.t

@@ -405,19 +405,22 @@ module Commands = struct
     :: arbitrary_commands_for_each_client state ?make_admin ~clients
          ?make_command_names:make_individual_command_names
 
+  let client_list_in_help_messages clients =
+    match clients with
+    | [] -> "NO CLIENT, this is just wrong"
+    | [one] -> one.Tezos_client.Keyed.client.id
+    | m ->
+        Fmt.str "one of %s"
+          ( List.mapi m ~f:(fun ith one ->
+                Fmt.str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+          |> String.concat ~sep:", " )
+
   let bake_command state ~clients =
     Console.Prompt.unit_and_loop
       ~description:
         Fmt.(
           str "Manually bake a block (with %s)."
-            ( match clients with
-            | [] -> "NO CLIENT, this is just wrong"
-            | [one] -> one.Tezos_client.Keyed.client.id
-            | m ->
-                str "one of %s"
-                  ( List.mapi m ~f:(fun ith one ->
-                        str "%d: %s" ith one.Tezos_client.Keyed.client.id)
-                  |> String.concat ~sep:", " ) ))
+            (client_list_in_help_messages clients))
       ["bake"]
       (fun sexps ->
         let client =
@@ -429,6 +432,115 @@ module Commands = struct
         in
         protect_with_keyed_client "manual-baking" ~client ~f:(fun () ->
             Tezos_client.Keyed.bake state client "Manual baking !"))
+
+  let forge_template ~key_name ~counter ~branch ~fee ~src =
+    let fee_mutez = fee *. 1_000_000. |> Int.of_float in
+    Fmt.str
+      {json|
+// This is a template of an operation to be forged-and-injected
+// Comments start with `//`
+{
+  "branch": "%s",
+  "contents": [
+    {  // Basic transaction:
+      "kind": "transaction",
+      "source": "%s",  // This is already the %s's PKH
+      "destination": "tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F",
+      "amount": "1",
+      "fee": "%d",
+      "counter": "%d",  // The counter was fetched from the RPC (not mempool yet)
+      "gas_limit": "127",
+      "storage_limit": "277"
+    },
+    {  // Key revelation
+      "kind": "reveal",
+      "source": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb", // This is `alice`.
+      "fee": "1257", "counter": "3",
+      "gas_limit": "10000", "storage_limit": "0",
+      "public_key": "edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn"
+    },
+    {  // Contract origination
+      "kind": "origination",
+      "source": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb", "fee": "1240",
+      "counter": "4", "gas_limit": "10744", "storage_limit": "309",
+      "balance": "1000000",
+      "script":
+          { "code":
+              [ { "prim": "parameter", "args": [ { "prim": "nat" } ] },
+                { "prim": "storage", "args": [ { "prim": "nat" } ] },
+                { "prim": "code",
+                  "args": [ [ { "prim": "FAILWITH" } ] ] } ],
+            "storage": { "int": "0" } }
+    }
+  ]
+}
+|json}
+      branch src key_name fee_mutez counter
+
+  let forge_and_inject_piece_of_json state ~clients =
+    Console.Prompt.unit_and_loop
+      ~description:
+        Fmt.(
+          str "Manually create an operation to inject (with %s)."
+            (client_list_in_help_messages clients))
+      ["forge-and-inject"; "fi"]
+      (fun sexps ->
+        let client =
+          let open Base.Sexp in
+          match sexps with
+          | [] -> List.nth_exn clients 0
+          | [Atom s] -> List.nth_exn clients (Int.of_string s)
+          | _ -> Fmt.kstrf failwith "Wrong command line: %a" pp (List sexps)
+        in
+        protect_with_keyed_client "manual-forge" ~client ~f:(fun () ->
+            Traffic_generation.Commands.branch state client
+            >>= fun branch ->
+            Tezos_client.get_account state ~client:client.client
+              ~name:client.key_name
+            >>= function
+            | Some acct -> (
+                let src = Tezos_protocol.Account.pubkey_hash acct in
+                Tezos_client.rpc state ~client:client.client `Get
+                  ~path:
+                    (Fmt.str
+                       "/chains/main/blocks/head/context/contracts/%s/counter"
+                       src)
+                >>= fun counter_json ->
+                let counter =
+                  (Jqo.get_string counter_json |> Int.of_string) + 1 in
+                let json_template =
+                  forge_template ~key_name:client.key_name ~src ~counter
+                    ~fee:3. ~branch in
+                let tmp = Caml.Filename.temp_file "flextesa-forge" ".json" in
+                System.write_file state tmp ~content:json_template
+                >>= fun () ->
+                System.editor state
+                >>= fun editor ->
+                Fmt.kstr (System.command state) "%s %s" editor tmp
+                >>= function
+                | true ->
+                    System.read_file state tmp
+                    >>= fun content ->
+                    let cleaned_up =
+                      String.split_lines content
+                      |> List.map ~f:(fun line ->
+                             match String.substr_index line ~pattern:"//" with
+                             | None -> line
+                             | Some idx -> String.sub line ~pos:0 ~len:idx)
+                      |> String.concat ~sep:"\n" in
+                    let json = Ezjsonm.value_from_string cleaned_up in
+                    Tezos_client.Keyed.forge_and_inject state client ~json
+                    >>= fun res_json ->
+                    Console.sayf state
+                      Fmt.(
+                        fun ppf () ->
+                          pf ppf "Forge and inject returned:@ %a" More_fmt.json
+                            res_json)
+                | false ->
+                    Fmt.failwith "Editor ('%s') failed to edit %S" editor tmp )
+            | None ->
+                Fmt.kstr failwith "Cannot retrieve account for %S"
+                  client.key_name))
 
   let generate_and_import_keys state client names =
     Console.say state
