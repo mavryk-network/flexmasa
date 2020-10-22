@@ -36,7 +36,7 @@ module Commands = struct
         let all = flag "all" sxp in
         Console.say state (Running_processes.ef ~all state))
 
-  let curl_rpc state ~port ~path =
+  let curl_rpc_cmd state ~port ~path =
     Running_processes.run_cmdf state "curl http://localhost:%d/%s" port path
     >>= fun curl_res ->
     Console.display_errors_of_command state curl_res ~should_output:true
@@ -82,7 +82,7 @@ module Commands = struct
         >>= fun port ->
         get_pp_json state sexps
         >>= fun pp_json ->
-        curl_rpc state ~port ~path
+        curl_rpc_cmd state ~port ~path
         >>= fun json_opt ->
         do_jq ~msg:doc state json_opt ~f:jq
         >>= fun processed_json ->
@@ -202,11 +202,12 @@ module Commands = struct
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
         >>= fun port ->
-        curl_rpc state ~port ~path:"/chains/main/blocks/head/context/contracts"
+        curl_rpc_cmd state ~port
+          ~path:"/chains/main/blocks/head/context/contracts"
         >>= fun json_opt ->
         do_jq state ~msg:"Getting contract list" ~f:Jqo.get_strings json_opt
         >>= fun contracts ->
-        curl_rpc state ~port ~path:"/chains/main/checkpoint"
+        curl_rpc_cmd state ~port ~path:"/chains/main/checkpoint"
         >>= fun chkpto ->
         do_jq state chkpto ~msg:"Getting checkpoint"
           ~f:
@@ -222,7 +223,7 @@ module Commands = struct
           let path =
             sprintf "/chains/main/blocks/%s/context/contracts/%s/balance" block
               contract in
-          curl_rpc state ~port ~path
+          curl_rpc_cmd state ~port ~path
           >>= fun jo ->
           do_jq state jo ~msg:"Getting balance" ~f:(fun j ->
               Jqo.get_string j |> Int.of_string) in
@@ -257,7 +258,8 @@ module Commands = struct
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
         >>= fun port ->
-        curl_rpc state ~port ~path:"/chains/main/blocks/head/context/contracts"
+        curl_rpc_cmd state ~port
+          ~path:"/chains/main/blocks/head/context/contracts"
         >>= fun json_opt ->
         do_jq state ~msg:"Getting contract list" ~f:Jqo.get_strings json_opt
         >>= fun contracts ->
@@ -619,7 +621,7 @@ module Commands = struct
                     [level_option])
         | Atom "endorsement" :: more_args ->
             protect_with_keyed_client "forge-and-inject" ~client ~f:(fun () ->
-                branch state client
+                Traffic_generation.branch state client
                 >>= fun branch ->
                 Sexp_options.get level_option more_args
                   ~f:Sexp_options.get_int_exn ~default:(fun () -> return 42)
@@ -630,19 +632,13 @@ module Commands = struct
                 Console.sayf state
                   More_fmt.(fun ppf () -> json ppf json_result))
         | Atom "batch" :: more_args ->
-            Tezos_client.get_account state ~client:client.client
-              ~name:client.key_name
-            >>= fun acct ->
-            ( match acct with
-            | Some a -> get_batch_args state ~client all_opts a more_args
-            | None -> Fmt.kstr failwith "to_action - failed to parse account."
-            )
+            get_batch_args state ~client all_opts more_args
             >>= fun ba ->
-            run_actions state ~client ~nodes ~actions:[ba] ~counter:1
+            run_actions state ~client ~nodes ~actions:[ba] ~rep_counter:1
         | Atom "multisig-batch" :: more_args ->
             get_multisig_args state ~client all_opts more_args
             >>= fun ma ->
-            run_actions state ~client ~nodes ~actions:[ma] ~counter:1
+            run_actions state ~client ~nodes ~actions:[ma] ~rep_counter:1
         | Atom "dsl" :: dsl_sexp ->
             Traffic_generation.Dsl.process_dsl state ~client ~nodes all_opts
               (Sexp.List dsl_sexp)

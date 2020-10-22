@@ -1,5 +1,10 @@
 open Internal_pervasives
 
+let branch state client =
+  Tezos_client.rpc state ~client:client.Tezos_client.Keyed.client `Get
+    ~path:"/chains/main/blocks/head/hash"
+  >>= fun br -> return (Jqo.get_string br)
+
 module Michelson = struct
   let prepare_origination_of_id_script ?delegate ?(push_drops = 0)
       ?(amount = "2") state ~name ~from ~protocol_kind ~parameter ~init_storage
@@ -45,7 +50,9 @@ end
 module Forge = struct
   let batch_transfer
       ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
-      ?(counter = 0) ?(dst = [("tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F", 1)])
+      ?(counter = 0)
+      ?(dst =
+        [("tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F", Random.int_incl 1 1000)])
       ~src ~fee ~branch n : Ezjsonm.value =
     let open Ezjsonm in
     ignore protocol_kind ;
@@ -77,6 +84,11 @@ module Forge = struct
         , `A [`O [("kind", `String "endorsement"); ("level", int level)]] ) ]
 end
 
+let get_chain_id state (client : Tezos_client.Keyed.t) =
+  Tezos_client.rpc state ~client:client.client `Get
+    ~path:"/chains/main/chain_id"
+  >>= fun chain_id_json -> return (Jqo.val_to_string chain_id_json)
+
 module Multisig = struct
   let signer_names_base =
     [ "Alice"; "Bob"; "Charlie"; "David"; "Elsa"; "Frank"; "Gail"; "Harry"
@@ -95,63 +107,258 @@ module Multisig = struct
     let result, _ = List.fold big_list ~init:([], 0) ~f:fold_f in
     List.rev result
 
-  let deploy_and_transfer state client nodes ~num_signers ~outer_repeat
-      ~contract_repeat =
-    let signer_names_plus = get_signer_names signer_names_base num_signers in
+  (* The multisig contract script written by Arthur Breitman
+      https://github.com/murbard/smart-contracts/blob/master/multisig/michelson/multisig.tz *)
+  (* Updated to take the chain id into account *)
+  let multisig_script_string =
+    "[{\"prim\":\"parameter\",\"args\":[{\"prim\":\"pair\",\"args\": \
+     [{\"prim\":\"pair\",\"args\":[{\"prim\":\"nat\",\"annots\": \
+     [\"%counter\"]},{\"prim\":\"or\",\"args\":[{\"prim\":\"pair\", \
+     \"args\":[{\"prim\":\"mutez\",\"annots\":[\"%amount\"]},{\"prim\": \
+     \"contract\",\"args\":[{\"prim\":\"unit\"}],\"annots\":[\"%dest\"]}], \
+     \"annots\":[\":transfer\"]},{\"prim\":\"or\",\"args\":[{\"prim\": \
+     \"option\",\"args\":[{\"prim\":\"key_hash\"}],\"annots\": \
+     [\"%delegate\"]},{\"prim\":\"pair\",\"args\":[{\"prim\":\"nat\", \
+     \"annots\":[\"%threshold\"]},{\"prim\":\"list\",\"args\":[{\"prim\": \
+     \"key\"}],\"annots\":[\"%keys\"]}],\"annots\":[\"%change_keys\"]}]}], \
+     \"annots\":[\":action\"]}],\"annots\":[\":payload\"]},{\"prim\": \
+     \"list\",\"args\":[{\"prim\":\"option\",\"args\":[{\"prim\": \
+     \"signature\"}]}],\"annots\":[\"%sigs\"]}]}]},{\"prim\": \
+     \"storage\",\"args\":[{\"prim\":\"pair\",\"args\":[{\"prim\": \
+     \"nat\",\"annots\":[\"%stored_counter\"]},{\"prim\":\"pair\", \
+     \"args\":[{\"prim\":\"nat\",\"annots\":[\"%threshold\"]}, \
+     {\"prim\":\"list\",\"args\":[{\"prim\":\"key\"}],\"annots\": \
+     [\"%keys\"]}]}]}]},{\"prim\":\"code\",\"args\":[[[[{\"prim\": \
+     \"DUP\"},{\"prim\":\"CAR\"},{\"prim\":\"DIP\",\"args\": \
+     [[{\"prim\":\"CDR\"}]]}]],{\"prim\":\"SWAP\"},{\"prim\":\"DUP\"}, \
+     {\"prim\":\"DIP\",\"args\":[[{\"prim\":\"SWAP\"}]]},{\"prim\":\"DIP\", \
+     \"args\":[[[[{\"prim\":\"DUP\"},{\"prim\":\"CAR\"},{\"prim\":\"DIP\", \
+     \"args\":[[{\"prim\":\"CDR\"}]]}]],{\"prim\":\"DUP\"},{\"prim\": \
+     \"SELF\"},{\"prim\":\"ADDRESS\"},{\"prim\":\"CHAIN_ID\"}, \
+     {\"prim\":\"PAIR\"},{\"prim\":\"PAIR\"},{\"prim\":\"PACK\"}, \
+     {\"prim\":\"DIP\",\"args\":[[[[{\"prim\":\"DUP\"},{\"prim\":\"CAR\", \
+     \"annots\":[\"@counter\"]},{\"prim\":\"DIP\",\"args\":[[{\"prim\": \
+     \"CDR\"}]]}]],{\"prim\":\"DIP\",\"args\":[[{\"prim\":\"SWAP\"}]]}]]}, \
+     {\"prim\":\"SWAP\"}]]},[[{\"prim\":\"DUP\"},{\"prim\":\"CAR\", \
+     \"annots\":[\"@stored_counter\"]},{\"prim\":\"DIP\",\"args\": \
+     [[{\"prim\":\"CDR\"}]]}]],{\"prim\":\"DIP\",\"args\":[[{\"prim\": \
+     \"SWAP\"}]]},[[{\"prim\":\"COMPARE\"},{\"prim\":\"EQ\"}],{\"prim\": \
+     \"IF\",\"args\":[[],[[{\"prim\":\"UNIT\"},{\"prim\":\"FAILWITH\"}]]]}], \
+     {\"prim\":\"DIP\",\"args\":[[{\"prim\":\"SWAP\"}]]},[[{\"prim\":\"DUP\"}, \
+     {\"prim\":\"CAR\",\"annots\":[\"@threshold\"]},{\"prim\":\"DIP\", \
+     \"args\":[[{\"prim\":\"CDR\",\"annots\":[\"@keys\"]}]]}]],{\"prim\": \
+     \"DIP\",\"args\":[[{\"prim\":\"PUSH\",\"args\":[{\"prim\":\"nat\"}, \
+     {\"int\":\"0\"}],\"annots\":[\"@valid\"]},{\"prim\":\"SWAP\"}, \
+     {\"prim\":\"ITER\",\"args\":[[{\"prim\":\"DIP\",\"args\":[[{\"prim\": \
+     \"SWAP\"}]]},{\"prim\":\"SWAP\"},{\"prim\":\"IF_CONS\",\"args\": \
+     [[[{\"prim\":\"IF_NONE\",\"args\":[[{\"prim\":\"SWAP\"},{\"prim\": \
+     \"DROP\"}],[{\"prim\":\"SWAP\"},{\"prim\":\"DIP\",\"args\":[[{\"prim\": \
+     \"SWAP\"},{\"prim\":\"DIP\",\"args\":[{\"int\":\"2\"},[[{\"prim\": \
+     \"DIP\",\"args\":[[{\"prim\":\"DUP\"}]]},{\"prim\":\"SWAP\"}]]]}, \
+     {\"prim\":\"CHECK_SIGNATURE\"},[{\"prim\":\"IF\",\"args\":[[], \
+     [[{\"prim\":\"UNIT\"},{\"prim\":\"FAILWITH\"}]]]}],{\"prim\":\"PUSH\" \
+     ,\"args\":[{\"prim\":\"nat\"},{\"int\":\"1\"}]},{\"prim\":\"ADD\" \
+     ,\"annots\":[\"@valid\"]}]]}]]}]],[[{\"prim\":\"UNIT\"},{\"prim\": \
+     \"FAILWITH\"}]]]},{\"prim\":\"SWAP\"}]]}]]},[[{\"prim\":\"COMPARE\"}, \
+     {\"prim\":\"LE\"}],{\"prim\":\"IF\",\"args\":[[],[[{\"prim\":\"UNIT\"}, \
+     {\"prim\":\"FAILWITH\"}]]]}],{\"prim\":\"DROP\"},{\"prim\":\"DROP\"}, \
+     {\"prim\":\"DIP\",\"args\":[[[[{\"prim\":\"DUP\"},{\"prim\":\"CAR\"}, \
+     {\"prim\":\"DIP\",\"args\":[[{\"prim\":\"CDR\"}]]}]],{\"prim\":\"PUSH\", \
+     \"args\":[{\"prim\":\"nat\"},{\"int\":\"1\"}]},{\"prim\":\"ADD\", \
+     \"annots\":[\"@new_counter\"]},{\"prim\":\"PAIR\"}]]},{\"prim\":\"NIL\", \
+     \"args\":[{\"prim\":\"operation\"}]},{\"prim\":\"SWAP\"},{\"prim\": \
+     \"IF_LEFT\",\"args\":[[[[{\"prim\":\"DUP\"},{\"prim\":\"CAR\"}, \
+     {\"prim\":\"DIP\",\"args\":[[{\"prim\":\"CDR\"}]]}]],{\"prim\":\"UNIT\"}, \
+     {\"prim\":\"TRANSFER_TOKENS\"},{\"prim\":\"CONS\"}],[{\"prim\": \
+     \"IF_LEFT\",\"args\":[[{\"prim\":\"SET_DELEGATE\"},{\"prim\":\"CONS\"}], \
+     [{\"prim\":\"DIP\",\"args\":[[{\"prim\":\"SWAP\"},{\"prim\":\"CAR\"}]]}, \
+     {\"prim\":\"SWAP\"},{\"prim\":\"PAIR\"},{\"prim\":\"SWAP\"}]]}]]}, \
+     {\"prim\":\"PAIR\"}]]}]"
+
+  let multisig_script_json (counter : int) (sig_threshold : int)
+      (signers : string list) : Ezjsonm.value =
+    let foldf acc signer = ("{ \"string\":" ^ "\"" ^ signer ^ "\" },") ^ acc in
+    let pks =
+      List.map
+        ~f:(fun n ->
+          Tezos_protocol.Account.pubkey (Tezos_protocol.Account.of_name n))
+        signers in
+    let folded =
+      String.rstrip
+        ~drop:(fun ch -> Char.equal ch ',')
+        (List.fold pks ~init:"" ~f:foldf) in
+    let signer_list = "[" ^ folded ^ "]" in
+    let storage_prefix_str =
+      Printf.sprintf
+        "{\"prim\": \"Pair\", \"args\": [{\"int\": \"%d\"}, {\"prim\": \
+         \"Pair\", \"args\": [{\"int\": \"%d\"},"
+        counter sig_threshold in
+    let script_str =
+      "{ \"code\": " ^ multisig_script_string ^ ", " ^ "\"storage\": "
+      ^ storage_prefix_str ^ signer_list ^ "] } ] } }" in
+    Ezjsonm.value_from_string script_str
+
+  let multisig_param_template =
+    Caml.(
+      "{\"entrypoint\":\"default\",\"value\":{\"prim\":\"Pair\",\"args\":"
+      ^^ "[{\"prim\":\"Pair\",\"args\":[{\"int\":\"%d\"},{\"prim\":\"Left\","
+      ^^ "\"args\":[{\"prim\":\"Pair\",\"args\":[{\"int\":\"%d\"},{\"string\":"
+      ^^ "\"%s\"}]}]}]},[%s]]}}")
+
+  let sig_template =
+    Caml.("{\"prim\":\"Some\",\"args\":" ^^ "[{\"string\":\"%s\"}]},")
+
+  let multisig_params_json sigs counter amount msig : Ezjsonm.value =
+    let the_signatures =
+      let sigs_rev = List.rev sigs in
+      let folded =
+        List.fold ~init:""
+          ~f:(fun acc s -> Printf.sprintf sig_template s ^ acc)
+          sigs_rev in
+      String.rstrip ~drop:(fun ch -> Char.equal ch ',') folded in
+    let multisig_params =
+      sprintf multisig_param_template counter amount msig the_signatures in
+    Ezjsonm.value_from_string multisig_params
+
+  let deploy_multisig
+      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
+      ?(counter = 0) sig_threshold ~branch ~signers ~src ~fee ~balance =
+    let open Ezjsonm in
+    ignore protocol_kind ;
+    dict
+      [ ("branch", `String branch)
+      ; ( "contents"
+        , `A
+            [ `O
+                [ ("kind", `String "origination")
+                ; ("source", `String src)
+                ; ( "fee"
+                  , `String (Int.to_string (Float.to_int (fee *. 1000000.))) )
+                ; ("counter", `String (Int.to_string counter))
+                ; ("gas_limit", `String (Int.to_string 1040000))
+                ; ("storage_limit", `String (Int.to_string 60000))
+                ; ("balance", `String (Int.to_string balance))
+                ; ("script", multisig_script_json counter sig_threshold signers)
+                ] ] ) ]
+
+  let hash_multisig_data state client mutez ~chain_id ~contract_addr ~dest =
+    let data_type =
+      "(pair (pair address chain_id) (pair int (or (pair mutez (contract \
+       unit)) unit)))" in
+    Tezos_client.Keyed.contract_storage_counter state client contract_addr
+    >>= fun contract_counter ->
+    let data_to_hash =
+      sprintf "(Pair (Pair \"%s\" \"%s\") (Pair %d (Left (Pair %d \"%s\"))))"
+        contract_addr chain_id contract_counter mutez dest in
+    let gas = 1040000 in
+    Tezos_client.Keyed.hash_data state client ~data_to_hash ~data_type ~gas
+
+  let sign_multisig state client ~contract_addr ~amt ~to_acct ~signer_name =
+    get_chain_id state client
+    >>= fun chain_id ->
+    hash_multisig_data state client amt ~chain_id ~contract_addr ~dest:to_acct
+    >>= fun bytes ->
+    Tezos_client.Keyed.sign_bytes state client ~bytes ~key_name:signer_name
+    >>= fun ret ->
+    let cleaned =
+      match String.chop_prefix ret ~prefix:"Signature: " with
+      | Some s -> s
+      | None -> ret in
+    return cleaned
+
+  let transfer_from_multisig
+      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
+      ?(counter = 0) fee ~branch ~src ~destination ~contract ~amount
+      ~signatures (* ~signature ~burn_cap *) =
+    let open Ezjsonm in
+    ignore protocol_kind ;
+    dict
+      [ ("branch", `String branch)
+      ; ( "contents"
+        , `A
+            [ `O
+                [ ("kind", `String "transaction")
+                ; ("source", `String src)
+                ; ( "fee"
+                  , `String (Int.to_string (Float.to_int (fee *. 1000000.))) )
+                ; ("counter", `String (Int.to_string counter))
+                ; ("gas_limit", `String (Int.to_string 1040000))
+                ; ("storage_limit", `String (Int.to_string 60000))
+                ; ("amount", `String (Int.to_string amount))
+                ; ("destination", `String destination)
+                ; ( "parameters"
+                  , multisig_params_json signatures counter amount contract )
+                ] ] ) ]
+
+  let deploy_and_transfer state (client : Tezos_client.Keyed.t) ~nodes:_ ~src
+      ~fee ~num_signers ~outer_repeat ~contract_repeat =
     (*loop through batch size *)
     Loop.n_times outer_repeat (fun n ->
+        let more_signers = num_signers + (n - 1) in
+        let signer_names_plus =
+          get_signer_names signer_names_base more_signers in
         (* generate and import keys *)
-        let signer_names = List.take signer_names_plus num_signers in
-        Helpers.import_keys_from_seeds state client ~seeds:signer_names
-        (* deploy the multisig contract *)
+        let signer_names = List.take signer_names_plus more_signers in
+        Helpers.import_keys_from_seeds state client.client ~seeds:signer_names
         >>= fun _ ->
-        Test_scenario.Queries.wait_for_bake state ~nodes
-        (* required to avoid "counter" errors *)
+        let s = List.hd_exn signer_names in
+        let kp = Tezos_protocol.Account.of_name s in
+        let _destination = Tezos_protocol.Account.pubkey_hash kp in
+        (* deploy the multisig contract *)
+        Tezos_client.Keyed.update_counter state client ~port:client.client.port
+          ~dbg_str:"After import keys, before deploy multisig"
+        >>= fun new_counter ->
+        branch state client
+        >>= fun the_branch ->
+        (* TODO: add varion to amt for multisig and batch transfers *)
+        let json =
+          deploy_multisig ~counter:new_counter more_signers ~branch:the_branch
+            ~signers:signer_names ~src ~fee:(fee *. 10.0)
+            ~balance:(Random.int 10000 + 1) in
+        Tezos_client.Keyed.forge_and_inject state client ~json
+        >>= fun deploy_result ->
+        Console.sayf state More_fmt.(fun ppf () -> json ppf deploy_result)
         >>= fun () ->
-        let multisig_name = "msig-" ^ Int.to_string n in
-        Tezos_client.deploy_multisig state client ~name:multisig_name
-          ~amt:100.0 ~from_acct:"bootacc-0" ~threshold:num_signers
-          ~signer_names ~burn_cap:100.0
+        (* TODO: use wait_for_bake if auto-baking, and use bake when manual baking *)
+        Tezos_client.Keyed.bake state client "Manual baking B!"
         >>= fun () ->
-        Test_scenario.Queries.wait_for_bake state ~nodes
-        >>= fun () ->
+        let _ = Tezos_client.Keyed.operations_from_chain state client in
+        Tezos_client.Keyed.get_contract_id state client
+          (Jqo.val_to_string deploy_result)
+        >>= fun contract_addr ->
         (* for each signer, sign the contract *)
+        let to_acct =
+          Tezos_protocol.Account.pubkey_hash
+            (Tezos_protocol.Account.of_name "Bob") in
         let m_sigs =
-          List.map signer_names ~f:(fun s ->
-              Tezos_client.sign_multisig state client ~name:multisig_name
-                ~amt:100.0 ~to_acct:"Bob" ~signer_name:s) in
+          List.map [List.hd_exn signer_names] ~f:(fun s ->
+              sign_multisig state client ~contract_addr ~amt:100 ~to_acct
+                ~signer_name:s) in
         Asynchronous_result.all m_sigs
         >>= fun signatures ->
         (* submit the fully signed multisig contract *)
         Loop.n_times contract_repeat (fun k ->
-            Tezos_client.transfer_from_multisig state client
-              ~name:multisig_name ~amt:100.0 ~to_acct:"Bob"
-              ~on_behalf_acct:"bootacc-0" ~signatures ~burn_cap:100.0
-            >>= fun () ->
+            Tezos_client.Keyed.update_counter state client
+              ~port:client.client.port
+              ~dbg_str:
+                (sprintf "Inner transfer_from_multisig loop with k:%d" k)
+            >>= fun new_counter ->
+            let xfer_json =
+              transfer_from_multisig ~counter:new_counter fee
+                ~branch:the_branch ~src ~destination:contract_addr
+                ~contract:contract_addr ~amount:100 ~signatures in
+            Tezos_client.Keyed.forge_and_inject state client ~json:xfer_json
+            >>= fun xfer_res ->
             Console.say state
               EF.(
                 desc
                   (haf "Multi-sig contract generation")
-                  (af "Fully signed contract %s (%n) submitted" multisig_name k))))
+                  (af "Multisig transaction (%n) results: %s" k
+                     (Jqo.val_to_string xfer_res)))))
 end
 
 module Commands = struct
   let cmdline_fail fmt = Fmt.kstr (fun s -> fail (`Command_line s)) fmt
-
-  let protect_with_keyed_client msg ~client ~f =
-    let msg =
-      Fmt.str "Command-line %s with client %s (account: %s)" msg
-        client.Tezos_client.Keyed.client.id client.Tezos_client.Keyed.key_name
-    in
-    Asynchronous_result.bind_on_error (f ()) ~f:(fun ~result:_ ->
-      function
-      | #Process_result.Error.t as e ->
-          cmdline_fail "%s -> Error: %a" msg Process_result.Error.pp e
-      | #System_error.t as e ->
-          cmdline_fail "%s -> Error: %a" msg System_error.pp e
-      | `Waiting_for (msg, `Time_out) ->
-          cmdline_fail "WAITING-FOR “%s”: Time-out" msg
-      | `Command_line _ as e -> fail e)
 
   module Sexp_options = struct
     type t = {name: string; placeholders: string list; description: string}
@@ -253,23 +460,20 @@ module Commands = struct
       match xs with [] -> "" | x :: xs -> fmt_sexp x ^ "; " ^ fmt_sexps xs
   end
 
-  type all_options =
-    { counter_option: Sexp_options.option
-    ; size_option: Sexp_options.option
-    ; fee_option: Sexp_options.option
-    ; num_signers_option: Sexp_options.option
-    ; contract_repeat_option: Sexp_options.option }
-
-  type batch_action = {src: string; counter: int; size: int; fee: float}
-  [@@deriving sexp]
-
-  type multisig_action =
-    {src: string; num_signers: int; outer_repeat: int; contract_repeat: int}
-  [@@deriving sexp]
-
-  type action =
-    [`Batch_action of batch_action | `Multisig_action of multisig_action]
-  [@@deriving sexp]
+  let protect_with_keyed_client msg ~client ~f =
+    let msg =
+      Fmt.str "Command-line %s with client %s (account: %s)" msg
+        client.Tezos_client.Keyed.client.id client.Tezos_client.Keyed.key_name
+    in
+    Asynchronous_result.bind_on_error (f ()) ~f:(fun ~result:_ ->
+      function
+      | #Process_result.Error.t as e ->
+          cmdline_fail "%s -> Error: %a" msg Process_result.Error.pp e
+      | #System_error.t as e ->
+          cmdline_fail "%s -> Error: %a" msg System_error.pp e
+      | `Waiting_for (msg, `Time_out) ->
+          cmdline_fail "WAITING-FOR “%s”: Time-out" msg
+      | `Command_line _ as e -> fail e)
 
   let counter_option =
     Sexp_options.make_option ":counter" ~placeholders:["<int>"]
@@ -305,19 +509,35 @@ module Commands = struct
       ~placeholders:["<list of commands>"]
       "Randomly chose a command from a list of dsl commands."
 
+  type all_options =
+    { counter_option: Sexp_options.option
+    ; size_option: Sexp_options.option
+    ; fee_option: Sexp_options.option
+    ; num_signers_option: Sexp_options.option
+    ; contract_repeat_option: Sexp_options.option }
+
+  type batch_action = {src: string; initial_counter: int; size: int; fee: float}
+  [@@deriving sexp]
+
+  type multisig_action =
+    { src: string
+    ; initial_counter: int
+    ; fee: float
+    ; num_signers: int
+    ; outer_repeat: int
+    ; contract_repeat: int }
+  [@@deriving sexp]
+
+  type action =
+    [`Batch_action of batch_action | `Multisig_action of multisig_action]
+  [@@deriving sexp]
+
   let all_opts : all_options =
     { counter_option
     ; size_option
     ; fee_option
     ; num_signers_option
     ; contract_repeat_option }
-
-  let branch state client =
-    Tezos_client.rpc state ~client:client.Tezos_client.Keyed.client `Get
-      ~path:"/chains/main/blocks/head/hash"
-    >>= fun br ->
-    let branch = Jqo.get_string br in
-    return branch
 
   let history_file_path (state : < paths: Paths.t ; .. >) =
     Paths.root state ^ "/traffic-generation-history.txt"
@@ -340,29 +560,29 @@ module Commands = struct
       prev ^ start_time ^ "\n" ^ new_cmd ^ "\n" ^ end_time ^ "\n\n" in
     System.write_file state (history_file_path state) ~content
 
-  let get_batch_args state ~client opts acct more_args =
-    protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
-        let src = Tezos_protocol.Account.pubkey_hash acct in
-        Sexp_options.get opts.counter_option more_args
-          ~f:Sexp_options.get_int_exn ~default:(fun () ->
-            Tezos_client.rpc state ~client:client.client `Get
-              ~path:
-                (Fmt.str
-                   "/chains/main/blocks/head/context/contracts/%s/counter" src)
-            >>= fun counter_json ->
-            return ((Jqo.get_string counter_json |> Int.of_string) + 1))
-        >>= fun counter ->
-        Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
-          ~default:(fun () -> return 10)
-        >>= fun size ->
-        Sexp_options.get opts.fee_option more_args
-          ~f:Sexp_options.get_float_exn ~default:(fun () -> return 0.02)
-        >>= fun fee -> return (`Batch_action {src; counter; size; fee}))
-
   let get_src_str acctOpt err_str =
     match acctOpt with
     | Some a -> Tezos_protocol.Account.pubkey_hash a
     | None -> err_str
+
+  let counter_from_opts opts more_args default_counter =
+    Sexp_options.get opts.counter_option more_args ~f:Sexp_options.get_int_exn
+      ~default:(fun () -> default_counter)
+
+  let get_batch_args state ~client opts more_args =
+    protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
+        Tezos_client.get_account state ~client:client.client
+          ~name:client.key_name
+        >>= fun acct ->
+        let src = get_src_str acct "<Unable to parse account>" in
+        (* TODO: restore some use of counter from command line as initial_counte*)
+        let initial_counter = 0 in
+        Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
+          ~default:(fun () -> return 10)
+        >>= fun size ->
+        Sexp_options.get opts.fee_option more_args
+          ~f:Sexp_options.get_float_exn ~default:(fun () -> return 10.02)
+        >>= fun fee -> return (`Batch_action {src; initial_counter; size; fee}))
 
   let get_multisig_args state ~client opts (more_args : Sexp.t list) =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
@@ -370,9 +590,14 @@ module Commands = struct
           ~name:client.key_name
         >>= fun acct ->
         let src = get_src_str acct "<Unable to parse account>" in
+        (* TODO: restore some use of counter from command line as initial_counte*)
+        let initial_counter = 0 in
         Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
           ~default:(fun () -> return 10)
         >>= fun outer_repeat ->
+        Sexp_options.get opts.fee_option more_args
+          ~f:Sexp_options.get_float_exn ~default:(fun () -> return 10.02)
+        >>= fun fee ->
         Sexp_options.get opts.contract_repeat_option more_args
           ~f:Sexp_options.get_int_exn ~default:(fun () -> return 1)
         >>= fun contract_repeat ->
@@ -380,17 +605,18 @@ module Commands = struct
           ~f:Sexp_options.get_int_exn ~default:(fun () -> return 3)
         >>= fun num_signers ->
         return
-          (`Multisig_action {src; num_signers; outer_repeat; contract_repeat}))
+          (`Multisig_action
+            { src
+            ; initial_counter
+            ; fee
+            ; num_signers
+            ; outer_repeat
+            ; contract_repeat }))
 
   let to_action state ~(client : Tezos_client.Keyed.t) opts sexp =
     match sexp with
-    | Sexp.List (Atom "batch" :: more_args) -> (
-        Tezos_client.get_account state ~client:client.client
-          ~name:client.key_name
-        >>= fun acct ->
-        match acct with
-        | Some a -> get_batch_args state ~client opts a more_args
-        | None -> Fmt.kstr failwith "to_action - failed to parse account." )
+    | Sexp.List (Atom "batch" :: more_args) ->
+        get_batch_args state ~client opts more_args
     | Sexp.List (Atom "multisig-batch" :: more_args) ->
         get_multisig_args state ~client opts more_args
     | Sexp.List (Atom a :: _) ->
@@ -461,15 +687,18 @@ module Commands = struct
         let one_action = (List.to_array action_list).(rand) in
         return [one_action]
 
-  let process_gen_batch state ~client act =
+  let process_gen_batch state ~client (act : batch_action) =
     let start_time = get_timestamp () in
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
         Helpers.Timing.duration
           (fun aFee ->
+            Tezos_client.Keyed.update_counter state client
+              ~port:client.client.port ~dbg_str:"in process_gen_batch"
+            >>= fun new_counter ->
             branch state client
             >>= fun the_branch ->
             let json =
-              Forge.batch_transfer ~src:act.src ~counter:act.counter ~fee:aFee
+              Forge.batch_transfer ~counter:new_counter ~src:act.src ~fee:aFee
                 ~branch:the_branch act.size in
             Tezos_client.Keyed.forge_and_inject state client ~json
             >>= fun json_result ->
@@ -487,8 +716,9 @@ module Commands = struct
     protect_with_keyed_client "generate multisig" ~client ~f:(fun () ->
         Helpers.Timing.duration
           (fun () ->
-            Multisig.deploy_and_transfer state client.client nodes
-              ~num_signers:act.num_signers ~outer_repeat:act.outer_repeat
+            Multisig.deploy_and_transfer state client ~nodes ~src:act.src
+              ~fee:act.fee ~num_signers:act.num_signers
+              ~outer_repeat:act.outer_repeat
               ~contract_repeat:act.contract_repeat)
           ()
         >>= fun ((), sec) ->
@@ -499,8 +729,8 @@ module Commands = struct
     add_cmd_to_history state ~new_cmd:multisig_str ~start_time
       ~end_time:(get_timestamp ())
 
-  let run_actions state ~client ~nodes ~actions ~counter =
-    Loop.n_times counter (fun _ ->
+  let run_actions state ~client ~nodes ~actions ~rep_counter =
+    Loop.n_times rep_counter (fun _ ->
         List_sequential.iter actions ~f:(fun a ->
             match a with
             | `Batch_action ba -> process_gen_batch state ~client ba
@@ -619,11 +849,18 @@ module Random = struct
                 ~name:keyed_client.key_name
               >>= fun acct ->
               let src = Commands.get_src_str acct "<Unable to parse account>" in
+              let initial_counter = 0 in
+              let fee = Random.float_range 10.1 10.3 in
               let num_signers = Random.int 5 + 1 in
               let outer_repeat = Random.int 5 + 1 in
               let contract_repeat = Random.int 5 + 1 in
               let act =
-                ( {src; num_signers; outer_repeat; contract_repeat}
+                ( { src
+                  ; initial_counter
+                  ; fee
+                  ; num_signers
+                  ; outer_repeat
+                  ; contract_repeat }
                   : Commands.multisig_action ) in
               Commands.process_gen_multi_sig state ~client:keyed_client ~nodes
                 act)
@@ -639,7 +876,7 @@ module Dsl = struct
         let b, sexp3 = Commands.process_random_choice sexp2 in
         Commands.process_action_cmds state ~client opts sexp3 ~random_choice:b
         >>= fun actions ->
-        Commands.run_actions state ~client ~nodes ~actions ~counter:n)
+        Commands.run_actions state ~client ~nodes ~actions ~rep_counter:n)
 
   let run state ~nodes ~clients dsl_command =
     let client = List.hd_exn clients in

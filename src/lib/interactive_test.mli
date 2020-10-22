@@ -34,7 +34,7 @@ module Commands : sig
        ; .. >
     -> Console.Prompt.item
 
-  val curl_rpc :
+  val curl_rpc_cmd :
        < application_name: string
        ; console: Console.t
        ; paths: Paths.t

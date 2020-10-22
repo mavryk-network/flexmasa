@@ -62,7 +62,7 @@ end
 
 (** Debug-display module (non-cooperative output to [stderr]). *)
 module Dbg = struct
-  let on = ref false
+  let on = ref true
 
   let () =
     Option.iter (Caml.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
@@ -556,6 +556,23 @@ module Jqo = struct
   let to_string j = Ezjsonm.(to_string (wrap j))
   let of_lines l = Ezjsonm.value_from_string (String.concat ~sep:"\n" l)
 
+  let val_to_string (json : Ezjsonm.value) =
+    match json with `String s -> s | _ -> to_string json
+
+  let field_from_list ~k json_list =
+    match json_list with
+    | `A val_list ->
+        let foldf acc x =
+          match x with
+          | `O obj -> (
+            match List.Assoc.find obj ~equal:String.equal k with
+            | Some z -> z :: acc
+            | None -> acc )
+          | _ -> acc
+          (*expecting an object here*) in
+        List.fold val_list ~init:[] ~f:foldf
+    | _ -> []
+
   let field ~k = function
     | `O l -> List.Assoc.find_exn l ~equal:String.equal k
     | other -> ksprintf failwith "Jqo.field (%S) in %s" k (to_string other)
@@ -576,8 +593,41 @@ module Jqo = struct
         ksprintf failwith "Jqo.remove_field %S: No an object: %s" name
           (to_string other)
 
+  let match_in_array match_key match_val target_key json_arr =
+    let foldf match_k match_v target_k (r : Ezjsonm.value list)
+        (x : Ezjsonm.value) : Ezjsonm.value list =
+      let v = field ~k:match_k x in
+      if String.equal (val_to_string v) match_v then
+        let target_val = field ~k:target_k x in
+        target_val :: r
+      else r in
+    match json_arr with
+    | `A l -> List.fold l ~init:[] ~f:(foldf match_key match_val target_key)
+    | _ -> []
+
+  let match_in_array_first (match_key : string) (match_val : string)
+      (target_key : string) (json_arr : Ezjsonm.value) : Ezjsonm.value =
+    let xs = match_in_array match_key match_val target_key json_arr in
+    match xs with
+    | [] ->
+        ksprintf failwith
+          "Jqo.match_in_array_first - empty result list for match_key:%s, \
+           match_val:%s, target_key:%s"
+          match_key match_val target_key
+    | x :: _ -> x
+
   let get_string = Ezjsonm.get_string
   let get_strings = Ezjsonm.get_strings
   let get_int = Ezjsonm.get_int
   let get_list = Ezjsonm.get_list (fun e -> e)
+
+  let get_list_element v index =
+    match v with
+    | `A l ->
+        if List.length l < index then
+          ksprintf failwith "Jqo.get_list_element - invalid index: %d" index
+        else List.nth_exn l index
+    | other ->
+        ksprintf failwith "Jqo.get_list_element - Not a list: %s"
+          (to_string other)
 end

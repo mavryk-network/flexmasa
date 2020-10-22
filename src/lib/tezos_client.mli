@@ -226,8 +226,19 @@ val show_known_contract :
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
-val deploy_multisig :
+val curl_rpc :
      < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> default_port:int
+  -> path:string
+  -> (Ezjsonm.value option, [> System_error.t]) Asynchronous_result.t
+
+val deploy_multisig :
+     ?counter:int
+  -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
      ; env_config: Environment_configuration.t
@@ -252,7 +263,7 @@ val sign_multisig :
      ; runner: Running_processes.State.t
      ; .. >
   -> t
-  -> name:string
+  -> contract:string
   -> amt:float
   -> to_acct:string
   -> signer_name:string
@@ -261,7 +272,8 @@ val sign_multisig :
 (** sign a multisig contract *)
 
 val transfer_from_multisig :
-     < application_name: string
+     ?counter:int
+  -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
      ; env_config: Environment_configuration.t
@@ -407,6 +419,49 @@ module Keyed : sig
        , [> Process_result.Error.t | System_error.t] )
        Asynchronous_result.t
 
+  val contract_storage_counter :
+       < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> string
+    -> ( int
+       , [> Process_result.Error.t
+         | `System_error of [`Fatal] * System_error.static ] )
+       Asynchronous_result.t
+
+  val hash_data :
+       < application_name: string
+       ; env_config: Environment_configuration.t
+       ; console: Console.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> data_to_hash:string
+    -> data_type:string
+    -> gas:int
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  val sign_bytes :
+       < application_name: string
+       ; env_config: Environment_configuration.t
+       ; console: Console.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> bytes:string
+    -> key_name:string
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
   val forge_and_inject :
        < application_name: string
        ; env_config: Environment_configuration.t
@@ -419,4 +474,51 @@ module Keyed : sig
     -> ( Ezjsonm.value
        , [> Process_result.Error.t | System_error.t] )
        Asynchronous_result.t
+
+  val update_counter :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> port:int
+    -> dbg_str:string
+    -> (int, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
+
+  val operations_from_chain :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> ( Ezjsonm.value
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  val get_contract_id :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> string
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  val counter_from_chain :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> (int, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 end
