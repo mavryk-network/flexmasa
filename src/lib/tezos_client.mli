@@ -484,7 +484,7 @@ module Keyed : sig
        ; .. >
     -> t
     -> port:int
-    -> dbg_str:string
+    -> string
     -> (int, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 
   val operations_from_chain :

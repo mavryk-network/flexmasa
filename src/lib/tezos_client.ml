@@ -492,8 +492,7 @@ module Keyed = struct
     let to_decode =
       String.chop_prefix_exn ~prefix:"Signature:" sign_res |> String.strip
     in
-    say state EF.(desc (shout "TO DECODE:") (af "%S" to_decode))
-    >>= fun () ->
+    Dbg.e EF.(af "To Decode: %s" to_decode) ;
     let decoded =
       Option.value_exn ~message:"base58 dec"
         (Tezos_crypto.Base58.safe_decode to_decode)
@@ -571,7 +570,7 @@ module Keyed = struct
         >>= fun counter_json ->
         return (Jqo.get_string counter_json |> Int.of_string)
 
-  let update_counter state client ~port ~_dbg_str =
+  let update_counter state client ~port _dbg_str =
     counter_from_chain state client
     >>= fun current_counter ->
     curl_rpc state ~default_port:port

@@ -62,7 +62,7 @@ end
 
 (** Debug-display module (non-cooperative output to [stderr]). *)
 module Dbg = struct
-  let on = ref true
+  let on = ref false
 
   let () =
     Option.iter (Caml.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function

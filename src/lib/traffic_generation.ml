@@ -306,7 +306,7 @@ module Multisig = struct
         let _destination = Tezos_protocol.Account.pubkey_hash kp in
         (* deploy the multisig contract *)
         Tezos_client.Keyed.update_counter state client ~port:client.client.port
-          ~dbg_str:"After import keys, before deploy multisig"
+          "After import keys, before deploy multisig"
         >>= fun new_counter ->
         branch state client
         >>= fun the_branch ->
@@ -340,8 +340,7 @@ module Multisig = struct
         Loop.n_times contract_repeat (fun k ->
             Tezos_client.Keyed.update_counter state client
               ~port:client.client.port
-              ~dbg_str:
-                (sprintf "Inner transfer_from_multisig loop with k:%d" k)
+              (sprintf "Inner transfer_from_multisig loop with k:%d" k)
             >>= fun new_counter ->
             let xfer_json =
               transfer_from_multisig ~counter:new_counter fee
@@ -693,7 +692,7 @@ module Commands = struct
         Helpers.Timing.duration
           (fun aFee ->
             Tezos_client.Keyed.update_counter state client
-              ~port:client.client.port ~dbg_str:"in process_gen_batch"
+              ~port:client.client.port "in process_gen_batch"
             >>= fun new_counter ->
             branch state client
             >>= fun the_branch ->

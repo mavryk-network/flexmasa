@@ -495,7 +495,7 @@ module Commands = struct
           | _ -> Fmt.kstrf failwith "Wrong command line: %a" pp (List sexps)
         in
         protect_with_keyed_client "manual-forge" ~client ~f:(fun () ->
-            Traffic_generation.Commands.branch state client
+            Traffic_generation.branch state client
             >>= fun branch ->
             Tezos_client.get_account state ~client:client.client
               ~name:client.key_name
