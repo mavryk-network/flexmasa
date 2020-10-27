@@ -599,7 +599,7 @@ module Commands = struct
                       cut ppf () ;
                       Sexp_options.pp_options options ppf ()) in
                 fun ppf () ->
-                  pf ppf "Generating traffic: TODO" ;
+                  pf ppf "Generating traffic:" ;
                   cmd ppf "batch"
                     (const text "Make a batch operation (simple transfers).")
                     [counter_option; size_option; fee_option] ;

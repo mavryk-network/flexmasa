@@ -118,7 +118,8 @@ module Multisig : sig
     -> Ezjsonm.value
 
   val deploy_and_transfer :
-       < application_name: string
+       ?initial_counter_override: int
+    -> < application_name: string
        ; console: Console.t
        ; operations_log: Log_recorder.Operations.t
        ; paths: Paths.t
@@ -126,7 +127,7 @@ module Multisig : sig
        ; env_config: Environment_configuration.t
        ; .. >
     -> Tezos_client.Keyed.t
-    -> nodes:Tezos_node.t list
+    -> Tezos_node.t list
     -> src:string
     -> fee:float
     -> num_signers:int
@@ -227,12 +228,12 @@ module Commands : sig
 
   val all_opts : all_options
 
-  type batch_action = {src: string; initial_counter: int; size: int; fee: float}
+  type batch_action = {src: string; initial_counter_override: int option; size: int; fee: float}
   [@@deriving sexp]
 
   type multisig_action =
     { src: string
-    ; initial_counter: int
+    ; initial_counter_override: int option
     ; fee: float
     ; num_signers: int
     ; outer_repeat: int
@@ -275,12 +276,6 @@ module Commands : sig
     -> start_time:string
     -> end_time:string
     -> (unit, [> System_error.t]) Attached_result.t Lwt.t
-
-  val counter_from_opts :
-       all_options
-    -> Base.Sexp.t list
-    -> (int, ([> `Command_line of string] as 'a)) Asynchronous_result.t
-    -> (int, 'a) Asynchronous_result.t
 
   val get_batch_args :
        < application_name: string

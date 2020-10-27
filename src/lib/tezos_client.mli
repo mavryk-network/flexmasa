@@ -476,7 +476,8 @@ module Keyed : sig
        Asynchronous_result.t
 
   val update_counter :
-       < application_name: string
+       ?current_counter_override:int
+    -> < application_name: string
        ; console: Console.t
        ; paths: Paths.t
        ; env_config: Environment_configuration.t

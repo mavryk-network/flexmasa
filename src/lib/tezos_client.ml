@@ -570,14 +570,19 @@ module Keyed = struct
         >>= fun counter_json ->
         return (Jqo.get_string counter_json |> Int.of_string)
 
-  let update_counter state client ~port _dbg_str =
-    counter_from_chain state client
-    >>= fun current_counter ->
+  let update_counter ?current_counter_override state client ~port _dbg_str =
+    let the_match = match current_counter_override with
+        | None ->
+          counter_from_chain state client
+        | Some c ->
+          return (Int.max (c-1) 0) in
+    the_match >>= fun current_counter ->
     curl_rpc state ~default_port:port
       ~path:"/chains/main/mempool/pending_operations"
     >>= fun json ->
     match json with
-    | None -> return current_counter
+    | None ->
+      return current_counter
     | Some j ->
         let pubkey_hash =
           Tezos_protocol.Key.Of_name.pubkey_hash client.key_name in
