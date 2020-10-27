@@ -581,8 +581,7 @@ module Keyed = struct
       ~path:"/chains/main/mempool/pending_operations"
     >>= fun json ->
     match json with
-    | None ->
-      return current_counter
+    | None -> return current_counter
     | Some j ->
         let pubkey_hash =
           Tezos_protocol.Key.Of_name.pubkey_hash client.key_name in
