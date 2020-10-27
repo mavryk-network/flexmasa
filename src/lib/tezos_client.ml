@@ -571,12 +571,12 @@ module Keyed = struct
         return (Jqo.get_string counter_json |> Int.of_string)
 
   let update_counter ?current_counter_override state client ~port _dbg_str =
-    let the_match = match current_counter_override with
-        | None ->
-          counter_from_chain state client
-        | Some c ->
-          return (Int.max (c-1) 0) in
-    the_match >>= fun current_counter ->
+    let the_match =
+      match current_counter_override with
+      | None -> counter_from_chain state client
+      | Some c -> return (Int.max (c - 1) 0) in
+    the_match
+    >>= fun current_counter ->
     curl_rpc state ~default_port:port
       ~path:"/chains/main/mempool/pending_operations"
     >>= fun json ->

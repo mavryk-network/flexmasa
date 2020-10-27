@@ -313,7 +313,7 @@ module Asynchronous_result = struct
       loop times
 
     let n_times_arg times initial_arg f =
-      let rec loop n arg =  
+      let rec loop n arg =
         match n with
         | n when n <= 0 -> return ()
         | n -> f (1 + times - n) arg >>= fun x -> loop (n - 1) x in

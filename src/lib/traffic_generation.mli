@@ -118,7 +118,7 @@ module Multisig : sig
     -> Ezjsonm.value
 
   val deploy_and_transfer :
-       ?initial_counter_override: int
+       ?initial_counter_override:int
     -> < application_name: string
        ; console: Console.t
        ; operations_log: Log_recorder.Operations.t
@@ -228,7 +228,8 @@ module Commands : sig
 
   val all_opts : all_options
 
-  type batch_action = {src: string; initial_counter_override: int option; size: int; fee: float}
+  type batch_action =
+    {src: string; initial_counter_override: int option; size: int; fee: float}
   [@@deriving sexp]
 
   type multisig_action =

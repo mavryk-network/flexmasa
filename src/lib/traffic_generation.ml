@@ -290,10 +290,12 @@ module Multisig = struct
                   , multisig_params_json signatures counter amount contract )
                 ] ] ) ]
 
-  let deploy_and_transfer ?initial_counter_override state (client : Tezos_client.Keyed.t) _nodes ~src
-      ~fee ~num_signers ~outer_repeat ~contract_repeat =
-    Tezos_client.Keyed.update_counter ?current_counter_override:initial_counter_override state client
-       ~port:client.client.port "deploy_and_transfer"
+  let deploy_and_transfer ?initial_counter_override state
+      (client : Tezos_client.Keyed.t) _nodes ~src ~fee ~num_signers
+      ~outer_repeat ~contract_repeat =
+    Tezos_client.Keyed.update_counter
+      ?current_counter_override:initial_counter_override state client
+      ~port:client.client.port "deploy_and_transfer"
     >>= fun origination_ctr ->
     (*loop through 'size' *)
     Loop.n_times_arg outer_repeat origination_ctr (fun n origination_counter ->
@@ -311,8 +313,8 @@ module Multisig = struct
         branch state client
         >>= fun the_branch ->
         let json =
-          deploy_multisig ~counter:origination_counter more_signers ~branch:the_branch
-            ~signers:signer_names ~src ~fee:(fee *. 10.0)
+          deploy_multisig ~counter:origination_counter more_signers
+            ~branch:the_branch ~signers:signer_names ~src ~fee:(fee *. 10.0)
             ~balance:(Random.int 10000 + 1) in
         Tezos_client.Keyed.forge_and_inject state client ~json
         >>= fun deploy_result ->
@@ -352,12 +354,11 @@ module Multisig = struct
                 desc
                   (haf "Multi-sig contract generation")
                   (af "Multisig transaction (%n) results: %s" k
-                    (Jqo.val_to_string xfer_res))))
+                     (Jqo.val_to_string xfer_res))))
         >>= fun () ->
-        (Tezos_client.Keyed.update_counter state client ~port:client.client.port
-          "Bottom of outer multisig loop")
-        >>=  fun new_ctr -> return new_ctr)
-          
+        Tezos_client.Keyed.update_counter state client ~port:client.client.port
+          "Bottom of outer multisig loop"
+        >>= fun new_ctr -> return new_ctr)
 end
 
 module Commands = struct
@@ -421,7 +422,7 @@ module Commands = struct
     let get_opt opt sexps ~f =
       match find_new opt sexps f with
       | Some n -> return (Some n)
-      | None -> return (find opt sexps f )
+      | None -> return (find opt sexps f)
       | exception e -> cmdline_fail "Getting option %s: %a" opt.name Exn.pp e
 
     let get_float_exn = function
@@ -525,7 +526,8 @@ module Commands = struct
     ; num_signers_option: Sexp_options.option
     ; contract_repeat_option: Sexp_options.option }
 
-  type batch_action = {src: string; initial_counter_override: int option; size: int; fee: float}
+  type batch_action =
+    {src: string; initial_counter_override: int option; size: int; fee: float}
   [@@deriving sexp]
 
   type multisig_action =
@@ -580,16 +582,16 @@ module Commands = struct
           ~name:client.key_name
         >>= fun acct ->
         let src = get_src_str acct "<Unable to parse account>" in
-
-        Sexp_options.get_opt opts.counter_option more_args ~f:Sexp_options.get_int_exn
-        >>= fun initial_counter_override -> 
-
+        Sexp_options.get_opt opts.counter_option more_args
+          ~f:Sexp_options.get_int_exn
+        >>= fun initial_counter_override ->
         Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
           ~default:(fun () -> return 10)
         >>= fun size ->
         Sexp_options.get opts.fee_option more_args
           ~f:Sexp_options.get_float_exn ~default:(fun () -> return 10.02)
-        >>= fun fee -> return (`Batch_action {src; initial_counter_override; size; fee}))
+        >>= fun fee ->
+        return (`Batch_action {src; initial_counter_override; size; fee}))
 
   let get_multisig_args state ~client opts (more_args : Sexp.t list) =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
@@ -597,10 +599,9 @@ module Commands = struct
           ~name:client.key_name
         >>= fun acct ->
         let src = get_src_str acct "<Unable to parse account>" in
-
-        Sexp_options.get_opt opts.counter_option more_args ~f:Sexp_options.get_int_exn
-        >>= fun initial_counter_override -> 
-
+        Sexp_options.get_opt opts.counter_option more_args
+          ~f:Sexp_options.get_int_exn
+        >>= fun initial_counter_override ->
         Sexp_options.get opts.size_option more_args ~f:Sexp_options.get_int_exn
           ~default:(fun () -> return 10)
         >>= fun outer_repeat ->
@@ -701,8 +702,9 @@ module Commands = struct
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
         Helpers.Timing.duration
           (fun aFee ->
-            Tezos_client.Keyed.update_counter ?current_counter_override:act.initial_counter_override state client
-              ~port:client.client.port "in process_gen_batch"
+            Tezos_client.Keyed.update_counter
+              ?current_counter_override:act.initial_counter_override state
+              client ~port:client.client.port "in process_gen_batch"
             >>= fun new_counter ->
             branch state client
             >>= fun the_branch ->
@@ -725,9 +727,10 @@ module Commands = struct
     protect_with_keyed_client "generate multisig" ~client ~f:(fun () ->
         Helpers.Timing.duration
           (fun () ->
-            Multisig.deploy_and_transfer ?initial_counter_override:act.initial_counter_override state client nodes ~src:act.src
-              ~fee:act.fee ~num_signers:act.num_signers
-              ~outer_repeat:act.outer_repeat
+            Multisig.deploy_and_transfer
+              ?initial_counter_override:act.initial_counter_override state
+              client nodes ~src:act.src ~fee:act.fee
+              ~num_signers:act.num_signers ~outer_repeat:act.outer_repeat
               ~contract_repeat:act.contract_repeat)
           ()
         >>= fun ((), sec) ->
