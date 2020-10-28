@@ -584,6 +584,10 @@ module Jqo = struct
     | `O l -> List.Assoc.find_exn l ~equal:String.equal k
     | other -> ksprintf failwith "Jqo.field (%S) in %s" k (to_string other)
 
+  let field_opt ~k = function
+    | `O l -> List.Assoc.find l ~equal:String.equal k
+    | other -> ksprintf failwith "Jqo.field_opt (%S) in %s" k (to_string other)
+
   let list_find ~f = function
     | `O l ->
         List.find_map_exn ~f:(fun (_, j) -> if f j then Some j else None) l
@@ -603,11 +607,13 @@ module Jqo = struct
   let match_in_array match_key match_val target_key json_arr =
     let foldf match_k match_v target_k (r : Ezjsonm.value list)
         (x : Ezjsonm.value) : Ezjsonm.value list =
-      let v = field ~k:match_k x in
-      if String.equal (val_to_string v) match_v then
-        let target_val = field ~k:target_k x in
-        target_val :: r
-      else r in
+      match field_opt ~k:match_k x with
+      | None -> r
+      | Some v ->
+          if String.equal (val_to_string v) match_v then
+            let target_val = field ~k:target_k x in
+            target_val :: r
+          else r in
     match json_arr with
     | `A l -> List.fold l ~init:[] ~f:(foldf match_key match_val target_key)
     | _ -> []
