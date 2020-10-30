@@ -15,6 +15,8 @@ val branch :
        | `System_error of [`Fatal] * System_error.static ] )
      Asynchronous_result.t
 
+val is_baking : < test_baking: bool ; .. > -> bool
+
 module Michelson : sig
   val prepare_origination_of_id_script :
        ?delegate:string
@@ -78,6 +80,7 @@ module Multisig : sig
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; env_config: Environment_configuration.t
+       ; test_baking: bool
        ; .. >
     -> Tezos_client.Keyed.t
     -> int
@@ -95,6 +98,7 @@ module Multisig : sig
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; env_config: Environment_configuration.t
+       ; test_baking: bool
        ; .. >
     -> Tezos_client.Keyed.t
     -> contract_addr:string
@@ -125,6 +129,7 @@ module Multisig : sig
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; env_config: Environment_configuration.t
+       ; test_baking: bool
        ; .. >
     -> Tezos_client.Keyed.t
     -> Tezos_node.t list
@@ -364,6 +369,7 @@ module Commands : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
@@ -379,6 +385,7 @@ module Commands : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
@@ -398,6 +405,7 @@ module Random : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> protocol:Tezos_protocol.t
     -> nodes:Tezos_node.t list
@@ -418,6 +426,7 @@ module Dsl : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
@@ -434,6 +443,7 @@ module Dsl : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> nodes:Tezos_node.t list
     -> clients:Tezos_client.Keyed.t list

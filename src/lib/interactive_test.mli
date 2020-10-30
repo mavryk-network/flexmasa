@@ -211,6 +211,7 @@ module Commands : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> clients:Tezos_client.Keyed.t list
     -> nodes:Tezos_node.t list
@@ -230,6 +231,7 @@ end
 
 (** Configurable (through {!Cmdliner.Term.t}) interactivity of
     test-scenarios. *)
+
 module Interactivity : sig
   type t = [`Full | `None | `On_error | `At_end]
 
@@ -272,6 +274,7 @@ module Pauser : sig
        ; pauser: t
        ; runner: Running_processes.State.t
        ; test_interactivity: Interactivity.t
+       ; test_baking: bool
        ; .. >
     -> (unit -> (unit, ([> System_error.t] as 'errors)) Asynchronous_result.t)
     -> pp_error:(Caml.Format.formatter -> 'errors -> unit)

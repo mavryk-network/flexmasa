@@ -5,6 +5,9 @@ let branch state client =
     ~path:"/chains/main/blocks/head/hash"
   >>= fun br -> return (Jqo.get_string br)
 
+let is_baking (state : < test_baking: bool ; .. >) =
+  Poly.equal state#test_baking true
+
 module Michelson = struct
   let prepare_origination_of_id_script ?delegate ?(push_drops = 0)
       ?(amount = "2") state ~name ~from ~protocol_kind ~parameter ~init_storage
@@ -291,8 +294,8 @@ module Multisig = struct
                 ] ] ) ]
 
   let deploy_and_transfer ?initial_counter_override state
-      (client : Tezos_client.Keyed.t) _nodes ~src ~fee ~num_signers
-      ~outer_repeat ~contract_repeat =
+      (client : Tezos_client.Keyed.t) (nodes : Tezos_node.t list) ~src ~fee
+      ~num_signers ~outer_repeat ~contract_repeat =
     Tezos_client.Keyed.update_counter
       ?current_counter_override:initial_counter_override state client
       ~port:client.client.port "deploy_and_transfer"
@@ -320,8 +323,11 @@ module Multisig = struct
         >>= fun deploy_result ->
         Console.sayf state More_fmt.(fun ppf () -> json ppf deploy_result)
         >>= fun () ->
-        (* TODO: use wait_for_bake if auto-baking, and use bake when manual baking *)
-        Tezos_client.Keyed.bake state client "Manual baking B!"
+        ( if is_baking state then
+          Test_scenario.Queries.wait_for_bake state ~nodes
+        else
+          Tezos_client.Keyed.bake state client "Multisig deploy_and_transfer"
+        )
         >>= fun () ->
         let _ = Tezos_client.Keyed.operations_from_chain state client in
         Tezos_client.Keyed.get_contract_id state client

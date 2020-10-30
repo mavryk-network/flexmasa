@@ -176,8 +176,8 @@ let run_wait_level protocol state nodes opt lvl =
 
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
-    ~with_baking ?generate_kiln_config node_exec client_exec baker_exec
-    endorser_exec accuser_exec test_kind () =
+    ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
+    accuser_exec test_kind () =
   ( if clear_root then
     Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
     >>= fun () -> Helpers.clear_root state
@@ -189,7 +189,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Helpers.System_dependencies.precheck state `Or_fail
     ~executables:
       ( [node_exec; client_exec]
-      @ (if with_baking then [baker_exec; endorser_exec; accuser_exec] else [])
+      @ ( if state#test_baking then [baker_exec; endorser_exec; accuser_exec]
+        else [] )
       @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables )
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.")
@@ -263,7 +264,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       [ generate_traffic_command state
           ~clients:(List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc))
           ~nodes ] ;
-  ( if with_baking then
+  ( if state#test_baking then
     let accusers =
       List.map nodes ~f:(fun node ->
           let client = Tezos_client.of_node node ~exec:client_exec in
@@ -330,12 +331,12 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
   match test_kind with
   | `Interactive ->
-      Interactive_test.Pauser.generic ~force:true state
+      Interactive_test.Pauser.generic state ~force:true
         EF.[haf "Sandbox is READY \\o/"]
   | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
       run_dsl_cmd state keyed_clients nodes dsl_command
       >>= fun () ->
-      Interactive_test.Pauser.generic ~force:true state
+      Interactive_test.Pauser.generic state ~force:true
         EF.[haf "Sandbox is READY \\o/"]
   | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
       run_dsl_cmd state keyed_clients nodes dsl_command
@@ -366,7 +367,6 @@ let cmd () =
            base_port
            (`External_peers external_peer_ports)
            (`No_daemons_for no_daemons_for)
-           (`With_baking with_baking)
            protocol
            bnod
            bcli
@@ -381,7 +381,7 @@ let cmd () =
            ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ~clear_root ~nodes_history_mode_edits ~with_baking
+            ?hard_fork ~clear_root ~nodes_history_mode_edits
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
             ~genesis_block_choice test_kind in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
@@ -459,14 +459,6 @@ let cmd () =
             (opt_all string []
                (info ["no-daemons-for"] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
-    $ Arg.(
-        pure (fun x -> `With_baking (not x))
-        $ value
-            (flag
-               (info ["no-baking"] ~docs
-                  ~doc:
-                    "Completely disable baking/endorsing/accusing (you need \
-                     to bake manually to make the chain advance).")))
     $ Tezos_protocol.cli_term base_state
     $ Tezos_executable.cli_term base_state `Node "tezos"
     $ Tezos_executable.cli_term base_state `Client "tezos"
