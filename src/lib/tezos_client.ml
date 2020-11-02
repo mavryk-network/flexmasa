@@ -40,18 +40,18 @@ end
 open Command_error
 open Console
 
-let curl_rpc state ~default_port ~path =
-  Running_processes.run_cmdf state "curl http://localhost:%d/%s" default_port
-    path
-  >>= fun curl_res ->
-  let success = Poly.equal curl_res#status (Lwt_unix.WEXITED 0) in
-  if not success then return None
-  else
-    return
-      ( try
-          Some
-            (Ezjsonm.value_from_string (String.concat ~sep:"\n" curl_res#out))
-        with _ -> None )
+(* let curl_rpc state ~default_port ~path =
+ *   Running_processes.run_cmdf state "curl http://localhost:%d/%s" default_port
+ *     path
+ *   >>= fun curl_res ->
+ *   let success = Poly.equal curl_res#status (Lwt_unix.WEXITED 0) in
+ *   if not success then return None
+ *   else
+ *     return
+ *       ( try
+ *           Some
+ *             (Ezjsonm.value_from_string (String.concat ~sep:"\n" curl_res#out))
+ *         with _ -> None ) *)
 
 let run_client_cmd ?id_prefix ?wait state client args =
   Running_processes.run_cmdf ?id_prefix state "sh -c %s"
@@ -317,6 +317,19 @@ let transfer_from_multisig ?counter state client ~name ~amt ~to_acct
        ; counter_args ])
   >>= fun _ -> return ()
 
+let hash_data state client ~data_to_hash ~data_type ~gas =
+  let the_list =
+    [ "hash"; "data"; data_to_hash; "of"; "type"; data_type; "--gas"
+    ; Int.to_string gas ] in
+  successful_client_cmd state ~client the_list
+  >>= fun res ->
+  let res_out = List.hd_exn res#out in
+  let cleaned =
+    match String.chop_prefix res_out ~prefix:"Raw packed data: " with
+    | Some s -> s
+    | None -> res_out in
+  return cleaned
+
 module Ledger = struct
   type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
 
@@ -450,7 +463,7 @@ module Keyed = struct
       ["generate"; "nonce"; "hash"; "for"; key_name; "from"; data]
     >>= fun res -> return (List.hd_exn res#out)
 
-  let contract_storage_counter state client contract_id =
+  let multisig_storage_counter state client contract_id =
     let path =
       sprintf "/chains/main/blocks/head/context/contracts/%s/storage"
         contract_id in
@@ -459,20 +472,7 @@ module Keyed = struct
     let args_array = Jqo.field ~k:"args" sto in
     let fst_arg = Jqo.get_list_element args_array 0 in
     let counter_val = Jqo.field ~k:"int" fst_arg in
-    return (Int.of_string (Jqo.val_to_string counter_val))
-
-  let hash_data state client ~data_to_hash ~data_type ~gas =
-    let the_list =
-      [ "hash"; "data"; data_to_hash; "of"; "type"; data_type; "--gas"
-      ; Int.to_string gas ] in
-    successful_client_cmd state ~client:client.client the_list
-    >>= fun res ->
-    let res_out = List.hd_exn res#out in
-    let cleaned =
-      match String.chop_prefix res_out ~prefix:"Raw packed data: " with
-      | Some s -> s
-      | None -> res_out in
-    return cleaned
+    return (Int.of_string (Jqo.to_string_hum counter_val))
 
   let sign_bytes state client ~bytes ~key_name =
     successful_client_cmd state ~client:client.client
@@ -515,7 +515,7 @@ module Keyed = struct
       ~path:"/injection/operation?chain=main"
       (`Post (sprintf "\"%s%s\"" operation_bytes actual_signature))
 
-  let find_mempool_counter (json : Ezjsonm.value) hash_key : int =
+  let find_mempool_counter_exn (json : Ezjsonm.value) hash_key : int =
     match json with
     | `O _ -> (
         let z = Jqo.field ~k:"applied" json in
@@ -533,7 +533,7 @@ module Keyed = struct
               List.fold ints ~init:0 ~f:(fun acc x -> Int.max acc x) in
             let counters = List.fold trans_list ~init:[] ~f:foldf in
             let counter_strs =
-              List.map ~f:(fun v -> Jqo.val_to_string v) counters in
+              List.map ~f:(fun v -> Jqo.to_string_hum v) counters in
             let max_int = to_max_int (to_ints counter_strs) in
             max_int
         | _ -> 0 )
@@ -544,17 +544,17 @@ module Keyed = struct
       ~path:(Fmt.str "/chains/main/blocks/head/operations")
     >>= fun ops_json -> return ops_json
 
-  let find_contract_id (json : Ezjsonm.value) (orig_hash : string) =
+  let find_contract_id_exn (json : Ezjsonm.value) (orig_hash : string) =
     let ops = Jqo.get_list_element json 3 in
     let op = Jqo.match_in_array_first "hash" orig_hash "contents" ops in
     let meta = Jqo.match_in_array_first "kind" "origination" "metadata" op in
     let res = Jqo.field ~k:"operation_result" meta in
     let orig_list = Jqo.field ~k:"originated_contracts" res in
-    Jqo.val_to_string (Jqo.get_list_element orig_list 0)
+    Jqo.get_string (Jqo.get_list_element orig_list 0)
 
   let get_contract_id state client origination_hash =
     operations_from_chain state client
-    >>= fun ops_json -> return (find_contract_id ops_json origination_hash)
+    >>= fun ops_json -> return (find_contract_id_exn ops_json origination_hash)
 
   let counter_from_chain state keyed_client =
     get_account state ~client:keyed_client.client ~name:keyed_client.key_name
@@ -570,22 +570,20 @@ module Keyed = struct
         >>= fun counter_json ->
         return (Jqo.get_string counter_json |> Int.of_string)
 
-  let update_counter ?current_counter_override state client ~port _dbg_str =
+  let update_counter ?current_counter_override state client _dbg_str =
     let the_match =
       match current_counter_override with
       | None -> counter_from_chain state client
       | Some c -> return (Int.max (c - 1) 0) in
     the_match
     >>= fun current_counter ->
-    curl_rpc state ~default_port:port
+    rpc state ~client:client.client `Get
       ~path:"/chains/main/mempool/pending_operations"
     >>= fun json ->
-    match json with
-    | None -> return current_counter
-    | Some j ->
-        let pubkey_hash =
-          Tezos_protocol.Key.Of_name.pubkey_hash client.key_name in
-        let new_counter = find_mempool_counter j pubkey_hash in
-        let max = Int.max current_counter new_counter + 1 in
-        return max
+    let pubkey_hash = Tezos_protocol.Key.Of_name.pubkey_hash client.key_name in
+    let new_counter =
+      try find_mempool_counter_exn json pubkey_hash with _ -> current_counter
+    in
+    let max = Int.max current_counter new_counter + 1 in
+    return max
 end

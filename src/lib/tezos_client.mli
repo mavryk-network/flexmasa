@@ -226,15 +226,15 @@ val show_known_contract :
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
-val curl_rpc :
-     < application_name: string
-     ; console: Console.t
-     ; paths: Paths.t
-     ; runner: Running_processes.State.t
-     ; .. >
-  -> default_port:int
-  -> path:string
-  -> (Ezjsonm.value option, [> System_error.t]) Asynchronous_result.t
+(* val curl_rpc :
+ *      < application_name: string
+ *      ; console: Console.t
+ *      ; paths: Paths.t
+ *      ; runner: Running_processes.State.t
+ *      ; .. >
+ *   -> default_port:int
+ *   -> path:string
+ *   -> (Ezjsonm.value option, [> System_error.t]) Asynchronous_result.t *)
 
 val deploy_multisig :
      ?counter:int
@@ -289,6 +289,22 @@ val transfer_from_multisig :
   -> (unit, [> System_error.t]) Asynchronous_result.t
 
 (** Submit the fully-signed multisig contract *)
+
+val hash_data :
+     < application_name: string
+     ; env_config: Environment_configuration.t
+     ; console: Console.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> t
+  -> data_to_hash:string
+  -> data_type:string
+  -> gas:int
+  -> ( string
+     , [> Process_result.Error.t | System_error.t] )
+     Asynchronous_result.t
+
 module Ledger : sig
   type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
 
@@ -419,7 +435,7 @@ module Keyed : sig
        , [> Process_result.Error.t | System_error.t] )
        Asynchronous_result.t
 
-  val contract_storage_counter :
+  val multisig_storage_counter :
        < application_name: string
        ; console: Console.t
        ; env_config: Environment_configuration.t
@@ -431,21 +447,6 @@ module Keyed : sig
     -> ( int
        , [> Process_result.Error.t
          | `System_error of [`Fatal] * System_error.static ] )
-       Asynchronous_result.t
-
-  val hash_data :
-       < application_name: string
-       ; env_config: Environment_configuration.t
-       ; console: Console.t
-       ; paths: Paths.t
-       ; runner: Running_processes.State.t
-       ; .. >
-    -> t
-    -> data_to_hash:string
-    -> data_type:string
-    -> gas:int
-    -> ( string
-       , [> Process_result.Error.t | System_error.t] )
        Asynchronous_result.t
 
   val sign_bytes :
@@ -484,7 +485,6 @@ module Keyed : sig
        ; runner: Running_processes.State.t
        ; .. >
     -> t
-    -> port:int
     -> string
     -> (int, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 

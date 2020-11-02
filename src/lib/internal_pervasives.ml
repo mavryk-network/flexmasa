@@ -312,7 +312,7 @@ module Asynchronous_result = struct
         | n -> f (1 + times - n) >>= fun () -> loop (n - 1) in
       loop times
 
-    let n_times_arg times initial_arg f =
+    let n_times_fold times initial_arg f =
       let rec loop n arg =
         match n with
         | n when n <= 0 -> return ()
@@ -563,7 +563,7 @@ module Jqo = struct
   let to_string j = Ezjsonm.(to_string (wrap j))
   let of_lines l = Ezjsonm.value_from_string (String.concat ~sep:"\n" l)
 
-  let val_to_string (json : Ezjsonm.value) =
+  let to_string_hum (json : Ezjsonm.value) =
     match json with `String s -> s | _ -> to_string json
 
   let field_from_list ~k json_list =
@@ -605,17 +605,18 @@ module Jqo = struct
           (to_string other)
 
   let match_in_array match_key match_val target_key json_arr =
-    let foldf match_k match_v target_k (r : Ezjsonm.value list)
-        (x : Ezjsonm.value) : Ezjsonm.value list =
+    let foldf match_k match_v target_k (x : Ezjsonm.value)
+        (r : Ezjsonm.value list) : Ezjsonm.value list =
       match field_opt ~k:match_k x with
       | None -> r
       | Some v ->
-          if String.equal (val_to_string v) match_v then
+          if String.equal (to_string_hum v) match_v then
             let target_val = field ~k:target_k x in
             target_val :: r
           else r in
     match json_arr with
-    | `A l -> List.fold l ~init:[] ~f:(foldf match_key match_val target_key)
+    | `A l ->
+        List.fold_right l ~init:[] ~f:(foldf match_key match_val target_key)
     | _ -> []
 
   let match_in_array_first (match_key : string) (match_val : string)

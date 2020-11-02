@@ -90,7 +90,7 @@ end
 let get_chain_id state (client : Tezos_client.Keyed.t) =
   Tezos_client.rpc state ~client:client.client `Get
     ~path:"/chains/main/chain_id"
-  >>= fun chain_id_json -> return (Jqo.val_to_string chain_id_json)
+  >>= fun chain_id_json -> return (Jqo.to_string_hum chain_id_json)
 
 module Multisig = struct
   let signer_names_base =
@@ -248,13 +248,13 @@ module Multisig = struct
     let data_type =
       "(pair (pair address chain_id) (pair int (or (pair mutez (contract \
        unit)) unit)))" in
-    Tezos_client.Keyed.contract_storage_counter state client contract_addr
+    Tezos_client.Keyed.multisig_storage_counter state client contract_addr
     >>= fun contract_counter ->
     let data_to_hash =
       sprintf "(Pair (Pair \"%s\" \"%s\") (Pair %d (Left (Pair %d \"%s\"))))"
         contract_addr chain_id contract_counter mutez dest in
     let gas = 1040000 in
-    Tezos_client.Keyed.hash_data state client ~data_to_hash ~data_type ~gas
+    Tezos_client.hash_data state client.client ~data_to_hash ~data_type ~gas
 
   let sign_multisig state client ~contract_addr ~amt ~to_acct ~signer_name =
     get_chain_id state client
@@ -298,10 +298,11 @@ module Multisig = struct
       ~num_signers ~outer_repeat ~contract_repeat =
     Tezos_client.Keyed.update_counter
       ?current_counter_override:initial_counter_override state client
-      ~port:client.client.port "deploy_and_transfer"
+      "deploy_and_transfer"
     >>= fun origination_ctr ->
     (*loop through 'size' *)
-    Loop.n_times_arg outer_repeat origination_ctr (fun n origination_counter ->
+    Loop.n_times_fold outer_repeat origination_ctr
+      (fun n origination_counter ->
         let more_signers = num_signers + (n - 1) in
         let signer_names_plus =
           get_signer_names signer_names_base more_signers in
@@ -331,7 +332,7 @@ module Multisig = struct
         >>= fun () ->
         let _ = Tezos_client.Keyed.operations_from_chain state client in
         Tezos_client.Keyed.get_contract_id state client
-          (Jqo.val_to_string deploy_result)
+          (Jqo.to_string_hum deploy_result)
         >>= fun contract_addr ->
         (* for each signer, sign the contract *)
         let to_acct =
@@ -346,7 +347,6 @@ module Multisig = struct
         (* submit the fully signed multisig contract *)
         Loop.n_times contract_repeat (fun k ->
             Tezos_client.Keyed.update_counter state client
-              ~port:client.client.port
               (sprintf "Inner transfer_from_multisig loop with k:%d" k)
             >>= fun new_counter ->
             let xfer_json =
@@ -360,9 +360,9 @@ module Multisig = struct
                 desc
                   (haf "Multi-sig contract generation")
                   (af "Multisig transaction (%n) results: %s" k
-                     (Jqo.val_to_string xfer_res))))
+                     (Jqo.to_string_hum xfer_res))))
         >>= fun () ->
-        Tezos_client.Keyed.update_counter state client ~port:client.client.port
+        Tezos_client.Keyed.update_counter state client
           "Bottom of outer multisig loop"
         >>= fun new_ctr -> return new_ctr)
 end
@@ -577,7 +577,7 @@ module Commands = struct
       prev ^ start_time ^ "\n" ^ new_cmd ^ "\n" ^ end_time ^ "\n\n" in
     System.write_file state (history_file_path state) ~content
 
-  let get_src_str acctOpt err_str =
+  let address_of_account acctOpt err_str =
     match acctOpt with
     | Some a -> Tezos_protocol.Account.pubkey_hash a
     | None -> err_str
@@ -587,7 +587,7 @@ module Commands = struct
         Tezos_client.get_account state ~client:client.client
           ~name:client.key_name
         >>= fun acct ->
-        let src = get_src_str acct "<Unable to parse account>" in
+        let src = address_of_account acct "<Unable to parse account>" in
         Sexp_options.get_opt opts.counter_option more_args
           ~f:Sexp_options.get_int_exn
         >>= fun initial_counter_override ->
@@ -604,7 +604,7 @@ module Commands = struct
         Tezos_client.get_account state ~client:client.client
           ~name:client.key_name
         >>= fun acct ->
-        let src = get_src_str acct "<Unable to parse account>" in
+        let src = address_of_account acct "<Unable to parse account>" in
         Sexp_options.get_opt opts.counter_option more_args
           ~f:Sexp_options.get_int_exn
         >>= fun initial_counter_override ->
@@ -710,7 +710,7 @@ module Commands = struct
           (fun aFee ->
             Tezos_client.Keyed.update_counter
               ?current_counter_override:act.initial_counter_override state
-              client ~port:client.client.port "in process_gen_batch"
+              client "in process_gen_batch"
             >>= fun new_counter ->
             branch state client
             >>= fun the_branch ->
@@ -812,7 +812,8 @@ module Random = struct
               Tezos_client.get_account state ~client ~name:from
               >>= fun acct ->
               let show_from =
-                Commands.get_src_str acct "Unable to parse account>" in
+                Commands.address_of_account acct "Unable to parse account>"
+              in
               Tezos_client.show_known_contract state client ~name
               >>= fun show_to ->
               client_cmd
@@ -866,7 +867,9 @@ module Random = struct
               Tezos_client.get_account state ~client
                 ~name:keyed_client.key_name
               >>= fun acct ->
-              let src = Commands.get_src_str acct "<Unable to parse account>" in
+              let src =
+                Commands.address_of_account acct "<Unable to parse account>"
+              in
               let initial_counter_override = None in
               let fee = Random.float_range 10.1 10.3 in
               let num_signers = Random.int 5 + 1 in

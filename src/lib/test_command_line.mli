@@ -28,7 +28,7 @@ module Command_making_state : sig
 
   val make :
        application_name:string
-    -> command_name:string (* -> baking:bool *)
+    -> command_name:string
     -> unit
     -> < application_name: string
        ; command_name: string
