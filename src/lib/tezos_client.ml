@@ -328,12 +328,8 @@ let multisig_storage_counter state client contract_id =
   let args_array = Jqo.field ~k:"args" sto in
   let fst_arg = Jqo.get_list_element args_array 0 in
   let counter_val = Jqo.field ~k:"int" fst_arg in
-  return
-    ( try Int.of_string (Jqo.get_string counter_val)
-      with e ->
-        Fmt.kstr failwith
-          "multisig_storage_counter - failed to get counter: %s."
-          (Exn.to_string e) )
+  try return (Int.of_string (Jqo.get_string counter_val))
+  with e -> System_error.fail_fatalf "Exception getting counter: %a" Exn.pp e
 
 module Ledger = struct
   type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
@@ -548,13 +544,18 @@ module Keyed = struct
 
   let get_contract_id state client origination_hash =
     operations_from_chain state client
-    >>= fun ops_json -> return (find_contract_id_exn ops_json origination_hash)
+    >>= fun ops_json ->
+    try return (find_contract_id_exn ops_json origination_hash)
+    with e ->
+      System_error.fail_fatalf "Exception getting contract_id: %a" Exn.pp e
 
   let counter_from_chain state keyed_client =
     get_account state ~client:keyed_client.client ~name:keyed_client.key_name
     >>= fun acct ->
     match acct with
-    | None -> Fmt.kstr failwith "counter_from_chain - failed to parse account."
+    | None ->
+        System_error.fail_fatalf
+          "counter_from_chain - failed to parse account."
     | Some a ->
         let src = Tezos_protocol.Account.pubkey_hash a in
         rpc state ~client:keyed_client.client `Get

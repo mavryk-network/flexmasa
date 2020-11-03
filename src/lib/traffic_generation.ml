@@ -91,11 +91,9 @@ let get_chain_id state (client : Tezos_client.Keyed.t) =
   Tezos_client.rpc state ~client:client.client `Get
     ~path:"/chains/main/chain_id"
   >>= fun chain_id_json ->
-  return
-    ( try Jqo.get_string chain_id_json
-      with e ->
-        Fmt.failwith "get_chain_id - failure getting the chain id"
-          Exn.to_string e )
+  try return (Jqo.get_string chain_id_json)
+  with e ->
+    System_error.fail_fatalf "Exception getting the chain id: %a" Exn.pp e
 
 module Multisig = struct
   let signer_names_base =
@@ -681,8 +679,8 @@ module Commands = struct
       | x :: xs ->
           to_action state ~client opts x >>= fun a -> loop (a :: actions) xs
       | other ->
-          Fmt.kstr failwith "process_action_cmds - something weird: %a" Sexp.pp
-            (List other) in
+          System_error.fail_fatalf "process_action_cmds - something weird: %a"
+            Sexp.pp (List other) in
     let exp_list =
       match sexp with
       | Sexp.List (y :: _) -> (
