@@ -226,16 +226,6 @@ val show_known_contract :
      , [> Process_result.Error.t | System_error.t] )
      Asynchronous_result.t
 
-(* val curl_rpc :
- *      < application_name: string
- *      ; console: Console.t
- *      ; paths: Paths.t
- *      ; runner: Running_processes.State.t
- *      ; .. >
- *   -> default_port:int
- *   -> path:string
- *   -> (Ezjsonm.value option, [> System_error.t]) Asynchronous_result.t *)
-
 val deploy_multisig :
      ?counter:int
   -> < application_name: string
@@ -288,7 +278,7 @@ val transfer_from_multisig :
   -> burn_cap:float
   -> (unit, [> System_error.t]) Asynchronous_result.t
 
-(** Submit the fully-signed multisig contract *)
+(** Submit a Transfer transaction using the fully-signed multisig contract *)
 
 val hash_data :
      < application_name: string
@@ -297,12 +287,26 @@ val hash_data :
      ; paths: Paths.t
      ; runner: Running_processes.State.t
      ; .. >
+  -> ?gas:int
   -> t
   -> data_to_hash:string
   -> data_type:string
-  -> gas:int
   -> ( string
      , [> Process_result.Error.t | System_error.t] )
+     Asynchronous_result.t
+
+val multisig_storage_counter :
+     < application_name: string
+     ; console: Console.t
+     ; env_config: Environment_configuration.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> t
+  -> string
+  -> ( int
+     , [> Process_result.Error.t
+       | `System_error of [`Fatal] * System_error.static ] )
      Asynchronous_result.t
 
 module Ledger : sig
@@ -433,20 +437,6 @@ module Keyed : sig
     -> string
     -> ( string
        , [> Process_result.Error.t | System_error.t] )
-       Asynchronous_result.t
-
-  val multisig_storage_counter :
-       < application_name: string
-       ; console: Console.t
-       ; env_config: Environment_configuration.t
-       ; paths: Paths.t
-       ; runner: Running_processes.State.t
-       ; .. >
-    -> t
-    -> string
-    -> ( int
-       , [> Process_result.Error.t
-         | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
 
   val sign_bytes :

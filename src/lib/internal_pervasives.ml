@@ -609,11 +609,12 @@ module Jqo = struct
         (r : Ezjsonm.value list) : Ezjsonm.value list =
       match field_opt ~k:match_k x with
       | None -> r
-      | Some v ->
-          if String.equal (to_string_hum v) match_v then
+      | Some (`String s) ->
+          if String.equal s match_v then
             let target_val = field ~k:target_k x in
             target_val :: r
-          else r in
+          else r
+      | Some _ -> r in
     match json_arr with
     | `A l ->
         List.fold_right l ~init:[] ~f:(foldf match_key match_val target_key)

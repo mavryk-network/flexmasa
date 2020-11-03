@@ -40,19 +40,6 @@ end
 open Command_error
 open Console
 
-(* let curl_rpc state ~default_port ~path =
- *   Running_processes.run_cmdf state "curl http://localhost:%d/%s" default_port
- *     path
- *   >>= fun curl_res ->
- *   let success = Poly.equal curl_res#status (Lwt_unix.WEXITED 0) in
- *   if not success then return None
- *   else
- *     return
- *       ( try
- *           Some
- *             (Ezjsonm.value_from_string (String.concat ~sep:"\n" curl_res#out))
- *         with _ -> None ) *)
-
 let run_client_cmd ?id_prefix ?wait state client args =
   Running_processes.run_cmdf ?id_prefix state "sh -c %s"
     ( client_command ?wait state client args
@@ -317,11 +304,13 @@ let transfer_from_multisig ?counter state client ~name ~amt ~to_acct
        ; counter_args ])
   >>= fun _ -> return ()
 
-let hash_data state client ~data_to_hash ~data_type ~gas =
-  let the_list =
-    [ "hash"; "data"; data_to_hash; "of"; "type"; data_type; "--gas"
-    ; Int.to_string gas ] in
-  successful_client_cmd state ~client the_list
+let hash_data state ?gas client ~data_to_hash ~data_type =
+  let the_list = ["hash"; "data"; data_to_hash; "of"; "type"; data_type] in
+  let the_list' =
+    match gas with
+    | None -> the_list
+    | Some g -> the_list @ ["--gas"; Int.to_string g] in
+  successful_client_cmd state ~client the_list'
   >>= fun res ->
   let res_out = List.hd_exn res#out in
   let cleaned =
@@ -329,6 +318,22 @@ let hash_data state client ~data_to_hash ~data_type ~gas =
     | Some s -> s
     | None -> res_out in
   return cleaned
+
+let multisig_storage_counter state client contract_id =
+  let path =
+    sprintf "/chains/main/blocks/head/context/contracts/%s/storage" contract_id
+  in
+  rpc state ~client `Get ~path
+  >>= fun sto ->
+  let args_array = Jqo.field ~k:"args" sto in
+  let fst_arg = Jqo.get_list_element args_array 0 in
+  let counter_val = Jqo.field ~k:"int" fst_arg in
+  return
+    ( try Int.of_string (Jqo.get_string counter_val)
+      with e ->
+        Fmt.kstr failwith
+          "multisig_storage_counter - failed to get counter: %s."
+          (Exn.to_string e) )
 
 module Ledger = struct
   type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
@@ -463,17 +468,6 @@ module Keyed = struct
       ["generate"; "nonce"; "hash"; "for"; key_name; "from"; data]
     >>= fun res -> return (List.hd_exn res#out)
 
-  let multisig_storage_counter state client contract_id =
-    let path =
-      sprintf "/chains/main/blocks/head/context/contracts/%s/storage"
-        contract_id in
-    rpc state ~client:client.client `Get ~path
-    >>= fun sto ->
-    let args_array = Jqo.field ~k:"args" sto in
-    let fst_arg = Jqo.get_list_element args_array 0 in
-    let counter_val = Jqo.field ~k:"int" fst_arg in
-    return (Int.of_string (Jqo.to_string_hum counter_val))
-
   let sign_bytes state client ~bytes ~key_name =
     successful_client_cmd state ~client:client.client
       ["sign"; "bytes"; bytes; "for"; key_name]
@@ -533,7 +527,7 @@ module Keyed = struct
               List.fold ints ~init:0 ~f:(fun acc x -> Int.max acc x) in
             let counters = List.fold trans_list ~init:[] ~f:foldf in
             let counter_strs =
-              List.map ~f:(fun v -> Jqo.to_string_hum v) counters in
+              List.map ~f:(fun v -> Jqo.get_string v) counters in
             let max_int = to_max_int (to_ints counter_strs) in
             max_int
         | _ -> 0 )

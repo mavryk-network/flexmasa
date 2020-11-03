@@ -82,7 +82,7 @@ module Multisig : sig
        ; env_config: Environment_configuration.t
        ; test_baking: bool
        ; .. >
-    -> Tezos_client.Keyed.t
+    -> Tezos_client.t
     -> int
     -> chain_id:string
     -> contract_addr:string

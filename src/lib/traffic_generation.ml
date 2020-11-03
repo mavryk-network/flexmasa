@@ -90,7 +90,12 @@ end
 let get_chain_id state (client : Tezos_client.Keyed.t) =
   Tezos_client.rpc state ~client:client.client `Get
     ~path:"/chains/main/chain_id"
-  >>= fun chain_id_json -> return (Jqo.to_string_hum chain_id_json)
+  >>= fun chain_id_json ->
+  return
+    ( try Jqo.get_string chain_id_json
+      with e ->
+        Fmt.failwith "get_chain_id - failure getting the chain id"
+          Exn.to_string e )
 
 module Multisig = struct
   let signer_names_base =
@@ -248,18 +253,19 @@ module Multisig = struct
     let data_type =
       "(pair (pair address chain_id) (pair int (or (pair mutez (contract \
        unit)) unit)))" in
-    Tezos_client.Keyed.multisig_storage_counter state client contract_addr
+    Tezos_client.multisig_storage_counter state client contract_addr
     >>= fun contract_counter ->
     let data_to_hash =
       sprintf "(Pair (Pair \"%s\" \"%s\") (Pair %d (Left (Pair %d \"%s\"))))"
         contract_addr chain_id contract_counter mutez dest in
     let gas = 1040000 in
-    Tezos_client.hash_data state client.client ~data_to_hash ~data_type ~gas
+    Tezos_client.hash_data state client ~data_to_hash ~data_type ~gas
 
   let sign_multisig state client ~contract_addr ~amt ~to_acct ~signer_name =
     get_chain_id state client
     >>= fun chain_id ->
-    hash_multisig_data state client amt ~chain_id ~contract_addr ~dest:to_acct
+    hash_multisig_data state client.client amt ~chain_id ~contract_addr
+      ~dest:to_acct
     >>= fun bytes ->
     Tezos_client.Keyed.sign_bytes state client ~bytes ~key_name:signer_name
     >>= fun ret ->
