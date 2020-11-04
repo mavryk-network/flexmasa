@@ -311,6 +311,13 @@ module Asynchronous_result = struct
         | n when n <= 0 -> return ()
         | n -> f (1 + times - n) >>= fun () -> loop (n - 1) in
       loop times
+
+    let n_times_fold times initial_arg f =
+      let rec loop n arg =
+        match n with
+        | n when n <= 0 -> return ()
+        | n -> f (1 + times - n) arg >>= fun x -> loop (n - 1) x in
+      loop times initial_arg
   end
 
   module Stream = struct
@@ -556,9 +563,30 @@ module Jqo = struct
   let to_string j = Ezjsonm.(to_string (wrap j))
   let of_lines l = Ezjsonm.value_from_string (String.concat ~sep:"\n" l)
 
+  let to_string_hum (json : Ezjsonm.value) =
+    match json with `String s -> s | _ -> to_string json
+
+  let field_from_list ~k json_list =
+    match json_list with
+    | `A val_list ->
+        let foldf acc x =
+          match x with
+          | `O obj -> (
+            match List.Assoc.find obj ~equal:String.equal k with
+            | Some z -> z :: acc
+            | None -> acc )
+          | _ -> acc
+          (*expecting an object here*) in
+        List.fold val_list ~init:[] ~f:foldf
+    | _ -> []
+
   let field ~k = function
     | `O l -> List.Assoc.find_exn l ~equal:String.equal k
     | other -> ksprintf failwith "Jqo.field (%S) in %s" k (to_string other)
+
+  let field_opt ~k = function
+    | `O l -> List.Assoc.find l ~equal:String.equal k
+    | other -> ksprintf failwith "Jqo.field_opt (%S) in %s" k (to_string other)
 
   let list_find ~f = function
     | `O l ->
@@ -576,8 +604,45 @@ module Jqo = struct
         ksprintf failwith "Jqo.remove_field %S: No an object: %s" name
           (to_string other)
 
+  let match_in_array match_key match_val target_key json_arr =
+    let foldf match_k match_v target_k (x : Ezjsonm.value)
+        (r : Ezjsonm.value list) : Ezjsonm.value list =
+      match field_opt ~k:match_k x with
+      | None -> r
+      | Some (`String s) ->
+          if String.equal s match_v then
+            let target_val = field ~k:target_k x in
+            target_val :: r
+          else r
+      | Some _ -> r in
+    match json_arr with
+    | `A l ->
+        List.fold_right l ~init:[] ~f:(foldf match_key match_val target_key)
+    | _ -> []
+
+  let match_in_array_first (match_key : string) (match_val : string)
+      (target_key : string) (json_arr : Ezjsonm.value) : Ezjsonm.value =
+    let xs = match_in_array match_key match_val target_key json_arr in
+    match xs with
+    | [] ->
+        ksprintf failwith
+          "Jqo.match_in_array_first - empty result list for match_key:%s, \
+           match_val:%s, target_key:%s"
+          match_key match_val target_key
+    | x :: _ -> x
+
   let get_string = Ezjsonm.get_string
   let get_strings = Ezjsonm.get_strings
   let get_int = Ezjsonm.get_int
   let get_list = Ezjsonm.get_list (fun e -> e)
+
+  let get_list_element v index =
+    match v with
+    | `A l ->
+        if List.length l < index then
+          ksprintf failwith "Jqo.get_list_element - invalid index: %d" index
+        else List.nth_exn l index
+    | other ->
+        ksprintf failwith "Jqo.get_list_element - Not a list: %s"
+          (to_string other)
 end

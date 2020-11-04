@@ -227,7 +227,8 @@ val show_known_contract :
      Asynchronous_result.t
 
 val deploy_multisig :
-     < application_name: string
+     ?counter:int
+  -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
      ; env_config: Environment_configuration.t
@@ -252,7 +253,7 @@ val sign_multisig :
      ; runner: Running_processes.State.t
      ; .. >
   -> t
-  -> name:string
+  -> contract:string
   -> amt:float
   -> to_acct:string
   -> signer_name:string
@@ -261,7 +262,8 @@ val sign_multisig :
 (** sign a multisig contract *)
 
 val transfer_from_multisig :
-     < application_name: string
+     ?counter:int
+  -> < application_name: string
      ; console: Console.t
      ; paths: Paths.t
      ; env_config: Environment_configuration.t
@@ -276,7 +278,37 @@ val transfer_from_multisig :
   -> burn_cap:float
   -> (unit, [> System_error.t]) Asynchronous_result.t
 
-(** Submit the fully-signed multisig contract *)
+(** Submit a Transfer transaction using the fully-signed multisig contract *)
+
+val hash_data :
+     < application_name: string
+     ; env_config: Environment_configuration.t
+     ; console: Console.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> ?gas:int
+  -> t
+  -> data_to_hash:string
+  -> data_type:string
+  -> ( string
+     , [> Process_result.Error.t | System_error.t] )
+     Asynchronous_result.t
+
+val multisig_storage_counter :
+     < application_name: string
+     ; console: Console.t
+     ; env_config: Environment_configuration.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> t
+  -> string
+  -> ( int
+     , [> Process_result.Error.t
+       | `System_error of [`Fatal] * System_error.static ] )
+     Asynchronous_result.t
+
 module Ledger : sig
   type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
 
@@ -407,6 +439,20 @@ module Keyed : sig
        , [> Process_result.Error.t | System_error.t] )
        Asynchronous_result.t
 
+  val sign_bytes :
+       < application_name: string
+       ; env_config: Environment_configuration.t
+       ; console: Console.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> bytes:string
+    -> key_name:string
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
   val forge_and_inject :
        < application_name: string
        ; env_config: Environment_configuration.t
@@ -419,4 +465,51 @@ module Keyed : sig
     -> ( Ezjsonm.value
        , [> Process_result.Error.t | System_error.t] )
        Asynchronous_result.t
+
+  val update_counter :
+       ?current_counter_override:int
+    -> < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> string
+    -> (int, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
+
+  val operations_from_chain :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> ( Ezjsonm.value
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  val get_contract_id :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> string
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  val counter_from_chain :
+       < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; env_config: Environment_configuration.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> t
+    -> (int, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 end

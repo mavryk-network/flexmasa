@@ -88,7 +88,7 @@ module Full_default_state = struct
     let default_root = sprintf "/tmp/%s-test" base_state#command_name in
     let pauser = Interactive_test.Pauser.make [] in
     let ops = Log_recorder.Operations.make () in
-    let state console paths interactivity =
+    let state console paths interactivity (`With_baking baking) =
       object
         method paths = paths
 
@@ -100,6 +100,8 @@ module Full_default_state = struct
 
         method test_interactivity = interactivity
 
+        method test_baking = baking
+
         method pauser = pauser
 
         method operations_log = ops
@@ -107,14 +109,22 @@ module Full_default_state = struct
         method env_config = base_state#env_config
       end in
     let open Cmdliner in
+    let docs = Manpage_builder.section_test_scenario base_state in
     Term.(
       pure state $ Console.cli_term ()
       $ Paths.cli_term ~default_root ()
-      $
-      if disable_interactivity then pure `None
-      else
-        Interactive_test.Interactivity.cli_term ?default:default_interactivity
-          ())
+      $ ( if disable_interactivity then pure `None
+        else
+          Interactive_test.Interactivity.cli_term
+            ?default:default_interactivity () )
+      $ Arg.(
+          pure (fun x -> `With_baking (not x))
+          $ value
+              (flag
+                 (info ["no-baking"] ~docs
+                    ~doc:
+                      "Completely disable baking/endorsing/accusing (you need \
+                       to bake manually to make the chain advance)."))))
 end
 
 let cli_state ?default_interactivity ?disable_interactivity ~name () =

@@ -266,33 +266,70 @@ let show_known_contract state client ~name =
   successful_client_cmd state ~client ["show"; "known"; "contract"; name]
   >>= fun res -> return (String.concat res#out)
 
-let deploy_multisig state client ~name ~amt ~from_acct ~threshold ~signer_names
-    ~burn_cap =
+let deploy_multisig ?counter state client ~name ~amt ~from_acct ~threshold
+    ~signer_names ~burn_cap =
+  let counter_args =
+    match counter with Some c -> ["--counter"; Int.to_string c] | None -> []
+  in
   client_cmd state ~client
     (List.concat
        [ [ "deploy"; "multisig"; name; "transferring"; sprintf "%f" amt; "from"
          ; from_acct; "with"; "threshold"; Int.to_string threshold; "on"
          ; "public"; "keys" ]
        ; signer_names
-       ; ["--burn-cap"; sprintf "%f" burn_cap; "--force"] ])
+       ; ["--burn-cap"; sprintf "%f" burn_cap; "--force"]
+       ; counter_args ])
   >>= fun _ -> return ()
 
-let sign_multisig state client ~name ~amt ~to_acct ~signer_name =
-  client_cmd state ~client
-    [ "sign"; "multisig"; "transaction"; "on"; name; "transferring"
+let sign_multisig state client ~contract ~amt ~to_acct ~signer_name =
+  let params =
+    [ "sign"; "multisig"; "transaction"; "on"; contract; "transferring"
     ; sprintf "%f" amt; "to"; to_acct; "using"; "secret"; "key"; signer_name ]
+  in
+  client_cmd state ~client params
   >>= fun (_, sign_res) -> return (String.concat ~sep:"" sign_res#out)
 
-let transfer_from_multisig state client ~name ~amt ~to_acct ~on_behalf_acct
-    ~signatures ~burn_cap =
+let transfer_from_multisig ?counter state client ~name ~amt ~to_acct
+    ~on_behalf_acct ~signatures ~burn_cap =
+  let counter_args =
+    match counter with Some c -> ["--counter"; Int.to_string c] | None -> []
+  in
   client_cmd state ~client
     (List.concat
        [ [ "from"; "multisig"; "contract"; name; "transfer"; sprintf "%f" amt
          ; "to"; to_acct; "on"; "behalf"; "of"; on_behalf_acct; "with"
          ; "signatures" ]
        ; signatures
-       ; ["--burn-cap"; sprintf "%f" burn_cap] ])
+       ; ["--burn-cap"; sprintf "%f" burn_cap]
+       ; counter_args ])
   >>= fun _ -> return ()
+
+let hash_data state ?gas client ~data_to_hash ~data_type =
+  let the_list = ["hash"; "data"; data_to_hash; "of"; "type"; data_type] in
+  let the_list' =
+    match gas with
+    | None -> the_list
+    | Some g -> the_list @ ["--gas"; Int.to_string g] in
+  successful_client_cmd state ~client the_list'
+  >>= fun res ->
+  let res_out = List.hd_exn res#out in
+  let cleaned =
+    match String.chop_prefix res_out ~prefix:"Raw packed data: " with
+    | Some s -> s
+    | None -> res_out in
+  return cleaned
+
+let multisig_storage_counter state client contract_id =
+  let path =
+    sprintf "/chains/main/blocks/head/context/contracts/%s/storage" contract_id
+  in
+  rpc state ~client `Get ~path
+  >>= fun sto ->
+  let args_array = Jqo.field ~k:"args" sto in
+  let fst_arg = Jqo.get_list_element args_array 0 in
+  let counter_val = Jqo.field ~k:"int" fst_arg in
+  try return (Int.of_string (Jqo.get_string counter_val))
+  with e -> System_error.fail_fatalf "Exception getting counter: %a" Exn.pp e
 
 module Ledger = struct
   type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
@@ -427,21 +464,25 @@ module Keyed = struct
       ["generate"; "nonce"; "hash"; "for"; key_name; "from"; data]
     >>= fun res -> return (List.hd_exn res#out)
 
-  let forge_and_inject state {client; key_name; _} ~json =
-    rpc state ~client ~path:"/chains/main/blocks/head/helpers/forge/operations"
+  let sign_bytes state client ~bytes ~key_name =
+    successful_client_cmd state ~client:client.client
+      ["sign"; "bytes"; bytes; "for"; key_name]
+    >>= fun sign_res -> return (List.hd_exn sign_res#out)
+
+  let forge_and_inject state keyed_client ~json =
+    rpc state ~client:keyed_client.client
+      ~path:"/chains/main/blocks/head/helpers/forge/operations"
       (`Post (Ezjsonm.value_to_string json))
     >>= fun res ->
     let operation_bytes = match res with `String s -> s | _ -> assert false in
     let bytes_to_sign = "0x03" ^ operation_bytes in
-    successful_client_cmd state ~client
-      ["sign"; "bytes"; bytes_to_sign; "for"; key_name]
+    sign_bytes state keyed_client ~bytes:bytes_to_sign (*operation_bytes*)
+      ~key_name:keyed_client.key_name
     >>= fun sign_res ->
     let to_decode =
-      List.hd_exn sign_res#out
-      |> String.chop_prefix_exn ~prefix:"Signature:"
-      |> String.strip in
-    say state EF.(desc (shout "TO DECODE:") (af "%S" to_decode))
-    >>= fun () ->
+      String.chop_prefix_exn ~prefix:"Signature:" sign_res |> String.strip
+    in
+    Dbg.e EF.(af "To Decode: %s" to_decode) ;
     let decoded =
       Option.value_exn ~message:"base58 dec"
         (Tezos_crypto.Base58.safe_decode to_decode)
@@ -460,6 +501,84 @@ module Keyed = struct
               (af "%d: %S" (String.length actual_signature) actual_signature)
           ])
     >>= fun () ->
-    rpc state ~client ~path:"/injection/operation?chain=main"
+    rpc state ~client:keyed_client.client
+      ~path:"/injection/operation?chain=main"
       (`Post (sprintf "\"%s%s\"" operation_bytes actual_signature))
+
+  let find_mempool_counter_exn (json : Ezjsonm.value) hash_key : int =
+    match json with
+    | `O _ -> (
+        let z = Jqo.field ~k:"applied" json in
+        match z with
+        | `A trans_list ->
+            let foldf acc x =
+              let contents_list = Jqo.field ~k:"contents" x in
+              let more_counters =
+                Jqo.match_in_array "source" hash_key "counter" contents_list
+              in
+              more_counters @ acc in
+            let to_ints (strs : string list) : int list =
+              List.map strs ~f:(fun s -> Int.of_string s) in
+            let to_max_int (ints : int list) : int =
+              List.fold ints ~init:0 ~f:(fun acc x -> Int.max acc x) in
+            let counters = List.fold trans_list ~init:[] ~f:foldf in
+            let counter_strs =
+              List.map ~f:(fun v -> Jqo.get_string v) counters in
+            let max_int = to_max_int (to_ints counter_strs) in
+            max_int
+        | _ -> 0 )
+    | _ -> 0
+
+  let operations_from_chain state keyed_client =
+    rpc state ~client:keyed_client.client `Get
+      ~path:(Fmt.str "/chains/main/blocks/head/operations")
+    >>= fun ops_json -> return ops_json
+
+  let find_contract_id_exn (json : Ezjsonm.value) (orig_hash : string) =
+    let ops = Jqo.get_list_element json 3 in
+    let op = Jqo.match_in_array_first "hash" orig_hash "contents" ops in
+    let meta = Jqo.match_in_array_first "kind" "origination" "metadata" op in
+    let res = Jqo.field ~k:"operation_result" meta in
+    let orig_list = Jqo.field ~k:"originated_contracts" res in
+    Jqo.get_string (Jqo.get_list_element orig_list 0)
+
+  let get_contract_id state client origination_hash =
+    operations_from_chain state client
+    >>= fun ops_json ->
+    try return (find_contract_id_exn ops_json origination_hash)
+    with e ->
+      System_error.fail_fatalf "Exception getting contract_id: %a" Exn.pp e
+
+  let counter_from_chain state keyed_client =
+    get_account state ~client:keyed_client.client ~name:keyed_client.key_name
+    >>= fun acct ->
+    match acct with
+    | None ->
+        System_error.fail_fatalf
+          "counter_from_chain - failed to parse account."
+    | Some a ->
+        let src = Tezos_protocol.Account.pubkey_hash a in
+        rpc state ~client:keyed_client.client `Get
+          ~path:
+            (Fmt.str "/chains/main/blocks/head/context/contracts/%s/counter"
+               src)
+        >>= fun counter_json ->
+        return (Jqo.get_string counter_json |> Int.of_string)
+
+  let update_counter ?current_counter_override state client _dbg_str =
+    let the_match =
+      match current_counter_override with
+      | None -> counter_from_chain state client
+      | Some c -> return (Int.max (c - 1) 0) in
+    the_match
+    >>= fun current_counter ->
+    rpc state ~client:client.client `Get
+      ~path:"/chains/main/mempool/pending_operations"
+    >>= fun json ->
+    let pubkey_hash = Tezos_protocol.Key.Of_name.pubkey_hash client.key_name in
+    let new_counter =
+      try find_mempool_counter_exn json pubkey_hash with _ -> current_counter
+    in
+    let max = Int.max current_counter new_counter + 1 in
+    return max
 end

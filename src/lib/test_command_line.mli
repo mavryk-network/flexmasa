@@ -34,6 +34,8 @@ module Command_making_state : sig
        ; command_name: string
        ; env_config: Environment_configuration.t
        ; manpager: Manpage_builder.State.t >
+
+  (* ; test_baking: bool > *)
 end
 
 (** Make {!Cmdliner} commands from {!Asynchronous_result} functions. *)
@@ -66,7 +68,8 @@ module Full_default_state : sig
        ; paths: Paths.t
        ; pauser: Interactive_test.Pauser.t
        ; runner: Running_processes.State.t
-       ; test_interactivity: Interactive_test.Interactivity.t >
+       ; test_interactivity: Interactive_test.Interactivity.t
+       ; test_baking: bool >
        Cmdliner.Term.t
 end
 
@@ -83,6 +86,7 @@ val cli_state :
      ; paths: Paths.t
      ; pauser: Interactive_test.Pauser.t
      ; runner: Running_processes.State.t
-     ; test_interactivity: Interactive_test.Interactivity.t >
+     ; test_interactivity: Interactive_test.Interactivity.t
+     ; test_baking: bool >
      Cmdliner.Term.t
 (** Create a full [state] value for test-scenarios. *)

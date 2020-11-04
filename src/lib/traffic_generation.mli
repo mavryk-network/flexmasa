@@ -2,6 +2,21 @@ open Internal_pervasives
 
 (** Helpers to generate traffic in sandboxes. *)
 
+val branch :
+     < application_name: string
+     ; console: Console.t
+     ; env_config: Environment_configuration.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> Tezos_client.Keyed.t
+  -> ( string
+     , [> Process_result.Error.t
+       | `System_error of [`Fatal] * System_error.static ] )
+     Asynchronous_result.t
+
+val is_baking : < test_baking: bool ; .. > -> bool
+
 module Michelson : sig
   val prepare_origination_of_id_script :
        ?delegate:string
@@ -16,7 +31,131 @@ module Michelson : sig
     -> (string list, [> System_error.t]) Asynchronous_result.t
 end
 
+module Forge : sig
+  val batch_transfer :
+       ?protocol_kind:Tezos_protocol.Protocol_kind.t
+    -> ?counter:int
+    -> ?dst:(string * int) list
+    -> src:string
+    -> fee:float
+    -> branch:string
+    -> int
+    -> Ezjsonm.value
+
+  val endorsement :
+       ?protocol_kind:Tezos_protocol.Protocol_kind.t
+    -> branch:string
+    -> int
+    -> Ezjsonm.value
+end
+
+val get_chain_id :
+     < application_name: string
+     ; console: Console.t
+     ; env_config: Environment_configuration.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> Tezos_client.Keyed.t
+  -> ( string
+     , [> Process_result.Error.t | System_error.t] )
+     Asynchronous_result.t
+
+module Multisig : sig
+  val deploy_multisig :
+       ?protocol_kind:Tezos_protocol.Protocol_kind.t
+    -> ?counter:int
+    -> int
+    -> branch:string
+    -> signers:string list
+    -> src:string
+    -> fee:float
+    -> balance:int
+    -> Ezjsonm.value
+
+  val hash_multisig_data :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; env_config: Environment_configuration.t
+       ; test_baking: bool
+       ; .. >
+    -> Tezos_client.t
+    -> int
+    -> chain_id:string
+    -> contract_addr:string
+    -> dest:string
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  val sign_multisig :
+       < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; env_config: Environment_configuration.t
+       ; test_baking: bool
+       ; .. >
+    -> Tezos_client.Keyed.t
+    -> contract_addr:string
+    -> amt:int
+    -> to_acct:string
+    -> signer_name:string
+    -> ( string
+       , [> Process_result.Error.t | System_error.t] )
+       Asynchronous_result.t
+
+  val transfer_from_multisig :
+       ?protocol_kind:Tezos_protocol.Protocol_kind.t
+    -> ?counter:int
+    -> float
+    -> branch:string
+    -> src:string
+    -> destination:string
+    -> contract:string
+    -> amount:int
+    -> signatures:string list (* -> signature:string -> burn_cap:float *)
+    -> Ezjsonm.value
+
+  val deploy_and_transfer :
+       ?initial_counter_override:int
+    -> < application_name: string
+       ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; env_config: Environment_configuration.t
+       ; test_baking: bool
+       ; .. >
+    -> Tezos_client.Keyed.t
+    -> Tezos_node.t list
+    -> src:string
+    -> fee:float
+    -> num_signers:int
+    -> outer_repeat:int
+    -> contract_repeat:int
+    -> ( unit
+       , [> Process_result.Error.t
+         | System_error.t
+         | `Waiting_for of string * [`Time_out] ] )
+       Asynchronous_result.t
+
+  val get_signer_names : string list -> int -> string list
+end
+
 module Commands : sig
+  val cmdline_fail :
+       ( 'a
+       , Formatter.t
+       , unit
+       , ('b, [> `Command_line of string]) Asynchronous_result.t )
+       format4
+    -> 'a
+
   module Sexp_options : sig
     type t = {name: string; placeholders: string list; description: string}
     type option = t
@@ -62,14 +201,6 @@ module Commands : sig
     val fmt_sexps : Sexp.t list -> string
   end
 
-  val cmdline_fail :
-       ( 'a
-       , Formatter.t
-       , unit
-       , ('b, [> `Command_line of string]) Asynchronous_result.t )
-       format4
-    -> 'a
-
   val protect_with_keyed_client :
        string
     -> client:Tezos_client.Keyed.t
@@ -102,29 +233,22 @@ module Commands : sig
 
   val all_opts : all_options
 
-  type batch_action = {src: string; counter: int; size: int; fee: float}
+  type batch_action =
+    {src: string; initial_counter_override: int option; size: int; fee: float}
   [@@deriving sexp]
 
   type multisig_action =
-    {src: string; num_signers: int; outer_repeat: int; contract_repeat: int}
+    { src: string
+    ; initial_counter_override: int option
+    ; fee: float
+    ; num_signers: int
+    ; outer_repeat: int
+    ; contract_repeat: int }
   [@@deriving sexp]
 
   type action =
     [`Batch_action of batch_action | `Multisig_action of multisig_action]
   [@@deriving sexp]
-
-  val branch :
-       < application_name: string
-       ; console: Console.t
-       ; env_config: Environment_configuration.t
-       ; paths: Paths.t
-       ; runner: Running_processes.State.t
-       ; .. >
-    -> Tezos_client.Keyed.t
-    -> ( string
-       , [> Process_result.Error.t
-         | `System_error of [`Fatal] * System_error.static ] )
-       Asynchronous_result.t
 
   val history_file_path : < paths: Paths.t ; .. > -> string
   val get_timestamp : unit -> string
@@ -162,14 +286,12 @@ module Commands : sig
   val get_batch_args :
        < application_name: string
        ; console: Console.t
-       ; operations_log: Log_recorder.Operations.t
-       ; env_config: Environment_configuration.t
        ; paths: Paths.t
+       ; env_config: Environment_configuration.t
        ; runner: Running_processes.State.t
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> all_options
-    -> Tezos_protocol.Account.t
     -> Base.Sexp.t list
     -> ([> action], [> `Command_line of string]) Asynchronous_result.t
 
@@ -247,6 +369,7 @@ module Commands : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
@@ -262,11 +385,12 @@ module Commands : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
     -> actions:[< action] list
-    -> counter:int
+    -> rep_counter:int
     -> ( unit
        , [> `Command_line of string | System_error.t | Process_result.Error.t]
        )
@@ -281,6 +405,7 @@ module Random : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> protocol:Tezos_protocol.t
     -> nodes:Tezos_node.t list
@@ -301,6 +426,7 @@ module Dsl : sig
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> client:Tezos_client.Keyed.t
     -> nodes:Tezos_node.t list
@@ -313,9 +439,11 @@ module Dsl : sig
   val run :
        < application_name: string
        ; console: Console.t
+       ; operations_log: Log_recorder.Operations.t
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
+       ; test_baking: bool
        ; .. >
     -> nodes:Tezos_node.t list
     -> clients:Tezos_client.Keyed.t list
@@ -324,42 +452,4 @@ module Dsl : sig
        , [> Process_result.Error.t | System_error.t | `Command_line of string]
        )
        Asynchronous_result.t
-end
-
-module Forge : sig
-  val batch_transfer :
-       ?protocol_kind:Tezos_protocol.Protocol_kind.t
-    -> ?counter:int
-    -> ?dst:(string * int) list
-    -> src:string
-    -> fee:float
-    -> branch:string
-    -> int
-    -> Ezjsonm.value
-
-  val endorsement :
-       ?protocol_kind:Tezos_protocol.Protocol_kind.t
-    -> branch:string
-    -> int
-    -> Ezjsonm.value
-end
-
-module Multisig : sig
-  val deploy_and_transfer :
-       < application_name: string
-       ; console: Console.t
-       ; paths: Paths.t
-       ; runner: Running_processes.State.t
-       ; env_config: Environment_configuration.t
-       ; .. >
-    -> Tezos_client.t
-    -> Tezos_node.t list
-    -> num_signers:int
-    -> outer_repeat:int
-    -> contract_repeat:int
-    -> ( unit
-       , [> System_error.t | `Waiting_for of string * [`Time_out]] )
-       Asynchronous_result.t
-
-  val get_signer_names : string list -> int -> string list
 end
