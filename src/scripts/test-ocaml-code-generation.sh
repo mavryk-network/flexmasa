@@ -44,8 +44,8 @@ EOF
 
 run_all () {
     testpath=_build/ocamlgentest
-    tezos_entrypoints=local-vendor/tezos-master/tests_python/contracts/entrypoints
-    tezos_scenarios=local-vendor/tezos-master/tests_python/contracts/mini_scenarios
+    tezos_entrypoints=local-vendor/tezos-master/tests_python/contracts_007/entrypoints
+    tezos_scenarios=local-vendor/tezos-master/tests_python/contracts_007/mini_scenarios
 
     one_address=tz1L1bypLzuxGHmx3d6bHFJ2WCi4ZDbocSCA
     cat > $extratest <<EOF

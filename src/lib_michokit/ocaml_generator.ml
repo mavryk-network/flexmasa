@@ -12,11 +12,11 @@ let dbg fmt =
   Fmt.pf ppf Caml.("ocofmi: " ^^ fmt ^^ "\n%!")
 
 (*
-let pp_field_annot ppf (`Field_annot fa) = Fmt.pf ppf "(FA: %s)" fa
+let pp_field_annot ppf (Field_annot fa) = Fmt.pf ppf "(FA: %s)" fa
 let pp_type_annot ppf (`Type_annot fa) = Fmt.pf ppf "(TA: %s)" fa
 let rec analyze_type ty =
-  let open Tezos_raw_protocol_alpha.Script_ir_translator in
-  let open Tezos_raw_protocol_alpha.Script_typed_ir in
+  let open Tezos_raw_protocol_007_PsDELPH1.Script_ir_translator in
+  let open Tezos_raw_protocol_007_PsDELPH1.Script_typed_ir in
   match ty with
   | Ex_ty (Union_t ((l, lann), (r, rann), type_annot, _has_big_map)) ->
       dbg "(union (%a | %a) %a)"
@@ -32,8 +32,8 @@ let rec analyze_type ty =
  *)
 
 module Simpler_michelson_type = struct
-  (* open Tezos_raw_protocol_alpha.Script_ir_translator *)
-  open Tezos_raw_protocol_alpha.Script_typed_ir
+  (* open Tezos_raw_protocol_007_PsDELPH1.Script_ir_translator *)
+  open Tezos_raw_protocol_007_PsDELPH1.Script_typed_ir
 
   module Tree = struct
     type 'a t = Leaf of 'a | Node of 'a t * 'a t
@@ -130,12 +130,12 @@ module Simpler_michelson_type = struct
   let rec of_type : type a. a ty -> t =
    fun ty ->
     match ty with
-    | Union_t ((l, lann), (r, rann), type_annot, _has_big_map) ->
+    | Union_t ((l, lann), (r, rann), type_annot) ->
         let left = of_type l in
         let right = of_type r in
         let explore v ann =
           match (v, ann) with
-          | content, Some (`Field_annot fa) ->
+          | content, Some (Field_annot fa) ->
               (Tree.leaf {tag= Some fa; content}, [])
           | Sum {variants; type_annotations}, None ->
               (variants, type_annotations)
@@ -146,31 +146,31 @@ module Simpler_michelson_type = struct
           ( Tree.node vl rl
           , tal
             @ ( match type_annot with
-              | Some (`Type_annot ta) -> [ta]
+              | Some (Type_annot ta) -> [ta]
               | None -> [] )
             @ tar ) in
         Sum {variants; type_annotations}
-    | Pair_t ((l, lann, lfann), (r, rann, rfann), tao, _has_big_map) ->
+    | Pair_t ((l, lann, lfann), (r, rann, rfann), tao) ->
         let left = of_type l in
         let right = of_type r in
         List.iter [lfann; rfann] ~f:(fun an ->
-            Option.iter an ~f:(fun (`Var_annot va) ->
+            Option.iter an ~f:(fun (Var_annot va) ->
                 dbg "forgetting var-annot: %S" va)) ;
         flatten_record left lann right rann tao
-    | List_t (t, type_annot, _has_big_map) ->
-        Option.iter type_annot ~f:(fun (`Type_annot ta) ->
+    | List_t (t, type_annot) ->
+        Option.iter type_annot ~f:(fun (Type_annot ta) ->
             dbg "forggetting type annot: %S" ta) ;
         List (of_type t)
     | Set_t (t, type_annot) ->
-        Option.iter type_annot ~f:(fun (`Type_annot ta) ->
+        Option.iter type_annot ~f:(fun (Type_annot ta) ->
             dbg "forggetting type annot: %S" ta) ;
         Set (of_comparable t)
-    | Map_t (f, t, type_annot, _) ->
-        Option.iter type_annot ~f:(fun (`Type_annot ta) ->
+    | Map_t (f, t, type_annot) ->
+        Option.iter type_annot ~f:(fun (Type_annot ta) ->
             dbg "forggetting type annot: %S" ta) ;
         Map (of_comparable f, of_type t)
     | Big_map_t (f, t, type_annot) ->
-        Option.iter type_annot ~f:(fun (`Type_annot ta) ->
+        Option.iter type_annot ~f:(fun (Type_annot ta) ->
             dbg "forggetting type annot: %S" ta) ;
         Big_map (of_comparable f, of_type t)
     | Unit_t _ -> Unit
@@ -189,11 +189,11 @@ module Simpler_michelson_type = struct
     | Lambda_t (f, t, type_annot) ->
         let ft = of_type f in
         let tt = of_type t in
-        Option.iter type_annot ~f:(fun (`Type_annot ta) ->
+        Option.iter type_annot ~f:(fun (Type_annot ta) ->
             dbg "forggetting type annot: %S" ta) ;
         Lambda (ft, tt)
-    | Option_t (t, type_annot, _) ->
-        Option.iter type_annot ~f:(fun (`Type_annot ta) ->
+    | Option_t (t, type_annot) ->
+        Option.iter type_annot ~f:(fun (Type_annot ta) ->
             dbg "forggetting type annot: %S" ta) ;
         Option (of_type t)
     | Operation_t _ -> Operation
@@ -219,7 +219,7 @@ module Simpler_michelson_type = struct
   and flatten_record left lann right rann type_annot =
     let explore v ann =
       match (v, ann) with
-      | content, Some (`Field_annot fa) ->
+      | content, Some (Field_annot fa) ->
           (Tree.leaf {tag= Some fa; content}, [])
       | Record {fields; type_annotations}, None -> (fields, type_annotations)
       | content, None -> (Tree.leaf {tag= None; content}, []) in
@@ -228,7 +228,7 @@ module Simpler_michelson_type = struct
     let fields, type_annotations =
       ( Tree.node fl fr
       , tal
-        @ (match type_annot with Some (`Type_annot ta) -> [ta] | None -> [])
+        @ (match type_annot with Some (Type_annot ta) -> [ta] | None -> [])
         @ tar ) in
     Record {fields; type_annotations}
 end
@@ -910,7 +910,7 @@ let make_module ~options expr =
     (* Dbg.f (fun f -> f "Found the type: %a" Dbg.pp_any the_type) ; *)
     let first_comment =
       Fmt.str "Generated code for\n%a\n\n"
-        Tezos_client_alpha.Michelson_v1_printer.print_expr_unwrapped
+        Tezos_client_007_PsDELPH1.Michelson_v1_printer.print_expr_unwrapped
         (strip_locations back_to_node) in
     (* Dbg.f (fun f -> f "Built the type: %a" Dbg.pp_any ty) ; *)
     return

@@ -28,7 +28,7 @@ module Concrete = struct
 
   let parse s =
     try
-      Tezos_client_alpha.Michelson_v1_parser.(
+      Tezos_client_007_PsDELPH1.Michelson_v1_parser.(
         let parsed, errors = parse_toplevel ~check:true s in
         match errors with
         | [] -> return parsed.expanded
@@ -38,12 +38,12 @@ module Concrete = struct
   let to_string e =
     let buf = Buffer.create 1000 in
     let fmt = Caml.Format.formatter_of_buffer buf in
-    Tezos_client_alpha.Michelson_v1_printer.print_expr_unwrapped fmt e ;
+    Tezos_client_007_PsDELPH1.Michelson_v1_printer.print_expr_unwrapped fmt e ;
     Caml.Format.pp_print_flush fmt () ;
     Buffer.contents buf
 end
 
-module Tz_protocol = Tezos_protocol_alpha.Protocol
+module Tz_protocol = Tezos_protocol_007_PsDELPH1.Protocol
 
 module Transform = struct
   module On_annotations = struct
@@ -160,7 +160,7 @@ end
 
 module File_io = struct
   let read_file state input_file :
-      ( Tezos_protocol_alpha.Protocol.Alpha_context.Script.expr
+      ( Tezos_protocol_007_PsDELPH1.Protocol.Alpha_context.Script.expr
       , [> Concrete.Parse_error.t | Flextesa.Internal_pervasives.System_error.t]
       )
       Flextesa.Internal_pervasives.Attached_result.t
@@ -197,32 +197,35 @@ module Typed_ir = struct
   let pp_tz_error = Tezos_error_monad.Error_monad.pp
 
   let pp_protocol_error =
-    Tezos_protocol_environment_alpha.Environment.Error_monad.pp
+    Tezos_protocol_environment_007_PsDELPH1.Environment.Error_monad.pp
 
   let make_fresh_context () =
     of_tz_error_monad pp_tz_error (fun () ->
-        Tezos_client_alpha.Mockup.initial_context
-          (* src/proto_alpha/lib_client/mockup.ml *)
+        Tezos_client_007_PsDELPH1.Mockup.initial_context
+          (* src/proto_007_PsDELPH1/lib_client/mockup.ml *)
           (let predecessor =
              Tezos_crypto.Block_hash.of_b58check_exn
                "BLockGenesisGenesisGenesisGenesisGenesisCCCCCeZiLHU" in
            let timestamp =
-             Tezos_protocol_environment_alpha.Environment.Time.(of_seconds 2L)
-           in
+             Tezos_protocol_environment_007_PsDELPH1.Environment.Time.(
+               of_seconds 2L) in
            let operations_hash = Tezos_crypto.Operation_list_list_hash.zero in
-           Tezos_client_alpha.Mockup.Forge.(
+           Tezos_client_007_PsDELPH1.Mockup.Forge.(
              make_shell ~level:0l ~predecessor ~timestamp
                ~fitness:(Tz_protocol.Fitness_repr.from_int64 0L)
                ~operations_hash))
-          Tezos_client_alpha.Mockup.default_mockup_parameters)
+          Tezos_client_007_PsDELPH1.Mockup.default_mockup_parameters)
     >>= fun context ->
     of_tz_error_monad pp_protocol_error (fun () ->
-        Tezos_raw_protocol_alpha.Alpha_context.prepare context ~level:1l
+        Tezos_raw_protocol_007_PsDELPH1.Alpha_context.prepare context ~level:1l
           ~predecessor_timestamp:
-            Tezos_protocol_environment_alpha.Environment.Time.(of_seconds 1L)
+            Tezos_protocol_environment_007_PsDELPH1.Environment.Time.(
+              of_seconds 1L)
           ~timestamp:
-            Tezos_protocol_environment_alpha.Environment.Time.(of_seconds 2L)
-          ~fitness:(* Tezos_raw_protocol_alpha.Alpha_context.Fitness. *) [])
+            Tezos_protocol_environment_007_PsDELPH1.Environment.Time.(
+              of_seconds 2L)
+          ~fitness:
+            (* Tezos_raw_protocol_007_PsDELPH1.Alpha_context.Fitness. *) [])
 
   let parse_type node =
     make_fresh_context ()
@@ -236,14 +239,15 @@ module Typed_ir = struct
         System_error.fail_fatalf "Error parsing the type: %a\n%!"
           Fmt.(
             list ~sep:sp
-              Tezos_protocol_environment_alpha.Environment.Error_monad.pp)
+              Tezos_protocol_environment_007_PsDELPH1.Environment.Error_monad
+              .pp)
           el
 
   let unparse_type = function
-    | Tezos_raw_protocol_alpha.Script_ir_translator.Ex_ty ty ->
+    | Tezos_raw_protocol_007_PsDELPH1.Script_ir_translator.Ex_ty ty ->
         make_fresh_context ()
         >>= fun context ->
         of_tz_error_monad pp_protocol_error (fun () ->
-            Tz_protocol.Script_ir_translator.unparse_ty context ty)
+            Lwt.return (Tz_protocol.Script_ir_translator.unparse_ty context ty))
         >>= fun (node, _context) -> return node
 end
