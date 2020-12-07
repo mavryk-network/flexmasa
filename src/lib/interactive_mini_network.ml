@@ -39,7 +39,7 @@ module Genesis_block_hash = struct
     function
     | `Carthage -> "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
     | `Delphi -> "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
-    | `Alpha -> "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
+    | `Edo | `Alpha -> "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
   module Choice = struct
