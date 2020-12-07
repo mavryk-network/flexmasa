@@ -155,11 +155,11 @@ EOF
 COPY --from=0 /home/opam/.opam/4.09/share/zcash-params /usr/share/zcash-params
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/tutorial-box.sh /usr/bin/carthagebox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/delphibox
-RUN sed -i s/default_protocol=Carthage/default_protocol=Delphi/ /usr/bin/delphibox
-RUN chmod a+rx /usr/bin/carthagebox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/edobox
+RUN sed -i s/default_protocol=Delphi/default_protocol=Edo/ /usr/bin/edobox
 RUN chmod a+rx /usr/bin/delphibox
+RUN chmod a+rx /usr/bin/edobox
 EOF
 }
 
