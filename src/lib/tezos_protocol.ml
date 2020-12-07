@@ -64,15 +64,16 @@ module Voting_period = struct
 end
 
 module Protocol_kind = struct
-  type t = [`Athens | `Babylon | `Carthage | `Delphi]
+  type t = [`Athens | `Babylon | `Carthage | `Delphi | `Alpha]
 
   let names =
     [ ("Athens", `Athens)
     ; ("Babylon", `Babylon)
     ; ("Carthage", `Carthage)
-    ; ("Delphi", `Delphi) ]
+    ; ("Delphi", `Delphi)
+    ; ("Alpha", `Alpha) ]
 
-  let default = `Carthage
+  let default = `Alpha
 
   let cmdliner_term ~docs () : t Cmdliner.Term.t =
     let open Cmdliner in
@@ -98,6 +99,8 @@ type t =
   ; name: string (* e.g. alpha *)
   ; hash: string
   ; time_between_blocks: int list
+  ; baking_reward_per_endorsement: int list
+  ; endorsement_reward: int list
   ; blocks_per_roll_snapshot: int
   ; blocks_per_voting_period: int
   ; blocks_per_cycle: int
@@ -122,6 +125,8 @@ let default () =
   ; name= "alpha"
   ; hash= "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
   ; time_between_blocks= [2; 3]
+  ; baking_reward_per_endorsement= [1_250_000; 187_500]
+  ; endorsement_reward= [1_250_000; 833_333]
   ; blocks_per_roll_snapshot= 4
   ; blocks_per_voting_period= 16
   ; blocks_per_cycle= 8
@@ -141,9 +146,8 @@ let protocol_parameters_json t : Ezjsonm.t =
     let op_gas_limit, block_gas_limit =
       match subkind with
       | `Babylon -> (800_000, 8_000_000)
-      | `Carthage | `Delphi -> (1_040_000, 10_400_000) in
-    let cost_per_byte =
-      match subkind with `Delphi -> 250 | `Babylon | `Carthage -> 1_000 in
+      | `Carthage -> (1_040_000, 10_400_000)
+      | `Delphi | `Alpha -> (1_040_000, 10_400_000) in
     let open Ezjsonm in
     let list_of_zs = list (fun i -> string (Int.to_string i)) in
     [ ("blocks_per_commitment", int 4)
@@ -158,17 +162,21 @@ let protocol_parameters_json t : Ezjsonm.t =
     ; ("endorsement_security_deposit", string (Int.to_string 64_000_000))
     ; ( match subkind with
       | `Babylon -> ("block_reward", string (Int.to_string 16_000_000))
-      | `Carthage | `Delphi ->
-          ("baking_reward_per_endorsement", list_of_zs [1_250_000; 187_500]) )
+      | `Carthage | `Delphi | `Alpha ->
+          ( "baking_reward_per_endorsement"
+          , list_of_zs t.baking_reward_per_endorsement ) )
     ; ( "endorsement_reward"
       , match subkind with
         | `Babylon -> string (Int.to_string 2_000_000)
-        | `Carthage | `Delphi -> list_of_zs [1_250_000; 833_333] )
+        | `Carthage | `Delphi | `Alpha -> list_of_zs t.endorsement_reward )
     ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
-    ; ("cost_per_byte", string (Int.to_string cost_per_byte))
+    ; ( "cost_per_byte"
+      , match subkind with
+        | `Babylon | `Carthage -> string (Int.to_string 1_000)
+        | `Delphi | `Alpha -> string (Int.to_string 250) )
     ; ("test_chain_duration", string (Int.to_string 1_966_080))
-    ; ("quorum_min", int 20_00)
-    ; ("quorum_max", int 70_00)
+    ; ("quorum_min", int 3_000)
+    ; ("quorum_max", int 7_000)
     ; ("min_proposal_quorum", int 500)
     ; ("initial_endorsers", int 1)
     ; ("delay_per_missing_endorsement", string (Int.to_string 1)) ] in
@@ -189,7 +197,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       dict
         ( match t.kind with
-        | (`Babylon | `Carthage | `Delphi) as sk ->
+        | (`Babylon | `Carthage | `Delphi | `Alpha) as sk ->
             common @ extra_post_babylon_stuff sk
         | `Athens -> common )
 
