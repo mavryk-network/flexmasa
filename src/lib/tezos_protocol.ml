@@ -88,6 +88,22 @@ module Protocol_kind = struct
       (List.find_map_exn names ~f:(function
         | s, x when Poly.equal x n -> Some s
         | _ -> None))
+
+  let canonical_hash : t -> string = function
+    | `Carthage -> "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
+    | `Delphi -> "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo"
+    | `Alpha -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
+    | `Edo -> "PtEdoTezd3RHSC31mpxxo1npxFjoWWcFgQtxapi51Z8TLu6v6Uq"
+    | `Babylon -> "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS"
+    | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
+
+  let daemon_suffix_exn : t -> string = function
+    | `Carthage -> "006-PsCARTHA"
+    | `Delphi -> "007-PsDELPH1"
+    | `Alpha -> "alpha"
+    | `Edo -> "008-PtEdoTez"
+    | `Babylon -> assert false
+    | `Athens -> assert false
 end
 
 type t =
@@ -123,8 +139,8 @@ let default () =
   ; dictator
     (* ; bootstrap_contracts= [(dictator, 10_000_000, `Sandbox_faucet)] *)
   ; expected_pow= 1
-  ; name= "alpha"
-  ; hash= "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
+  ; name= "flextesa-sandbox"
+  ; hash= Protocol_kind.canonical_hash Protocol_kind.default
   ; time_between_blocks= [2; 3]
   ; baking_reward_per_endorsement= [1_250_000; 187_500]
   ; endorsement_reward= [1_250_000; 833_333]
@@ -249,7 +265,7 @@ let cli_term state =
   pure
     (fun bootstrap_accounts
          (`Blocks_per_voting_period blocks_per_voting_period)
-         (`Protocol_hash hash)
+         (`Protocol_hash hash_opt)
          (`Time_between_blocks time_between_blocks)
          (`Blocks_per_cycle blocks_per_cycle)
          (`Preserved_cycles preserved_cycles)
@@ -258,6 +274,10 @@ let cli_term state =
          kind
          ->
       let id = "default-and-command-line" in
+      let hash =
+        match hash_opt with
+        | None -> Protocol_kind.canonical_hash kind
+        | Some s -> s in
       { def with
         id
       ; kind
@@ -326,9 +346,11 @@ let cli_term state =
   $ Arg.(
       pure (fun x -> `Protocol_hash x)
       $ value
-          (opt string def.hash
+          (opt (some string) None
              (info ["protocol-hash"] ~docs
-                ~doc:"Set the (initial) protocol hash.")))
+                ~doc:
+                  "Set the (initial) protocol hash (the default is to derive \
+                   it from the protocol kind).")))
   $ Arg.(
       pure (fun x -> `Time_between_blocks x)
       $ value
@@ -465,3 +487,6 @@ module Pretty_print = struct
       voting_pos ;
     pf ppf "@,* Baker: `%s`" baker
 end
+
+(*  LocalWords:  cannonical
+ *)

@@ -3,8 +3,8 @@ open Internal_pervasives
 module Configuration_directory = struct
   type t = {path: string; clean: bool; p2p_port: int}
 
-  let generate state ?(protocol_execs = []) t ~peers ~sandbox_json ~nodes
-      ~bakers ~network_string ~node_exec ~client_exec =
+  let generate state ?(protocol_execs = []) t ~protocol ~peers ~sandbox_json
+      ~nodes ~bakers ~network_string ~node_exec ~client_exec =
     (* For now, client-exec in Kiln is not protocol dependent, this
      should be fixed soon. *)
     let {path; clean; p2p_port} = t in
@@ -73,7 +73,9 @@ module Configuration_directory = struct
       ~content:
         Ezjsonm.(
           let absolutize exec =
-            let path = Tezos_executable.get exec in
+            let path =
+              Tezos_executable.get ~protocol_kind:protocol.Tezos_protocol.kind
+                exec in
             absolutize path in
           dict
             [ ("node-path", string (absolutize node_exec))

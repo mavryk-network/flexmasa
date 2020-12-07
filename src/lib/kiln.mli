@@ -13,6 +13,7 @@ module Configuration_directory : sig
        ; .. >
     -> ?protocol_execs:(string * Tezos_executable.t * Tezos_executable.t) list
     -> t
+    -> protocol:Tezos_protocol.t
     -> peers:int list
     -> sandbox_json:string
     -> nodes:string list

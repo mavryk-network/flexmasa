@@ -102,6 +102,7 @@ module System_dependencies : sig
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
+    -> protocol_kind:Tezos_protocol.Protocol_kind.t
     -> [< `Or_fail]
     -> (unit, [> System_error.t | Error.t]) Asynchronous_result.t
 end
@@ -112,7 +113,11 @@ module Shell_environement : sig
   val make : aliases:(string * string * string) list -> t
   (** Aliases are [(name, command, doc)] tuples. *)
 
-  val build : < paths: Paths.t ; .. > -> clients:Tezos_client.t list -> t
+  val build :
+       < paths: Paths.t ; .. >
+    -> protocol:Tezos_protocol.t
+    -> clients:Tezos_client.t list
+    -> t
 
   val write :
        < application_name: string ; .. >
