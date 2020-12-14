@@ -39,11 +39,14 @@ module Voting_period : sig
 end
 
 module Protocol_kind : sig
-  type t = [`Athens | `Babylon | `Carthage | `Delphi]
+  type t = [`Athens | `Babylon | `Carthage | `Delphi | `Edo | `Alpha]
 
+  val default : t
   val names : (string * t) list
   val cmdliner_term : docs:string -> unit -> t Cmdliner.Term.t
   val pp : t Fmt.t
+  val canonical_hash : t -> string
+  val daemon_suffix_exn : t -> string
 end
 
 type t =
@@ -56,6 +59,8 @@ type t =
   ; name: string
   ; hash: string
   ; time_between_blocks: int list
+  ; baking_reward_per_endorsement: int list
+  ; endorsement_reward: int list
   ; blocks_per_roll_snapshot: int
   ; blocks_per_voting_period: int
   ; blocks_per_cycle: int

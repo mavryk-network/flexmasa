@@ -171,11 +171,12 @@ module System_dependencies = struct
   open Error
 
   let precheck ?(using_docker = false) ?(protocol_paths = [])
-      ?(executables : Tezos_executable.t list = []) state how_to_react =
+      ?(executables : Tezos_executable.t list = []) state ~protocol_kind
+      how_to_react =
     let commands_to_check =
       (if using_docker then ["docker"] else [])
       @ ["setsid"; "curl"; "netstat"]
-      @ List.map executables ~f:Tezos_executable.get in
+      @ List.map executables ~f:(Tezos_executable.get ~protocol_kind) in
     List.fold ~init:(return []) commands_to_check ~f:(fun prev_m cmd ->
         prev_m
         >>= fun prev ->
@@ -277,7 +278,7 @@ module Shell_environement = struct
 
   let make ~aliases = {aliases}
 
-  let build state ~clients =
+  let build state ~protocol ~clients =
     let aliases =
       List.concat_mapi clients ~f:(fun i c ->
           let call =
@@ -286,7 +287,10 @@ module Shell_environement = struct
           let cmd exec = String.concat ~sep:" " (exec :: call) in
           let extra =
             let help = "Call the tezos-client used by the sandbox." in
-            match Tezos_executable.get c.Tezos_client.exec with
+            match
+              Tezos_executable.get ~protocol_kind:protocol.Tezos_protocol.kind
+                c.Tezos_client.exec
+            with
             | "tezos-client" -> []
             | f when Caml.Filename.is_relative f ->
                 [(sprintf "c%d" i, cmd (Caml.Sys.getcwd () // f), help)]

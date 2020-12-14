@@ -9,11 +9,12 @@ type t =
   { node: Tezos_node.t
   ; client: Tezos_client.t
   ; exec: Tezos_executable.t
+  ; protocol_kind: Tezos_protocol.Protocol_kind.t
   ; args: args
   ; name_tag: string option }
 
-let of_node ?name_tag node args ~exec ~client =
-  {node; exec; client; args; name_tag}
+let of_node ?name_tag node args ~protocol_kind ~exec ~client =
+  {node; exec; client; args; name_tag; protocol_kind}
 
 let baker_of_node ?name_tag nod ~key = of_node nod ?name_tag (Baker key)
 let endorser_of_node ?name_tag nod ~key = of_node nod ?name_tag (Endorser key)
@@ -27,7 +28,7 @@ let arg_to_string = function
 let to_script state (t : t) =
   let base_dir = Tezos_client.base_dir ~state t.client in
   let call t args =
-    Tezos_executable.call state t.exec
+    Tezos_executable.call state t.exec ~protocol_kind:t.protocol_kind
       ~path:
         ( base_dir
         // sprintf "exec-%s-%d%s" (arg_to_string t.args)
@@ -38,19 +39,19 @@ let to_script state (t : t) =
   | Baker key ->
       let node_path = Tezos_node.data_dir state t.node in
       call t
-        [ "--port"
-        ; sprintf "%d" t.node.Tezos_node.rpc_port
+        [ "--endpoint"
+        ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
         ; "--base-dir"; base_dir; "run"; "with"; "local"; "node"; node_path
         ; key ]
   | Endorser key ->
       call t
-        [ "--port"
-        ; sprintf "%d" t.node.Tezos_node.rpc_port
+        [ "--endpoint"
+        ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
         ; "--base-dir"; base_dir; "run"; key ]
   | Accuser ->
       call t
-        [ "--port"
-        ; sprintf "%d" t.node.Tezos_node.rpc_port
+        [ "--endpoint"
+        ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
         ; "--base-dir"; base_dir; "run"; "--preserved-levels"; "10" ]
 
 let process state (t : t) =

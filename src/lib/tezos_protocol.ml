@@ -64,15 +64,17 @@ module Voting_period = struct
 end
 
 module Protocol_kind = struct
-  type t = [`Athens | `Babylon | `Carthage | `Delphi]
+  type t = [`Athens | `Babylon | `Carthage | `Delphi | `Edo | `Alpha]
 
   let names =
     [ ("Athens", `Athens)
     ; ("Babylon", `Babylon)
     ; ("Carthage", `Carthage)
-    ; ("Delphi", `Delphi) ]
+    ; ("Delphi", `Delphi)
+    ; ("Edo", `Edo)
+    ; ("Alpha", `Alpha) ]
 
-  let default = `Carthage
+  let default = `Delphi
 
   let cmdliner_term ~docs () : t Cmdliner.Term.t =
     let open Cmdliner in
@@ -86,6 +88,22 @@ module Protocol_kind = struct
       (List.find_map_exn names ~f:(function
         | s, x when Poly.equal x n -> Some s
         | _ -> None))
+
+  let canonical_hash : t -> string = function
+    | `Carthage -> "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
+    | `Delphi -> "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo"
+    | `Alpha -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
+    | `Edo -> "PtEdoTezd3RHSC31mpxxo1npxFjoWWcFgQtxapi51Z8TLu6v6Uq"
+    | `Babylon -> "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS"
+    | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
+
+  let daemon_suffix_exn : t -> string = function
+    | `Carthage -> "006-PsCARTHA"
+    | `Delphi -> "007-PsDELPH1"
+    | `Alpha -> "alpha"
+    | `Edo -> "008-PtEdoTez"
+    | `Babylon -> assert false
+    | `Athens -> assert false
 end
 
 type t =
@@ -98,6 +116,8 @@ type t =
   ; name: string (* e.g. alpha *)
   ; hash: string
   ; time_between_blocks: int list
+  ; baking_reward_per_endorsement: int list
+  ; endorsement_reward: int list
   ; blocks_per_roll_snapshot: int
   ; blocks_per_voting_period: int
   ; blocks_per_cycle: int
@@ -119,9 +139,11 @@ let default () =
   ; dictator
     (* ; bootstrap_contracts= [(dictator, 10_000_000, `Sandbox_faucet)] *)
   ; expected_pow= 1
-  ; name= "alpha"
-  ; hash= "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
+  ; name= "flextesa-sandbox"
+  ; hash= Protocol_kind.canonical_hash Protocol_kind.default
   ; time_between_blocks= [2; 3]
+  ; baking_reward_per_endorsement= [1_250_000; 187_500]
+  ; endorsement_reward= [1_250_000; 833_333]
   ; blocks_per_roll_snapshot= 4
   ; blocks_per_voting_period= 16
   ; blocks_per_cycle= 8
@@ -141,9 +163,8 @@ let protocol_parameters_json t : Ezjsonm.t =
     let op_gas_limit, block_gas_limit =
       match subkind with
       | `Babylon -> (800_000, 8_000_000)
-      | `Carthage | `Delphi -> (1_040_000, 10_400_000) in
-    let cost_per_byte =
-      match subkind with `Delphi -> 250 | `Babylon | `Carthage -> 1_000 in
+      | `Carthage -> (1_040_000, 10_400_000)
+      | `Delphi | `Edo | `Alpha -> (1_040_000, 10_400_000) in
     let open Ezjsonm in
     let list_of_zs = list (fun i -> string (Int.to_string i)) in
     [ ("blocks_per_commitment", int 4)
@@ -158,17 +179,22 @@ let protocol_parameters_json t : Ezjsonm.t =
     ; ("endorsement_security_deposit", string (Int.to_string 64_000_000))
     ; ( match subkind with
       | `Babylon -> ("block_reward", string (Int.to_string 16_000_000))
-      | `Carthage | `Delphi ->
-          ("baking_reward_per_endorsement", list_of_zs [1_250_000; 187_500]) )
+      | `Carthage | `Delphi | `Edo | `Alpha ->
+          ( "baking_reward_per_endorsement"
+          , list_of_zs t.baking_reward_per_endorsement ) )
     ; ( "endorsement_reward"
       , match subkind with
         | `Babylon -> string (Int.to_string 2_000_000)
-        | `Carthage | `Delphi -> list_of_zs [1_250_000; 833_333] )
+        | `Carthage | `Delphi | `Edo | `Alpha ->
+            list_of_zs t.endorsement_reward )
     ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
-    ; ("cost_per_byte", string (Int.to_string cost_per_byte))
+    ; ( "cost_per_byte"
+      , match subkind with
+        | `Babylon | `Carthage -> string (Int.to_string 1_000)
+        | `Delphi | `Edo | `Alpha -> string (Int.to_string 250) )
     ; ("test_chain_duration", string (Int.to_string 1_966_080))
-    ; ("quorum_min", int 20_00)
-    ; ("quorum_max", int 70_00)
+    ; ("quorum_min", int 3_000)
+    ; ("quorum_max", int 7_000)
     ; ("min_proposal_quorum", int 500)
     ; ("initial_endorsers", int 1)
     ; ("delay_per_missing_endorsement", string (Int.to_string 1)) ] in
@@ -189,7 +215,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       dict
         ( match t.kind with
-        | (`Babylon | `Carthage | `Delphi) as sk ->
+        | (`Babylon | `Carthage | `Delphi | `Edo | `Alpha) as sk ->
             common @ extra_post_babylon_stuff sk
         | `Athens -> common )
 
@@ -239,7 +265,7 @@ let cli_term state =
   pure
     (fun bootstrap_accounts
          (`Blocks_per_voting_period blocks_per_voting_period)
-         (`Protocol_hash hash)
+         (`Protocol_hash hash_opt)
          (`Time_between_blocks time_between_blocks)
          (`Blocks_per_cycle blocks_per_cycle)
          (`Preserved_cycles preserved_cycles)
@@ -248,6 +274,10 @@ let cli_term state =
          kind
          ->
       let id = "default-and-command-line" in
+      let hash =
+        match hash_opt with
+        | None -> Protocol_kind.canonical_hash kind
+        | Some s -> s in
       { def with
         id
       ; kind
@@ -316,9 +346,11 @@ let cli_term state =
   $ Arg.(
       pure (fun x -> `Protocol_hash x)
       $ value
-          (opt string def.hash
+          (opt (some string) None
              (info ["protocol-hash"] ~docs
-                ~doc:"Set the (initial) protocol hash.")))
+                ~doc:
+                  "Set the (initial) protocol hash (the default is to derive \
+                   it from the protocol kind).")))
   $ Arg.(
       pure (fun x -> `Time_between_blocks x)
       $ value
@@ -455,3 +487,6 @@ module Pretty_print = struct
       voting_pos ;
     pf ppf "@,* Baker: `%s`" baker
 end
+
+(*  LocalWords:  cannonical
+ *)

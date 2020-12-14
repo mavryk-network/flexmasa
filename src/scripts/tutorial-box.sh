@@ -1,6 +1,6 @@
 #! /bin/sh
 
-default_protocol=Carthage
+default_protocol=Delphi
 
 all_commands="
 * usage | help | --help | -h: Display this help message."
@@ -9,7 +9,7 @@ usage () {
 This script provides a Flextesa “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
 wallet software like \`tezos-client\`. This one uses the $default_protocol
-protocol (hash: $protocol_hash).
+protocol.
 
 usage: $0 <command>
 
@@ -17,20 +17,6 @@ where <command> may be:
 $all_commands
 EOF
 }
-
-case "$default_protocol" in
-    "Carthage" )
-        daemon_suffix=006-PsCARTHA
-        protocol_hash=PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb
-        ;;
-    "Delphi")
-        daemon_suffix=007-PsDELPH1
-        protocol_hash=PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo
-        ;;
-    * )
-        echo "Cannot understand protocol kind: '$default_protocol'"
-        usage ;;
-esac
 
 time_bb=${block_time:-5}
 
@@ -50,11 +36,7 @@ start () {
              --no-daemons-for=alice \
              --no-daemons-for=bob \
              --until-level 200_000_000 \
-             --tezos-baker "tezos-baker-$daemon_suffix" \
-             --tezos-endor "tezos-endorser-$daemon_suffix" \
-             --tezos-accus "tezos-accuser-$daemon_suffix" \
-             --protocol-kind "$default_protocol" \
-             --protocol-hash "$protocol_hash"
+             --protocol-kind "$default_protocol"
 }
 
 all_commands="$all_commands

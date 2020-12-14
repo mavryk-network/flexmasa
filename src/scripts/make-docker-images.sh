@@ -72,7 +72,7 @@ alpine_setup () {
 RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories"
 RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories"
 RUN $sudo apk update
-RUN $sudo apk add $tezos_depexts curl net-tools rlwrap@testing libffi-dev
+RUN $sudo apk add $tezos_depexts curl net-tools rlwrap@testing libffi-dev cargo autoconf
 EOF
 }
 
@@ -96,8 +96,8 @@ $vendor/src/bin_signer/main_signer.exe:tezos-signer
 $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
-$(daemons 006-PsCARTHA)
 $(daemons 007-PsDELPH1)
+$(daemons 008-PtEdoTez)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
@@ -127,6 +127,7 @@ ADD --chown=opam:opam . ./
 RUN make vendors
 RUN opam switch 4.09
 RUN opam switch --switch 4.09 import src/tezos-master.opam-switch
+RUN opam exec --switch 4.09 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
 EOF
 #RUN opam config exec -- bash -c 'opam install \$(find local-vendor -name "*.opam" -print)'
 }
@@ -151,13 +152,14 @@ EOF
     alpine_setup ""
     copy_interesting_binaries >> Dockerfile
     cat >> Dockerfile <<EOF
+COPY --from=0 /home/opam/.opam/4.09/share/zcash-params /usr/share/zcash-params
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/tutorial-box.sh /usr/bin/carthagebox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/delphibox
-RUN sed -i s/default_protocol=Carthage/default_protocol=Delphi/ /usr/bin/delphibox
-RUN chmod a+rx /usr/bin/carthagebox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/edobox
+RUN sed -i s/default_protocol=Delphi/default_protocol=Edo/ /usr/bin/edobox
 RUN chmod a+rx /usr/bin/delphibox
+RUN chmod a+rx /usr/bin/edobox
 EOF
 }
 

@@ -28,10 +28,18 @@ module Genesis_block_hash = struct
          * Seed: "tutobox-21176358"
            → block: "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
            → chain-id: "NetXMFJWfpUBox7"
+      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box8
+     Flextesa.vanity-chain-id:  Looking for "Box8"
+     Flextesa.vanity-chain-id:
+       Results:
+         * Seed: "tutobox-615179"
+           → block: "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
+           → chain-id: "NetXnuwTfg9Box8"
     *)
     function
     | `Carthage -> "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
     | `Delphi -> "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
+    | `Edo | `Alpha -> "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
   module Choice = struct
@@ -187,6 +195,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~protocol_kind:protocol.Tezos_protocol.kind genesis_block_choice
   >>= fun genesis_block_hash ->
   Helpers.System_dependencies.precheck state `Or_fail
+    ~protocol_kind:protocol.kind
     ~executables:
       ( [node_exec; client_exec]
       @ ( if state#test_baking then [baker_exec; endorser_exec; accuser_exec]
@@ -216,7 +225,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   let network_id =
     match chain_id_json with `String s -> s | _ -> assert false in
   Asynchronous_result.map_option generate_kiln_config ~f:(fun kiln_config ->
-      Kiln.Configuration_directory.generate state kiln_config
+      Kiln.Configuration_directory.generate state kiln_config ~protocol
         ~peers:(List.map nodes ~f:(fun {Tezos_node.p2p_port; _} -> p2p_port))
         ~sandbox_json:(Tezos_protocol.sandbox_path state protocol)
         ~nodes:
@@ -253,9 +262,9 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                , Option.value_map hard_fork ~default:[]
                    ~f:(Hard_fork.keyed_daemons ~client ~node ~key)
                  @ [ Tezos_daemon.baker_of_node ~exec:baker_exec ~client node
-                       ~key
+                       ~key ~protocol_kind:protocol.kind
                    ; Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
-                       node ~key ] )) in
+                       ~protocol_kind:protocol.kind node ~key ] )) in
   List_sequential.iter keys_and_daemons ~f:(fun (_, _, kc, _) ->
       Tezos_client.Keyed.initialize state kc >>= fun _ -> return ())
   >>= fun () ->
@@ -268,7 +277,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     let accusers =
       List.map nodes ~f:(fun node ->
           let client = Tezos_client.of_node node ~exec:client_exec in
-          Tezos_daemon.accuser_of_node ~exec:accuser_exec ~client node) in
+          Tezos_daemon.accuser_of_node ~exec:accuser_exec
+            ~protocol_kind:protocol.kind ~client node) in
     List_sequential.iter accusers ~f:(fun acc ->
         Running_processes.start state (Tezos_daemon.process state acc)
         >>= fun {process= _; lwt= _} -> return ())
@@ -319,7 +329,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   let clients = List.map keys_and_daemons ~f:(fun (_, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in
-    let env = build state ~clients in
+    let env = build state ~protocol ~clients in
     write state env ~path >>= fun () -> return (help_command state env ~path))
   >>= fun shell_env_help ->
   let keyed_clients = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in

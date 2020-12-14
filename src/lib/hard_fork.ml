@@ -37,6 +37,11 @@ let node_network_config t =
           ; ("replacement_protocol", string t.protocol_hash) ] ] )
 
 let keyed_daemons t ~client ~key ~node =
+  let protocol_kind =
+    (* We assume that we are not going to need the protocol kind and that
+       the binaries have been provided in the CLI. *)
+    Tezos_protocol.Protocol_kind.default in
   [ Tezos_daemon.baker_of_node ~name_tag:t.name ~exec:t.baker ~client node ~key
+      ~protocol_kind
   ; Tezos_daemon.endorser_of_node ~name_tag:t.name ~exec:t.endorser ~client
-      node ~key ]
+      ~protocol_kind node ~key ]

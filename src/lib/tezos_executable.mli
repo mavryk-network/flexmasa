@@ -1,5 +1,5 @@
 (** This module wraps the type ['kind t] around the notion of
-    tezos-excutable: a path to a binary with tezos-specific properties. *)
+    tezos-executable: a path to a binary with tezos-specific properties. *)
 
 (** Helper functions to construct exec-style command lines for
     ["tezos-*"] applications. *)
@@ -35,19 +35,13 @@ val make :
   -> t
 (** Create a ["tezos-node"] executable. *)
 
-val kind_string : kind -> string
-(** Convert a [kind] to a [string]. *)
-
-val default_binary : t -> string
-(** Get the path/name of the default binary for a given kind, e.g.,
-    ["tezos-admin-client"]. *)
-
-val get : t -> string
+val get : ?protocol_kind:Tezos_protocol.Protocol_kind.t -> t -> string
 (** The path to the executable. *)
 
 val call :
      < env_config: Environment_configuration.t ; .. >
   -> t
+  -> ?protocol_kind:Tezos_protocol.Protocol_kind.t
   -> path:string
   -> string list
   -> unit Genspio.EDSL.t
