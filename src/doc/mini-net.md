@@ -115,7 +115,7 @@ Injected block BLehBRAoyFAB
 ```
 
 When running “manual” sandboxes the option `--timestamp-delay` is also useful
-(e.g. `--timestamp-delay=3600`), it allows the user to bake faster than the
+(e.g. `--timestamp-delay=-3600`), it allows the user to bake faster than the
 expected time between blocks.
 
 ### Running Another Protocol And History Modes
