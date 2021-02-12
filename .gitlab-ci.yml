@@ -6,7 +6,7 @@ stages:
   - deploy
 
 variables:
-  setup_image: "registry.gitlab.com/tezos/flextesa:436c026b-setup"
+  setup_image: "registry.gitlab.com/tezos/flextesa:437611ab-setup"
   # ### Setup of setup_image:
   # * since we cannot set variables depending on branches in Gitlab CI
   #   AND we don't want to build the `..-setup` image for every push
