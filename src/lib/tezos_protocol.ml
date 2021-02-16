@@ -93,7 +93,7 @@ module Protocol_kind = struct
     | `Carthage -> "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
     | `Delphi -> "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo"
     | `Alpha -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
-    | `Edo -> "PtEdoTezd3RHSC31mpxxo1npxFjoWWcFgQtxapi51Z8TLu6v6Uq"
+    | `Edo -> "PtEdo2ZkT9oKpimTah6x2embF25oss54njMuPzkJTEi5RqfdZFA"
     | `Babylon -> "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS"
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
@@ -101,7 +101,7 @@ module Protocol_kind = struct
     | `Carthage -> "006-PsCARTHA"
     | `Delphi -> "007-PsDELPH1"
     | `Alpha -> "alpha"
-    | `Edo -> "008-PtEdoTez"
+    | `Edo -> "008-PtEdo2Zk"
     | `Babylon -> assert false
     | `Athens -> assert false
 end

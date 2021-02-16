@@ -72,7 +72,7 @@ alpine_setup () {
 RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories"
 RUN $sudo sh -c "echo '@testing http://nl.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories"
 RUN $sudo apk update
-RUN $sudo apk add $tezos_depexts curl net-tools rlwrap@testing libffi-dev cargo autoconf
+RUN $sudo apk add $tezos_depexts curl net-tools rlwrap@testing libffi-dev autoconf
 EOF
 }
 
@@ -97,7 +97,7 @@ $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
 $(daemons 007-PsDELPH1)
-$(daemons 008-PtEdoTez)
+$(daemons 008-PtEdo2Zk)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
@@ -116,6 +116,8 @@ FROM ocaml/opam2:alpine
 WORKDIR /home/opam/opam-repository
 RUN git pull
 WORKDIR /
+RUN sh -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh  -s -- -y"
+ENV PATH=$PATH:/home/opam/.cargo/bin
 RUN opam update
 EOF
     alpine_setup "sudo"
@@ -126,6 +128,8 @@ WORKDIR /build
 ADD --chown=opam:opam . ./
 RUN make vendors
 RUN opam switch 4.09
+RUN rustup toolchain install 1.44.0
+RUN rustup override set 1.44.0
 RUN opam switch --switch 4.09 import src/tezos-master.opam-switch
 RUN opam exec --switch 4.09 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
 EOF
