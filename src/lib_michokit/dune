@@ -4,6 +4,6 @@
  (flags (:standard -safe-string))
  (libraries
     flextesa
-    tezos-protocol-007-PsDELPH1
-    tezos-client-007-PsDELPH1
+    tezos-protocol-008-PtEdo2Zk
+    tezos-client-008-PtEdo2Zk
     ))
