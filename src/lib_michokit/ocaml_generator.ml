@@ -15,8 +15,8 @@ let dbg fmt =
 let pp_field_annot ppf (Field_annot fa) = Fmt.pf ppf "(FA: %s)" fa
 let pp_type_annot ppf (`Type_annot fa) = Fmt.pf ppf "(TA: %s)" fa
 let rec analyze_type ty =
-  let open Tezos_raw_protocol_007_PsDELPH1.Script_ir_translator in
-  let open Tezos_raw_protocol_007_PsDELPH1.Script_typed_ir in
+  let open Tezos_raw_protocol_008_PtEdo2Zk.Script_ir_translator in
+  let open Tezos_raw_protocol_008_PtEdo2Zk.Script_typed_ir in
   match ty with
   | Ex_ty (Union_t ((l, lann), (r, rann), type_annot, _has_big_map)) ->
       dbg "(union (%a | %a) %a)"
@@ -32,8 +32,8 @@ let rec analyze_type ty =
  *)
 
 module Simpler_michelson_type = struct
-  (* open Tezos_raw_protocol_007_PsDELPH1.Script_ir_translator *)
-  open Tezos_raw_protocol_007_PsDELPH1.Script_typed_ir
+  (* open Tezos_raw_protocol_008_PtEdo2Zk.Script_ir_translator *)
+  open Tezos_raw_protocol_008_PtEdo2Zk.Script_typed_ir
 
   module Tree = struct
     type 'a t = Leaf of 'a | Node of 'a t * 'a t
@@ -83,6 +83,13 @@ module Simpler_michelson_type = struct
     | Operation
     | Contract of t
     | Option of t
+    | Sapling_transaction
+    | Sapling_state
+    | Never
+    | Bls12_381_g1
+    | Bls12_381_g2
+    | Bls12_381_fr
+    | Ticket of t
 
   and field = {tag: string option; content: t}
 
@@ -126,30 +133,21 @@ module Simpler_michelson_type = struct
     | Operation -> string ppf "Operation"
     | Contract t -> pf ppf "Contract(%a)" pp t
     | Option t -> pf ppf "Option(%a)" pp t
+    | Sapling_transaction -> string ppf "Sapling_transaction"
+    | Sapling_state -> string ppf "Sapling_state"
+    | Never -> string ppf "Never"
+    | Bls12_381_g1 -> string ppf "Bls12_381_g1"
+    | Bls12_381_g2 -> string ppf "Bls12_381_g2"
+    | Bls12_381_fr -> string ppf "Bls12_381_fr"
+    | Ticket c -> pf ppf "Ticket(%a)" pp c
 
   let rec of_type : type a. a ty -> t =
    fun ty ->
     match ty with
-    | Union_t ((l, lann), (r, rann), type_annot) ->
+    | Union_t ((l, lann), (r, rann), tao) ->
         let left = of_type l in
         let right = of_type r in
-        let explore v ann =
-          match (v, ann) with
-          | content, Some (Field_annot fa) ->
-              (Tree.leaf {tag= Some fa; content}, [])
-          | Sum {variants; type_annotations}, None ->
-              (variants, type_annotations)
-          | content, None -> (Tree.leaf {tag= None; content}, []) in
-        let vl, tal = explore left lann in
-        let rl, tar = explore right rann in
-        let variants, type_annotations =
-          ( Tree.node vl rl
-          , tal
-            @ ( match type_annot with
-              | Some (Type_annot ta) -> [ta]
-              | None -> [] )
-            @ tar ) in
-        Sum {variants; type_annotations}
+        flatten_union left lann right rann tao
     | Pair_t ((l, lann, lfann), (r, rann, rfann), tao) ->
         let left = of_type l in
         let right = of_type r in
@@ -198,11 +196,20 @@ module Simpler_michelson_type = struct
         Option (of_type t)
     | Operation_t _ -> Operation
     | Chain_id_t _ -> Chain_id
+    | Sapling_transaction_t (_, _) -> Sapling_transaction
+    | Sapling_state_t (_, _) -> Sapling_state
+    | Never_t _ -> Never
+    | Bls12_381_g1_t _ -> Bls12_381_g1
+    | Bls12_381_g2_t _ -> Bls12_381_g2
+    | Bls12_381_fr_t _ -> Bls12_381_fr
+    | Ticket_t (c, _) -> Ticket (of_comparable c)
 
-  and of_comparable : type a b. (a, b) comparable_struct -> t =
+  and of_comparable : type a. a comparable_ty -> t =
    fun cty ->
     match cty with
     | Int_key tao -> of_type (Int_t tao)
+    | Unit_key tao -> of_type (Unit_t tao)
+    | Never_key tao -> of_type (Never_t tao)
     | Nat_key tao -> of_type (Nat_t tao)
     | String_key tao -> of_type (String_t tao)
     | Bytes_key tao -> of_type (Bytes_t tao)
@@ -211,6 +218,16 @@ module Simpler_michelson_type = struct
     | Key_hash_key tao -> of_type (Key_hash_t tao)
     | Timestamp_key tao -> of_type (Timestamp_t tao)
     | Address_key tao -> of_type (Address_t tao)
+    | Signature_key tao -> of_type (Signature_t tao)
+    | Key_key tao -> of_type (Key_t tao)
+    | Chain_id_key tao -> of_type (Chain_id_t tao)
+    | Option_key (ckey, _) ->
+        let k = of_comparable ckey in
+        Option k
+    | Union_key ((l, lann), (r, rann), tao) ->
+        let left = of_comparable l in
+        let right = of_comparable r in
+        flatten_union left lann right rann tao
     | Pair_key ((l, lann), (r, rann), tao) ->
         let left = of_comparable l in
         let right = of_comparable r in
@@ -231,6 +248,22 @@ module Simpler_michelson_type = struct
         @ (match type_annot with Some (Type_annot ta) -> [ta] | None -> [])
         @ tar ) in
     Record {fields; type_annotations}
+
+  and flatten_union left lann right rann type_annot =
+    let explore v ann =
+      match (v, ann) with
+      | content, Some (Field_annot fa) ->
+          (Tree.leaf {tag= Some fa; content}, [])
+      | Sum {variants; type_annotations}, None -> (variants, type_annotations)
+      | content, None -> (Tree.leaf {tag= None; content}, []) in
+    let vl, tal = explore left lann in
+    let rl, tar = explore right rann in
+    let variants, type_annotations =
+      ( Tree.node vl rl
+      , tal
+        @ (match type_annot with Some (Type_annot ta) -> [ta] | None -> [])
+        @ tar ) in
+    Sum {variants; type_annotations}
 end
 
 module Ocaml = struct
@@ -875,7 +908,11 @@ module Ocaml = struct
       | Lambda (_, _) ->
           make_variant_implementation "M_lambda"
             [ variant_1_arg "Concrete_raw_string" "string"
-                "Printf.sprintf \"%s\"" ] in
+                "Printf.sprintf \"%s\"" ]
+      | Sapling_transaction | Sapling_state | Never | Bls12_381_g1
+       |Bls12_381_g2 | Bls12_381_fr | Ticket _ ->
+          (* TODO *)
+          assert false in
     let _, s = go ~name simple in
     concat
       [ comment intro_blob
@@ -910,7 +947,7 @@ let make_module ~options expr =
     (* Dbg.f (fun f -> f "Found the type: %a" Dbg.pp_any the_type) ; *)
     let first_comment =
       Fmt.str "Generated code for\n%a\n\n"
-        Tezos_client_007_PsDELPH1.Michelson_v1_printer.print_expr_unwrapped
+        Tezos_client_008_PtEdo2Zk.Michelson_v1_printer.print_expr_unwrapped
         (strip_locations back_to_node) in
     (* Dbg.f (fun f -> f "Built the type: %a" Dbg.pp_any ty) ; *)
     return
