@@ -74,7 +74,7 @@ module Protocol_kind = struct
     ; ("Edo", `Edo)
     ; ("Alpha", `Alpha) ]
 
-  let default = `Delphi
+  let default = `Edo
 
   let cmdliner_term ~docs () : t Cmdliner.Term.t =
     let open Cmdliner in
