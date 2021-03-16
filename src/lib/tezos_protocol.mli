@@ -33,13 +33,21 @@ module Account : sig
 end
 
 module Voting_period : sig
-  type t = [`Proposal | `Testing_vote | `Testing | `Promotion_vote]
+  type t =
+    [ `Proposal
+    | `Testing_vote
+    | `Testing
+    | `Exploration
+    | `Cooldown
+    | `Promotion_vote
+    | `Promotion ]
 
   val to_string : t -> string
 end
 
 module Protocol_kind : sig
-  type t = [`Athens | `Babylon | `Carthage | `Delphi | `Edo | `Alpha]
+  type t =
+    [`Athens | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Alpha]
 
   val default : t
   val names : (string * t) list
