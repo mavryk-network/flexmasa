@@ -41,7 +41,7 @@ mkdir -p "$output_path/api"
 
 opam config exec -- dune build @src/lib/doc
 
-opam config exec -- opam install --yes odig omd
+opam config exec -- opam install --yes odig omd.1.3.1
 
 cp -r _build/default/_doc/_html/* "$output_path/"
 

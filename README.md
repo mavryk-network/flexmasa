@@ -29,8 +29,9 @@ line application (see `./flextesa --help`) and the tests (in `src/test`).
 
 One can easily create an opam-switch which should just work with the above:
 
-    opam switch import --switch <name> src/tezos-master.opam-switch
-    opam exec --switch <name> -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
+    export OPAM_SWITCH="flextesa-switch"
+    opam switch import src/tezos-master.opam-switch
+    opam exec -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
 
 (where `<name>` is preferably a fresh name).
 

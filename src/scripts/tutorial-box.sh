@@ -1,6 +1,6 @@
 #! /bin/sh
 
-default_protocol=Delphi
+default_protocol=Edo
 
 all_commands="
 * usage | help | --help | -h: Display this help message."
