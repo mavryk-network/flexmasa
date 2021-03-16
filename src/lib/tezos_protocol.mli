@@ -55,6 +55,7 @@ module Protocol_kind : sig
   val pp : t Fmt.t
   val canonical_hash : t -> string
   val daemon_suffix_exn : t -> string
+  val wants_contract_manager : t -> bool
 end
 
 type t =

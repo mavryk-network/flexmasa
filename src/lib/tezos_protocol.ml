@@ -118,6 +118,10 @@ module Protocol_kind = struct
     | `Edo -> "008-PtEdo2Zk"
     | `Babylon -> assert false
     | `Athens -> assert false
+
+  let wants_contract_manager : t -> bool = function
+    | `Athens -> true
+    | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Alpha -> false
 end
 
 type t =

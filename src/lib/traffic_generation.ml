@@ -40,9 +40,9 @@ module Michelson = struct
     let origination =
       let opt = Option.value_map ~default:[] in
       ["--wait"; "none"; "originate"; "contract"; name]
-      @ ( match protocol_kind with
-        | `Athens -> ["for"; from]
-        | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Alpha -> [] )
+      @ ( if Tezos_protocol.Protocol_kind.wants_contract_manager protocol_kind
+        then ["for"; from]
+        else [] )
       @ [ "transferring"; amount; "from"; from; "running"; tmp; "--init"
         ; init_storage; "--force"; "--burn-cap"; "300000000000"
         ; (* ; "--fee-cap" ; "20000000000000" *) "--gas-limit"
