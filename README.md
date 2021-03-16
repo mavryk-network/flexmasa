@@ -51,38 +51,7 @@ export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/b
 With Docker
 -----------
 
-Let's use this version:
-
-```
-export flextesa_image=registry.gitlab.com/tezos/flextesa:image-tutobox-run
-```
-
-in the container `flextesarl` is `flextesa` + `rlwrap` (while bypassing a docker
-problem):
-
-```
-docker run -it --rm "$flextesa_image" flextesarl mini-net --size 2
-```
-
-that's it the sandbox with 2 nodes starts and drops you in the interactive
-prompt: type `help` (or `h`) to list available commands, `al` to check the
-current level, `m` to see the metadata of the head block, etc.
-
-The docker image also contains scripts wrapping flextesa for silent, protocol
-specific sandboxes: `babylonbox` and `carthagebox`, see for instance:
-
-    docker run --rm --name my-sandbox --detach -p 20000:20000 -e block_time=4 \
-           registry.gitlab.com/tezos/flextesa:image-tutobox-run \
-           carthagebox start
-
-One can then manipulate them with `tezos-client`:
-
-    ./tezos-client -P 20000  rpc get /chains/main/blocks/head/context/constants
-
-or simply shut them down:
-
-    docker kill my-sandbox
-
+See <https://assets.tqtezos.com/docs/setup/2-sandbox/>
 
 More Documentation
 ------------------
