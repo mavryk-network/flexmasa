@@ -625,10 +625,11 @@ module Jqo = struct
     let xs = match_in_array match_key match_val target_key json_arr in
     match xs with
     | [] ->
-        ksprintf failwith
+        Fmt.failwith
           "Jqo.match_in_array_first - empty result list for match_key:%s, \
-           match_val:%s, target_key:%s"
+           match_val:%s, target_key:%s (%s)"
           match_key match_val target_key
+          (Ezjsonm.value_to_string json_arr)
     | x :: _ -> x
 
   let get_string = Ezjsonm.get_string
