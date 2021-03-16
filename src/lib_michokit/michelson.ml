@@ -214,7 +214,7 @@ module Typed_ir = struct
              make_shell ~level:0l ~predecessor ~timestamp
                ~fitness:(Tz_protocol.Fitness_repr.from_int64 0L)
                ~operations_hash))
-          Tezos_client_008_PtEdo2Zk.Mockup.default_mockup_parameters)
+          Tezos_client_008_PtEdo2Zk.Mockup.Protocol_parameters.default_value)
     >>= fun context ->
     of_tz_error_monad pp_protocol_error (fun () ->
         Tezos_raw_protocol_008_PtEdo2Zk.Alpha_context.prepare context ~level:1l
