@@ -55,7 +55,6 @@ installed: [
   "conf-pkg-config.2"
   "conf-rust.0.1"
   "conf-which.1"
-  "coq-of-ocaml.2.4.0"
   "cppo.1.6.7"
   "cpuid.0.1.2"
   "crowbar.0.2"
