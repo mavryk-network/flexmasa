@@ -96,8 +96,8 @@ $vendor/src/bin_signer/main_signer.exe:tezos-signer
 $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
-$(daemons 007-PsDELPH1)
 $(daemons 008-PtEdo2Zk)
+$(daemons 009-PsFLoren)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
@@ -159,11 +159,11 @@ EOF
 COPY --from=0 /home/opam/.opam/4.09/share/zcash-params /usr/share/zcash-params
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/tutorial-box.sh /usr/bin/delphibox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/edobox
-RUN sed -i s/default_protocol=Delphi/default_protocol=Edo/ /usr/bin/edobox
-RUN chmod a+rx /usr/bin/delphibox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/flobox
+RUN sed -i s/default_protocol=Edo/default_protocol=Florence/ /usr/bin/flobox
 RUN chmod a+rx /usr/bin/edobox
+RUN chmod a+rx /usr/bin/flobox
 EOF
 }
 
