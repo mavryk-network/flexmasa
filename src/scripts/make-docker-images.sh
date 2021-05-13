@@ -127,11 +127,11 @@ RUN sudo chown -R opam:opam /build
 WORKDIR /build
 ADD --chown=opam:opam . ./
 RUN make vendors
-RUN opam switch 4.09
+RUN opam switch 4.10
 RUN rustup toolchain install 1.44.0
 RUN rustup override set 1.44.0
-RUN opam switch --switch 4.09 import src/tezos-master.opam-switch
-RUN opam exec --switch 4.09 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
+RUN opam switch --switch 4.10 import src/tezos-master.opam-switch
+RUN opam exec --switch 4.10 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
 EOF
 #RUN opam config exec -- bash -c 'opam install \$(find local-vendor -name "*.opam" -print)'
 }
@@ -156,7 +156,7 @@ EOF
     alpine_setup ""
     copy_interesting_binaries >> Dockerfile
     cat >> Dockerfile <<EOF
-COPY --from=0 /home/opam/.opam/4.09/share/zcash-params /usr/share/zcash-params
+COPY --from=0 /home/opam/.opam/4.10/share/zcash-params /usr/share/zcash-params
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 ADD ./src/scripts/tutorial-box.sh /usr/bin/edobox
