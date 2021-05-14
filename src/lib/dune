@@ -16,4 +16,5 @@
     tezos-stdlib-unix
     tezos-crypto
     tezos-base
+    tezos-hacl-glue-unix
  ))
