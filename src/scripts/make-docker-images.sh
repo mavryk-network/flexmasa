@@ -156,7 +156,7 @@ EOF
     alpine_setup ""
     copy_interesting_binaries >> Dockerfile
     cat >> Dockerfile <<EOF
-COPY --from=0 /home/opam/.opam/4.10/share/zcash-params /usr/share/zcash-params
+RUN sh -c 'curl https://raw.githubusercontent.com/zcash/zcash/master/zcutil/fetch-params.sh | sh'
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 ADD ./src/scripts/tutorial-box.sh /usr/bin/edobox
