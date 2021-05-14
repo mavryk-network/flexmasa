@@ -17,6 +17,7 @@ depends: [
   "cohttp-lwt-unix"
   "tezos-base"
   "tezos-hacl-glue-unix"
+  "bls12-381-unix"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

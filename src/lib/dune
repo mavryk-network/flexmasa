@@ -17,4 +17,5 @@
     tezos-crypto
     tezos-base
     tezos-hacl-glue-unix
+    bls12-381-unix
  ))
