@@ -65,7 +65,7 @@ cd $tmppath
 # and opam depext -ln hidapi zarith lwt afl
 # and also this: https://www.bakejar.com/2018/08/30/tezos-compilation-on-alpine.html
 # because hidapi is not in the default
-tezos_depexts="gmp-dev hidapi-dev@testing m4 perl pkgconfig libev-dev"
+tezos_depexts="gmp-dev hidapi-dev@testing m4 perl pkgconfig libev-dev zlib-dev"
 alpine_setup () {
     local sudo="$1"
     cat >> Dockerfile <<EOF
