@@ -52,30 +52,19 @@ module Account = struct
 end
 
 module Voting_period = struct
-  type t =
-    [ `Proposal
-    | `Testing_vote
-    | `Testing
-    | `Exploration (* Replaces Testing_vote after 008 *)
-    | `Cooldown (* Replaces Testing after 008 *)
-    | `Promotion_vote
-    | `Promotion (* Replaces Promotion_vote after 008 *) ]
-
-  let to_string (p : t) =
-    (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)
-    match p with
-    | `Promotion -> "promotion"
-    | `Promotion_vote -> "promotion_vote"
-    | `Exploration -> "exploration"
-    | `Testing_vote -> "testing_vote"
-    | `Proposal -> "proposal"
-    | `Testing -> "testing"
-    | `Cooldown -> "cooldown"
+  type t = [`Proposal | `Exploration | `Cooldown | `Promotion | `Adoption]
 end
 
 module Protocol_kind = struct
   type t =
-    [`Athens | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Alpha]
+    [ `Athens
+    | `Babylon
+    | `Carthage
+    | `Delphi
+    | `Edo
+    | `Florence
+    | `Granada
+    | `Alpha ]
 
   let names =
     [ ("Athens", `Athens)
@@ -84,9 +73,19 @@ module Protocol_kind = struct
     ; ("Delphi", `Delphi)
     ; ("Edo", `Edo)
     ; ("Florence", `Florence)
+    ; ("Granada", `Granada)
     ; ("Alpha", `Alpha) ]
 
-  let default = `Edo
+  let ( < ) k1 k2 =
+    let rec aux = function
+      | [] -> assert false
+      | (_, k) :: rest ->
+          if Poly.equal k k2 then false
+          else if Poly.equal k k1 then true
+          else aux rest in
+    aux names
+
+  let default = `Alpha
 
   let cmdliner_term ~docs () : t Cmdliner.Term.t =
     let open Cmdliner in
@@ -102,6 +101,7 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
+    | `Granada -> "PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV"
     | `Florence -> "PsFLorenaUUuikDWvMDr6fGBRG8kt3e3D3fHoXK1j1BFRxeSH4i"
     | `Carthage -> "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
     | `Delphi -> "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo"
@@ -111,6 +111,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Granada -> "010-PtGRANAD"
     | `Florence -> "009-PsFLoren"
     | `Carthage -> "006-PsCARTHA"
     | `Delphi -> "007-PsDELPH1"
@@ -121,7 +122,8 @@ module Protocol_kind = struct
 
   let wants_contract_manager : t -> bool = function
     | `Athens -> true
-    | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Alpha -> false
+    | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada | `Alpha ->
+        false
 end
 
 type t =
@@ -134,6 +136,7 @@ type t =
   ; name: string (* e.g. alpha *)
   ; hash: string
   ; time_between_blocks: int list
+  ; minimal_block_delay: int
   ; baking_reward_per_endorsement: int list
   ; endorsement_reward: int list
   ; blocks_per_roll_snapshot: int
@@ -160,8 +163,9 @@ let default () =
   ; name= "alpha"
   ; hash= "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
   ; time_between_blocks= [2; 3]
-  ; baking_reward_per_endorsement= [1_250_000; 187_500]
-  ; endorsement_reward= [1_250_000; 833_333]
+  ; minimal_block_delay= 2
+  ; baking_reward_per_endorsement= [78_125; 11_719]
+  ; endorsement_reward= [78_125; 52_083]
   ; blocks_per_roll_snapshot= 4
   ; blocks_per_voting_period= 16
   ; blocks_per_cycle= 8
@@ -178,44 +182,62 @@ let protocol_parameters_json t : Ezjsonm.t =
     (* `src/proto_005_PsBabyM1/lib_protocol/parameters_repr.ml`
        `src/proto_006_PsCARTHA/lib_parameters/default_parameters.ml`
        `src/proto_007_PsDELPH1/lib_parameters/default_parameters.ml` *)
+    let alpha_specific_parameters =
+      match subkind with
+      | `Granada | `Alpha ->
+          [ ( "minimal_block_delay"
+            , string (Int.to_string t.minimal_block_delay) )
+          ; ("liquidity_baking_subsidy", string "2500000")
+          ; ("liquidity_baking_sunset_level", int 525600)
+          ; ("liquidity_baking_escape_ema_threshold", int 1000000) ]
+      | _ -> [] in
+    let legacy_parameters =
+      match subkind with
+      | `Babylon | `Carthage | `Delphi | `Edo ->
+          [("test_chain_duration", string (Int.to_string 1_966_080))]
+      | `Florence | `Granada | `Alpha -> [] in
     let op_gas_limit, block_gas_limit =
       match subkind with
       | `Babylon -> (800_000, 8_000_000)
-      | `Carthage -> (1_040_000, 10_400_000)
-      | `Delphi | `Edo | `Florence | `Alpha -> (1_040_000, 10_400_000) in
+      | `Carthage | `Delphi | `Edo | `Florence -> (1_040_000, 10_400_000)
+      | `Granada | `Alpha -> (1_040_000, 5_200_000) in
     let open Ezjsonm in
     let list_of_zs = list (fun i -> string (Int.to_string i)) in
-    [ ("blocks_per_commitment", int 4)
-    ; ("endorsers_per_block", int 32)
-    ; ("hard_gas_limit_per_operation", string (Int.to_string op_gas_limit))
-    ; ("hard_gas_limit_per_block", string (Int.to_string block_gas_limit))
-    ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
-    ; ("michelson_maximum_type_size", int 1_000)
-    ; ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
-    ; ("origination_size", int 257)
-    ; ("block_security_deposit", string (Int.to_string 512_000_000))
-    ; ("endorsement_security_deposit", string (Int.to_string 64_000_000))
-    ; ( match subkind with
-      | `Babylon -> ("block_reward", string (Int.to_string 16_000_000))
-      | `Carthage | `Delphi | `Edo | `Florence | `Alpha ->
-          ( "baking_reward_per_endorsement"
-          , list_of_zs t.baking_reward_per_endorsement ) )
-    ; ( "endorsement_reward"
-      , match subkind with
-        | `Babylon -> string (Int.to_string 2_000_000)
-        | `Carthage | `Delphi | `Edo | `Florence | `Alpha ->
-            list_of_zs t.endorsement_reward )
-    ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
-    ; ( "cost_per_byte"
-      , match subkind with
-        | `Babylon | `Carthage -> string (Int.to_string 1_000)
-        | `Delphi | `Edo | `Florence | `Alpha -> string (Int.to_string 250) )
-    ; ("test_chain_duration", string (Int.to_string 1_966_080))
-    ; ("quorum_min", int 3_000)
-    ; ("quorum_max", int 7_000)
-    ; ("min_proposal_quorum", int 500)
-    ; ("initial_endorsers", int 1)
-    ; ("delay_per_missing_endorsement", string (Int.to_string 1)) ] in
+    alpha_specific_parameters @ legacy_parameters
+    @ [ ("blocks_per_commitment", int 4)
+      ; ("endorsers_per_block", int 256)
+      ; ("hard_gas_limit_per_operation", string (Int.to_string op_gas_limit))
+      ; ("hard_gas_limit_per_block", string (Int.to_string block_gas_limit))
+      ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
+      ; ("michelson_maximum_type_size", int 1_000)
+      ; ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
+      ; ("origination_size", int 257)
+      ; ("block_security_deposit", string (Int.to_string 640_000_000))
+      ; ("endorsement_security_deposit", string (Int.to_string 250_000))
+      ; ( match subkind with
+        | `Babylon -> ("block_reward", string (Int.to_string 16_000_000))
+        | `Carthage | `Delphi | `Edo | `Florence ->
+            ("baking_reward_per_endorsement", list_of_zs [1_250_000; 187_500])
+        | `Granada | `Alpha ->
+            ( "baking_reward_per_endorsement"
+            , list_of_zs t.baking_reward_per_endorsement ) )
+      ; ( "endorsement_reward"
+        , match subkind with
+          | `Babylon -> string (Int.to_string 2_000_000)
+          | `Carthage | `Delphi | `Edo | `Florence ->
+              list_of_zs [1_250_000; 833_333]
+          | `Granada | `Alpha -> list_of_zs t.endorsement_reward )
+      ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
+      ; ( "cost_per_byte"
+        , match subkind with
+          | `Babylon | `Carthage -> string (Int.to_string 1_000)
+          | `Delphi | `Edo | `Florence | `Granada | `Alpha ->
+              string (Int.to_string 250) )
+      ; ("quorum_min", int 3_000)
+      ; ("quorum_max", int 7_000)
+      ; ("min_proposal_quorum", int 500)
+      ; ("initial_endorsers", int 1)
+      ; ("delay_per_missing_endorsement", string (Int.to_string 1)) ] in
   let common =
     [ ( "bootstrap_accounts"
       , list make_account (t.bootstrap_accounts @ [(t.dictator, 10_000_000L)])
@@ -233,9 +255,24 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       dict
         ( match t.kind with
-        | (`Babylon | `Carthage | `Delphi | `Edo | `Florence | `Alpha) as sk ->
+        | ( `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada
+          | `Alpha ) as sk ->
             common @ extra_post_babylon_stuff sk
         | `Athens -> common )
+
+let voting_period_to_string t (p : Voting_period.t) =
+  (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)
+  match p with
+  | `Promotion ->
+      if Protocol_kind.(t.kind < `Florence) then "promotion_vote"
+      else "promotion"
+  | `Exploration ->
+      if Protocol_kind.(t.kind < `Florence) then "testing_vote"
+      else "exploration"
+  | `Proposal -> "proposal"
+  | `Cooldown ->
+      if Protocol_kind.(t.kind < `Florence) then "testing" else "cooldown"
+  | `Adoption -> "adoption"
 
 let sandbox {dictator; _} =
   let pk = Account.pubkey dictator in
@@ -283,8 +320,9 @@ let cli_term state =
   pure
     (fun bootstrap_accounts
          (`Blocks_per_voting_period blocks_per_voting_period)
-         (`Protocol_hash hash_opt)
+         (`Protocol_hash hash)
          (`Time_between_blocks time_between_blocks)
+         (`Minimal_block_delay minimal_block_delay)
          (`Blocks_per_cycle blocks_per_cycle)
          (`Preserved_cycles preserved_cycles)
          (`Timestamp_delay timestamp_delay)
@@ -292,10 +330,6 @@ let cli_term state =
          kind
          ->
       let id = "default-and-command-line" in
-      let hash =
-        match hash_opt with
-        | None -> Protocol_kind.canonical_hash kind
-        | Some s -> s in
       { def with
         id
       ; kind
@@ -304,6 +338,7 @@ let cli_term state =
       ; hash
       ; bootstrap_accounts
       ; time_between_blocks
+      ; minimal_block_delay
       ; preserved_cycles
       ; timestamp_delay
       ; blocks_per_voting_period })
@@ -364,11 +399,9 @@ let cli_term state =
   $ Arg.(
       pure (fun x -> `Protocol_hash x)
       $ value
-          (opt (some string) None
+          (opt string def.hash
              (info ["protocol-hash"] ~docs
-                ~doc:
-                  "Set the (initial) protocol hash (the default is to derive \
-                   it from the protocol kind).")))
+                ~doc:"Set the (initial) protocol hash.")))
   $ Arg.(
       pure (fun x -> `Time_between_blocks x)
       $ value
@@ -378,6 +411,14 @@ let cli_term state =
                 ~doc:
                   "Set the time between blocks bootstrap-parameter, e.g. \
                    `2,3,2`.")))
+  $ Arg.(
+      pure (fun x -> `Minimal_block_delay x)
+      $ value
+          (opt int def.minimal_block_delay
+             (info ["minimal-block-delay"] ~docv:"SECONDS" ~docs
+                ~doc:
+                  "Set the minimal delay between blocks bootstrap-parameter, \
+                   e.g. `2`.")))
   $ Arg.(
       pure (fun x -> `Blocks_per_cycle x)
       $ value
