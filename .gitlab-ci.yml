@@ -138,7 +138,7 @@ docker:test:
      - mini-net-root
   script:
     - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" cat /usr/bin/flextesarl
-    - docker run -v ${PWD}/mini-net-root:/root "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --keep-root --time-between-blocks 5 --until-level 20 --number-of-boot 2 --size 2 --random-traffic any
+    - docker run -v ${PWD}/mini-net-root:/root "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Florence --keep-root --time-between-blocks 3 --until-level 20 --number-of-boot 2 --size 2 --random-traffic any
 
 docker:tag:
   image: "$dind_image"
