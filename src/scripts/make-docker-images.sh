@@ -96,8 +96,8 @@ $vendor/src/bin_signer/main_signer.exe:tezos-signer
 $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
-$(daemons 008-PtEdo2Zk)
 $(daemons 009-PsFLoren)
+$(daemons 010-PtGRANAD)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
