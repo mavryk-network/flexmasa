@@ -193,9 +193,9 @@ let protocol_parameters_json t : Ezjsonm.t =
       | _ -> [] in
     let legacy_parameters =
       match subkind with
-      | `Babylon | `Carthage | `Delphi | `Edo ->
+      | `Babylon | `Carthage | `Delphi | `Edo | `Florence ->
           [("test_chain_duration", string (Int.to_string 1_966_080))]
-      | `Florence | `Granada | `Alpha -> [] in
+      | `Granada | `Alpha -> [] in
     let op_gas_limit, block_gas_limit =
       match subkind with
       | `Babylon -> (800_000, 8_000_000)
@@ -320,7 +320,7 @@ let cli_term state =
   pure
     (fun bootstrap_accounts
          (`Blocks_per_voting_period blocks_per_voting_period)
-         (`Protocol_hash hash)
+         (`Protocol_hash hash_opt)
          (`Time_between_blocks time_between_blocks)
          (`Minimal_block_delay minimal_block_delay)
          (`Blocks_per_cycle blocks_per_cycle)
@@ -330,6 +330,10 @@ let cli_term state =
          kind
          ->
       let id = "default-and-command-line" in
+      let hash =
+        match hash_opt with
+        | None -> Protocol_kind.canonical_hash kind
+        | Some s -> s in
       { def with
         id
       ; kind
@@ -399,9 +403,11 @@ let cli_term state =
   $ Arg.(
       pure (fun x -> `Protocol_hash x)
       $ value
-          (opt string def.hash
+          (opt (some string) None
              (info ["protocol-hash"] ~docs
-                ~doc:"Set the (initial) protocol hash.")))
+                ~doc:
+                  "Set the (initial) protocol hash (the default is to derive  \
+                   it from the protocol kind).")))
   $ Arg.(
       pure (fun x -> `Time_between_blocks x)
       $ value
