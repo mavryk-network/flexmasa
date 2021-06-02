@@ -159,11 +159,11 @@ EOF
 RUN sh -c 'curl https://raw.githubusercontent.com/zcash/zcash/master/zcutil/fetch-params.sh | sh'
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/tutorial-box.sh /usr/bin/edobox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/flobox
-RUN sed -i s/default_protocol=Edo/default_protocol=Florence/ /usr/bin/flobox
-RUN chmod a+rx /usr/bin/edobox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/granabox
+RUN sed -i s/default_protocol=Florence/default_protocol=Granada/ /usr/bin/granabox
 RUN chmod a+rx /usr/bin/flobox
+RUN chmod a+rx /usr/bin/granabox
 EOF
 }
 
