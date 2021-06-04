@@ -13,7 +13,9 @@ opam pin -n add bls12-381 "$vendor/vendors/ocaml-bls12-381/"
 opam pin -n add uecc "$vendor/vendors/ocaml-uecc/"
 opam pin -n add tezos-crypto "$vendor/src/lib_crypto/"
 opam pin -n add tezos-base "$vendor/src/lib_base/"
-opam install --yes ringo hacl-star tezos-lwt-result-stdlib tezos-error-monad tezos-stdlib tezos-event-logging tezos-stdlib-unix tezos-clic tezos-crypto
+opam pin -n add tezos-hacl-glue "$vendor/src/lib_hacl_glue/virtual/"
+opam pin -n add tezos-hacl-glue-unix "$vendor/src/lib_hacl_glue/unix/"
+opam install --yes ringo hacl-star tezos-lwt-result-stdlib tezos-error-monad tezos-stdlib tezos-event-logging tezos-stdlib-unix tezos-clic tezos-crypto tezos-hacl-glue-unix
 # There is seems to be a dependency missing:
 opam install --yes tezos-base
 

@@ -1,6 +1,6 @@
 #! /bin/sh
 
-default_protocol=Edo
+default_protocol=Florence
 
 all_commands="
 * usage | help | --help | -h: Display this help message."
@@ -31,6 +31,7 @@ start () {
              --set-history-mode N000:archive \
              --number-of-b 1 \
              --time-b "$time_bb" \
+             --minimal-block-delay "$time_bb" \
              --add-bootstrap-account="$alice@2_000_000_000_000" \
              --add-bootstrap-account="$bob@2_000_000_000_000" \
              --no-daemons-for=alice \

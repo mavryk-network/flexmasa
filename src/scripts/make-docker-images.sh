@@ -65,7 +65,7 @@ cd $tmppath
 # and opam depext -ln hidapi zarith lwt afl
 # and also this: https://www.bakejar.com/2018/08/30/tezos-compilation-on-alpine.html
 # because hidapi is not in the default
-tezos_depexts="gmp-dev hidapi-dev@testing m4 perl pkgconfig libev-dev"
+tezos_depexts="gmp-dev hidapi-dev@testing m4 perl pkgconfig libev-dev zlib-dev"
 alpine_setup () {
     local sudo="$1"
     cat >> Dockerfile <<EOF
@@ -96,8 +96,8 @@ $vendor/src/bin_signer/main_signer.exe:tezos-signer
 $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
-$(daemons 008-PtEdo2Zk)
 $(daemons 009-PsFLoren)
+$(daemons 010-PtGRANAD)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
@@ -127,11 +127,11 @@ RUN sudo chown -R opam:opam /build
 WORKDIR /build
 ADD --chown=opam:opam . ./
 RUN make vendors
-RUN opam switch 4.09
+RUN opam switch 4.10
 RUN rustup toolchain install 1.44.0
 RUN rustup override set 1.44.0
-RUN opam switch --switch 4.09 import src/tezos-master.opam-switch
-RUN opam exec --switch 4.09 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
+RUN opam switch --switch 4.10 import src/tezos-master.opam-switch
+RUN opam exec --switch 4.10 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
 EOF
 #RUN opam config exec -- bash -c 'opam install \$(find local-vendor -name "*.opam" -print)'
 }
@@ -156,14 +156,14 @@ EOF
     alpine_setup ""
     copy_interesting_binaries >> Dockerfile
     cat >> Dockerfile <<EOF
-COPY --from=0 /home/opam/.opam/4.09/share/zcash-params /usr/share/zcash-params
+RUN sh -c 'curl https://raw.githubusercontent.com/zcash/zcash/master/zcutil/fetch-params.sh | sh'
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/tutorial-box.sh /usr/bin/edobox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/flobox
-RUN sed -i s/default_protocol=Edo/default_protocol=Florence/ /usr/bin/flobox
-RUN chmod a+rx /usr/bin/edobox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/granabox
+RUN sed -i s/default_protocol=Florence/default_protocol=Granada/ /usr/bin/granabox
 RUN chmod a+rx /usr/bin/flobox
+RUN chmod a+rx /usr/bin/granabox
 EOF
 }
 
