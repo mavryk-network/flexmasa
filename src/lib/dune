@@ -18,4 +18,5 @@
     tezos-base
     tezos-hacl-glue-unix
     bls12-381-unix
+    tezos-rpc-http-server
  ))

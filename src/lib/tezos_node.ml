@@ -11,7 +11,7 @@ type t =
     peers: int list
   ; exec: Tezos_executable.t
   ; protocol: Tezos_protocol.t
-  ; history_mode: [`Full | `Archive | `Rolling] option
+  ; history_mode: [`Archive | `Full of int | `Rolling of int] option
   ; single_process: bool
   ; cors_origin: string option
   ; custom_network: custom_network option }
@@ -70,6 +70,8 @@ module Config_file = struct
 
    *)
 
+  open Tezos_rpc_http_server
+
   let network
       ?(genesis_hash = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf") ()
       =
@@ -87,6 +89,32 @@ module Config_file = struct
 
   let default_network = network ()
 
+  (* These tests try to do more than the default RPC ACL allows over the
+     network. Even though all processes are run on localhost, nodes are set up
+     to listen to RPC requests on address 0.0.0.0 (see below), which matches all
+     possible addresses. Hence the "localhost rule" of RPC ACLs does not apply
+     and the secure ACL is chosen by default. Thus a specific, more permissive
+     policy is needed. For more details see Node Configuration manual page or
+     https://gitlab.com/tezos/tezos/-/merge_requests/3164#note_616452409 *)
+  let acl : string list =
+    match RPC_server.Acl.secure with
+    | Allow_all _ ->
+        raise
+          (Failure
+             "Expected RPC secure ACL in the form of whitelist. Got a \
+              blacklist instead." )
+    | Deny_all {except} ->
+        List.map ~f:RPC_server.Acl.matcher_to_string except
+        @ [ "GET /chains/*/blocks/*/helpers/baking_rights"
+          ; "GET /chains/*/blocks/*/helpers/endorsing_rights"
+          ; "GET /chains/*/blocks/*/helpers/levels_in_current_cycle"
+          ; "POST /chains/*/blocks/*/helpers/forge/operations"
+          ; "POST /chains/*/blocks/*/helpers/preapply/*"
+          ; "POST /chains/*/blocks/*/helpers/scripts/run_operation"
+          ; "POST /chains/*/blocks/*/helpers/scripts/simulate_operation"
+          ; "POST /chains/*/mempool/request_operations"; "POST /injection/block"
+          ; "POST /injection/protocol" ]
+
   let of_node state t =
     let open Ezjsonm in
     let shell =
@@ -98,14 +126,24 @@ module Config_file = struct
                 [ ( "history_mode"
                   , match h with
                     | `Archive -> string "archive"
-                    | `Full -> string "full"
-                    | `Rolling -> string "rolling" ) ] ) ] in
+                    | `Full off ->
+                        dict [("full", dict [("additional_cycles", int off)])]
+                    | `Rolling off ->
+                        dict [("rolling", dict [("additional_cycles", int off)])]
+                  ) ] ) ] in
     let network =
       Option.value_map t.custom_network
         ~default:[("network", `O default_network)]
         ~f:(function `Json j -> [("network", j)]) in
+    let rpc_listen_addr = sprintf "0.0.0.0:%d" t.rpc_port in
     [ ("data-dir", data_dir state t |> string)
-    ; ("rpc", dict [("listen-addrs", strings [sprintf "0.0.0.0:%d" t.rpc_port])])
+    ; ( "rpc"
+      , dict
+          [ ("listen-addrs", strings [rpc_listen_addr])
+          ; ( "acl"
+            , list dict
+                [ [ ("address", string rpc_listen_addr)
+                  ; ("whitelist", strings acl) ] ] ) ] )
     ; ( "p2p"
       , dict
           [ ( "expected-proof-of-work"
@@ -212,7 +250,8 @@ module History_modes = struct
     let open Cmdliner in
     let open Term in
     let history_mode_converter =
-      Arg.enum [("archive", `Archive); ("full", `Full); ("rolling", `Rolling)]
+      Arg.enum
+        [("archive", `Archive); ("full", `Full 5); ("rolling", `Rolling 5)]
     in
     let docs =
       Manpage_builder.section state ~rank:2 ~name:"NODE HISTORY MODES"
