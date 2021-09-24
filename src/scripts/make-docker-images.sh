@@ -113,8 +113,8 @@ copy_interesting_binaries () {
 make_setup_dockerfile () {
     cat > Dockerfile <<EOF
 FROM ocaml/opam:alpine
-WORKDIR /home/opam/opam-repository
-RUN git pull
+# WORKDIR /home/opam/opam-repository
+# RUN git pull
 WORKDIR /
 RUN sh -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh  -s -- -y"
 ENV PATH=$PATH:/home/opam/.cargo/bin
