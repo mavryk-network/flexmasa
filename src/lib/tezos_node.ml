@@ -71,8 +71,8 @@ module Config_file = struct
    *)
 
   let network
-      ?(genesis_hash = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf")
-      () =
+      ?(genesis_hash = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf") ()
+      =
     let open Ezjsonm in
     [ ( "genesis"
       , dict
@@ -80,8 +80,7 @@ module Config_file = struct
           ; ("block", string genesis_hash)
           ; ( "protocol"
             , string "Ps9mPmXaRzmzk35gbAYNCAw6UXdE2qoABTHbN2oEEc1qM7CwT9P" ) ]
-      )
-    ; ("chain_name", string "TEZOS_MAINNET")
+      ); ("chain_name", string "TEZOS_MAINNET")
     ; ("old_chain_name", string "TEZOS_BETANET_2018-06-30T16:07:32Z")
     ; ("incompatible_chain_name", string "INCOMPATIBLE")
     ; ("sandboxed_chain_name", string "SANDBOXED_TEZOS_MAINNET") ]
@@ -106,8 +105,7 @@ module Config_file = struct
         ~default:[("network", `O default_network)]
         ~f:(function `Json j -> [("network", j)]) in
     [ ("data-dir", data_dir state t |> string)
-    ; ( "rpc"
-      , dict [("listen-addrs", strings [sprintf "0.0.0.0:%d" t.rpc_port])] )
+    ; ("rpc", dict [("listen-addrs", strings [sprintf "0.0.0.0:%d" t.rpc_port])])
     ; ( "p2p"
       , dict
           [ ( "expected-proof-of-work"
@@ -115,8 +113,7 @@ module Config_file = struct
           ; ("listen-addr", ksprintf string "0.0.0.0:%d" t.p2p_port)
           ; ( "limits"
             , dict
-                [ ("maintenance-idle-time", int 3)
-                ; ("swap-linger", int 2)
+                [ ("maintenance-idle-time", int 3); ("swap-linger", int 2)
                 ; ("connection-timeout", int 2) ] ) ] )
     ; ("log", dict [("output", string (log_output state t))]) ]
     @ shell @ network
@@ -145,7 +142,7 @@ let run_command state t =
     @ (if t.single_process then flag "singleprocess" else [])
     @ Option.value_map cors_origin
         ~f:(fun s ->
-          flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s)
+          flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s )
         ~default:[]
     @ opt "sandbox" (Tezos_protocol.sandbox_path state t.protocol) )
 
@@ -166,8 +163,7 @@ let start_script state t =
     ; ( "ensure-identity"
       , ensure "node-id"
           ~condition:(file_exists (str (identity_file state t)))
-          ~how:[("gen-id", gen_id)] )
-    ; ("start", run_command state t) ]
+          ~how:[("gen-id", gen_id)] ); ("start", run_command state t) ]
 
 let process state t =
   Running_processes.Process.genspio t.id (start_script state t)
@@ -179,9 +175,7 @@ let connections node_list =
     type node = t
 
     type t =
-      [ `Duplex of node * node
-      | `From_to of node * node
-      | `Missing of node * int ]
+      [`Duplex of node * node | `From_to of node * node | `Missing of node * int]
 
     let compare a b =
       match (a, b) with
@@ -199,7 +193,7 @@ let connections node_list =
               List.find node_list ~f:(fun {p2p_port; _} -> p2p_port = p2p)
             with
             | None -> `Unknown p2p
-            | Some n -> `Peer n) in
+            | Some n -> `Peer n ) in
       List.iter peer_nodes ~f:(fun peer_opt ->
           let conn =
             match peer_opt with
@@ -208,7 +202,7 @@ let connections node_list =
                 if List.mem peer.peers node.p2p_port ~equal:Int.equal then
                   `Duplex (node, peer)
                 else `From_to (node, peer) in
-          res := Connection_set.add conn !res)) ;
+          res := Connection_set.add conn !res ) ) ;
   Connection_set.elements !res
 
 module History_modes = struct
@@ -231,13 +225,13 @@ module History_modes = struct
             (List.map node_list ~f:(fun node ->
                  match
                    List.filter edits ~f:(fun (prefix, _) ->
-                       String.is_prefix node.id ~prefix)
+                       String.is_prefix node.id ~prefix )
                  with
                  | [] -> node
                  | [one] -> (
                    match
                      List.filter node_list ~f:(fun n ->
-                         String.is_prefix n.id ~prefix:(fst one))
+                         String.is_prefix n.id ~prefix:(fst one) )
                    with
                    | [_] -> {node with history_mode= Some (snd one)}
                    | a_bunch_maybe_zero ->
@@ -245,13 +239,13 @@ module History_modes = struct
                          "Prefix %S does not match exactly one node: [%s]"
                          (fst one)
                          (String.concat ~sep:", "
-                            (List.map a_bunch_maybe_zero ~f:id)) )
+                            (List.map a_bunch_maybe_zero ~f:id) ) )
                  | more ->
                      Fmt.kstrf failwith "Prefixes %s match the same node: %s"
                        (String.concat ~sep:", " (List.map more ~f:fst))
-                       node.id))
+                       node.id ) )
         with Failure s ->
-          System_error.fail_fatalf "Failed to compose history-modes: %s" s)
+          System_error.fail_fatalf "Failed to compose history-modes: %s" s )
     $ Arg.(
         value
           (opt_all
@@ -260,5 +254,5 @@ module History_modes = struct
              (info ["set-history-mode"] ~docs ~docv:"NODEPREFIX:MODE"
                 ~doc:
                   "Set the history mode for a given (named) node, e.g. \
-                   `N000:archive`.")))
+                   `N000:archive`." ) ))
 end

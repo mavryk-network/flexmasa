@@ -11,8 +11,7 @@ module Markup_fmt = struct
     let open Fmt in
     box ?indent (fun ppf () -> f ppf) ppf ()
 
-  type in_par =
-    [`Text of string | `Highlight of in_par | `Concat of in_par list]
+  type in_par = [`Text of string | `Highlight of in_par | `Concat of in_par list]
 
   type t =
     [ `Par of in_par
@@ -55,13 +54,13 @@ module Markup_fmt = struct
                     string ppf "`````" ;
                     List.iter sl ~f:(fun l -> cut ppf () ; string ppf l) ;
                     cut ppf () ;
-                    string ppf "`````")
+                    string ppf "`````" )
             | `Itemize l ->
                 list ~sep:cut
                   (fun ppf inpar ->
                     wrapping_box ~indent:2 ppf (fun ppf ->
-                        string ppf "* " ; pp_in_par ppf inpar))
+                        string ppf "* " ; pp_in_par ppf inpar ) )
                   ppf l
-            | `Raw s -> string ppf s)
-          ppf x)
+            | `Raw s -> string ppf s )
+          ppf x )
 end

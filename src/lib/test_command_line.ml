@@ -14,15 +14,12 @@ module Command_making_state = struct
     Environment_configuration.init
       (object
          method manpager = manpager
-      end)
+      end )
       env_config ;
     object
       method application_name = application_name
-
       method command_name = command_name
-
       method env_config = env_config
-
       method manpager = manpager
     end
 end
@@ -68,11 +65,11 @@ module Run_command = struct
               ~f:(fun _ -> `Die 3)
               (Console.say state
                  EF.(
-                   custom (fun ppf -> Attached_result.pp ppf result ~pp_error)))
-            >>= fun () -> die 2)
+                   custom (fun ppf -> Attached_result.pp ppf result ~pp_error)) )
+            >>= fun () -> die 2 )
         >>= fun () ->
         Dbg.e EF.(wf "Run_command.or_hard_fail after bind_on_error") ;
-        return ())
+        return () )
 
   let term ~pp_error () =
     Cmdliner.Term.pure (fun (state, run) -> or_hard_fail state run ~pp_error)
@@ -91,21 +88,13 @@ module Full_default_state = struct
     let state console paths interactivity (`With_baking baking) =
       object
         method paths = paths
-
         method runner = runner
-
         method console = console
-
         method application_name = base_state#application_name
-
         method test_interactivity = interactivity
-
         method test_baking = baking
-
         method pauser = pauser
-
         method operations_log = ops
-
         method env_config = base_state#env_config
       end in
     let open Cmdliner in
@@ -115,8 +104,8 @@ module Full_default_state = struct
       $ Paths.cli_term ~default_root ()
       $ ( if disable_interactivity then pure `None
         else
-          Interactive_test.Interactivity.cli_term
-            ?default:default_interactivity () )
+          Interactive_test.Interactivity.cli_term ?default:default_interactivity
+            () )
       $ Arg.(
           pure (fun x -> `With_baking (not x))
           $ value
@@ -124,7 +113,7 @@ module Full_default_state = struct
                  (info ["no-baking"] ~docs
                     ~doc:
                       "Completely disable baking/endorsing/accusing (you need \
-                       to bake manually to make the chain advance)."))))
+                       to bake manually to make the chain advance)." ) )))
 end
 
 let cli_state ?default_interactivity ?disable_interactivity ~name () =

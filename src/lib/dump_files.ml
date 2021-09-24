@@ -11,7 +11,7 @@ let write state ~name ~path files =
     (Caml.Filename.quote path)
   >>= fun _ ->
   List_sequential.iter files ~f:(fun (p, content) ->
-      System.write_file state (path // p) ~content)
+      System.write_file state (path // p) ~content )
   >>= fun () ->
   (* Dbg.e EF.(wf "Adding %s" name) ; *)
   t.trees <- (name, path, files) :: t.trees ;
@@ -26,4 +26,4 @@ let pp ppf t =
             pf ppf "%s setup at `%s`:" msg path ;
             List.iter files ~f:(fun (p, c) ->
                 cut ppf () ;
-                pf ppf "* `./%s` → `%s`" p c))))
+                pf ppf "* `./%s` → `%s`" p c ) ) ))

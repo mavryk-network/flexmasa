@@ -57,9 +57,7 @@ val get_chain_id :
      ; runner: Running_processes.State.t
      ; .. >
   -> Tezos_client.Keyed.t
-  -> ( string
-     , [> Process_result.Error.t | System_error.t] )
-     Asynchronous_result.t
+  -> (string, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 
 module Multisig : sig
   val deploy_multisig :
@@ -166,10 +164,10 @@ module Commands : sig
     val get :
          t
       -> Sexp.t list
-      -> default:(   unit
-                  -> ( 'a
-                     , ([> `Command_line of string] as 'b) )
-                     Asynchronous_result.t)
+      -> default:
+           (   unit
+            -> ('a, ([> `Command_line of string] as 'b)) Asynchronous_result.t
+           )
       -> f:(Sexp.t list -> 'a)
       -> ('a, 'b) Asynchronous_result.t
 
@@ -204,13 +202,14 @@ module Commands : sig
   val protect_with_keyed_client :
        string
     -> client:Tezos_client.Keyed.t
-    -> f:(   unit
+    -> f:
+         (   unit
           -> ( 'a
              , [< `Command_line of string
                | Process_result.Error.t
                | System_error.t
                | `Waiting_for of string * [< `Time_out] ] )
-             Asynchronous_result.t)
+             Asynchronous_result.t )
     -> ( 'a
        , [> `Command_line of string | Process_result.Error.t] )
        Asynchronous_result.t

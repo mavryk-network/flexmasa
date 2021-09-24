@@ -67,7 +67,7 @@ module Dbg = struct
   let () =
     Option.iter (Caml.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
       | "true" -> on := true
-      | _ -> ())
+      | _ -> () )
 
   let e ef =
     if !on then (
@@ -90,14 +90,12 @@ module Dbg = struct
 end
 
 module More_fmt = struct
-  include Fmt
   (** Little experiment for fun … *)
+  include Fmt
 
   let vertical_box ?indent ppf f = vbox ?indent (fun ppf () -> f ppf) ppf ()
   let wrapping_box ?indent ppf f = box ?indent (fun ppf () -> f ppf) ppf ()
-
-  let wf ppf fmt =
-    Fmt.kstr (fun s -> box (fun ppf () -> text ppf s) ppf ()) fmt
+  let wf ppf fmt = Fmt.kstr (fun s -> box (fun ppf () -> text ppf s) ppf ()) fmt
 
   let markdown_verbatim_list ppf l =
     vertical_box ~indent:0 ppf (fun ppf ->
@@ -105,7 +103,7 @@ module More_fmt = struct
         string ppf (String.make 45 '`') ;
         List.iter l ~f:(fun l -> cut ppf () ; string ppf l) ;
         cut ppf () ;
-        string ppf (String.make 45 '`'))
+        string ppf (String.make 45 '`') )
 
   let tag tag ppf f =
     Caml.Format.(pp_open_stag ppf (String_tag tag)) ;
@@ -146,11 +144,11 @@ module Attached_result = struct
       | Ok o ->
           wrapping_box ~indent:4 ppf (fun ppf ->
               prompt ppf (fun ppf -> pf ppf "OK") ;
-              Option.iter pp_ok ~f:(fun ppo -> pf ppf ":@ %a." ppo o))
+              Option.iter pp_ok ~f:(fun ppo -> pf ppf ":@ %a." ppo o) )
       | Error e ->
           wrapping_box ~indent:4 ppf (fun ppf ->
               shout ppf (fun ppf -> pf ppf "Error") ;
-              Option.iter pp_error ~f:(fun ppe -> pf ppf ":@ %a." ppe e)) in
+              Option.iter pp_error ~f:(fun ppe -> pf ppf ":@ %a." ppe e) ) in
     match attachments with
     | [] -> result_part ppf
     | more ->
@@ -169,17 +167,17 @@ module Attached_result = struct
                         cut ppf () ;
                         wrapping_box ~indent:2 ppf (fun ppf ->
                             list ~sep:sp (fun ppf -> pf ppf "%S;") ppf sl ;
-                            pf ppf "]")
+                            pf ppf "]" )
                     | `Verbatim [] -> pf ppf ": EMPTY"
                     | `Verbatim sl ->
                         pf ppf ":" ;
                         let lines =
                           let sep = String.make 50 '`' in
-                          (sep :: List.drop sl (List.length sl - 20)) @ [sep]
+                          sep :: List.drop sl (List.length sl - 20) @ [sep]
                         in
                         cut ppf () ;
                         vertical_box ~indent:0 ppf (fun ppf ->
-                            list ~sep:cut string ppf lines))))
+                            list ~sep:cut string ppf lines ) ) ) )
 end
 
 (** A wrapper around [('ok, 'a Error.t) result Lwt.t]. *)
@@ -213,9 +211,10 @@ module Asynchronous_result = struct
 
   let bind_on_error :
          ('a, 'b) t
-      -> f:(   result:('c, 'b) Attached_result.t
+      -> f:
+           (   result:('c, 'b) Attached_result.t
             -> 'b
-            -> ('a, 'd) Attached_result.t Lwt.t)
+            -> ('a, 'd) Attached_result.t Lwt.t )
       -> ('a, 'd) t =
    fun o ~f ->
     let open Lwt.Infix in
@@ -244,7 +243,7 @@ module Asynchronous_result = struct
     bind_on_error x ~f:(fun ~result _ ->
         Lwt.return
           Attached_result.
-            {result with attachments= result.attachments @ attachment})
+            {result with attachments= result.attachments @ attachment} )
 
   let bind_all :
          ('ok, 'error) t
@@ -275,9 +274,7 @@ module Asynchronous_result = struct
     let map = `Define_using_bind
   end)
 
-  module Std = struct
-    let ( >>= ) = bind let return = return let fail = fail
-  end
+  module Std = struct let ( >>= ) = bind let return = return let fail = fail end
 
   (* We get all of JaneSt's functions and then overwrite some with our own: *)
   include M
@@ -291,11 +288,11 @@ module Asynchronous_result = struct
   module List_sequential = struct
     let iter l ~f =
       List.fold l ~init:(return ()) ~f:(fun pm x ->
-          pm >>= fun () -> (f x : (_, _) t))
+          pm >>= fun () : (_, _) t -> f x )
 
     let iteri l ~f =
       List.fold l ~init:(return 0) ~f:(fun pm x ->
-          pm >>= fun n -> (f n x : (_, _) t) >>= fun () -> return (n + 1))
+          pm >>= fun n -> (f n x : (_, _) t) >>= fun () -> return (n + 1) )
       >>= fun _ -> return ()
   end
 
@@ -336,14 +333,14 @@ module Asynchronous_result = struct
               | Ok x -> f x elt
               | Error _ ->
                   error := Some prevm ;
-                  Lwt.fail Caml.Not_found)
-            stream (Attached_result.ok init))
+                  Lwt.fail Caml.Not_found )
+            stream (Attached_result.ok init) )
         (fun e ->
           match !error with
           | Some res -> Lwt.return res
           | None ->
               (* `f` threw a forbidden exception! *)
-              Lwt.fail e)
+              Lwt.fail e )
   end
 
   let run_application r =
@@ -391,16 +388,16 @@ module System_error = struct
     match e with
     | `System_error (`Fatal, e) ->
         Fmt.pf fmt "@[<2>Fatal-system-error:@ %a@]"
-          (fun ppf -> function Exception e -> Fmt.exn ppf e
-            | Message e -> Fmt.string ppf e)
+          (fun ppf -> function
+            | Exception e -> Fmt.exn ppf e
+            | Message e -> Fmt.string ppf e )
           e
 end
 
 (** A wrapper around a structural type describing the result of
     external processes. *)
 module Process_result = struct
-  type t =
-    < err: string list ; out: string list ; status: Unix.process_status >
+  type t = < err: string list ; out: string list ; status: Unix.process_status >
 
   let status_to_string s =
     Lwt_unix.(
@@ -417,7 +414,7 @@ module Process_result = struct
     type res = t
     type t = [`Process_error of error]
 
-    let make error = (`Process_error error : [> t])
+    let make error : [> t] = `Process_error error
     let fail ?attach error = Asynchronous_result.fail ?attach (make error)
 
     let wrong_status ?attach result msgf =
@@ -427,7 +424,7 @@ module Process_result = struct
             Option.value attach ~default:[]
             @ [ ("stdout", `Verbatim result#out)
               ; ("stderr", `Verbatim result#err) ] in
-          fail ~attach (Wrong_status {status= result#status; message}))
+          fail ~attach (Wrong_status {status= result#status; message}) )
         msgf
 
     let wrong_behavior ?attach msgf =
@@ -442,7 +439,7 @@ module Process_result = struct
           | Wrong_status {status; message} ->
               text ppf message ;
               pf ppf "; wrong-status: '%s'." (status_to_string status)
-          | Wrong_behavior {message} -> text ppf message)
+          | Wrong_behavior {message} -> text ppf message )
 
     let fail_if_non_zero (res : res) msg =
       if Poly.( <> ) res#status (Unix.WEXITED 0) then
@@ -472,7 +469,7 @@ module Manpage_builder = struct
     let man all_known : Cmdliner.Manpage.block list =
       [`S Section.environment_variables]
       @ List.map all_known ~f:(fun (name, Lines lines) ->
-            `I (name, String.concat ~sep:"\n" lines))
+            `I (name, String.concat ~sep:"\n" lines) )
   end
 
   module State = struct
@@ -525,13 +522,13 @@ module System = struct
     System_error.catch
       (fun () ->
         Lwt_io.with_file ?perm ~mode:Lwt_io.output path (fun out ->
-            Lwt_io.write out content))
+            Lwt_io.write out content ) )
       ()
 
   let read_file (_state : _ Base_state.t) path =
     System_error.catch
       (fun () ->
-        Lwt_io.with_file ~mode:Lwt_io.input path (fun out -> Lwt_io.read out))
+        Lwt_io.with_file ~mode:Lwt_io.input path (fun out -> Lwt_io.read out) )
       ()
 
   let command (_state : _ Base_state.t) s =
@@ -548,7 +545,7 @@ module System = struct
         | Some s -> return (Some s)
         | None -> (
             Fmt.kstr (command state) "which %s > /dev/null 2>&1" attempt
-            >>= function true -> return (Some attempt) | false -> return None ))
+            >>= function true -> return (Some attempt) | false -> return None ) )
 
   let editor state =
     editor_opt state

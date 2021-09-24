@@ -16,7 +16,7 @@ module Commands : sig
         -> ( unit
            , [`Command_line of string | System_error.t | Process_result.Error.t]
            )
-           Asynchronous_result.t)
+           Asynchronous_result.t )
     -> Console.Prompt.item
 
   val du_sh_root :
@@ -200,9 +200,7 @@ module Commands : sig
        ; .. >
     -> Tezos_client.t
     -> string list
-    -> ( unit
-       , [> System_error.t | Process_result.Error.t] )
-       Asynchronous_result.t
+    -> (unit, [> System_error.t | Process_result.Error.t]) Asynchronous_result.t
 
   val generate_traffic_command :
        < application_name: string

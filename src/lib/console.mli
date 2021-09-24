@@ -47,7 +47,7 @@ module Prompt : sig
         -> ( [`Help | `Loop | `Quit]
            , [`Command_line of string | System_error.t | Process_result.Error.t]
            )
-           Asynchronous_result.t)
+           Asynchronous_result.t )
     -> item
   (** [item description command_aliases action] creates a command
       which performs [action]; action gets all the arguments parsed as
@@ -64,7 +64,7 @@ module Prompt : sig
         -> ( unit
            , [`Command_line of string | Process_result.Error.t | System_error.t]
            )
-           Asynchronous_result.t)
+           Asynchronous_result.t )
     -> item
 
   val default_commands : unit -> item list

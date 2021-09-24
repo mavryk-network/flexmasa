@@ -24,9 +24,9 @@ module Command_error = struct
   let failf ?client ?args fmt =
     let attach =
       Option.value_map ~default:[] args ~f:(fun l ->
-          [("arguments", `String_list l)])
+          [("arguments", `String_list l)] )
       @ Option.value_map ~default:[] client ~f:(fun c ->
-            [("client-id", `String_value c.id)]) in
+            [("client-id", `String_value c.id)] ) in
     Process_result.Error.wrong_behavior ~attach fmt
 end
 
@@ -52,5 +52,5 @@ let inject_protocol admin state ~path =
        | _ :: _ :: hash :: _ when Char.equal hash.[0] 'P' -> return hash
        | _ ->
            failf "inject protocol: cannot parse hash of protocol: %s"
-             (String.concat ~sep:", " (List.map ~f:(sprintf "%S") res#out)))
+             (String.concat ~sep:", " (List.map ~f:(sprintf "%S") res#out)) )
   >>= fun hash -> return (res, hash)

@@ -102,7 +102,7 @@ module Simpler_michelson_type = struct
             Tree.iter variants ~f:(fun {tag; content} ->
                 cut ppf () ;
                 wrapping_box ~indent:4 ppf (fun ppf ->
-                    pf ppf "| %a ->@ %a" (option string) tag pp content)))
+                    pf ppf "| %a ->@ %a" (option string) tag pp content ) ) )
     | Record {fields; type_annotations} ->
         vertical_box ~indent:4 ppf (fun ppf ->
             pf ppf "Record[%a]:{"
@@ -110,8 +110,8 @@ module Simpler_michelson_type = struct
               type_annotations ;
             Tree.iter fields ~f:(fun {tag; content} ->
                 cut ppf () ;
-                pf ppf "@[%a ->@ %a;@]" (option string) tag pp content) ;
-            pf ppf "@,}")
+                pf ppf "@[%a ->@ %a;@]" (option string) tag pp content ) ;
+            pf ppf "@,}" )
     | List t -> pf ppf "List (%a)" pp t
     | Set t -> pf ppf "Set(%a)" pp t
     | Map (f, t) -> pf ppf "Map(%a->%a)" pp f pp t
@@ -153,23 +153,23 @@ module Simpler_michelson_type = struct
         let right = of_type r in
         List.iter [lfann; rfann] ~f:(fun an ->
             Option.iter an ~f:(fun (Var_annot va) ->
-                dbg "forgetting var-annot: %S" va)) ;
+                dbg "forgetting var-annot: %S" va ) ) ;
         flatten_record left lann right rann tao
     | List_t (t, type_annot) ->
         Option.iter type_annot ~f:(fun (Type_annot ta) ->
-            dbg "forggetting type annot: %S" ta) ;
+            dbg "forggetting type annot: %S" ta ) ;
         List (of_type t)
     | Set_t (t, type_annot) ->
         Option.iter type_annot ~f:(fun (Type_annot ta) ->
-            dbg "forggetting type annot: %S" ta) ;
+            dbg "forggetting type annot: %S" ta ) ;
         Set (of_comparable t)
     | Map_t (f, t, type_annot) ->
         Option.iter type_annot ~f:(fun (Type_annot ta) ->
-            dbg "forggetting type annot: %S" ta) ;
+            dbg "forggetting type annot: %S" ta ) ;
         Map (of_comparable f, of_type t)
     | Big_map_t (f, t, type_annot) ->
         Option.iter type_annot ~f:(fun (Type_annot ta) ->
-            dbg "forggetting type annot: %S" ta) ;
+            dbg "forggetting type annot: %S" ta ) ;
         Big_map (of_comparable f, of_type t)
     | Unit_t _ -> Unit
     | Int_t _ -> Int
@@ -188,11 +188,11 @@ module Simpler_michelson_type = struct
         let ft = of_type f in
         let tt = of_type t in
         Option.iter type_annot ~f:(fun (Type_annot ta) ->
-            dbg "forggetting type annot: %S" ta) ;
+            dbg "forggetting type annot: %S" ta ) ;
         Lambda (ft, tt)
     | Option_t (t, type_annot) ->
         Option.iter type_annot ~f:(fun (Type_annot ta) ->
-            dbg "forggetting type annot: %S" ta) ;
+            dbg "forggetting type annot: %S" ta ) ;
         Option (of_type t)
     | Operation_t _ -> Operation
     | Chain_id_t _ -> Chain_id
@@ -236,8 +236,7 @@ module Simpler_michelson_type = struct
   and flatten_record left lann right rann type_annot =
     let explore v ann =
       match (v, ann) with
-      | content, Some (Field_annot fa) ->
-          (Tree.leaf {tag= Some fa; content}, [])
+      | content, Some (Field_annot fa) -> (Tree.leaf {tag= Some fa; content}, [])
       | Record {fields; type_annotations}, None -> (fields, type_annotations)
       | content, None -> (Tree.leaf {tag= None; content}, []) in
     let fl, tal = explore left lann in
@@ -252,8 +251,7 @@ module Simpler_michelson_type = struct
   and flatten_union left lann right rann type_annot =
     let explore v ann =
       match (v, ann) with
-      | content, Some (Field_annot fa) ->
-          (Tree.leaf {tag= Some fa; content}, [])
+      | content, Some (Field_annot fa) -> (Tree.leaf {tag= Some fa; content}, [])
       | Sum {variants; type_annotations}, None -> (variants, type_annotations)
       | content, None -> (Tree.leaf {tag= None; content}, []) in
     let vl, tal = explore left lann in
@@ -310,8 +308,7 @@ module Ocaml = struct
       match t with
       | T_in_module s -> Fmt.str "%s.%s" s f
       | Apply_1 (tf, arg) ->
-          Fmt.str "(%s %s)" (make_function_call tf f)
-            (make_function_call arg f)
+          Fmt.str "(%s %s)" (make_function_call tf f) (make_function_call arg f)
       | Apply_2 (tf, (arg1, arg2)) ->
           Fmt.str "(%s %s %s)" (make_function_call tf f)
             (make_function_call arg1 f)
@@ -363,7 +360,7 @@ module Ocaml = struct
             (opt (list ~sep:',' string) defaults
                (info [name]
                   ~doc:
-                    (Fmt.str "Add [@@deriving ..] attributes to %s types." kind))))
+                    (Fmt.str "Add [@@deriving ..] attributes to %s types." kind) ) ))
       in
       pure (fun all records variants -> make all ~records ~variants)
       $ make_opt "deriving-all" ["show"; "eq"] "all"
@@ -379,7 +376,7 @@ module Ocaml = struct
              as d ->
                Fmt.str "ppx_deriving.%s" d
            | "sexp" -> "ppx_sexp_conv"
-           | other -> other)
+           | other -> other )
   end
 
   module Options = struct
@@ -393,7 +390,7 @@ module Ocaml = struct
       let libraries =
         List.map t.integers ~f:(function
           | `Big_int -> "num"
-          | `Zarith -> "zarith")
+          | `Zarith -> "zarith" )
         |> String.concat ~sep:" " in
       Fmt.str "(library (name %s) (preprocess (pps %s)) (libraries %s))" name
         preprocess libraries
@@ -407,12 +404,12 @@ module Ocaml = struct
           value
             (opt
                (list ~sep:','
-                  (enum [("zarith", `Zarith); ("bigint", `Big_int)]))
+                  (enum [("zarith", `Zarith); ("bigint", `Big_int)]) )
                [`Big_int]
                (info ["integer-types"]
                   ~doc:
                     "Chose which kind of integers to use for int|nat literals \
-                     (on top of `int`)")))
+                     (on top of `int`)" ) ))
   end
 
   (** Constructors for use {i only} by {!of_simple_type}. *)
@@ -429,10 +426,9 @@ module Ocaml = struct
           ; Fmt.str "type %s t = %s %s" type_parameter type_def
               (Deriving_option.render options.deriving kind) ]
         @ List.map other_types ~f:(fun s ->
-              Fmt.str "%s%s" s (Deriving_option.render options.deriving `Any))
-        @ [ Option.value_map ~default:"(* no layout here *)" layout
-              ~f:(fun s -> Fmt.str "let layout () : Pairing_layout.t = %s" s)
-          ]
+              Fmt.str "%s%s" s (Deriving_option.render options.deriving `Any) )
+        @ [ Option.value_map ~default:"(* no layout here *)" layout ~f:(fun s ->
+                Fmt.str "let layout () : Pairing_layout.t = %s" s ) ]
         @ List.map functions ~f:Function.render )
 
     let to_concrete (t, f) =
@@ -451,8 +447,7 @@ module Ocaml = struct
       let f ?(more_args = []) ~name patterns =
         Function.make ~name:"of_json"
           ~doc:"Parse “micheline” JSON representation."
-          ( Fmt.str
-              "%sJson_value.t -> (%st, [> Json_value.parse_error ]) result"
+          ( Fmt.str "%sJson_value.t -> (%st, [> Json_value.parse_error ]) result"
               ( List.map more_args ~f:(fun (_, t, _) -> Fmt.str "%s -> " t)
               |> String.concat ~sep:"" )
               ( match more_args with
@@ -498,7 +493,7 @@ module Ocaml = struct
               Fmt.str "%s (Error _ as err)%s -> err"
                 ( List.init (nb - i - 1) ~f:(fun _ -> "_, ")
                 |> String.concat ~sep:"" )
-                (List.init i ~f:(fun _ -> ", _") |> String.concat ~sep:""))
+                (List.init i ~f:(fun _ -> ", _") |> String.concat ~sep:"") )
           |> String.concat ~sep:" | " in
         Fmt.str
           "`A elts ->\n\
@@ -541,14 +536,14 @@ module Ocaml = struct
       let compiled_fields =
         Tree.mapi fields ~f:(fun idx {tag; content} ->
             let name = modname_of_tag idx tag in
-            (String.uncapitalize name, continue ~name content)) in
+            (String.uncapitalize name, continue ~name content) ) in
       let compiled_fields_list = Tree.to_list compiled_fields in
       let type_def =
         type_def
           ( List.sort compiled_fields_list ~compare:(fun (fa, _) (fb, _) ->
-                String.compare fa fb)
+                String.compare fa fb )
           |> List.map ~f:(fun (field_name, (typ, _)) ->
-                 typedef_field field_name (typ : Type.t))
+                 typedef_field field_name (typ : Type.t) )
           |> String.concat ~sep:"  " ) in
       let to_concrete_functions =
         let make_default ~body =
@@ -565,8 +560,7 @@ module Ocaml = struct
                   let rec left_right = function
                     | [] -> "%s"
                     | `L :: more -> Fmt.str "(Left %s)" (left_right more)
-                    | `R :: more -> Fmt.str "(Right %s)" (left_right more)
-                  in
+                    | `R :: more -> Fmt.str "(Right %s)" (left_right more) in
                   Fmt.str "| %s x -> (%s)" (String.capitalize name)
                     ( match List.rev acc with
                     | [] -> call
@@ -611,10 +605,9 @@ module Ocaml = struct
                     let esc_name = Fmt.str "%s_v" name in
                     patts :=
                       Fmt.str "%s -> (%s %s) >>= fun %s -> Ok (%s %s)"
-                        (List.fold acc ~init:esc_name
-                           ~f:(fun prev left_right ->
+                        (List.fold acc ~init:esc_name ~f:(fun prev left_right ->
                              let args = Fmt.str "`A [%s]" prev in
-                             Of_json.pattern_prim left_right ~args))
+                             Of_json.pattern_prim left_right ~args ) )
                         (Type.make_function_call t "of_json")
                         esc_name esc_name (String.capitalize name) esc_name
                       :: !patts
@@ -677,8 +670,8 @@ module Ocaml = struct
               \   StringLabels.sub concrete_elt ~pos:1 ~len:(lgth - 2)\n\
                | _, _ -> concrete_elt\n\
                in\n\
-               \"{ \" ^ StringLabels.concat ~sep:\" ; \" (ListLabels.map ~f \
-               x) ^ \"}\""
+               \"{ \" ^ StringLabels.concat ~sep:\" ; \" (ListLabels.map ~f x) \
+               ^ \"}\""
           | `Option ->
               "(match x with None -> \"None\" | Some v -> \"Some \" ^ f v)"
         in
@@ -695,22 +688,20 @@ module Ocaml = struct
               [ Fmt.str "`O ((\"prim\", `String \"None\") :: _) -> Ok None"
               ; Fmt.str
                   "%s ->\n\
-                   (match f_elt one with Ok o -> Ok (Some o) | Error _ as e \
-                   -> e)"
+                   (match f_elt one with Ok o -> Ok (Some o) | Error _ as e -> \
+                   e)"
                   (Of_json.pattern_prim "Some" ~args:"`A [one]") ] ) in
       let m =
         m ~type_def ~type_parameter:"'a" what ~functions:[to_concrete; of_json]
       in
-      ( Type.call_1 what velt (* Fmt.str "%s %s.t" velt what *)
-      , concat [melt; m] )
+      (Type.call_1 what velt (* Fmt.str "%s %s.t" velt what *), concat [melt; m])
 
     let map_or_big_map ~key_t ~elt_t ~name ~continue what =
       let kname = Fmt.str "%s_key" name in
       let ename = Fmt.str "%s_element" name in
       let vk, mk = continue ~name:kname key_t in
       let ve, me = continue ~name:ename elt_t in
-      let m_name =
-        match what with `Map -> "M_map" | `Big_map -> "M_big_map" in
+      let m_name = match what with `Map -> "M_map" | `Big_map -> "M_big_map" in
       let type_def =
         let list = "('k * 'v) list" in
         match what with
@@ -722,14 +713,13 @@ module Ocaml = struct
         let f =
           let deal_with_list =
             "let f (k, v) = Printf.sprintf \"Elt %s %s\" (fk k) (fv v) in "
-            ^ "\"{ \" ^ StringLabels.concat ~sep:\";\" (ListLabels.map ~f x) \
-               ^ \"}\"" in
+            ^ "\"{ \" ^ StringLabels.concat ~sep:\";\" (ListLabels.map ~f x) ^ \
+               \"}\"" in
           match what with
           | `Map -> pre ^ deal_with_list
           | `Big_map ->
-              Fmt.str
-                "%smatch x with List x -> (%s) | Int i -> string_of_int i" pre
-                deal_with_list in
+              Fmt.str "%smatch x with List x -> (%s) | Int i -> string_of_int i"
+                pre deal_with_list in
         to_concrete (t, f) in
       let of_json =
         let patterns =
@@ -742,7 +732,7 @@ module Ocaml = struct
           | `Big_map ->
               Fmt.str "`O [\"int\", `String i] as j -> %s"
                 (Of_json.try_catch "Int (int_of_string i)" ~name:"big-map-int"
-                   ~json:"j")
+                   ~json:"j" )
               :: common in
         Of_json.f
           ~more_args:
@@ -750,8 +740,8 @@ module Ocaml = struct
             ; ("'value", "(Json_value.t -> ('value, _) result)", "f_value") ]
           ~name patterns in
       let m =
-        m ~type_def ~functions:[to_concrete; of_json]
-          ~type_parameter:"('k, 'v)" m_name in
+        m ~type_def ~functions:[to_concrete; of_json] ~type_parameter:"('k, 'v)"
+          m_name in
       (Type.call_2 m_name vk ve, concat [mk; me; m])
 
     let single ?type_def ~functions s = (Type.t0 s, m ~functions ?type_def s)
@@ -784,7 +774,7 @@ module Ocaml = struct
       let type_def =
         List.map variant ~f:(function
           | V1 {tag; argument; _} -> Fmt.str "%s of %s" tag argument
-          | V0 {tag; _} -> tag)
+          | V0 {tag; _} -> tag )
         |> String.concat ~sep:"\n| " in
       let to_concrete =
         let pattern =
@@ -792,7 +782,7 @@ module Ocaml = struct
           List.map variant ~f:(function
             | V1 {tag= k; to_concrete_string= f; _} ->
                 Fmt.str " %s x -> ((%s) x)" k f
-            | V0 {tag= t; as_concrete_string= s; _} -> Fmt.str "%s -> %s" t s)
+            | V0 {tag= t; as_concrete_string= s; _} -> Fmt.str "%s -> %s" t s )
           |> String.concat ~sep:"\n| " in
         to_concrete ("t -> string", Fmt.str "function %s" pattern) in
       let functions =
@@ -819,7 +809,7 @@ module Ocaml = struct
                 [Fmt.str "`O [ \"string\", `String s] -> Ok (%s s)" tag]
             | V1 {tag; micheline= Some Bytes; _} ->
                 [Fmt.str "`O [ \"bytes\", `String s] -> Ok (%s s)" tag]
-            | V1 {micheline= _; _} -> []) in
+            | V1 {micheline= _; _} -> [] ) in
         [to_concrete; Of_json.f ~name:modname patterns] in
       single modname ~type_def ~functions
 
@@ -842,7 +832,7 @@ module Ocaml = struct
             | `Big_int ->
                 variant_1_arg "Big_int" "Big_int.t" "Big_int.string_of_big_int"
                 (* ~micheline:(Micheline_type.int "Big_int.big_int_of_string") *)
-            | `Zarith -> variant_1_arg "Z" "Z.t" "Z.to_string")
+            | `Zarith -> variant_1_arg "Z" "Z.t" "Z.to_string" )
         (* ~micheline:(Micheline_type.int "Z.of_string") *) in
       make_variant_implementation modname int_implementation_variant
 
@@ -856,9 +846,7 @@ module Ocaml = struct
   end
 
   let of_simple_type ?(options = Options.defaults) ~intro_blob ~name simple =
-    let open Construct (struct
-      let options = options
-    end) in
+    let open Construct (struct let options = options end) in
     let open Simpler_michelson_type in
     let rec go ~name simple =
       let continue = go in
@@ -887,12 +875,12 @@ module Ocaml = struct
       | Record {fields; type_annotations= _} ->
           record_or_variant `Record ~fields ~name
             ~typedef_field:(fun f v ->
-              Fmt.str "%s : %s;" (String.uncapitalize f) (Type.make_type_t v))
+              Fmt.str "%s : %s;" (String.uncapitalize f) (Type.make_type_t v) )
             ~continue ~type_def:(Fmt.str "{ %s }")
       | Sum {variants; type_annotations= _} ->
           record_or_variant `Variant ~fields:variants ~name
             ~typedef_field:(fun f v ->
-              Fmt.str "| %s of %s" (String.capitalize f) (Type.make_type_t v))
+              Fmt.str "| %s of %s" (String.capitalize f) (Type.make_type_t v) )
             ~continue ~type_def:(Fmt.str " %s ")
       | Set elt_t ->
           one_param ~implementation:`List ~name ~continue "M_set" elt_t
@@ -926,7 +914,7 @@ module Ocaml = struct
                     "include Big_int\n\
                      let equal_big_int = eq_big_int\n\
                     \                     let pp_big_int ppf bi =\n\
-                     Format.pp_print_string ppf (string_of_big_int bi)"))
+                     Format.pp_print_string ppf (string_of_big_int bi)" ) )
       ; m "Pairing_layout" ~type_def:"[ `P of t * t | `V ]" ~functions:[]
       ; new_module "Result_extras"
           ["let (>>=) x f = match x with Ok o -> f o | Error _ as e -> e"]
@@ -961,10 +949,10 @@ let make_module ~options expr =
         handle_type "Storage" the_type
         >>= fun found -> find_all (found :: acc) (Seq (loc, more))
     | maybe_a_type ->
-        Asynchronous_result.bind_on_result
-          (handle_type "Toplevel" maybe_a_type) ~f:(function
+        Asynchronous_result.bind_on_result (handle_type "Toplevel" maybe_a_type)
+          ~f:(function
           | Ok o -> return (o :: acc)
-          | Error _ -> return acc) in
+          | Error _ -> return acc ) in
   find_all [] (root expr) >>= fun l -> return (Ocaml.concat l)
 
 module Command = struct
@@ -994,21 +982,21 @@ module Command = struct
     in
     Test_command_line.Run_command.make ~pp_error
       ( pure (fun options input_file output_file output_dune state ->
-            (state, run state ~options ~input_file ~output_file ~output_dune))
+            (state, run state ~options ~input_file ~output_file ~output_dune) )
       $ Ocaml.Options.cmdliner_term ()
       $ Arg.(
           required
             (pos 0 (some string) None
-               (info [] ~docv:"INPUT-PATH" ~doc:"Input file.")))
+               (info [] ~docv:"INPUT-PATH" ~doc:"Input file.") ))
       $ Arg.(
           required
             (pos 1 (some string) None
-               (info [] ~docv:"OUTPUT-PATH" ~doc:"Output file.")))
+               (info [] ~docv:"OUTPUT-PATH" ~doc:"Output file.") ))
       $ Arg.(
           value
             (opt (some string) None
                (info ["output-dune-library"] ~docv:"NAME"
-                  ~doc:"Output a `dune` file at next to the output file.")))
+                  ~doc:"Output a `dune` file at next to the output file." ) ))
       $ Test_command_line.cli_state ~name:"michokit-ocofmi" () )
       (info command_name ~doc:"Generate OCaml code from Michelson.")
 end

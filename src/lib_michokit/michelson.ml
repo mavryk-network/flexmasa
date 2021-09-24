@@ -58,7 +58,7 @@ module Transform = struct
                 List.find replacements ~f:(fun (k, _) -> String.equal ann k)
               with
               | None -> ann
-              | Some (_, v) -> v)
+              | Some (_, v) -> v )
       | `Strip -> []
 
     let cmdliner_term () : t Cmdliner.Term.t =
@@ -74,12 +74,12 @@ module Transform = struct
                   Error
                     (`Msg
                       "Annotations (--*-annotations) options should be \
-                       mutually exclusive."))
+                       mutually exclusive." ) )
         $ Arg.(
             value
               (flag
                  (info ["keep-annotations"]
-                    ~doc:"Keep annotations (the default).")))
+                    ~doc:"Keep annotations (the default)." ) ))
         $ Arg.(
             value
               (flag (info ["strip-annotations"] ~doc:"Remove all annotations.")))
@@ -89,7 +89,7 @@ module Transform = struct
                  (some (list ~sep:',' (pair ~sep:':' string string)))
                  None
                  (info ["replace-annotations"]
-                    ~doc:"Perform replacement on annotations."))) )
+                    ~doc:"Perform replacement on annotations." ) )) )
   end
 
   let expression ?(strip_errors = true) ?(on_annotations = `Keep) expr =
@@ -124,8 +124,7 @@ module Transform = struct
                     , I_PUSH
                     , (* [Prim (l2, T_string, ns, _anns); String (l3, s)] *)
                     _
-                    , _annt ) as anything )
-              ; Prim (l4, I_FAILWITH, nf, _annf) ]
+                    , _annt ) as anything ); Prim (l4, I_FAILWITH, nf, _annf) ]
               when strip_errors ->
                 (* Caml.Format.eprintf "\n\n\nFound failwith: %S\n%!" s ; *)
                 let id = add_failwith_argument (strip_locations anything) in
@@ -135,8 +134,7 @@ module Transform = struct
                     , [ Prim (l1, T_nat, [], [])
                       ; Int (l1, Z.of_int id) (* Prim (l1, D_Unit, [], []) *)
                         (* ; Int (l1, Z.zero) *) ]
-                    , [] )
-                ; Prim (l4, I_FAILWITH, nf, []) ]
+                    , [] ); Prim (l4, I_FAILWITH, nf, []) ]
             | nl -> List.map ~f:transform nl in
           Seq (loc, new_node_list) in
     let res_node = transform (root expr) in
@@ -181,8 +179,7 @@ module File_io = struct
         System.write_file state path
           ~content:(Ezjsonm.value_to_string ~minify:false json)
     | other ->
-        System_error.fail_fatalf "Don't know what to do with extension %S"
-          other
+        System_error.fail_fatalf "Don't know what to do with extension %S" other
 end
 
 module Typed_ir = struct
@@ -213,8 +210,8 @@ module Typed_ir = struct
            Tezos_client_008_PtEdo2Zk.Mockup.Forge.(
              make_shell ~level:0l ~predecessor ~timestamp
                ~fitness:(Tz_protocol.Fitness_repr.from_int64 0L)
-               ~operations_hash))
-          Tezos_client_008_PtEdo2Zk.Mockup.Protocol_parameters.default_value)
+               ~operations_hash) )
+          Tezos_client_008_PtEdo2Zk.Mockup.Protocol_parameters.default_value )
     >>= fun context ->
     of_tz_error_monad pp_protocol_error (fun () ->
         Tezos_raw_protocol_008_PtEdo2Zk.Alpha_context.prepare context ~level:1l
@@ -225,7 +222,7 @@ module Typed_ir = struct
             Tezos_protocol_environment_008_PtEdo2Zk.Environment.Time.(
               of_seconds 2L)
           ~fitness:
-            (* Tezos_raw_protocol_008_PtEdo2Zk.Alpha_context.Fitness. *) [])
+            (* Tezos_raw_protocol_008_PtEdo2Zk.Alpha_context.Fitness. *) [] )
 
   let parse_type node =
     make_fresh_context ()
@@ -240,8 +237,7 @@ module Typed_ir = struct
         System_error.fail_fatalf "Error parsing the type: %a\n%!"
           Fmt.(
             list ~sep:sp
-              Tezos_protocol_environment_008_PtEdo2Zk.Environment.Error_monad
-              .pp)
+              Tezos_protocol_environment_008_PtEdo2Zk.Environment.Error_monad.pp)
           el
 
   let unparse_type = function
@@ -249,6 +245,6 @@ module Typed_ir = struct
         make_fresh_context ()
         >>= fun context ->
         of_tz_error_monad pp_protocol_error (fun () ->
-            Lwt.return (Tz_protocol.Script_ir_translator.unparse_ty context ty))
+            Lwt.return (Tz_protocol.Script_ir_translator.unparse_ty context ty) )
         >>= fun (node, _context) -> return node
 end

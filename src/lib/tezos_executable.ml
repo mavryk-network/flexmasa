@@ -63,8 +63,8 @@ let call state t ?protocol_kind ~path args =
             [ setenv
                 ~var:(str "TEZOS_EVENTS_CONFIG")
                 (ksprintf str "unix-files://%s?level-at-least=%s"
-                   (path // "events") level_at_least) ]
-        | _other -> assert false)
+                   (path // "events") level_at_least ) ]
+        | _other -> assert false )
     @ [ exec ["mkdir"; "-p"; path]
       ; write_stdout
           ~path:(path // "last-cmd" |> str)
@@ -83,4 +83,4 @@ let cli_term ?(extra_doc = "") state kind prefix =
           [sprintf "%s-%s-binary" prefix (kind_string kind)]
           ~doc:
             (sprintf "Binary for the `tezos-%s` to use%s." (kind_string kind)
-               extra_doc))
+               extra_doc ))

@@ -14,14 +14,14 @@ let cmdliner_term base_state ~docs ?(prefix = "hard-fork") () =
   let extra_doc = Fmt.str " for the hard-fork (requires --%s)" prefix in
   pure (fun hard_fork baker endorser accuser ->
       Option.map hard_fork ~f:(fun (level, protocol_hash) ->
-          {level; name= prefix; protocol_hash; baker; endorser; accuser}))
+          {level; name= prefix; protocol_hash; baker; endorser; accuser} ) )
   $ Arg.(
       value
         (opt
            (some (pair ~sep:':' int string))
            None
            (info [prefix] ~doc:"Make a hard-fork happen" ~docs
-              ~docv:"LEVEL:PROTOCOL-HASH")))
+              ~docv:"LEVEL:PROTOCOL-HASH" ) ))
   $ Tezos_executable.cli_term ~extra_doc base_state `Baker prefix
   $ Tezos_executable.cli_term ~extra_doc base_state `Endorser prefix
   $ Tezos_executable.cli_term ~extra_doc base_state `Accuser prefix

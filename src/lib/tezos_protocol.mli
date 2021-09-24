@@ -56,6 +56,7 @@ module Protocol_kind : sig
   val wants_contract_manager : t -> bool
 end
 
+(** [t] wraps bootstrap parameters for sandboxed protocols. *)
 type t =
   { id: string
   ; kind: Protocol_kind.t
@@ -76,7 +77,6 @@ type t =
   ; proof_of_work_threshold: int
   ; timestamp_delay: int option
   ; custom_protocol_parameters: Ezjsonm.t option }
-(** [t] wraps bootstrap parameters for sandboxed protocols. *)
 
 val compare : t -> t -> int
 val default : unit -> t

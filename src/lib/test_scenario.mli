@@ -54,12 +54,13 @@ module Topology : sig
   val build :
        ?external_peer_ports:int list
     -> ?base_port:int
-    -> make_node:(   string
-                  -> expected_connections:int
-                  -> rpc_port:int
-                  -> p2p_port:int
-                  -> int list
-                  -> node)
+    -> make_node:
+         (   string
+          -> expected_connections:int
+          -> rpc_port:int
+          -> p2p_port:int
+          -> int list
+          -> node )
     -> 'a network
     -> 'a
 end
@@ -106,17 +107,17 @@ val network_with_protocol :
   -> ?base_port:int
   -> ?size:int
   -> ?protocol:Tezos_protocol.t
-  -> ?nodes_history_mode_edits:([> `Empty_protocol_list
-                                | System_error.t
-                                | Process_result.Error.t
-                                | Process_result.Error.t
-                                | `Too_many_protocols of Tezos_protocol.t list
-                                | `Too_many_timestamp_delays of
-                                  Tezos_protocol.t list
-                                | `Waiting_for of string * [`Time_out] ]
-                                as
-                                'errors)
-                               Tezos_node.History_modes.edit
+  -> ?nodes_history_mode_edits:
+       ([> `Empty_protocol_list
+        | System_error.t
+        | Process_result.Error.t
+        | Process_result.Error.t
+        | `Too_many_protocols of Tezos_protocol.t list
+        | `Too_many_timestamp_delays of Tezos_protocol.t list
+        | `Waiting_for of string * [`Time_out] ]
+        as
+        'errors )
+       Tezos_node.History_modes.edit
   -> < env_config: Environment_configuration.t
      ; paths: Paths.t
      ; console: Console.t
@@ -139,8 +140,7 @@ module Queries : sig
        ; runner: Running_processes.State.t
        ; .. >
     -> nodes:Tezos_node.t list
-    -> ( (string * [> `Failed | `Level of int | `Null | `Unknown of string])
-         list
+    -> ( (string * [> `Failed | `Level of int | `Null | `Unknown of string]) list
        , [> System_error.t] )
        Asynchronous_result.t
   (** Get the current chain level for all the nodes, returns {i

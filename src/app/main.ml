@@ -7,22 +7,22 @@ module Small_utilities = struct
     ( ( pure (fun n ->
             let open Flextesa.Tezos_protocol.Account in
             let account = of_name n in
-            Caml.Printf.printf "%s,%s,%s,%s\n%!" (name account)
-              (pubkey account) (pubkey_hash account) (private_key account))
+            Caml.Printf.printf "%s,%s,%s,%s\n%!" (name account) (pubkey account)
+              (pubkey_hash account) (private_key account) )
       $ Arg.(
           required
             (pos 0 (some string) None
-               (info [] ~docv:"NAME" ~doc:"String to generate the data from.")))
+               (info [] ~docv:"NAME" ~doc:"String to generate the data from.") ))
       )
     , info "key-of-name"
         ~doc:"Make an unencrypted key-pair deterministically from a string."
         ~man:
           [ `P
               "`flextesa key-of-name hello-world` generates a key-pair of the \
-               `unencrypted:..` kind and outputs it as a 4 values separated \
-               by commas: `name,pub-key,pub-key-hash,private-uri` (hence \
-               compatible with the `--add-bootstrap-account` option of some \
-               of the test scenarios)." ] )
+               `unencrypted:..` kind and outputs it as a 4 values separated by \
+               commas: `name,pub-key,pub-key-hash,private-uri` (hence \
+               compatible with the `--add-bootstrap-account` option of some of \
+               the test scenarios)." ] )
 
   let netstat_ports ~pp_error () =
     let open Cmdliner in
@@ -45,12 +45,12 @@ module Small_utilities = struct
                           box
                             (list
                                ~sep:(fun ppf () -> string ppf "," ; sp ppf ())
-                               (fun ppf p -> fmt "%d" ppf p))
-                            ppf to_display)) ))
+                               (fun ppf p -> fmt "%d" ppf p) )
+                            ppf to_display )) ) )
       $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"netstat-ports" () )
       (info "netstat-listening-ports"
-         ~doc:"Like `netstat -nut | awk something-something` but glorified.")
+         ~doc:"Like `netstat -nut | awk something-something` but glorified." )
 
   let vanity_chain_id ~pp_error () =
     let open Cmdliner in
@@ -96,7 +96,7 @@ module Small_utilities = struct
                           Fmt.pr "%s" bh ;
                           sep () ;
                           Fmt.pr "%s" ci ;
-                          Fmt.pr "\n%!") ) ;
+                          Fmt.pr "\n%!" ) ) ;
                   sayf
                     More_fmt.(
                       fun ppf () ->
@@ -111,7 +111,7 @@ module Small_utilities = struct
                                         pf ppf
                                           "* Seed: %S@ → block: %S@ → \
                                            chain-id: %S"
-                                          seed bh ci)))) ))
+                                          seed bh ci ) ) )) ) )
       $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"vanity-chain-id" ()
       $ Arg.(value (flag (info ["first"] ~doc:"Stop at the first result.")))
@@ -123,11 +123,12 @@ module Small_utilities = struct
                None
                (info ["machine-readable"]
                   ~docv:(List.map cases ~f:fst |> String.concat ~sep:"|")
-                  ~doc:"Print the results on stdout in a parsing friendly way.")))
+                  ~doc:"Print the results on stdout in a parsing friendly way." )
+            ))
       $ Arg.(
           value
             (opt string "flextesa"
-               (info ["seed"] ~doc:"The constant seed to use.")))
+               (info ["seed"] ~doc:"The constant seed to use.") ))
       $ Arg.(
           value
             (opt int 100_000 (info ["attempts"] ~doc:"The number of attempts.")))
@@ -135,7 +136,7 @@ module Small_utilities = struct
       (info "vanity-chain-id"
          ~doc:
            "Find a block hash to set as Genesis which makes-up a given \
-            chain-id suffix.")
+            chain-id suffix." )
 
   let all ~pp_error () =
     [ key_of_name_command (); netstat_ports ~pp_error ()
@@ -152,4 +153,4 @@ let () =
        ( Small_utilities.all ~pp_error ()
        @ [ Michokit.Transform_command.make ()
          ; Michokit.Ocaml_generator.Command.make ()
-         ; Flextesa.Interactive_mini_network.cmd () ] ))
+         ; Flextesa.Interactive_mini_network.cmd () ] ) )

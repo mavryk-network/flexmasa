@@ -9,13 +9,13 @@ module Test_fold_process = struct
     Lwt_process.with_process_full
       ( ""
       , [| "sh"; "-c"
-         ; "ls -l /delijde ; ls / ; echo -n bouh ; ls ; echo ba >&2 ; ls /no \
-            ; ls /still-no ; echo A >&2 ; echo B ; echo C" |] )
+         ; "ls -l /delijde ; ls / ; echo -n bouh ; ls ; echo ba >&2 ; ls /no ; \
+            ls /still-no ; echo A >&2 ; echo B ; echo C" |] )
       (fun proc ->
         fold_process proc ~init:0 ~f:(fun n outs errs ->
             Dbg.e EF.(af "test_fold_process: %d %S %S" n outs errs) ;
-            if n < 5 then return (`Continue (n + 1))
-            else return (`Done (n + 1))))
+            if n < 5 then return (`Continue (n + 1)) else return (`Done (n + 1)) )
+        )
     >>= fun _ -> return ()
 end
 
@@ -36,11 +36,11 @@ let () =
                     | [] -> pf ppf " None."
                     | more ->
                         List.iter more ~f:(fun _ ->
-                            cut ppf () ; pf ppf "* todo")) ;
+                            cut ppf () ; pf ppf "* todo" ) ) ;
                 cut ppf () ;
                 vertical_box ~indent:2 ppf (fun ppf ->
                     string ppf "* Result:" ;
                     match test_result with
                     | Ok () -> pf ppf " Ok."
-                    | Error _ -> pf ppf " Error: TODO")))
+                    | Error _ -> pf ppf " Error: TODO" ) ) )
           ())

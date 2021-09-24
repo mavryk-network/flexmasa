@@ -1,8 +1,7 @@
 open Internal_pervasives
 module IFmt = More_fmt
 
-let failf ?attach fmt =
-  ksprintf (fun s -> fail ?attach (`Scenario_error s)) fmt
+let failf ?attach fmt = ksprintf (fun s -> fail ?attach (`Scenario_error s)) fmt
 
 type display_policy = [`All | `Lines of int | `No | `On_error of display_policy]
 
@@ -45,7 +44,8 @@ let call ?comment ?(expect = `Status `OK) ?(show_body = `All)
         (`Failed
           (sprintf "API call %s did not return `%s` but `%s`" path
              (Cohttp.Code.string_of_status status)
-             (Cohttp.Response.status coresp |> Cohttp.Code.string_of_status)))
+             (Cohttp.Response.status coresp |> Cohttp.Code.string_of_status) )
+          )
   | `Anything -> return `Ok )
   >>= fun test_status ->
   Console.sayf state
@@ -70,7 +70,7 @@ let call ?comment ?(expect = `Status `OK) ?(show_body = `All)
                   cut ppf () ; string ppf "° ° °"
               | _ -> () ) ;
               cut ppf () ;
-              string ppf (String.make 60 '`')) ) in
+              string ppf (String.make 60 '`') ) ) in
       let pp_response ppf () =
         cut ppf () ;
         pf ppf "* Response:" ;
@@ -90,18 +90,16 @@ let call ?comment ?(expect = `Status `OK) ?(show_body = `All)
               (if Poly.equal test_status `Ok then "Expected" else "UNEXPECTED")
               (Cohttp.Response.status coresp |> Cohttp.Code.string_of_status) ;
             Option.iter comment ~f:(fun c ->
-                cut ppf () ; string ppf "* " ; c ppf) ;
+                cut ppf () ; string ppf "* " ; c ppf ) ;
             un_option_show (fun _ -> pp_response ppf ()) show_response ;
             un_option_show
               (fun just_lines -> pp_body ?just_lines ppf cobody)
-              show_body))
+              show_body ))
   >>= fun () ->
   match test_status with
   | `Ok ->
       return
         (object
-           method body_lines = snd cobody
-
-           method body_json = fst cobody
-        end)
+           method body_lines = snd cobody method body_json = fst cobody
+        end )
   | `Failed s -> failf "%s" s
