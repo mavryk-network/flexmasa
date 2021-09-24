@@ -45,6 +45,7 @@ module Protocol_kind : sig
     | `Edo
     | `Florence
     | `Granada
+    | `Hangzhou
     | `Alpha ]
 
   val default : t

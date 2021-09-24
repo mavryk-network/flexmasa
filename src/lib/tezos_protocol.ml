@@ -64,12 +64,13 @@ module Protocol_kind = struct
     | `Edo
     | `Florence
     | `Granada
+    | `Hangzhou
     | `Alpha ]
 
   let names =
     [ ("Athens", `Athens); ("Babylon", `Babylon); ("Carthage", `Carthage)
     ; ("Delphi", `Delphi); ("Edo", `Edo); ("Florence", `Florence)
-    ; ("Granada", `Granada); ("Alpha", `Alpha) ]
+    ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Alpha", `Alpha) ]
 
   let ( < ) k1 k2 =
     let rec aux = function
@@ -96,6 +97,7 @@ module Protocol_kind = struct
         | _ -> None ) )
 
   let canonical_hash : t -> string = function
+    | `Hangzhou -> "PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r"
     | `Granada -> "PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV"
     | `Florence -> "PsFLorenaUUuikDWvMDr6fGBRG8kt3e3D3fHoXK1j1BFRxeSH4i"
     | `Carthage -> "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
@@ -106,6 +108,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Hangzhou -> "011-PtHangzH"
     | `Granada -> "010-PtGRANAD"
     | `Florence -> "009-PsFLoren"
     | `Carthage -> "006-PsCARTHA"
@@ -117,8 +120,7 @@ module Protocol_kind = struct
 
   let wants_contract_manager : t -> bool = function
     | `Athens -> true
-    | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada | `Alpha ->
-        false
+    | _ -> false
 end
 
 type t =
@@ -179,7 +181,7 @@ let protocol_parameters_json t : Ezjsonm.t =
        `src/proto_007_PsDELPH1/lib_parameters/default_parameters.ml` *)
     let alpha_specific_parameters =
       match subkind with
-      | `Granada | `Alpha ->
+      | `Granada | `Hangzhou | `Alpha ->
           [ ("minimal_block_delay", string (Int.to_string t.minimal_block_delay))
           ; ("liquidity_baking_subsidy", string "2500000")
           ; ("liquidity_baking_sunset_level", int 525600)
@@ -187,22 +189,26 @@ let protocol_parameters_json t : Ezjsonm.t =
       | _ -> [] in
     let legacy_parameters =
       match subkind with
-      | `Babylon | `Carthage | `Delphi | `Edo | `Florence ->
+      | `Babylon | `Carthage | `Delphi | `Edo ->
           [("test_chain_duration", string (Int.to_string 1_966_080))]
-      | `Granada | `Alpha -> [] in
+      | `Florence | `Granada | `Hangzhou | `Alpha -> [] in
+    let michelson_max_type_size =
+      match subkind with
+      | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada ->
+          [("michelson_maximum_type_size", int 1_000)]
+      | `Hangzhou | `Alpha -> [] in
     let op_gas_limit, block_gas_limit =
       match subkind with
       | `Babylon -> (800_000, 8_000_000)
       | `Carthage | `Delphi | `Edo | `Florence -> (1_040_000, 10_400_000)
-      | `Granada | `Alpha -> (1_040_000, 5_200_000) in
+      | `Granada | `Hangzhou | `Alpha -> (1_040_000, 5_200_000) in
     let open Ezjsonm in
     let list_of_zs = list (fun i -> string (Int.to_string i)) in
-    alpha_specific_parameters @ legacy_parameters
+    alpha_specific_parameters @ legacy_parameters @ michelson_max_type_size
     @ [ ("blocks_per_commitment", int 4); ("endorsers_per_block", int 256)
       ; ("hard_gas_limit_per_operation", string (Int.to_string op_gas_limit))
       ; ("hard_gas_limit_per_block", string (Int.to_string block_gas_limit))
       ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
-      ; ("michelson_maximum_type_size", int 1_000)
       ; ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
       ; ("origination_size", int 257)
       ; ("block_security_deposit", string (Int.to_string 640_000_000))
@@ -211,7 +217,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         | `Babylon -> ("block_reward", string (Int.to_string 16_000_000))
         | `Carthage | `Delphi | `Edo | `Florence ->
             ("baking_reward_per_endorsement", list_of_zs [1_250_000; 187_500])
-        | `Granada | `Alpha ->
+        | `Granada | `Hangzhou | `Alpha ->
             ( "baking_reward_per_endorsement"
             , list_of_zs t.baking_reward_per_endorsement ) )
       ; ( "endorsement_reward"
@@ -219,12 +225,12 @@ let protocol_parameters_json t : Ezjsonm.t =
           | `Babylon -> string (Int.to_string 2_000_000)
           | `Carthage | `Delphi | `Edo | `Florence ->
               list_of_zs [1_250_000; 833_333]
-          | `Granada | `Alpha -> list_of_zs t.endorsement_reward )
+          | `Granada | `Hangzhou | `Alpha -> list_of_zs t.endorsement_reward )
       ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
       ; ( "cost_per_byte"
         , match subkind with
           | `Babylon | `Carthage -> string (Int.to_string 1_000)
-          | `Delphi | `Edo | `Florence | `Granada | `Alpha ->
+          | `Delphi | `Edo | `Florence | `Granada | `Hangzhou | `Alpha ->
               string (Int.to_string 250) ); ("quorum_min", int 3_000)
       ; ("quorum_max", int 7_000); ("min_proposal_quorum", int 500)
       ; ("initial_endorsers", int 1)
@@ -246,8 +252,8 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       dict
         ( match t.kind with
-        | (`Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada | `Alpha)
-          as sk ->
+        | ( `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada
+          | `Hangzhou | `Alpha ) as sk ->
             common @ extra_post_babylon_stuff sk
         | `Athens -> common )
 
@@ -525,11 +531,14 @@ module Pretty_print = struct
     let header = field ~k:"header" block_json in
     let level = field ~k:"level" header |> get_int in
     let timestamp = field ~k:"timestamp" header |> get_string in
-    let voting_kind = metadata |> field ~k:"voting_period_kind" |> get_string in
+    let voting_kind =
+      metadata
+      |> field ~k:"voting_period_info"
+      |> field ~k:"voting_period" |> field ~k:"kind" |> get_string in
     let voting_pos =
-      metadata |> field ~k:"level"
-      |> field ~k:"voting_period_position"
-      |> get_int in
+      metadata
+      |> field ~k:"voting_period_info"
+      |> field ~k:"position" |> get_int in
     let voting_nth =
       metadata |> field ~k:"level" |> field ~k:"voting_period" |> get_int in
     let baker = metadata |> field ~k:"baker" |> get_string in
