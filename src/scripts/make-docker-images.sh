@@ -112,7 +112,7 @@ copy_interesting_binaries () {
 
 make_setup_dockerfile () {
     cat > Dockerfile <<EOF
-FROM ocaml/opam2:alpine
+FROM ocaml/opam:alpine
 WORKDIR /home/opam/opam-repository
 RUN git pull
 WORKDIR /
