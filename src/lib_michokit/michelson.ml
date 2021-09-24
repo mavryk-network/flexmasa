@@ -21,7 +21,7 @@ module Concrete = struct
           sp ppf () ;
           match ex with
           | `Exn e -> exn ppf e
-          | `Tz_errors l -> Tezos_error_monad.Error_monad.pp_print_error ppf l)
+          | `Tz_errors l -> Tezos_error_monad.Error_monad.pp_print_trace ppf l )
 
     let fail s e = fail (`Michelson_parsing (s, e) : [> t])
   end

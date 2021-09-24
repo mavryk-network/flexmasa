@@ -127,11 +127,11 @@ RUN sudo chown -R opam:opam /build
 WORKDIR /build
 ADD --chown=opam:opam . ./
 RUN make vendors
-RUN opam switch 4.10
-RUN rustup toolchain install 1.44.0
-RUN rustup override set 1.44.0
-RUN opam switch --switch 4.10 import src/tezos-master.opam-switch
-RUN opam exec --switch 4.10 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
+RUN opam switch 4.12
+RUN rustup toolchain install 1.52.1
+RUN rustup override set 1.52.1
+RUN opam switch --switch 4.12 import src/tezos-master.opam-switch
+RUN opam exec --switch 4.12 -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
 EOF
 #RUN opam config exec -- bash -c 'opam install \$(find local-vendor -name "*.opam" -print)'
 }
