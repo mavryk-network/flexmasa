@@ -96,8 +96,8 @@ $vendor/src/bin_signer/main_signer.exe:tezos-signer
 $vendor/src/bin_codec/codec.exe:tezos-codec
 $vendor/src/lib_protocol_compiler/main_native.exe:tezos-protocol-compiler
 $(daemons alpha)
-$(daemons 009-PsFLoren)
 $(daemons 010-PtGRANAD)
+$(daemons 011-PtHangzH)
 "
 build_interesting_binaries () {
     for ib in $interesting_binaries ; do
@@ -159,7 +159,7 @@ EOF
 RUN sh -c 'curl https://raw.githubusercontent.com/zcash/zcash/master/zcutil/fetch-params.sh | sh'
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-ADD ./src/scripts/tutorial-box.sh /usr/bin/flobox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/granabox
 ADD ./src/scripts/tutorial-box.sh /usr/bin/hangzbox
 RUN sed -i s/default_protocol=Granada/default_protocol=Hangzhou/ /usr/bin/hangzbox
 RUN chmod a+rx /usr/bin/granabox
