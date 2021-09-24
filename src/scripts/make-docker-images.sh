@@ -160,10 +160,10 @@ RUN sh -c 'curl https://raw.githubusercontent.com/zcash/zcash/master/zcutil/fetc
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 ADD ./src/scripts/tutorial-box.sh /usr/bin/flobox
-ADD ./src/scripts/tutorial-box.sh /usr/bin/granabox
-RUN sed -i s/default_protocol=Florence/default_protocol=Granada/ /usr/bin/granabox
-RUN chmod a+rx /usr/bin/flobox
+ADD ./src/scripts/tutorial-box.sh /usr/bin/hangzbox
+RUN sed -i s/default_protocol=Granada/default_protocol=Hangzhou/ /usr/bin/hangzbox
 RUN chmod a+rx /usr/bin/granabox
+RUN chmod a+rx /usr/bin/hangzbox
 EOF
 }
 
