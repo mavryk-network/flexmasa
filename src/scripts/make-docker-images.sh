@@ -151,7 +151,7 @@ EOF
 make_run_dockerfile () {
     cat > Dockerfile <<EOF
 FROM $docker_tag-build
-FROM alpine:3.11.6
+FROM alpine:3.13.6
 EOF
     alpine_setup ""
     copy_interesting_binaries >> Dockerfile
