@@ -80,6 +80,8 @@ docker:setup:
   stage: setup-docker-image
   variables:
     DOCKER_DRIVER: overlay2
+  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
     - apk add git bash
     - git --version
@@ -99,6 +101,8 @@ docker:build:
   stage: build
   variables:
     DOCKER_DRIVER: overlay2
+  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
     - apk add git bash
     - git --version
@@ -116,6 +120,8 @@ docker:run:
   stage: test
   variables:
     DOCKER_DRIVER: overlay2
+  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
     - apk add git bash
     - git --version
@@ -133,6 +139,8 @@ docker:test:
   stage: deploy
   variables:
     DOCKER_DRIVER: overlay2
+  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+    FF_NETWORK_PER_BUILD: "true"
   artifacts:
      paths:
      - mini-net-root
@@ -148,6 +156,8 @@ docker:tag:
   stage: deploy
   variables:
     DOCKER_DRIVER: overlay2
+  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+    FF_NETWORK_PER_BUILD: "true"
   only:
     - master
     - /^image.*$/
