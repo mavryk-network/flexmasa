@@ -24,8 +24,8 @@ Then:
 
     make
 
-The above builds the `flextesa` and `michokit` libraries, the `flextesa` command
-line application (see `./flextesa --help`) and the tests (in `src/test`).
+The above builds the `flextesa` library, the `flextesa` command line application
+(see `./flextesa --help`) and the tests (in `src/test`).
 
 One can easily create an opam-switch which should just work with the above:
 
