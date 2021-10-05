@@ -78,15 +78,19 @@ See `docker/Dockerfile`, usually requires modifications with each new version of
 Octez or new protocol (for now, it clones a specific branch of Flextesa):
 
 ```sh
-cd docker/
-docker build -t flextesa-local .
-# Test it:
-docker run -it flextesa-local hangzbox start
+image=tqtezos/flextesa:20211005
+# Make the “build” image
+docker build --target build_step -t flextesa-build .
+docker tag flextesa-build "${image}-build"
+docker push "${image}-build"
 # Tag and push (optional, requires access rights):
-image=tqtezos/flextesa:20210930
+docker build --target run_image -t flextesa-run .
 docker tag flextesa-local "$image"
 docker push "$image"
 ```
+
+Do not forget to test it:
+`docker run -it "$image" hangzbox start`
 
 ## More Documentation
 
@@ -103,5 +107,5 @@ repository:
 
 TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com)
 documentation shows how to quickly set up a
-[Babylon docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
+[docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
 (uses the docker images from this repository).
