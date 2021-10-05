@@ -72,6 +72,21 @@ the tests with:
 export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/bin:$PATH"
 ```
 
+## Build Docker Image
+
+See `docker/Dockerfile`, usually requires modifications with each new version of
+Octez or new protocol:
+
+```sh
+cd docker/
+docker build -t flextesa-local .
+# Test it:
+docker run -it flextesa-local hangzbox start
+# Tag and push (optional, requires access rights):
+image=tqtezos/flextesa:20210930
+docker tag flextesa-local "$image"
+docker push "$image"
+```
 
 ## More Documentation
 
