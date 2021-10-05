@@ -12,8 +12,33 @@ Tezos sandboxes).
 <!--TOC-->
 
 
-Build
------
+## Run With Docker
+
+The current _released_ image is `tqtezos/flextesa:20210930`, on top of the
+`flextesa` executable and Octez suite, it has the `*box` scripts to quickly
+start networks:
+
+For instance:
+
+```sh
+docker run --rm --name my-sandbox --detach -p 20000:20000 \
+      tqtezos/flextesa:20210930 granabox start
+```
+
+of for Hangzhou:
+
+
+```sh
+docker run --rm --name my-sandbox --detach -p 20000:20000 \
+      tqtezos/flextesa:20210930 hangzbox start
+```
+
+They correspond to the tutorial at
+<https://assets.tqtezos.com/docs/setup/2-sandbox/> (now deprecated but still
+relevant).
+
+
+## Build
 
 You need, Tezos' libraries (with `proto_alpha`) opam-installed or locally
 vendored:
@@ -36,8 +61,7 @@ One can easily create an opam-switch which should just work with the above:
 (where `<name>` is preferably a fresh name).
 
 
-MacOSX Users
-------------
+## MacOSX Users
 
 At runtime, sandboxes usually depend on a couple of linux utilities.
 
@@ -48,13 +72,8 @@ the tests with:
 export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/bin:$PATH"
 ```
 
-With Docker
------------
 
-See <https://assets.tqtezos.com/docs/setup/2-sandbox/>
-
-More Documentation
-------------------
+## More Documentation
 
 The command `flextesa mini-net [...]` has a dedicated documentation
 page: [The `mini-net` Command](./src/doc/mini-net.md).
