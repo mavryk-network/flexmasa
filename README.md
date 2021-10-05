@@ -75,7 +75,7 @@ export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/b
 ## Build Docker Image
 
 See `docker/Dockerfile`, usually requires modifications with each new version of
-Octez or new protocol:
+Octez or new protocol (for now, it clones a specific branch of Flextesa):
 
 ```sh
 cd docker/
