@@ -29,11 +29,11 @@ let make with_timestamp color =
             (fun tag ->
               match color_of_tag tag with
               | Some c -> fprintf formatter "%s" c
-              | None -> ())
+              | None -> () )
         ; print_close_stag=
             (fun tag ->
               if Poly.(color_of_tag tag <> None) then
-                fprintf formatter "%s" reset) } ;
+                fprintf formatter "%s" reset ) } ;
       pp_set_tags formatter true) ) ;
   {color; buffer= b; channel; formatter; with_timestamp}
 
@@ -53,7 +53,7 @@ let cli_term () =
           value
             (flag
                (info ["with-timestamp"]
-                  ~doc:"Display messages with time-stamps.")))
+                  ~doc:"Display messages with time-stamps." ) ))
       $ Arg.(
           pure (function `Y -> true | `N -> false | `G -> guess)
           $
@@ -130,7 +130,7 @@ module Prompt = struct
 
   let unit_and_loop ?details ~description commands f =
     item ?details ~description commands (fun x ->
-        f x >>= fun () -> return `Loop)
+        f x >>= fun () -> return `Loop )
 
   let default_commands () = [quit ["q"; "quit"]; help ["h"; "help"]]
 
@@ -147,7 +147,7 @@ module Prompt = struct
       | Ok (List (Atom c :: more)) -> (
         match
           List.find commands ~f:(fun m ->
-              List.mem m.commands c ~equal:String.equal)
+              List.mem m.commands c ~equal:String.equal )
         with
         | Some {action; _} -> (
             Asynchronous_result.bind_on_error
@@ -162,14 +162,13 @@ module Prompt = struct
                     desc (shout "Error in action:")
                       (custom (fun ppf ->
                            Attached_result.pp ppf result (* Error.pp ppf err *)
-                             ~pp_error:(fun fmt ->
-                             function
+                             ~pp_error:(fun fmt -> function
                              | #System_error.t as e -> System_error.pp fmt e
                              | #Process_result.Error.t as e ->
                                  Process_result.Error.pp fmt e
                              | `Command_line s ->
-                                 Fmt.pf fmt "Wrong command line: %s" s))))
-                >>= fun () -> return `Loop)
+                                 Fmt.pf fmt "Wrong command line: %s" s ) ) ))
+                >>= fun () -> return `Loop )
             >>= function
             | `Loop -> loop ()
             | `Help ->
@@ -184,11 +183,12 @@ module Prompt = struct
                               wrapping_box ~indent:2 ppf (fun ppf ->
                                   pf ppf "* {%a}:@ %a"
                                     (list ~sep:(const string "|") (fun ppf s ->
-                                         prompt ppf (fun ppf -> string ppf s)))
+                                         prompt ppf (fun ppf -> string ppf s) )
+                                    )
                                     commands text description ;
                                   Option.iter details ~f:(fun pp ->
-                                      cut ppf () ; pp ppf ())) ;
-                              cut ppf ())))
+                                      cut ppf () ; pp ppf () ) ) ;
+                              cut ppf () ) ))
                 >>= fun () -> loop ()
             | `Quit -> return () )
         | None ->
@@ -197,7 +197,7 @@ module Prompt = struct
                 desc
                   (ksprintf shout "Error, unknown command: %S" c)
                   (custom (fun fmt ->
-                       Base.Sexp.pp_hum_indent 4 fmt (List more))))
+                       Base.Sexp.pp_hum_indent 4 fmt (List more) ) ))
             >>= fun () -> loop () )
       | Ok other ->
           say state
@@ -212,14 +212,13 @@ module Prompt = struct
               desc (shout "Error: ")
                 (custom (fun fmt ->
                      Parsexp.Parse_error.report fmt ~filename:"<command-line>"
-                       err)))
+                       err ) ))
           >>= fun () -> loop () in
     loop ()
 end
 
 let display_errors_of_command state ?(should_output = false) cmd =
-  let outputs () =
-    List.exists cmd#out ~f:Poly.(fun s -> String.strip s <> "") in
+  let outputs () = List.exists cmd#out ~f:Poly.(fun s -> String.strip s <> "") in
   let success =
     let unix_success = Poly.equal cmd#status (Lwt_unix.WEXITED 0) in
     if should_output then unix_success && outputs () else unix_success in
@@ -235,5 +234,5 @@ let display_errors_of_command state ?(should_output = false) cmd =
           (list
              [ haf "Command %s" (Process_result.status_to_string cmd#status)
              ; desc (haf "Stdout:") (output cmd#out)
-             ; desc (haf "Stderr:") (output cmd#err) ])) )
+             ; desc (haf "Stderr:") (output cmd#err) ] )) )
   >>= fun () -> return success

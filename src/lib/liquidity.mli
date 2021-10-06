@@ -123,10 +123,11 @@ module On_chain : sig
 
   val call :
        ?msg:string
-    -> ?should:[ `Be_ok
-               | `Fail
-               | `Script_failwith_re of Re.re
-               | `Command_stderr_re of Re.re ]
+    -> ?should:
+         [ `Be_ok
+         | `Fail
+         | `Script_failwith_re of Re.re
+         | `Command_stderr_re of Re.re ]
     -> ?transferring:int
     -> ?burn_cap:float
     -> < application_name: string
@@ -170,9 +171,10 @@ module On_chain : sig
     -> client:Tezos_client.t
     -> name:string
     -> address:string
-    -> pp_error:(   Caml.Format.formatter
-                 -> [> Process_result.Error.t | System_error.t]
-                 -> unit)
+    -> pp_error:
+         (   Caml.Format.formatter
+          -> [> Process_result.Error.t | System_error.t]
+          -> unit )
     -> Console.Prompt.item
 
   val big_map_get_command :
@@ -187,14 +189,15 @@ module On_chain : sig
     -> client:Tezos_client.t
     -> name:string
     -> address:string
-    -> key_of_string:(   string
-                      -> ( [< `Nat of int]
-                         , ([> Process_result.Error.t
-                            | System_error.t
-                            | `Scenario_error of string ]
-                            as
-                            'errors) )
-                         Asynchronous_result.t)
+    -> key_of_string:
+         (   string
+          -> ( [< `Nat of int]
+             , ([> Process_result.Error.t
+                | System_error.t
+                | `Scenario_error of string ]
+                as
+                'errors ) )
+             Asynchronous_result.t )
     -> pp_error:(Caml.Format.formatter -> 'errors -> unit)
     -> Console.Prompt.item
 end

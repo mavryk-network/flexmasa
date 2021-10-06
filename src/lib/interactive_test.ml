@@ -10,7 +10,7 @@ module Commands = struct
 
   let unit_loop_no_args ~description opts f =
     Console.Prompt.unit_and_loop ~description opts (fun sexps ->
-        no_args sexps >>= fun () -> f ())
+        no_args sexps >>= fun () -> f () )
 
   let du_sh_root state =
     unit_loop_no_args
@@ -26,7 +26,7 @@ module Commands = struct
               EF.(
                 desc (haf "Disk-Usage:")
                   (af "%s" (String.concat ~sep:" " du#out)))
-        | false -> return ())
+        | false -> return () )
 
   let processes state =
     Console.Prompt.unit_and_loop
@@ -34,7 +34,7 @@ module Commands = struct
         "Display status of processes-manager ('all' to include non-running)"
       ["p"; "processes"] (fun sxp ->
         let all = flag "all" sxp in
-        Console.say state (Running_processes.ef ~all state))
+        Console.say state (Running_processes.ef ~all state) )
 
   let curl_rpc_cmd state ~port ~path =
     Running_processes.run_cmdf state "curl http://localhost:%d/%s" port path
@@ -63,7 +63,7 @@ module Commands = struct
     let pp_option =
       Option.value_map pp_json ~default:[] ~f:(fun _ ->
           [ Sexp_options.make_option "raw"
-              "Do not try to pretty print the output." ]) in
+              "Do not try to pretty print the output." ] ) in
     let get_pp_json _state sexps =
       match pp_json with
       | None -> return More_fmt.json
@@ -75,7 +75,7 @@ module Commands = struct
     Console.Prompt.unit_and_loop ~description:doc
       ~details:
         (Sexp_options.pp_options
-           (pp_option @ [Sexp_options.port_number_doc state ~default_port]))
+           (pp_option @ [Sexp_options.port_number_doc state ~default_port]) )
       cmd
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
@@ -92,7 +92,7 @@ module Commands = struct
               vertical_box ~indent:2 ppf (fun ppf ->
                   pf ppf "Curl-node:%d -> %s" port doc ;
                   cut ppf () ;
-                  pp_json ppf processed_json)))
+                  pp_json ppf processed_json )) )
 
   let curl_metadata state ~default_port =
     curl_unit_display state ["m"; "metadata"] ~default_port
@@ -110,8 +110,7 @@ module Commands = struct
       ~doc:"Display baking rights."
 
   let all_levels state ~nodes =
-    unit_loop_no_args
-      ~description:"Get all “head” levels of all the nodes."
+    unit_loop_no_args ~description:"Get all “head” levels of all the nodes."
       ["al"; "all-levels"] (fun () ->
         Test_scenario.Queries.all_levels state ~nodes
         >>= fun results ->
@@ -125,7 +124,7 @@ module Commands = struct
                         | `Failed -> af "Failed"
                         | `Level i -> af "[%d]" i
                         | `Null -> af "{Null}"
-                        | `Unknown s -> af "¿%s?" s ))))))
+                        | `Unknown s -> af "¿%s?" s ) ) ) )) )
 
   let mempool state ~default_port =
     curl_unit_display state ["mp"; "mempool"] ~default_port
@@ -137,12 +136,11 @@ module Commands = struct
 
   let show_process state =
     Console.Prompt.unit_and_loop
-      ~description:"Show more of a process (by name-prefix)." ["show"]
-      (function
+      ~description:"Show more of a process (by name-prefix)." ["show"] (function
       | [Atom name] ->
           let prefix = String.lowercase name in
           Running_processes.find_process_by_id state ~f:(fun n ->
-              String.is_prefix (String.lowercase n) ~prefix)
+              String.is_prefix (String.lowercase n) ~prefix )
           >>= fun procs ->
           List.fold procs ~init:(return []) ~f:(fun prevm {process; lwt} ->
               prevm
@@ -159,11 +157,10 @@ module Commands = struct
                   desc_list
                     (haf "%S (%d)" process.Process.id lwt#pid)
                     [ desc (af "out: %s" out) (ocaml_string_list tailout#out)
-                    ; desc (af "err: %s" err) (ocaml_string_list tailerr#out)
-                    ]
-                  :: prev))
+                    ; desc (af "err: %s" err) (ocaml_string_list tailerr#out) ]
+                  :: prev) )
           >>= fun ef -> Console.say state EF.(list ef)
-      | _other -> cmdline_fail "command expects 1 argument: name-prefix")
+      | _other -> cmdline_fail "command expects 1 argument: name-prefix" )
 
   let kill_all state =
     unit_loop_no_args ~description:"Kill all known processes/process-groups."
@@ -185,19 +182,19 @@ module Commands = struct
                       pf ppf "* Account %S:@," (name acc) ;
                       pf ppf "  * Public Key Hash: %s@," (pubkey_hash acc) ;
                       pf ppf "  * Public Key:      %s@," (pubkey acc) ;
-                      pf ppf "  * Private Key:     %s" (private_key acc)))))
+                      pf ppf "  * Private Key:     %s" (private_key acc) ) )) )
 
   let show_connections state nodes =
     unit_loop_no_args ~description:"Show all node connections"
       ["ac"; "all-connections"] (fun () ->
-        Helpers.dump_connections state nodes)
+        Helpers.dump_connections state nodes )
 
   let balances state ~default_port =
     Console.Prompt.unit_and_loop
       ~description:"Show the balances of all known accounts."
       ~details:
         (Sexp_options.pp_options
-           [Sexp_options.port_number_doc state ~default_port])
+           [Sexp_options.port_number_doc state ~default_port] )
       ["sb"; "show-balances"]
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
@@ -226,34 +223,34 @@ module Commands = struct
           curl_rpc_cmd state ~port ~path
           >>= fun jo ->
           do_jq state jo ~msg:"Getting balance" ~f:(fun j ->
-              Jqo.get_string j |> Int.of_string) in
+              Jqo.get_string j |> Int.of_string ) in
         List.fold contracts ~init:(return []) ~f:(fun prevm hsh ->
             prevm
             >>= fun prev ->
             balance (Int.to_string save_point) hsh
             >>= fun init ->
             balance "head" hsh
-            >>= fun current -> return ((hsh, init, current) :: prev))
+            >>= fun current -> return ((hsh, init, current) :: prev) )
         >>= fun results ->
         Console.say state
           EF.(
             desc_list
               (af "Balances from levels %d to “head” (port :%d)" save_point
-                 port)
+                 port )
               (List.map results ~f:(fun (hsh, init, cur) ->
                    let tz i = Float.of_int i /. 1_000_000. in
                    desc (haf "%s:" hsh)
                      ( if init = cur then af "%f (unchanged)" (tz cur)
                      else
                        af "%f → %f (delta: %f)" (tz init) (tz cur)
-                         (tz (cur - init)) )))))
+                         (tz (cur - init)) ) ) )) )
 
   let better_call_dev state ~default_port =
     Console.Prompt.unit_and_loop
       ~description:"Show URIs to all contracts with `better-call.dev`."
       ~details:
         (Sexp_options.pp_options
-           [Sexp_options.port_number_doc state ~default_port])
+           [Sexp_options.port_number_doc state ~default_port] )
       ["bcd"; "better-call-dev"]
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
@@ -289,8 +286,8 @@ module Commands = struct
                       List.iter some_kt1s ~f:(fun c ->
                           if String.is_prefix c ~prefix:"KT1" then (
                             pf ppf "* %s/%s/operations?%s" base c block_url_arg ;
-                            cut ppf () )))
-                ppf ()))
+                            cut ppf () ) ) )
+                ppf ()) )
 
   let arbitrary_command_on_all_clients ?make_admin
       ?(command_names = ["atc"; "all-clients"]) state ~clients =
@@ -303,7 +300,7 @@ module Commands = struct
       let all =
         (match clients with [_] -> [] | _ -> [only_opt])
         @ Option.value_map make_admin ~default:[] ~f:(fun _ ->
-              [make_option "admin" "Use the admin-client instead."]) in
+              [make_option "admin" "Use the admin-client instead."] ) in
       match all with [] -> None | _ -> Some (pp_options all) in
     Console.Prompt.unit_and_loop
       ~description:
@@ -314,13 +311,12 @@ module Commands = struct
            | more ->
                sprintf "all the following clients: %s."
                  ( List.map more ~f:(fun c -> c.Tezos_client.id)
-                 |> String.concat ~sep:", " ) ))
+                 |> String.concat ~sep:", " ) ) )
       ?details command_names
       (fun sexps ->
         let args =
           let open Base.Sexp in
-          List.filter_map sexps ~f:(function Atom s -> Some s | _ -> None)
-        in
+          List.filter_map sexps ~f:(function Atom s -> Some s | _ -> None) in
         let subset_of_clients =
           let open Base.Sexp in
           List.find_map sexps ~f:(function
@@ -331,13 +327,13 @@ module Commands = struct
                     | other ->
                         ksprintf failwith
                           "Option `only` only accepts a list of names: %s"
-                          (to_string_hum other)))
-            | _ -> None)
+                          (to_string_hum other) ) )
+            | _ -> None )
           |> function
           | None -> clients
           | Some more ->
               List.filter clients ~f:(fun c ->
-                  List.mem more c.Tezos_client.id ~equal:String.equal) in
+                  List.mem more c.Tezos_client.id ~equal:String.equal ) in
         let use_admin =
           match make_admin with
           | None -> `Client
@@ -356,27 +352,26 @@ module Commands = struct
               ( ( match use_admin with
                 | `Client -> Tezos_client.client_command state client args
                 | `Admin mkadm ->
-                    Tezos_admin_client.make_command state (mkadm client) args
-                )
+                    Tezos_admin_client.make_command state (mkadm client) args )
               |> Genspio.Compile.to_one_liner |> Caml.Filename.quote )
             >>= fun res ->
             Console.display_errors_of_command state res
             >>= function
             | true -> return ((client, String.concat ~sep:"\n" res#out) :: prev)
-            | false -> return prev)
+            | false -> return prev )
         >>= fun results ->
         let different_results =
           List.dedup_and_sort results ~compare:(fun (_, a) (_, b) ->
-              String.compare a b) in
+              String.compare a b ) in
         Console.say state
           EF.(
             desc_list (af "Done")
               [ desc (haf "Command:")
                   (ocaml_string_list
-                     ( ( match use_admin with
-                       | `Client -> "<client>"
-                       | `Admin _ -> "<admin>" )
-                     :: args ))
+                     (( match use_admin with
+                      | `Client -> "<client>"
+                      | `Admin _ -> "<admin>" )
+                      :: args ) )
               ; desc (haf "Results")
                   (list
                      (List.map different_results ~f:(fun (_, res) ->
@@ -384,28 +379,28 @@ module Commands = struct
                             List.filter_map results ~f:(function
                               | c, r when String.equal res r ->
                                   Some c.Tezos_client.id
-                              | _ -> None) in
+                              | _ -> None ) in
                           desc
                             (haf "Client%s %s:"
                                ( if List.length subset_of_clients = 1 then ""
                                else "s" )
-                               (String.concat ~sep:", " clients))
-                            (markdown_verbatim res)))) ]))
+                               (String.concat ~sep:", " clients) )
+                            (markdown_verbatim res) ) ) ) ]) )
 
   let arbitrary_commands_for_each_client ?make_admin
       ?(make_command_names = fun i -> [sprintf "c%d" i; sprintf "client-%d" i])
       state ~clients =
     List.mapi clients ~f:(fun i c ->
         arbitrary_command_on_all_clients state ?make_admin ~clients:[c]
-          ~command_names:(make_command_names i))
+          ~command_names:(make_command_names i) )
 
   let arbitrary_commands_for_each_and_all_clients ?make_admin
-      ?make_individual_command_names ?all_clients_command_names state ~clients
-      =
+      ?make_individual_command_names ?all_clients_command_names state ~clients =
     arbitrary_command_on_all_clients state ?make_admin ~clients
       ?command_names:all_clients_command_names
-    :: arbitrary_commands_for_each_client state ?make_admin ~clients
-         ?make_command_names:make_individual_command_names
+    ::
+    arbitrary_commands_for_each_client state ?make_admin ~clients
+      ?make_command_names:make_individual_command_names
 
   let client_list_in_help_messages clients =
     match clients with
@@ -414,7 +409,7 @@ module Commands = struct
     | m ->
         Fmt.str "one of %s"
           ( List.mapi m ~f:(fun ith one ->
-                Fmt.str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+                Fmt.str "%d: %s" ith one.Tezos_client.Keyed.client.id )
           |> String.concat ~sep:", " )
 
   let bake_command state ~clients =
@@ -433,7 +428,7 @@ module Commands = struct
           | _ -> Fmt.kstrf failwith "Wrong command line: %a" pp (List sexps)
         in
         protect_with_keyed_client "manual-baking" ~client ~f:(fun () ->
-            Tezos_client.Keyed.bake state client "Manual baking !"))
+            Tezos_client.Keyed.bake state client "Manual baking !" ) )
 
   let forge_template ~key_name ~counter ~branch ~fee ~src =
     let fee_mutez = fee *. 1_000_000. |> Int.of_float in
@@ -506,13 +501,13 @@ module Commands = struct
                   ~path:
                     (Fmt.str
                        "/chains/main/blocks/head/context/contracts/%s/counter"
-                       src)
+                       src )
                 >>= fun counter_json ->
                 let counter =
                   (Jqo.get_string counter_json |> Int.of_string) + 1 in
                 let json_template =
-                  forge_template ~key_name:client.key_name ~src ~counter
-                    ~fee:3. ~branch in
+                  forge_template ~key_name:client.key_name ~src ~counter ~fee:3.
+                    ~branch in
                 let tmp = Caml.Filename.temp_file "flextesa-forge" ".json" in
                 System.write_file state tmp ~content:json_template
                 >>= fun () ->
@@ -528,7 +523,7 @@ module Commands = struct
                       |> List.map ~f:(fun line ->
                              match String.substr_index line ~pattern:"//" with
                              | None -> line
-                             | Some idx -> String.sub line ~pos:0 ~len:idx)
+                             | Some idx -> String.sub line ~pos:0 ~len:idx )
                       |> String.concat ~sep:"\n" in
                     let json = Ezjsonm.value_from_string cleaned_up in
                     Tezos_client.Keyed.forge_and_inject state client ~json
@@ -542,7 +537,7 @@ module Commands = struct
                     Fmt.failwith "Editor ('%s') failed to edit %S" editor tmp )
             | None ->
                 Fmt.kstr failwith "Cannot retrieve account for %S"
-                  client.key_name))
+                  client.key_name ) )
 
   let generate_and_import_keys state client names =
     Console.say state
@@ -557,7 +552,7 @@ module Commands = struct
         let kp = Tezos_protocol.Account.of_name s in
         Tezos_client.import_secret_key state client
           ~name:(Tezos_protocol.Account.name kp)
-          ~key:(Tezos_protocol.Account.private_key kp))
+          ~key:(Tezos_protocol.Account.private_key kp) )
 
   let generate_traffic_command state ~clients ~nodes =
     Console.Prompt.unit_and_loop
@@ -570,7 +565,7 @@ module Commands = struct
             | m ->
                 str "use option (client ..) with one of %s"
                   ( List.mapi m ~f:(fun ith one ->
-                        str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+                        str "%d: %s" ith one.Tezos_client.Keyed.client.id )
                   |> String.concat ~sep:", " ) ))
       ["generate"; "gen"]
       (fun sexps ->
@@ -580,7 +575,7 @@ module Commands = struct
             List.find_map sexps ~f:(function
               | List [Atom "client"; Atom s] ->
                   Some (List.nth_exn clients (Int.of_string s))
-              | _ -> None)
+              | _ -> None )
           with
           | None -> List.nth_exn clients 0
           | Some c -> c
@@ -597,7 +592,7 @@ module Commands = struct
                       cut ppf () ;
                       wrapping_box ppf (fun ppf -> desc ppf ()) ;
                       cut ppf () ;
-                      Sexp_options.pp_options options ppf ()) in
+                      Sexp_options.pp_options options ppf () ) in
                 fun ppf () ->
                   pf ppf "Generating traffic:" ;
                   cmd ppf "batch"
@@ -605,7 +600,7 @@ module Commands = struct
                     [counter_option; size_option; fee_option] ;
                   cmd ppf "multisig-batch"
                     (const text
-                       "Make a batch operation (multi-sig transacitons).")
+                       "Make a batch operation (multi-sig transacitons)." )
                     [ counter_option; contract_repeat_option; num_signers_option
                     ; size_option; fee_option ] ;
                   cmd ppf "dsl"
@@ -614,7 +609,7 @@ module Commands = struct
                        \  dsl (repeat :times 5 (random-choice \n\
                        \  ((multisig-batch :size 5 :contract-repeat 3 \
                         :num-signers 4)\n\
-                       \  (batch :size 10))))")
+                       \  (batch :size 10))))" )
                     [repeat_all_option; random_choice_option] ;
                   cmd ppf "endorsement"
                     (const text "Make an endorsement for a given level")
@@ -629,8 +624,7 @@ module Commands = struct
                 let json = Traffic_generation.Forge.endorsement ~branch level in
                 Tezos_client.Keyed.forge_and_inject state client ~json
                 >>= fun json_result ->
-                Console.sayf state
-                  More_fmt.(fun ppf () -> json ppf json_result))
+                Console.sayf state More_fmt.(fun ppf () -> json ppf json_result) )
         | Atom "batch" :: more_args ->
             get_batch_args state ~client all_opts more_args
             >>= fun ba ->
@@ -643,18 +637,14 @@ module Commands = struct
             Traffic_generation.Dsl.process_dsl state ~client ~nodes all_opts
               (Sexp.List dsl_sexp)
         | other ->
-            Fmt.kstr failwith "Wrong command line: %a" Sexp.pp (List other))
+            Fmt.kstr failwith "Wrong command line: %a" Sexp.pp (List other) )
 
   let all_defaults state ~nodes =
     let default_port = (List.hd_exn nodes).Tezos_node.rpc_port in
-    [ du_sh_root state; processes state
-    ; show_connections state nodes
-    ; curl_level state ~default_port
-    ; balances state ~default_port
-    ; curl_metadata state ~default_port
-    ; curl_baking_rights state ~default_port
-    ; mempool state ~default_port
-    ; better_call_dev state ~default_port
+    [ du_sh_root state; processes state; show_connections state nodes
+    ; curl_level state ~default_port; balances state ~default_port
+    ; curl_metadata state ~default_port; curl_baking_rights state ~default_port
+    ; mempool state ~default_port; better_call_dev state ~default_port
     ; all_levels state ~nodes; show_process state; kill_all state ]
 end
 
@@ -682,7 +672,7 @@ module Interactivity = struct
           | true, _, _ -> `Full
           | false, true, _ -> `At_end
           | false, false, true -> `On_error
-          | false, false, false -> `None)
+          | false, false, false -> `None )
       $ Arg.(
           value
           & opt bool
@@ -720,9 +710,7 @@ module Pauser = struct
 
   let commands state = state#pauser.extra_commands
   let default_end state = state#pauser.default_end
-
-  let add_commands state cl =
-    state#pauser.extra_commands <- commands state @ cl
+  let add_commands state cl = state#pauser.extra_commands <- commands state @ cl
 
   let generic state ?(force = false) msgs =
     let do_pause = Interactivity.is_interactive state || force in
@@ -749,12 +737,12 @@ module Pauser = struct
       Lwt_unix.on_signal Caml.Sys.sigint (fun i ->
           Caml.Printf.eprintf
             "\nReceived signal SIGINT (%d), type `q` to quit prompts.\n\n%!" i ;
-          Lwt_condition.broadcast cond `Sig_int)
+          Lwt_condition.broadcast cond `Sig_int )
       |> ignore ;
       Lwt_unix.on_signal Caml.Sys.sigterm (fun i ->
           Caml.Printf.eprintf
             "\nReceived signal SIGTERM (%d), type `q` to quit prompts.\n\n%!" i ;
-          Lwt_condition.broadcast cond `Sig_term)
+          Lwt_condition.broadcast cond `Sig_term )
       |> ignore in
     let wait_on_signals () =
       System_error.catch Lwt_condition.wait cond
@@ -778,8 +766,7 @@ module Pauser = struct
                 Dbg.e EF.(wf "Procedure %s slept 2." name) ;
                 return res
             | Error e ->
-                Dbg.e
-                  EF.(wf "Procedure %s ended with error %a" name pp_error e) ;
+                Dbg.e EF.(wf "Procedure %s ended with error %a" name pp_error e) ;
                 return res )
           ; ( wait_on_signals ()
             >>= fun res ->
@@ -798,7 +785,7 @@ module Pauser = struct
                      Quit." ]
             >>= fun () ->
             last_pause_status := `Done ;
-            return ()) in
+            return () ) in
       Asynchronous_result.bind_all
         ( try
             Dbg.e EF.(wf "protecting: %S in-try" name) ;
@@ -816,7 +803,7 @@ module Pauser = struct
                   desc (shout "Received SIGTERM")
                     (wf
                        "Will not pause because it's the wrong thing to do; \
-                        killing everything and quitting."))
+                        killing everything and quitting." ))
               >>= fun () -> return `Quit_with_error
           | Ok (`Woken_up_by_signal `Sig_int) ->
               Console.say state
@@ -824,7 +811,7 @@ module Pauser = struct
                   desc (shout "Received SIGINT")
                     (wf
                        "Please the command `q` (a.k.a. `quit`) for quitting \
-                        prompts."))
+                        prompts." ))
               >>= fun () -> return `Error_that_can_be_interactive
           | Error (`System_error (`Fatal, System_error.Exception End_of_file))
             ->
@@ -834,7 +821,7 @@ module Pauser = struct
                     (shout "Received End-of-File (Ctrl-D?)")
                     (wf
                        "Cannot pause because interactivity broken; killing \
-                        everything and quitting."))
+                        everything and quitting." ))
               >>= fun () -> return `Quit_with_error
           | Error _ ->
               Console.say state
@@ -842,8 +829,8 @@ module Pauser = struct
                   desc
                     (shout "An error happened")
                     (custom (fun ppf ->
-                         Attached_result.pp ~pp_error ppf result)))
-              >>= fun () -> return `Error_that_can_be_interactive)
+                         Attached_result.pp ~pp_error ppf result ) ))
+              >>= fun () -> return `Error_that_can_be_interactive )
       >>= fun todo_next ->
       match todo_next with
       | `Was_ok ()

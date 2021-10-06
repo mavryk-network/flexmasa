@@ -2,8 +2,7 @@
 
 open Internal_pervasives
 
-type t = private
-  {mutable trees: (string * string * (string * string) list) list}
+type t = private {mutable trees: (string * string * (string * string) list) list}
 
 val make : unit -> t
 

@@ -27,7 +27,7 @@ let default () =
           [ "Add CORS headers to all nodes in the sandbox."
           ; "An empty value means “none.”" ] ~transform:(function
         | Some "" | None -> None
-        | Some other -> Some other)
+        | Some other -> Some other )
   ; better_call_dev_base_url=
       var_default "better_call_dev_base_url"
         ~doc:["Set the base URL for the better-call.dev explorer."]
@@ -41,7 +41,7 @@ let default () =
         ~transform:(function
         | None -> Some "warning"
         | Some "none" -> None
-        | Some s -> Some s) }
+        | Some s -> Some s ) }
 
 type 'a state = < env_config: t ; .. > as 'a
 

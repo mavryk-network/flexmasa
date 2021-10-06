@@ -1,5 +1,5 @@
-open Internal_pervasives
 (** Wrapper around the main ["tezos-client"] application. *)
+open Internal_pervasives
 
 type t = {id: string; port: int; exec: Tezos_executable.t}
 type client = t
@@ -222,9 +222,7 @@ val show_known_contract :
      ; .. >
   -> t
   -> name:string
-  -> ( string
-     , [> Process_result.Error.t | System_error.t] )
-     Asynchronous_result.t
+  -> (string, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 
 val deploy_multisig :
      ?counter:int
@@ -291,9 +289,7 @@ val hash_data :
   -> t
   -> data_to_hash:string
   -> data_type:string
-  -> ( string
-     , [> Process_result.Error.t | System_error.t] )
-     Asynchronous_result.t
+  -> (string, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 
 val multisig_storage_counter :
      < application_name: string
@@ -333,9 +329,7 @@ module Ledger : sig
     -> client:t
     -> uri:string
     -> level:int
-    -> ( unit
-       , [> Process_result.Error.t | System_error.t] )
-       Asynchronous_result.t
+    -> (unit, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 
   val show_ledger :
        < application_name: string
@@ -359,9 +353,7 @@ module Ledger : sig
        ; .. >
     -> client:t
     -> uri:string
-    -> ( unit
-       , [> Process_result.Error.t | System_error.t] )
-       Asynchronous_result.t
+    -> (unit, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 
   val get_authorized_key :
        < application_name: string
@@ -421,9 +413,7 @@ module Keyed : sig
        ; .. >
     -> t
     -> string
-    -> ( unit
-       , [> Process_result.Error.t | System_error.t] )
-       Asynchronous_result.t
+    -> (unit, [> Process_result.Error.t | System_error.t]) Asynchronous_result.t
 
   val generate_nonce :
        < application_name: string

@@ -64,17 +64,13 @@ module Protocol_kind = struct
     | `Edo
     | `Florence
     | `Granada
+    | `Hangzhou
     | `Alpha ]
 
   let names =
-    [ ("Athens", `Athens)
-    ; ("Babylon", `Babylon)
-    ; ("Carthage", `Carthage)
-    ; ("Delphi", `Delphi)
-    ; ("Edo", `Edo)
-    ; ("Florence", `Florence)
-    ; ("Granada", `Granada)
-    ; ("Alpha", `Alpha) ]
+    [ ("Athens", `Athens); ("Babylon", `Babylon); ("Carthage", `Carthage)
+    ; ("Delphi", `Delphi); ("Edo", `Edo); ("Florence", `Florence)
+    ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Alpha", `Alpha) ]
 
   let ( < ) k1 k2 =
     let rec aux = function
@@ -92,15 +88,16 @@ module Protocol_kind = struct
     Arg.(
       value
         (opt (enum names) default
-           (info ["protocol-kind"] ~docs ~doc:"Set the protocol family.")))
+           (info ["protocol-kind"] ~docs ~doc:"Set the protocol family.") ))
 
   let pp ppf n =
     Fmt.string ppf
       (List.find_map_exn names ~f:(function
         | s, x when Poly.equal x n -> Some s
-        | _ -> None))
+        | _ -> None ) )
 
   let canonical_hash : t -> string = function
+    | `Hangzhou -> "PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r"
     | `Granada -> "PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV"
     | `Florence -> "PsFLorenaUUuikDWvMDr6fGBRG8kt3e3D3fHoXK1j1BFRxeSH4i"
     | `Carthage -> "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
@@ -111,6 +108,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Hangzhou -> "011-PtHangzH"
     | `Granada -> "010-PtGRANAD"
     | `Florence -> "009-PsFLoren"
     | `Carthage -> "006-PsCARTHA"
@@ -122,8 +120,7 @@ module Protocol_kind = struct
 
   let wants_contract_manager : t -> bool = function
     | `Athens -> true
-    | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada | `Alpha ->
-        false
+    | _ -> false
 end
 
 type t =
@@ -184,32 +181,34 @@ let protocol_parameters_json t : Ezjsonm.t =
        `src/proto_007_PsDELPH1/lib_parameters/default_parameters.ml` *)
     let alpha_specific_parameters =
       match subkind with
-      | `Granada | `Alpha ->
-          [ ( "minimal_block_delay"
-            , string (Int.to_string t.minimal_block_delay) )
+      | `Granada | `Hangzhou | `Alpha ->
+          [ ("minimal_block_delay", string (Int.to_string t.minimal_block_delay))
           ; ("liquidity_baking_subsidy", string "2500000")
           ; ("liquidity_baking_sunset_level", int 525600)
           ; ("liquidity_baking_escape_ema_threshold", int 1000000) ]
       | _ -> [] in
     let legacy_parameters =
       match subkind with
-      | `Babylon | `Carthage | `Delphi | `Edo | `Florence ->
+      | `Babylon | `Carthage | `Delphi | `Edo ->
           [("test_chain_duration", string (Int.to_string 1_966_080))]
-      | `Granada | `Alpha -> [] in
+      | `Florence | `Granada | `Hangzhou | `Alpha -> [] in
+    let michelson_max_type_size =
+      match subkind with
+      | `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada ->
+          [("michelson_maximum_type_size", int 1_000)]
+      | `Hangzhou | `Alpha -> [] in
     let op_gas_limit, block_gas_limit =
       match subkind with
       | `Babylon -> (800_000, 8_000_000)
       | `Carthage | `Delphi | `Edo | `Florence -> (1_040_000, 10_400_000)
-      | `Granada | `Alpha -> (1_040_000, 5_200_000) in
+      | `Granada | `Hangzhou | `Alpha -> (1_040_000, 5_200_000) in
     let open Ezjsonm in
     let list_of_zs = list (fun i -> string (Int.to_string i)) in
-    alpha_specific_parameters @ legacy_parameters
-    @ [ ("blocks_per_commitment", int 4)
-      ; ("endorsers_per_block", int 256)
+    alpha_specific_parameters @ legacy_parameters @ michelson_max_type_size
+    @ [ ("blocks_per_commitment", int 4); ("endorsers_per_block", int 256)
       ; ("hard_gas_limit_per_operation", string (Int.to_string op_gas_limit))
       ; ("hard_gas_limit_per_block", string (Int.to_string block_gas_limit))
       ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
-      ; ("michelson_maximum_type_size", int 1_000)
       ; ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
       ; ("origination_size", int 257)
       ; ("block_security_deposit", string (Int.to_string 640_000_000))
@@ -218,7 +217,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         | `Babylon -> ("block_reward", string (Int.to_string 16_000_000))
         | `Carthage | `Delphi | `Edo | `Florence ->
             ("baking_reward_per_endorsement", list_of_zs [1_250_000; 187_500])
-        | `Granada | `Alpha ->
+        | `Granada | `Hangzhou | `Alpha ->
             ( "baking_reward_per_endorsement"
             , list_of_zs t.baking_reward_per_endorsement ) )
       ; ( "endorsement_reward"
@@ -226,16 +225,14 @@ let protocol_parameters_json t : Ezjsonm.t =
           | `Babylon -> string (Int.to_string 2_000_000)
           | `Carthage | `Delphi | `Edo | `Florence ->
               list_of_zs [1_250_000; 833_333]
-          | `Granada | `Alpha -> list_of_zs t.endorsement_reward )
+          | `Granada | `Hangzhou | `Alpha -> list_of_zs t.endorsement_reward )
       ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
       ; ( "cost_per_byte"
         , match subkind with
           | `Babylon | `Carthage -> string (Int.to_string 1_000)
-          | `Delphi | `Edo | `Florence | `Granada | `Alpha ->
-              string (Int.to_string 250) )
-      ; ("quorum_min", int 3_000)
-      ; ("quorum_max", int 7_000)
-      ; ("min_proposal_quorum", int 500)
+          | `Delphi | `Edo | `Florence | `Granada | `Hangzhou | `Alpha ->
+              string (Int.to_string 250) ); ("quorum_min", int 3_000)
+      ; ("quorum_max", int 7_000); ("min_proposal_quorum", int 500)
       ; ("initial_endorsers", int 1)
       ; ("delay_per_missing_endorsement", string (Int.to_string 1)) ] in
   let common =
@@ -248,15 +245,15 @@ let protocol_parameters_json t : Ezjsonm.t =
     ; ("blocks_per_voting_period", int t.blocks_per_voting_period)
     ; ("blocks_per_cycle", int t.blocks_per_cycle)
     ; ("preserved_cycles", int t.preserved_cycles)
-    ; ( "proof_of_work_threshold"
-      , ksprintf string "%d" t.proof_of_work_threshold ) ] in
+    ; ("proof_of_work_threshold", ksprintf string "%d" t.proof_of_work_threshold)
+    ] in
   match t.custom_protocol_parameters with
   | Some s -> s
   | None ->
       dict
         ( match t.kind with
         | ( `Babylon | `Carthage | `Delphi | `Edo | `Florence | `Granada
-          | `Alpha ) as sk ->
+          | `Hangzhou | `Alpha ) as sk ->
             common @ extra_post_babylon_stuff sk
         | `Athens -> common )
 
@@ -308,8 +305,7 @@ let ensure_script state t =
 
 let ensure state t =
   Running_processes.run_successful_cmdf state "sh -c %s"
-    ( Genspio.Compile.to_one_liner (ensure_script state t)
-    |> Caml.Filename.quote )
+    (Genspio.Compile.to_one_liner (ensure_script state t) |> Caml.Filename.quote)
   >>= fun _ -> return ()
 
 let cli_term state =
@@ -318,17 +314,18 @@ let cli_term state =
   let def = default () in
   let docs = Manpage_builder.section state ~rank:2 ~name:"PROTOCOL OPTIONS" in
   pure
-    (fun bootstrap_accounts
-         (`Blocks_per_voting_period blocks_per_voting_period)
-         (`Protocol_hash hash_opt)
-         (`Time_between_blocks time_between_blocks)
-         (`Minimal_block_delay minimal_block_delay)
-         (`Blocks_per_cycle blocks_per_cycle)
-         (`Preserved_cycles preserved_cycles)
-         (`Timestamp_delay timestamp_delay)
-         (`Protocol_parameters custom_protocol_parameters)
-         kind
-         ->
+    (fun
+      bootstrap_accounts
+      (`Blocks_per_voting_period blocks_per_voting_period)
+      (`Protocol_hash hash_opt)
+      (`Time_between_blocks time_between_blocks)
+      (`Minimal_block_delay minimal_block_delay)
+      (`Blocks_per_cycle blocks_per_cycle)
+      (`Preserved_cycles preserved_cycles)
+      (`Timestamp_delay timestamp_delay)
+      (`Protocol_parameters custom_protocol_parameters)
+      kind
+    ->
       let id = "default-and-command-line" in
       let hash =
         match hash_opt with
@@ -345,11 +342,11 @@ let cli_term state =
       ; minimal_block_delay
       ; preserved_cycles
       ; timestamp_delay
-      ; blocks_per_voting_period })
+      ; blocks_per_voting_period } )
   $ Arg.(
       pure (fun remove_all nb balance add_bootstraps ->
           add_bootstraps
-          @ make_bootstrap_accounts ~balance (if remove_all then 0 else nb))
+          @ make_bootstrap_accounts ~balance (if remove_all then 0 else nb) )
       $ value
           (flag
              (info
@@ -357,20 +354,20 @@ let cli_term state =
                   "Do not create any of the default bootstrap accounts (this \
                    overrides `--number-of-bootstrap-accounts` with 0)."
                 ~docs
-                ["remove-default-bootstrap-accounts"]))
+                ["remove-default-bootstrap-accounts"] ) )
       $ value
           (opt int 4
              (info
                 ["number-of-bootstrap-accounts"]
-                ~docs ~doc:"Set the number of generated bootstrap accounts."))
+                ~docs ~doc:"Set the number of generated bootstrap accounts." ) )
       $ ( pure (function
             | `Tez, f -> f *. 1_000_000. |> Int64.of_float
-            | `Mutez, f -> f |> Int64.of_float)
+            | `Mutez, f -> f |> Int64.of_float )
         $ value
             (opt
                (pair ~sep:':'
                   (enum [("tz", `Tez); ("tez", `Tez); ("mutez", `Mutez)])
-                  float)
+                  float )
                (`Tez, 4_000_000.)
                (info
                   ["balance-of-bootstrap-accounts"]
@@ -378,12 +375,12 @@ let cli_term state =
                   ~doc:
                     "Set the initial balance of bootstrap accounts, for \
                      instance: `tz:2_000_000.42` or \
-                     `mutez:42_000_000_000_000`.")) )
+                     `mutez:42_000_000_000_000`." ) ) )
       $ Arg.(
           pure (fun l ->
               List.map l
                 ~f:(fun ((name, pubkey, pubkey_hash, private_key), tez) ->
-                  (Account.key_pair name ~pubkey ~pubkey_hash ~private_key, tez)))
+                  (Account.key_pair name ~pubkey ~pubkey_hash ~private_key, tez) ) )
           $ value
               (opt_all
                  (pair ~sep:'@' (t4 ~sep:',' string string string string) int64)
@@ -392,14 +389,14 @@ let cli_term state =
                     ~docv:"NAME,PUBKEY,PUBKEY-HASH,PRIVATE-URI@MUTEZ-AMOUNT"
                     ~doc:
                       "Add a custom bootstrap account, e.g. \
-                       `LedgerBaker,edpku...,tz1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`."))))
+                       `LedgerBaker,edpku...,tz1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`." ) )))
   $ Arg.(
       pure (fun x -> `Blocks_per_voting_period x)
       $ value
           (opt int def.blocks_per_voting_period
              (info ~docs
                 ["blocks-per-voting-period"]
-                ~doc:"Set the length of voting periods.")))
+                ~doc:"Set the length of voting periods." ) ))
   $ Arg.(
       pure (fun x -> `Protocol_hash x)
       $ value
@@ -407,16 +404,15 @@ let cli_term state =
              (info ["protocol-hash"] ~docs
                 ~doc:
                   "Set the (initial) protocol hash (the default is to derive  \
-                   it from the protocol kind).")))
+                   it from the protocol kind)." ) ))
   $ Arg.(
       pure (fun x -> `Time_between_blocks x)
       $ value
           (opt (list ~sep:',' int) def.time_between_blocks
-             (info ["time-between-blocks"] ~docv:"COMMA-SEPARATED-SECONDS"
-                ~docs
+             (info ["time-between-blocks"] ~docv:"COMMA-SEPARATED-SECONDS" ~docs
                 ~doc:
                   "Set the time between blocks bootstrap-parameter, e.g. \
-                   `2,3,2`.")))
+                   `2,3,2`." ) ))
   $ Arg.(
       pure (fun x -> `Minimal_block_delay x)
       $ value
@@ -424,13 +420,13 @@ let cli_term state =
              (info ["minimal-block-delay"] ~docv:"SECONDS" ~docs
                 ~doc:
                   "Set the minimal delay between blocks bootstrap-parameter, \
-                   e.g. `2`.")))
+                   e.g. `2`." ) ))
   $ Arg.(
       pure (fun x -> `Blocks_per_cycle x)
       $ value
           (opt int def.blocks_per_cycle
              (info ["blocks-per-cycle"] ~docv:"NUMBER" ~docs
-                ~doc:"Number of blocks per cycle.")))
+                ~doc:"Number of blocks per cycle." ) ))
   $ Arg.(
       pure (fun x -> `Preserved_cycles x)
       $ value
@@ -438,28 +434,28 @@ let cli_term state =
              (info ["preserved-cycles"] ~docv:"NUMBER" ~docs
                 ~doc:
                   "Base constant for baking rights (search for \
-                   `PRESERVED_CYCLES` in the white paper).")))
+                   `PRESERVED_CYCLES` in the white paper)." ) ))
   $ Arg.(
       pure (fun x -> `Timestamp_delay x)
       $ value
           (opt (some int) def.timestamp_delay
              (info ["timestamp-delay"] ~docv:"NUMBER" ~docs
-                ~doc:"Protocol activation timestamp delay in seconds.")))
+                ~doc:"Protocol activation timestamp delay in seconds." ) ))
   $ Arg.(
       pure (fun f ->
           `Protocol_parameters
             (Option.map f ~f:(fun path ->
                  let i = Caml.open_in path in
-                 Ezjsonm.from_channel i)))
+                 Ezjsonm.from_channel i ) ) )
       $ value
           (opt (some file) None
              (info
                 ["override-protocol-parameters"]
                 ~doc:
-                  "Use these protocol parameters instead of the generated \
-                   ones (technically this invalidates most other options from \
-                   a tezos-node point of view, use at your own risk)."
-                ~docv:"JSON-FILE" ~docs)))
+                  "Use these protocol parameters instead of the generated ones \
+                   (technically this invalidates most other options from a \
+                   tezos-node point of view, use at your own risk)."
+                ~docv:"JSON-FILE" ~docs ) ))
   $ Protocol_kind.cmdliner_term () ~docs
 
 module Pretty_print = struct
@@ -479,7 +475,7 @@ module Pretty_print = struct
               match prev with
               | (kind, n) :: more when String.equal kind k ->
                   (kind, n + 1) :: more
-              | other -> (k, 1) :: other)
+              | other -> (k, 1) :: other )
         |> List.map ~f:(function k, 1 -> k | k, n -> str "%s×%d" k n)
         |> String.concat ~sep:"+" ) in
     let open Jqo in
@@ -515,16 +511,15 @@ module Pretty_print = struct
                       pf ppf "@,   * [%a] %a" pp_op_list_short contents
                         (long_string ~max:15)
                         (field ~k:"hash" op |> get_string) ;
-                      List.iter contents ~f:(pp_op_long ppf))
+                      List.iter contents ~f:(pp_op_long ppf) )
               | _other ->
                   List.iter l ~f:(function
                     | `A [`String opid; op] ->
                         let contents = field ~k:"contents" op |> get_list in
-                        pf ppf "@,    * [%s]: %a" opid pp_op_list_short
-                          contents ;
+                        pf ppf "@,    * [%s]: %a" opid pp_op_list_short contents ;
                         pf ppf "@,    TODO: %a" json content
-                    | _ -> fail_expecting "a operation tuple") )
-            | _ -> fail_expecting "a list of operations")
+                    | _ -> fail_expecting "a operation tuple" ) )
+            | _ -> fail_expecting "a list of operations" )
     | _ -> fail_expecting "a JSON object"
 
   let block_head_rpc ppf block_json =
@@ -536,11 +531,14 @@ module Pretty_print = struct
     let header = field ~k:"header" block_json in
     let level = field ~k:"level" header |> get_int in
     let timestamp = field ~k:"timestamp" header |> get_string in
-    let voting_kind = metadata |> field ~k:"voting_period_kind" |> get_string in
+    let voting_kind =
+      metadata
+      |> field ~k:"voting_period_info"
+      |> field ~k:"voting_period" |> field ~k:"kind" |> get_string in
     let voting_pos =
-      metadata |> field ~k:"level"
-      |> field ~k:"voting_period_position"
-      |> get_int in
+      metadata
+      |> field ~k:"voting_period_info"
+      |> field ~k:"position" |> get_int in
     let voting_nth =
       metadata |> field ~k:"level" |> field ~k:"voting_period" |> get_int in
     let baker = metadata |> field ~k:"baker" |> get_string in

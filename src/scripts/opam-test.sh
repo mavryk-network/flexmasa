@@ -15,6 +15,7 @@ opam pin -n add tezos-crypto "$vendor/src/lib_crypto/"
 opam pin -n add tezos-base "$vendor/src/lib_base/"
 opam pin -n add tezos-hacl-glue "$vendor/src/lib_hacl_glue/virtual/"
 opam pin -n add tezos-hacl-glue-unix "$vendor/src/lib_hacl_glue/unix/"
+opam pin -n add tezos-rpc-http-server "$vendor/src/lib_rpc_http/"
 opam install --yes ringo hacl-star tezos-lwt-result-stdlib tezos-error-monad tezos-stdlib tezos-event-logging tezos-stdlib-unix tezos-clic tezos-crypto tezos-hacl-glue-unix
 # There is seems to be a dependency missing:
 opam install --yes tezos-base

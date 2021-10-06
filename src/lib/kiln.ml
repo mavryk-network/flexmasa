@@ -6,7 +6,7 @@ module Configuration_directory = struct
   let generate state ?(protocol_execs = []) t ~protocol ~peers ~sandbox_json
       ~nodes ~bakers ~network_string ~node_exec ~client_exec =
     (* For now, client-exec in Kiln is not protocol dependent, this
-     should be fixed soon. *)
+       should be fixed soon. *)
     let {path; clean; p2p_port} = t in
     ( if clean then
       Running_processes.run_cmdf state
@@ -52,7 +52,7 @@ module Configuration_directory = struct
            ( List.map peers ~f:(sprintf "--peer 127.0.0.1:%d")
            |> String.concat ~sep:" " )
            (List.length peers - 1)
-           sandbox_json)
+           sandbox_json )
     >>= fun () ->
     System.write_file state ~perm:0o777 (path // "nodes")
       ~content:(String.concat ~sep:"," nodes)
@@ -83,7 +83,7 @@ module Configuration_directory = struct
             ; ( "baker-endorser-paths"
               , list
                   (fun (p, bak, endo) ->
-                    strings [p; absolutize bak; absolutize endo])
+                    strings [p; absolutize bak; absolutize endo] )
                   protocol_execs ) ]
           |> to_string ~minify:false)
     >>= fun () ->
@@ -95,7 +95,7 @@ module Configuration_directory = struct
     let docs = Manpage_builder.section state ~rank:4 ~name:"TOOLS: KILN" in
     Term.(
       pure (fun x clean ->
-          Option.map x ~f:(fun (path, p2p_port) -> {path; p2p_port; clean}))
+          Option.map x ~f:(fun (path, p2p_port) -> {path; p2p_port; clean}) )
       $ Arg.(
           value
             (opt
@@ -104,11 +104,11 @@ module Configuration_directory = struct
                (info ~docs
                   ["generate-kiln-configuration-path"]
                   ~docv:"PATH,PORT"
-                  ~doc:"Generate a kiln configuration at $(docv)")))
+                  ~doc:"Generate a kiln configuration at $(docv)" ) ))
       $ Arg.(
           value
             (flag
                (info ~docs
                   ["clean-kiln-configuration"]
-                  ~doc:"Delete configuration path before generating it"))))
+                  ~doc:"Delete configuration path before generating it" ) )))
 end

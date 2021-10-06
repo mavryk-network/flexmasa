@@ -64,8 +64,7 @@ module Topology = struct
     match (topo, res) with
     | Mesh _, l -> List.map l ~f:(fun nod -> nod.Tezos_node.id)
     | Bottleneck {left; right; _}, (l, i, r) ->
-        (i.Tezos_node.id :: node_ids left.topology l)
-        @ node_ids right.topology r
+        i.Tezos_node.id :: node_ids left.topology l @ node_ids right.topology r
     | Net_in_the_middle {left; right; middle}, (l, i, r) ->
         node_ids middle.topology i @ node_ids left.topology l
         @ node_ids right.topology r
@@ -77,12 +76,12 @@ module Topology = struct
     match topology with
     | Mesh {size} -> List.init size ~f:make_ith
     | Bottleneck {name; left; right} ->
-        (sprintf "%s%s" prefix name :: continue left) @ continue right
+        sprintf "%s%s" prefix name :: continue left @ continue right
     | Net_in_the_middle {left; right; middle} ->
         continue middle @ continue left @ continue right
 
-  let build ?(external_peer_ports = []) ?(base_port = 15_001) ~make_node
-      network =
+  let build ?(external_peer_ports = []) ?(base_port = 15_001) ~make_node network
+      =
     let all_ports = ref [] in
     let next_port = ref (base_port + Int.rem base_port 2) in
     let rpc name =
@@ -101,14 +100,15 @@ module Topology = struct
         List.length peers + List.length external_peer_ports in
       let peers =
         List.filter_map peers ~f:(fun p ->
-            if not (String.equal p id) then Some (p2p p) else None) in
+            if not (String.equal p id) then Some (p2p p) else None ) in
       make_node id ~expected_connections ~rpc_port ~p2p_port
         (external_peer_ports @ peers) in
     let dbgp prefx names =
       Dbg.f (fun pf ->
           pf "%s:\n  %s\n%!" prefx
             (String.concat ~sep:"\n  "
-               (List.map names ~f:(fun n -> sprintf "%s:%d" n (p2p n))))) in
+               (List.map names ~f:(fun n -> sprintf "%s:%d" n (p2p n))) ) )
+    in
     let rec make :
         type a. ?extra_peers:string list -> prefix:string -> a network -> a =
      fun ?(extra_peers = []) ~prefix network ->
@@ -129,8 +129,7 @@ module Topology = struct
       | Net_in_the_middle {middle; left; right} ->
           let middle_names = node_names ~prefix:(prefix ^ middle.name) middle in
           dbgp "Mid-name" middle_names ;
-          let left_nodes =
-            make ~extra_peers:(extra_peers @ middle_names) left in
+          let left_nodes = make ~extra_peers:(extra_peers @ middle_names) left in
           let right_nodes =
             make ~extra_peers:(extra_peers @ middle_names) right in
           let intermediate_nodes =
@@ -159,8 +158,7 @@ module Queries = struct
         >>= fun prev ->
         Running_processes.run_cmdf state
           (* the header RPC is the most consistent across protocols: *)
-          "curl http://localhost:%d/chains/%s/blocks/head/header" rpc_port
-          chain
+          "curl http://localhost:%d/chains/%s/blocks/head/header" rpc_port chain
         >>= fun metadata ->
         Console.display_errors_of_command state metadata ~should_output:true
         >>= (function
@@ -171,20 +169,18 @@ module Queries = struct
                     |> Jqo.get_int )
                   |> return
                 with _ -> return `Failed )
-              | false -> return `Failed)
-        >>= fun res -> return ((id, res) :: prev))
+              | false -> return `Failed )
+        >>= fun res -> return ((id, res) :: prev) )
     >>= fun results ->
     let sorted =
-      List.sort results ~compare:(fun (a, _) (b, _) -> String.compare a b)
-    in
+      List.sort results ~compare:(fun (a, _) (b, _) -> String.compare a b) in
     return sorted
 
   let wait_for_all_levels_to_be ?attempts_factor ?chain ?(silent = false) state
       ~attempts ~seconds nodes level =
     let check_level =
-      match level with
-      | `Equal_to l -> ( = ) l
-      | `At_least l -> fun x -> x >= l in
+      match level with `Equal_to l -> ( = ) l | `At_least l -> fun x -> x >= l
+    in
     let level_string =
       match level with
       | `Equal_to l -> sprintf "= %d" l
@@ -205,7 +201,7 @@ module Queries = struct
         EF.(
           wf "Checking for all levels to be %s (nodes: %s%s)" level_string
             (String.concat ~sep:", "
-               (List.map nodes ~f:(fun n -> n.Tezos_node.id)))
+               (List.map nodes ~f:(fun n -> n.Tezos_node.id)) )
             (Option.value_map chain ~default:"" ~f:(sprintf ", chain: %s")))
     else return () )
     >>= fun () ->
@@ -216,17 +212,17 @@ module Queries = struct
         let not_readys =
           List.filter_map results ~f:(function
             | _, `Level n when check_level n -> None
-            | id, res -> Some (id, res)) in
+            | id, res -> Some (id, res) ) in
         match not_readys with
         | [] -> return (`Done ())
-        | ids -> return (`Not_done (msg ids)))
+        | ids -> return (`Not_done (msg ids)) )
 
   let wait_for_bake state ~nodes =
     all_levels state ~nodes
     >>= fun results ->
     let levels =
       List.map results ~f:(fun (_, result) ->
-          match result with `Level i -> i | _ -> 0) in
+          match result with `Level i -> i | _ -> 0 ) in
     let max_level =
       match List.max_elt ~compare:Int.compare levels with
       | Some n -> n
@@ -250,15 +246,15 @@ module Network = struct
       List_sequential.iter nodes
         ~f:(fun {Tezos_node.id; rpc_port; p2p_port; _} ->
           let fail s (p, `Tcp (_, row)) =
-            System_error.fail_fatalf
-              "Node: %S's %s port %d already in use {%s}" id s p
+            System_error.fail_fatalf "Node: %S's %s port %d already in use {%s}"
+              id s p
               (String.concat ~sep:"|" row) in
           let time_wait (_, `Tcp (_, row)) =
             Poly.equal (List.last row) (Some "TIME_WAIT") in
           match (taken rpc_port, taken p2p_port) with
           | None, None -> return ()
           | Some p, _ -> if time_wait p then return () else fail "RPC" p
-          | _, Some p -> if time_wait p then return () else fail "P2P" p)
+          | _, Some p -> if time_wait p then return () else fail "P2P" p )
     else return () )
     >>= fun () ->
     let protocols =
@@ -274,7 +270,7 @@ module Network = struct
         prev_m
         >>= fun () ->
         Running_processes.start state (Tezos_node.process state node)
-        >>= fun _ -> return ())
+        >>= fun _ -> return () )
     >>= fun () ->
     let node_0 = List.hd_exn nodes in
     let client = Tezos_client.of_node node_0 ~exec:client_exec in
@@ -295,7 +291,7 @@ module Network = struct
     Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
     List_sequential.iter nodes ~f:(fun node ->
         let client = Tezos_client.of_node node ~exec:client_exec in
-        Tezos_client.wait_for_node_bootstrap state client)
+        Tezos_client.wait_for_node_bootstrap state client )
     >>= fun () ->
     (* We make sure all nodes got activation before trying to continue: *)
     Queries.wait_for_all_levels_to_be state ~attempts:20 ~seconds:0.5
@@ -309,7 +305,7 @@ let network_with_protocol ?do_activation ?node_custom_network
     Topology.build ?base_port ?external_peer_ports
       ~make_node:(fun id ~expected_connections ~rpc_port ~p2p_port peers ->
         Tezos_node.make ?protocol ~exec:node_exec id ~expected_connections
-          ?custom_network:node_custom_network ~rpc_port ~p2p_port peers)
+          ?custom_network:node_custom_network ~rpc_port ~p2p_port peers )
       (Topology.mesh "N" size) in
   nodes_history_mode_edits pre_edit_nodes
   >>= fun nodes ->

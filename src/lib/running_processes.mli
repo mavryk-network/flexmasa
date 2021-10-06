@@ -98,9 +98,11 @@ module Async : sig
   val run_cmdf :
        ?id_base:string
     -> < runner: State.t ; .. >
-    -> f:(   State.process_state
+    -> f:
+         (   State.process_state
           -> Lwt_process.process_full
-          -> ('return_ok, ([> System_error.t] as 'error)) Asynchronous_result.t)
+          -> ('return_ok, ([> System_error.t] as 'error)) Asynchronous_result.t
+         )
     -> ( 'c
        , unit
        , string
@@ -112,12 +114,13 @@ module Async : sig
   val fold_process :
        Lwt_process.process_full
     -> init:'a
-    -> f:(   'a
+    -> f:
+         (   'a
           -> string
           -> string
           -> ( [< `Continue of 'a | `Done of 'a]
              , ([> System_error.t] as 'b) )
-             Asynchronous_result.t)
+             Asynchronous_result.t )
     -> ('a, 'b) Asynchronous_result.t
   (** Fold over the output and error-output of a {!Lwt_process.process_full}, and  *)
 end

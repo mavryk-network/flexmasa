@@ -17,15 +17,15 @@ module Unix_files_sink : sig
   val all_info : t
 end
 
-type kind = [`Node | `Baker | `Endorser | `Accuser | `Client | `Admin]
 (** The type [kind] is used to distinguish ['a t] executables. *)
+type kind = [`Node | `Baker | `Endorser | `Accuser | `Client | `Admin]
 
+(** The wrapper of the tezos-executable. *)
 type t = private
   { kind: kind
   ; binary: string option
   ; unix_files_sink: Unix_files_sink.t option
   ; environment: (string * string) list }
-(** The wrapper of the tezos-executable. *)
 
 val make :
      ?binary:string

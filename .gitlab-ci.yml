@@ -6,80 +6,23 @@ stages:
   - deploy
 
 variables:
-  setup_image: "registry.gitlab.com/tezos/flextesa:d409d4c4-setup"
-  # ### Setup of setup_image:
-  # * since we cannot set variables depending on branches in Gitlab CI
-  #   AND we don't want to build the `..-setup` image for every push
-  #   (takes about 18 minutes)
-  # * The setup_image is created only for `master` and `image-...` branches,
-  #   see the job docker:setup.
-  # * If you modify how the image is made (e.g. src/tezos-master.opam-switch)
-  #   please push to such a branch and update the above variable for other runs
-  #   (it's fine if the whole pipeline fails as long as the -setup image is
-  #   created).
-  # * Note that the build of the `...-build` images knows how to get the right
-  #   `...-setup` image depending on the branch
-  #   (cf. src/scripts/make-docker-images.sh).
-  dind_image: "docker:19.03.1"
-  dind_service: "docker:19.03.5-dind"
+  dind_image: "docker:20.10.7"
+  dind_service: "docker:20.10.7-dind"
   SHOW_INFO: >
     echo "=========== INFO: ============" &&
     opam config exec -- ocamlc -version &&
     git status &&
     git log --graph  --decorate --all --oneline -n 20
 
-build:vendored-tezos:
-  image: $setup_image
-  stage: build
-  artifacts:
-    paths:
-      - _build/
-  script:
-     - bash -c "$SHOW_INFO"
-     - opam config exec -- make vendors
-     - opam config exec -- make
-
-lint:
-  image: $setup_image
-  stage: build
-  script:
-     - bash -c "$SHOW_INFO"
-     - opam config exec -- ocamlformat --version
-     - opam config exec -- make fmt
-     - git diff --exit-code
-
-opam-test:
-  image: $setup_image
-  stage: build
-  script:
-     - bash -c "$SHOW_INFO"
-     - make vendors
-     - opam remote add m https://github.com/ocaml/opam-repository.git
-     - opam config exec -- sh src/scripts/opam-test.sh
-
-codegen-test:
-  image: $setup_image
-  stage: test
-  artifacts:
-    paths:
-      - _build/
-  script:
-     - bash -c "$SHOW_INFO"
-     - make vendors
-     - opam install -y ppx_deriving
-     - opam config exec -- sh src/scripts/test-ocaml-code-generation.sh run_all
-
-docker:setup:
+docker:images:
   image: "$dind_image"
   services:
     - "$dind_service"
-  only:
-    - master
-    - /^image.*$/
-    - /^version.*$/
   stage: setup-docker-image
   variables:
     DOCKER_DRIVER: overlay2
+  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+    FF_NETWORK_PER_BUILD: "true"
   before_script:
     - apk add git bash
     - git --version
@@ -87,88 +30,49 @@ docker:setup:
     - docker --version
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - ./src/scripts/make-docker-images.sh setup "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
-    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-setup"
-    - docker tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-setup" "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-setup"
-    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-setup"
-
-docker:build:
-  image: "$dind_image"
-  services:
-    - "$dind_service"
-  stage: build
-  variables:
-    DOCKER_DRIVER: overlay2
-  before_script:
-    - apk add git bash
-    - git --version
-    - bash --version
-    - docker --version
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - ./src/scripts/make-docker-images.sh build "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${setup_image}" "${CI_COMMIT_REF_NAME}"
+    - docker pull ocaml/opam:ubuntu-21.04-ocaml-4.12
+    - docker build . --target build_step -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
-
-docker:run:
-  image: "$dind_image"
-  services:
-    - "$dind_service"
-  stage: test
-  variables:
-    DOCKER_DRIVER: overlay2
-  before_script:
-    - apk add git bash
-    - git --version
-    - bash --version
-    - docker --version
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - ./src/scripts/make-docker-images.sh run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - docker build . --target run_image -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+
+lint:
+  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
+  stage: build
+  script:
+     - bash -c "$SHOW_INFO"
+     - opam install ocamlformat.0.18.0
+     - opam exec -- ocamlformat --version
+     - opam exec -- make fmt
+     - git diff --exit-code
 
 docker:test:
   image: "$dind_image"
   services:
     - "$dind_service"
-  stage: deploy
+  stage: build
   variables:
     DOCKER_DRIVER: overlay2
+  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+    FF_NETWORK_PER_BUILD: "true"
   artifacts:
      paths:
      - mini-net-root
   script:
     - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" cat /usr/bin/flextesarl
-    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Florence --keep-root --time-between-blocks 3 --until-level 10 --number-of-boot 2 --size 2
-    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Granada --keep-root --time-between-blocks 3 --minimal-block 3 --until-level 10 --number-of-boot 2 --size 2
+    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Granada --keep-root --time-between-blocks 2 --until-level 10 --number-of-boot 1 --size 1
+    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Hangzhou --keep-root --time-between-blocks 3 --minimal-block 2 --until-level 10 --number-of-boot 1 --size 1
 
-docker:tag:
-  image: "$dind_image"
-  services:
-    - "$dind_service"
-  stage: deploy
-  variables:
-    DOCKER_DRIVER: overlay2
-  only:
-    - master
-    - /^image.*$/
-    - /^version.*$/
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa --help=plain
-    - docker tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-run"
-    - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-run"
 
 makewebsite:
-  image: $setup_image
+  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
   stage: build
   artifacts:
      paths:
      - testweb
   script:
      - bash -c "$SHOW_INFO"
-     - make vendors
-     - make
-     - opam config exec -- bash src/scripts/build-doc.sh testweb/
+     - opam exec -- bash src/scripts/build-doc.sh testweb/
 
 pages:
   image: docker:latest

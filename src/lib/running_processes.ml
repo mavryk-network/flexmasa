@@ -19,8 +19,7 @@ module Process = struct
   let docker_run id ~image ~options ~args =
     let name = id in
     let command =
-      ["docker"; "run"; "--name"; name; "--rm"] @ options @ [image] @ args
-    in
+      ["docker"; "run"; "--name"; name; "--rm"] @ options @ [image] @ args in
     {id; binary= None; command; kind= `Docker name}
 end
 
@@ -72,7 +71,7 @@ let ef_procesess state processes =
            desc_list (af "P:%s" process.id)
              [ desc (af "out") (atom (output_path state process `Stdout))
              ; desc (af "err") (atom (output_path state process `Stderr))
-             ; desc (af "pid") (af "%d" lwt#pid) ])))
+             ; desc (af "pid") (af "%d" lwt#pid) ] ) ))
 
 let unix_status_to_string (p : Unix.process_status) =
   match p with
@@ -94,8 +93,7 @@ let ef ?(all = false) state =
           | true, _ | false, Lwt_process.Running ->
               ( process.id
               , list ~delimiters:("{", "}")
-                  [ haf "%s:" process.id
-                  ; desc (af "pid:") (af "%d" lwt#pid)
+                  [ haf "%s:" process.id; desc (af "pid:") (af "%d" lwt#pid)
                   ; desc (af "state:") (ef_lwt_state lwt#state)
                   ; desc (af "kind:")
                       ( match process.kind with
@@ -103,7 +101,7 @@ let ef ?(all = false) state =
                       | `Process_group -> af "process-group"
                       | `Process_group_script _ -> af "shell-script" ) ] )
               :: prev
-          | _, _ -> prev)
+          | _, _ -> prev )
         (State.processes state) []
       |> List.sort ~compare:(fun (a, _) (b, _) -> String.compare a b)
       |> List.map ~f:snd in
@@ -153,7 +151,7 @@ let start t process =
               ( List.map actual_command ~f:(sprintf "%S")
               |> String.concat ~sep:"; " )
               sep in
-          Lwt_io.write chan msg))
+          Lwt_io.write chan msg ) )
     ()
   >>= fun () ->
   let proc =
@@ -188,7 +186,7 @@ let kill _t {lwt; process} =
           ( try Unix.kill pid signal with
           | Unix.Unix_error (Unix.ESRCH, _, _) -> ()
           | e -> raise e ) ;
-          Lwt.return ())
+          Lwt.return () )
         ()
   | `Docker name -> (
       System_error.catch Lwt_unix.system (sprintf "docker kill %s" name)
@@ -203,20 +201,20 @@ let kill _t {lwt; process} =
                 (shout "docker kill failed")
                 (list
                    [ af "docker-container: %s" name
-                   ; af "status: %s" (unix_status_to_string other) ])) ;
+                   ; af "status: %s" (unix_status_to_string other) ] )) ;
           return () )
 
 let wait_all t =
   State.all_processes t
   >>= fun all ->
   List.fold all ~init:(return ()) ~f:(fun prevm one ->
-      prevm >>= fun () -> wait t one >>= fun _ -> return ())
+      prevm >>= fun () -> wait t one >>= fun _ -> return () )
 
 let kill_all t =
   State.all_processes t
   >>= fun all ->
   List.fold all ~init:(return ()) ~f:(fun prevm one ->
-      prevm >>= fun () -> kill t one)
+      prevm >>= fun () -> kill t one )
 
 let find_process_by_id ?(only_running = false) t ~f =
   State.all_processes t
@@ -225,7 +223,7 @@ let find_process_by_id ?(only_running = false) t ~f =
     (List.filter all ~f:(fun {process= {id; _}; lwt} ->
          if only_running && not Poly.(lwt#state = Lwt_process.Running) then
            false
-         else f id))
+         else f id ) )
 
 let cmds = ref 0
 
@@ -260,12 +258,8 @@ let run_cmdf ?(id_prefix = "cmd") state fmt =
       >>= fun err_lines ->
       return
         (object
-           method out = out_lines
-
-           method err = err_lines
-
-           method status = status
-        end))
+           method out = out_lines method err = err_lines method status = status
+        end ) )
     fmt
 
 let run_successful_cmdf state fmt =
@@ -275,7 +269,7 @@ let run_successful_cmdf state fmt =
       >>= fun res ->
       Process_result.Error.fail_if_non_zero res
         (sprintf "Shell command: %S" cmd)
-      >>= fun () -> return res)
+      >>= fun () -> return res )
     fmt
 
 let run_genspio state name genspio =
@@ -293,7 +287,7 @@ module Async = struct
         Dbg.e EF.(wf "Started async: %S" proc_state.process.id) ;
         f proc_state proc
         >>= fun res ->
-        wait state proc_state >>= fun status -> return (status, res))
+        wait state proc_state >>= fun status -> return (status, res) )
       fmt
 
   let fold_process (process : Lwt_process.process_full) ~init ~f =
@@ -311,12 +305,10 @@ module Async = struct
           >>= function
           | `Left None -> (
               System_error.catch Lwt_stream.peek err
-              >>= function
-              | None -> return prev | Some _ -> go (return prev) () )
+              >>= function None -> return prev | Some _ -> go (return prev) () )
           | `Right None -> (
               System_error.catch Lwt_stream.peek out
-              >>= function
-              | None -> return prev | Some _ -> go (return prev) () )
+              >>= function None -> return prev | Some _ -> go (return prev) () )
           | _ -> go (return prev) () )
       | outl, errl -> (
           f prev (String.of_char_list outl) (String.of_char_list errl)

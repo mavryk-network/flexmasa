@@ -1,6 +1,6 @@
 (executables
   (names main)
-  (libraries flextesa michokit))
+  (libraries flextesa))
 
 ;;(alias
 ;; (name runtest)

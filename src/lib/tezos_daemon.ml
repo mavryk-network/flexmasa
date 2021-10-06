@@ -39,23 +39,20 @@ let to_script state (t : t) =
   | Baker key ->
       let node_path = Tezos_node.data_dir state t.node in
       call t
-        [ "--endpoint"
-        ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
-        ; "--base-dir"; base_dir; "run"; "with"; "local"; "node"; node_path
-        ; key ]
+        [ "--endpoint"; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
+        ; "--base-dir"; base_dir; "run"; "with"; "local"; "node"; node_path; key
+        ]
   | Endorser key ->
       call t
-        [ "--endpoint"
-        ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
+        [ "--endpoint"; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
         ; "--base-dir"; base_dir; "run"; key ]
   | Accuser ->
       call t
-        [ "--endpoint"
-        ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
+        [ "--endpoint"; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
         ; "--base-dir"; base_dir; "run"; "--preserved-levels"; "10" ]
 
 let process state (t : t) =
   Running_processes.Process.genspio
     (sprintf "%s-for-%s%s" (arg_to_string t.args) t.node.Tezos_node.id
-       (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")))
+       (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")) )
     (to_script state t)

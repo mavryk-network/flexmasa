@@ -1,8 +1,7 @@
 open Internal_pervasives
 module MFmt = Experiments.Markup_fmt
 
-let failf ?attach fmt =
-  ksprintf (fun s -> fail ?attach (`Scenario_error s)) fmt
+let failf ?attach fmt = ksprintf (fun s -> fail ?attach (`Scenario_error s)) fmt
 
 module Data = struct
   type t = Fmt of (Caml.Format.formatter -> unit)
@@ -58,7 +57,7 @@ module Data = struct
   let record l =
     list_like ~sep:semi_colon ~delimiter:Fmt.braces
       (List.map l ~f:(fun (k, v) ->
-           fmt Fmt.(fun ppf -> pf ppf "@[<2>%s =@ %a@]" k pp v)))
+           fmt Fmt.(fun ppf -> pf ppf "@[<2>%s =@ %a@]" k pp v) ) )
 end
 
 module Contract = struct
@@ -100,7 +99,7 @@ module Contract = struct
       (Caml.Filename.quote out)
       (Caml.Filename.quote tezos_node)
       ( List.map storage ~f:(fun item ->
-            Caml.Filename.quote (Data.to_string item))
+            Caml.Filename.quote (Data.to_string item) )
       |> String.concat ~sep:" " )
     >>= fun _ -> System.read_file state out >>= fun content -> return content
 
@@ -118,32 +117,30 @@ module Contract = struct
     let flag_name s = sprintf "%s-%s" prefix s in
     Arg.(
       pure (fun path main_name library ->
-          make ~library ?main_name ~path contract_name)
+          make ~library ?main_name ~path contract_name )
       $ required
           (opt (some non_dir_file) None
              (info [flag_name "path"]
                 ~doc:
-                  (sprintf "Path to the liquidity %s contract." contract_name)))
+                  (sprintf "Path to the liquidity %s contract." contract_name) ) )
       $ value
           (opt (some string) None
              (info [flag_name "main"]
                 ~doc:
-                  (sprintf "Name of “main” contract for %s." contract_name)))
+                  (sprintf "Name of “main” contract for %s." contract_name) ) )
       $ value
           (opt
              (list ~sep:',' non_dir_file)
              []
              (info [flag_name "library"]
                 ~doc:
-                  (sprintf
-                     "Paths to extra liquidity %s contract-library files."
-                     contract_name))))
+                  (sprintf "Paths to extra liquidity %s contract-library files."
+                     contract_name ) ) ))
 end
 
 module On_chain = struct
-  let tezos_client_keyed_originate_contract ?(force = false)
-      ?(transferring = 0) ?(burn_cap = 0.5) state keyed ~name ~source ~storage
-      =
+  let tezos_client_keyed_originate_contract ?(force = false) ?(transferring = 0)
+      ?(burn_cap = 0.5) state keyed ~name ~source ~storage =
     let client = keyed.Tezos_client.Keyed.client in
     Tezos_client.successful_client_cmd state ~client
       ( [ "--wait"; "none"; "originate"; "contract"; name; "for"; keyed.key_name
@@ -180,7 +177,7 @@ module On_chain = struct
         @ par (tf "Storage:")
         @ itemize
             (List.map storage ~f:(fun (name, data) ->
-                 tf "%s:@ %a" name Data.pp data))
+                 tf "%s:@ %a" name Data.pp data ) )
         |> to_fmt)
     >>= fun () -> return address
 
@@ -209,7 +206,7 @@ module On_chain = struct
       | `Script_failwith_re re ->
           let intersting_part =
             List.drop_while res#err ~f:(fun line ->
-                String.is_prefix line ~prefix:"script reached FAILWITH")
+                String.is_prefix line ~prefix:"script reached FAILWITH" )
             |> String.concat ~sep:" " in
           if Re.execp re intersting_part then return (`Expected `Failure)
           else return (`Failed `With_error_does_not_match)
@@ -277,14 +274,12 @@ module On_chain = struct
     Tezos_client.rpc state ~client (`Post post_json)
       ~path:
         (sprintf "/chains/main/blocks/head/context/contracts/%s/big_map_get"
-           address)
+           address )
     >>= fun json ->
     return
       (object
-         method post = post_json
-
-         method result = json
-      end)
+         method post = post_json method result = json
+      end )
 
   let show_contract_command state ~client ~name ~address ~pp_error =
     Console.Prompt.unit_and_loop
@@ -294,7 +289,7 @@ module On_chain = struct
           ~f:(fun e ->
             Caml.Format.kasprintf
               (fun s -> `Command_line s)
-              "show-contract: %a" pp_error e)
+              "show-contract: %a" pp_error e )
           ( List.fold ["storage"; "balance"] ~init:(return [])
               ~f:(fun pm endpoint ->
                 pm
@@ -302,32 +297,32 @@ module On_chain = struct
                 Tezos_client.rpc state ~client `Get
                   ~path:
                     (sprintf "/chains/main/blocks/head/context/contracts/%s/%s"
-                       address endpoint)
+                       address endpoint )
                 >>= fun json ->
                 return
                   EF.(
                     desc (wf "/%s" endpoint)
                       (markdown_verbatim
-                         (Ezjsonm.value_to_string ~minify:false json))
-                    :: l))
+                         (Ezjsonm.value_to_string ~minify:false json) )
+                    :: l) )
           >>= fun l ->
           Console.say state
             EF.(
               desc
                 (haf "Contract %s@%s" name address)
-                (list ~sep:"" ~delimiters:("", "") l)) ))
+                (list ~sep:"" ~delimiters:("", "") l)) ) )
 
   let big_map_get_command state ~names ~thing ~client ~name ~address
       ~key_of_string ~pp_error =
     Console.Prompt.unit_and_loop
       ~description:
         (Fmt.str "Get %s from the big-map of the contract %s@%s." thing name
-           address) names (fun sexps ->
+           address ) names (fun sexps ->
         Asynchronous_result.transform_error
           ~f:(fun e ->
             Caml.Format.kasprintf
               (fun s -> `Command_line s)
-              "%s: %a" (List.hd_exn names) pp_error e)
+              "%s: %a" (List.hd_exn names) pp_error e )
           ( match sexps with
           | [Sexplib.Sexp.Atom s] ->
               key_of_string s
@@ -341,5 +336,5 @@ module On_chain = struct
                   @ par (tf "Got:")
                   @ verbatim_ezjson getthing#result
                   |> to_fmt)
-          | _ -> failf "Wrong s-exp command line" ))
+          | _ -> failf "Wrong s-exp command line" ) )
 end

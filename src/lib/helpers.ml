@@ -5,8 +5,7 @@ let dump_connection =
   let open EF in
   let open Tezos_node in
   function
-  | `Duplex (na, nb) ->
-      af "%s:%d <-> %s:%d" na.id na.p2p_port nb.id nb.p2p_port
+  | `Duplex (na, nb) -> af "%s:%d <-> %s:%d" na.id na.p2p_port nb.id nb.p2p_port
   | `From_to (na, nb) ->
       haf "%s:%d --> %s:%d" na.id na.p2p_port nb.id nb.p2p_port
   | `Missing (na, int) ->
@@ -77,11 +76,9 @@ let import_keys_from_seeds state client ~seeds =
       >>= fun _ ->
       let kp = Tezos_protocol.Account.of_name s in
       Tezos_client.client_cmd state ~client
-        [ "import"; "secret"; "key"
-        ; Tezos_protocol.Account.name kp
-        ; Tezos_protocol.Account.private_key kp
-        ; "--force" ]
-      >>= fun (_, sign_res) -> return (String.concat ~sep:"" sign_res#out))
+        [ "import"; "secret"; "key"; Tezos_protocol.Account.name kp
+        ; Tezos_protocol.Account.private_key kp; "--force" ]
+      >>= fun (_, sign_res) -> return (String.concat ~sep:"" sign_res#out) )
 
 module Counter_log = struct
   type t = (string * int) list ref
@@ -95,13 +92,13 @@ module Counter_log = struct
     let total = "**Total:**" in
     let longest =
       List.fold !t ~init:total ~f:(fun p (n, _) ->
-          if String.length p < String.length n then n else p) in
+          if String.length p < String.length n then n else p ) in
     List.rev_map
       ((total, sum t) :: !t)
       ~f:(fun (cmt, n) ->
         sprintf "| %s %s|% 8d|" cmt
           (String.make (String.length longest - String.length cmt + 2) '.')
-          n)
+          n )
     |> String.concat ~sep:"\n"
 end
 
@@ -128,10 +125,10 @@ module Netstat = struct
               match
                 String.split line ~on:' '
                 |> List.filter_map ~f:(fun s ->
-                       match String.strip s with "" -> None | s -> Some s)
+                       match String.strip s with "" -> None | s -> Some s )
               with
               | ("tcp" | "tcp6") :: _ as row -> Some (`Tcp (idx, row))
-              | _ -> Some (`Wrong (idx, line))) in
+              | _ -> Some (`Wrong (idx, line)) ) in
         return rows
     | `Not_right ->
         Console.say state
@@ -139,7 +136,7 @@ module Netstat = struct
             desc (shout "Warning:")
               (wf
                  "This does not look like a linux-netstat; port-availability \
-                  checks are hence disabled."))
+                  checks are hence disabled." ))
         >>= fun () -> return []
 
   let all_listening_ports rows =
@@ -148,7 +145,7 @@ module Netstat = struct
         match String.split addr ~on:':' with
         | [_; port] -> ( try Some (Int.of_string port, row) with _ -> None )
         | _ -> None )
-      | _ -> None)
+      | _ -> None )
 
   let used_listening_ports state =
     netstat_dash_nut state
@@ -184,12 +181,12 @@ module System_dependencies = struct
         >>= fun result ->
         match result#status with
         | Unix.WEXITED 0 -> return prev
-        | _ -> return (`Missing_exec (cmd, result) :: prev))
+        | _ -> return (`Missing_exec (cmd, result) :: prev) )
     >>= fun errors_or_warnings ->
     Netstat.check_version state
     >>= (function
           | `Fine -> return errors_or_warnings
-          | `Not_right -> return (`Wrong_netstat :: errors_or_warnings))
+          | `Not_right -> return (`Wrong_netstat :: errors_or_warnings) )
     >>= fun errors_or_warnings ->
     List.fold protocol_paths ~init:(return errors_or_warnings)
       ~f:(fun prev_m path ->
@@ -198,7 +195,7 @@ module System_dependencies = struct
         System_error.catch Lwt_unix.file_exists (path // "TEZOS_PROTOCOL")
         >>= function
         | true -> return prev
-        | false -> return (`Not_a_protocol_path path :: prev))
+        | false -> return (`Not_a_protocol_path path :: prev) )
     >>= fun errors_or_warnings ->
     match (errors_or_warnings, how_to_react) with
     | [], _ -> return ()
@@ -225,14 +222,14 @@ module System_dependencies = struct
                               kstr (text ppf) "Missing executable `%s`." path
                           | `Wrong_netstat -> text ppf "Wrong netstat version."
                           | `Not_a_protocol_path path ->
-                              kstr (text ppf) "`%s` is not a protocol." path)
-                        ppf ()))
+                              kstr (text ppf) "`%s` is not a protocol." path )
+                        ppf () ) )
                 ppf ())
         >>= fun () ->
         ( if
           List.exists more ~f:(function
             | `Wrong_netstat | `Missing_exec ("setsid", _) -> true
-            | _ -> false)
+            | _ -> false )
         then
           Console.say state
             EF.(
@@ -240,7 +237,7 @@ module System_dependencies = struct
                 (wf
                    "This does not look like a standard Linux-ish environment. \
                     If you are on MacOSX, see \
-                    https://gitlab.com/tezos/flextesa/blob/master/README.md#macosx-users "))
+                    https://gitlab.com/tezos/flextesa/blob/master/README.md#macosx-users " ))
         else return () )
         >>= fun () ->
         ( if
@@ -248,7 +245,7 @@ module System_dependencies = struct
             | `Missing_exec ("tezos-node", _)
               when Caml.Sys.file_exists ("." // "tezos-node") ->
                 true
-            | _ -> false)
+            | _ -> false )
         then
           Console.say state
             EF.(
@@ -258,7 +255,7 @@ module System_dependencies = struct
                     be one in the current directory, maybe you can pass \
                     `./tezos-node` with the right option (see `--help`) or \
                     simply add `export PATH=.:$PATH` to allow unix tools to \
-                    find it."))
+                    find it." ))
         else return () )
         >>= fun () ->
         let non_warning_errors = List.filter more ~f:is_not_just_a_warning in
@@ -299,7 +296,7 @@ module Shell_environement = struct
           [ ( sprintf "tc%d" i
             , cmd "tezos-client"
             , "Call the `tezos-client` from the path." ) ]
-          @ extra) in
+          @ extra ) in
     make ~aliases
 
   let write state {aliases} ~path =
@@ -309,7 +306,7 @@ module Shell_environement = struct
         @ List.concat_map aliases ~f:(fun (k, v, doc) ->
               [ sprintf "echo %s"
                   (sprintf "Defining alias %s: %s" k doc |> Caml.Filename.quote)
-              ; sprintf "alias %s=%s" k (Caml.Filename.quote v) ]) ) in
+              ; sprintf "alias %s=%s" k (Caml.Filename.quote v) ] ) ) in
     System.write_file state path ~content
 
   let help_command state t ~path =
@@ -343,7 +340,7 @@ module Shell_environement = struct
                   cut ppf () ;
                   pf ppf "    %a rpc get /chains/main/blocks/head/metadata"
                     pick_and_alias () ;
-                  cut ppf ())))
+                  cut ppf () )) )
 end
 
 module Timing = struct

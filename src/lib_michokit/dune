@@ -1,9 +1,0 @@
-(library
- (name michokit)
- ;;(public_name michokit)
- (flags (:standard -safe-string))
- (libraries
-    flextesa
-    tezos-protocol-008-PtEdo2Zk
-    tezos-client-008-PtEdo2Zk
-    ))

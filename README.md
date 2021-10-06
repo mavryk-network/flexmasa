@@ -12,8 +12,33 @@ Tezos sandboxes).
 <!--TOC-->
 
 
-Build
------
+## Run With Docker
+
+The current _released_ image is `tqtezos/flextesa:20210930`, on top of the
+`flextesa` executable and Octez suite, it has the `*box` scripts to quickly
+start networks:
+
+For instance:
+
+```sh
+docker run --rm --name my-sandbox --detach -p 20000:20000 \
+      tqtezos/flextesa:20210930 granabox start
+```
+
+of for Hangzhou:
+
+
+```sh
+docker run --rm --name my-sandbox --detach -p 20000:20000 \
+      tqtezos/flextesa:20210930 hangzbox start
+```
+
+They correspond to the tutorial at
+<https://assets.tqtezos.com/docs/setup/2-sandbox/> (now deprecated but still
+relevant).
+
+
+## Build
 
 You need, Tezos' libraries (with `proto_alpha`) opam-installed or locally
 vendored:
@@ -24,20 +49,19 @@ Then:
 
     make
 
-The above builds the `flextesa` and `michokit` libraries, the `flextesa` command
-line application (see `./flextesa --help`) and the tests (in `src/test`).
+The above builds the `flextesa` library, the `flextesa` command line application
+(see `./flextesa --help`) and the tests (in `src/test`).
 
 One can easily create an opam-switch which should just work with the above:
 
-    export OPAM_SWITCH="flextesa-switch"
+    opam switch create . 4.12.0
     opam switch import src/tezos-master.opam-switch
     opam exec -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
 
 (where `<name>` is preferably a fresh name).
 
 
-MacOSX Users
-------------
+## MacOSX Users
 
 At runtime, sandboxes usually depend on a couple of linux utilities.
 
@@ -48,13 +72,27 @@ the tests with:
 export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/bin:$PATH"
 ```
 
-With Docker
------------
+## Build Docker Image
 
-See <https://assets.tqtezos.com/docs/setup/2-sandbox/>
+See `docker/Dockerfile`, usually requires modifications with each new version of
+Octez or new protocol (for now, it clones a specific branch of Flextesa):
 
-More Documentation
-------------------
+```sh
+image=tqtezos/flextesa:20211005
+# Make the “build” image
+docker build --target build_step -t flextesa-build .
+docker tag flextesa-build "${image}-build"
+docker push "${image}-build"
+# Tag and push (optional, requires access rights):
+docker build --target run_image -t flextesa-run .
+docker tag flextesa-local "$image"
+docker push "$image"
+```
+
+Do not forget to test it:
+`docker run -it "$image" hangzbox start`
+
+## More Documentation
 
 The command `flextesa mini-net [...]` has a dedicated documentation
 page: [The `mini-net` Command](./src/doc/mini-net.md).
@@ -69,5 +107,5 @@ repository:
 
 TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com)
 documentation shows how to quickly set up a
-[Babylon docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
+[docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
 (uses the docker images from this repository).

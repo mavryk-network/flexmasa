@@ -21,10 +21,9 @@ val wait_for :
   -> seconds:float
   -> (   int
       -> ( [`Done of 'a | `Not_done of string]
-         , ([> System_error.t | `Waiting_for of string * [`Time_out]]
-            as
-            'errors) )
-         Asynchronous_result.t)
+         , ([> System_error.t | `Waiting_for of string * [`Time_out]] as 'errors)
+         )
+         Asynchronous_result.t )
   -> ('a, 'errors) Asynchronous_result.t
 (** Try to wait for an event. The pause between attempts is
     [(attempts_factor * attempts) + seconds] where the default
