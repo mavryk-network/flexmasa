@@ -5,7 +5,7 @@ RUN opam update
 ADD  --chown=opam:opam . ./
 RUN make vendors
 RUN opam exec -- sh src/scripts/opam-test.sh
-RUN opam exec -- dune build src/app/main.exe
+RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
 FROM ubuntu:21.04 as run_image
 ENV DEBIAN_FRONTEND=noninteractive
