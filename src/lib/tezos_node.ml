@@ -96,7 +96,7 @@ module Config_file = struct
      and the secure ACL is chosen by default. Thus a specific, more permissive
      policy is needed. For more details see Node Configuration manual page or
      https://gitlab.com/tezos/tezos/-/merge_requests/3164#note_616452409 *)
-  let acl : string list =
+  let _acl : string list =
     match RPC_server.Acl.secure with
     | Allow_all _ ->
         raise
@@ -143,7 +143,7 @@ module Config_file = struct
           ; ( "acl"
             , list dict
                 [ [ ("address", string rpc_listen_addr)
-                  ; ("whitelist", strings acl) ] ] ) ] )
+                  ; ("blacklist", strings []) ] ] ) ] )
     ; ( "p2p"
       , dict
           [ ( "expected-proof-of-work"
