@@ -114,8 +114,7 @@ let start t process =
       ~attach:[("open_file", `String_value f)]
       Lwt.Infix.(
         fun () ->
-          Tezos_stdlib_unix.Lwt_utils_unix.create_dir ~perm:0o700
-            (Caml.Filename.dirname f)
+          System.ensure_directory_path_exn ~perm:0o700 (Caml.Filename.dirname f)
           >>= fun () ->
           Lwt_unix.file_exists f
           >>= fun exists ->

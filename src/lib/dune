@@ -13,7 +13,6 @@
     base
     genspio
     ezjsonm
-    tezos-stdlib-unix
     tezos-crypto
     tezos-hacl-glue-unix
     bls12-381-unix

@@ -581,6 +581,27 @@ module System = struct
     System_error.catch Lwt_unix.system s
     >>= fun status -> return Poly.(status = Lwt_unix.WEXITED 0)
 
+  let rec ensure_directory_path_exn ?(perm = 0o755) dir =
+    let open Lwt in
+    Lwt_unix.file_exists dir
+    >>= function
+    | false ->
+        ensure_directory_path_exn (Caml.Filename.dirname dir)
+        >>= fun () ->
+        Lwt.catch
+          (fun () -> Lwt_unix.mkdir dir perm)
+          (function
+            | Unix.Unix_error (Unix.EEXIST, _, _) ->
+                (* This is the case where the directory has been created
+                   by another Lwt.t, after the call to Lwt_unix.file_exists. *)
+                Lwt.return_unit
+            | e -> Lwt.fail e )
+    | true -> (
+        Lwt_unix.stat dir
+        >>= function
+        | {st_kind= S_DIR; _} -> Lwt.return_unit
+        | _ -> Lwt.fail_with "Not a directory" )
+
   let editor_opt state =
     let attempts =
       let defaults = ["nano"; "vi"] in
