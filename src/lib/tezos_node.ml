@@ -70,8 +70,6 @@ module Config_file = struct
 
    *)
 
-  open Tezos_rpc_http_server
-
   let network
       ?(genesis_hash = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf") ()
       =
@@ -88,32 +86,6 @@ module Config_file = struct
     ; ("sandboxed_chain_name", string "SANDBOXED_TEZOS_MAINNET") ]
 
   let default_network = network ()
-
-  (* These tests try to do more than the default RPC ACL allows over the
-     network. Even though all processes are run on localhost, nodes are set up
-     to listen to RPC requests on address 0.0.0.0 (see below), which matches all
-     possible addresses. Hence the "localhost rule" of RPC ACLs does not apply
-     and the secure ACL is chosen by default. Thus a specific, more permissive
-     policy is needed. For more details see Node Configuration manual page or
-     https://gitlab.com/tezos/tezos/-/merge_requests/3164#note_616452409 *)
-  let _acl : string list =
-    match RPC_server.Acl.secure with
-    | Allow_all _ ->
-        raise
-          (Failure
-             "Expected RPC secure ACL in the form of whitelist. Got a \
-              blacklist instead." )
-    | Deny_all {except} ->
-        List.map ~f:RPC_server.Acl.matcher_to_string except
-        @ [ "GET /chains/*/blocks/*/helpers/baking_rights"
-          ; "GET /chains/*/blocks/*/helpers/endorsing_rights"
-          ; "GET /chains/*/blocks/*/helpers/levels_in_current_cycle"
-          ; "POST /chains/*/blocks/*/helpers/forge/operations"
-          ; "POST /chains/*/blocks/*/helpers/preapply/*"
-          ; "POST /chains/*/blocks/*/helpers/scripts/run_operation"
-          ; "POST /chains/*/blocks/*/helpers/scripts/simulate_operation"
-          ; "POST /chains/*/mempool/request_operations"; "POST /injection/block"
-          ; "POST /injection/protocol" ]
 
   let of_node state t =
     let open Ezjsonm in
