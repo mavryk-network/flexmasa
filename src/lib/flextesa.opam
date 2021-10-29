@@ -11,14 +11,12 @@ depends: [
   "dune" { >= "1.0.1" }
   "genspio" { = "0.0.2" }
   "dum"
-  "tezos-stdlib-unix"
   "lwt"
   "fmt"
   "cohttp-lwt-unix"
-  "tezos-base"
+  "tezos-crypto"
   "tezos-hacl-glue-unix"
   "bls12-381-unix"
-  "tezos-rpc-http-server"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
