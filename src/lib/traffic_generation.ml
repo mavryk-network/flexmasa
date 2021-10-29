@@ -559,9 +559,7 @@ module Commands = struct
     Paths.root state ^ "/traffic-generation-history.txt"
 
   let get_timestamp () =
-    let date =
-      Tezos_stdlib_unix.Systime_os.now () |> Tezos_base.Time.System.to_notation
-    in
+    let date = Date.Local.now () |> Date.to_rfc3339 in
     sprintf "[%s]" date
 
   let init_cmd_history state =

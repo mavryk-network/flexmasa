@@ -108,9 +108,7 @@ let ef ?(all = false) state =
     label (af "Processes:") (list all_procs))
 
 let start t process =
-  let date =
-    Tezos_stdlib_unix.Systime_os.now () |> Tezos_base.Time.System.to_notation
-  in
+  let date = Date.now () |> Date.to_short_string in
   let open_file f =
     System_error.catch
       ~attach:[("open_file", `String_value f)]
