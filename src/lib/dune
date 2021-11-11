@@ -16,4 +16,5 @@
     tezos-crypto
     tezos-hacl-glue-unix
     bls12-381-unix
+    ptime.clock.os
  ))
