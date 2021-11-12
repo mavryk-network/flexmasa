@@ -46,6 +46,14 @@ lint:
      - opam exec -- make fmt
      - git diff --exit-code
 
+unit-tests:
+  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
+  stage: build
+  script:
+     - bash -c "$SHOW_INFO"
+     - opam install --deps-only --with-test ./tezai-base58-digest.opam
+     - dune runtest
+
 docker:test:
   image: "$dind_image"
   services:
