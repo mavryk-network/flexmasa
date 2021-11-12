@@ -54,4 +54,10 @@ module Ed25519 : sig
     val encode : string -> Tezai_base58_digest__Raw.base58
     val decode : Tezai_base58_digest__Raw.base58 -> string
   end
+
+  module Signature : sig
+    val prefix : string
+    val encode : string -> Tezai_base58_digest__Raw.base58
+    val decode : Tezai_base58_digest__Raw.base58 -> string
+  end
 end

@@ -120,4 +120,8 @@ module Ed25519 = struct
       let prefix = Prefix.ed25519_public_key_hash let size = 20
     end)
   end
+
+  module Signature = struct
+    include Base58_prefixed (struct let prefix = Prefix.ed25519_signature end)
+  end
 end

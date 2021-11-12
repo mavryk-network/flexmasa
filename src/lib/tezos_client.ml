@@ -473,24 +473,21 @@ module Keyed = struct
       String.chop_prefix_exn ~prefix:"Signature:" sign_res |> String.strip in
     Dbg.e EF.(af "To Decode: %s" to_decode) ;
     let decoded =
-      Option.value_exn ~message:"base58 dec"
-        (Tezos_crypto.Base58.safe_decode to_decode)
+      Tezai_base58_digest.Identifier.Ed25519.Signature.decode to_decode
       |> Hex.of_string ?ignore:None |> Hex.show in
     say state EF.(desc (shout "DECODED:") (af "%S" decoded))
     >>= fun () ->
-    let actual_signature = String.chop_prefix_exn ~prefix:"09f5cd8612" decoded in
     say state
       EF.(
         desc_list (af "Injecting Operation")
           [ ef_json "Injecting" (json :> Ezjsonm.value)
           ; desc (haf "op:")
               (af "%d: %S" (String.length operation_bytes) operation_bytes)
-          ; desc (haf "sign:")
-              (af "%d: %S" (String.length actual_signature) actual_signature) ])
+          ; desc (haf "sign:") (af "%d: %S" (String.length decoded) decoded) ])
     >>= fun () ->
     rpc state ~client:keyed_client.client
       ~path:"/injection/operation?chain=main"
-      (`Post (sprintf "\"%s%s\"" operation_bytes actual_signature))
+      (`Post (sprintf "\"%s%s\"" operation_bytes decoded))
 
   let find_mempool_counter_exn (json : Ezjsonm.value) hash_key : int =
     match json with
