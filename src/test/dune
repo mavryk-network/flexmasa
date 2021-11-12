@@ -2,6 +2,6 @@
   (names main)
   (libraries flextesa))
 
-;;(alias
-;; (name runtest)
-;; (action (run %{exe:main.exe})))
+(alias
+ (name runtest)
+ (action (run %{exe:main.exe})))

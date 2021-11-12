@@ -7,16 +7,15 @@ bug-reports: "https://gitlab.com/tezos/tezos/issues"
 dev-repo: "git+https://gitlab.com/tezos/tezos.git"
 license: "MIT"
 depends: [
-  "tezos-tooling" { with-test }
   "dune" { >= "2.0.1" }
   "genspio" { = "0.0.2" }
   "dum"
   "lwt"
   "fmt"
   "cohttp-lwt-unix"
-  "tezos-crypto"
-  "tezos-hacl-glue-unix"
-  "bls12-381-unix"
+  "ezjsonm"
+  "tezai-base58-digest"
+  "tezai-tz1-crypto"
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
