@@ -1,7 +1,7 @@
 FROM ocaml/opam:ubuntu-21.04-ocaml-4.12 as build_step
 ENV DEBIAN_FRONTEND=noninteractive
 RUN sudo cp /usr/bin/opam-2.1 /usr/bin/opam
-RUN opam update
+#RUN opam update
 ADD  --chown=opam:opam . ./
 RUN make vendors
 RUN opam exec -- sh src/scripts/opam-test.sh
