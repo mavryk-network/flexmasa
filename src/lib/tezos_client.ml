@@ -324,7 +324,7 @@ let multisig_storage_counter state client contract_id =
   with e -> System_error.fail_fatalf "Exception getting counter: %a" Exn.pp e
 
 module Ledger = struct
-  type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
+  type hwm = {main: int; test: int; chain: string option}
 
   let set_hwm state ~client ~uri ~level =
     successful_client_cmd state ~client
@@ -355,7 +355,7 @@ module Ledger = struct
         ; chain=
             (let v = Re.Group.get matches 2 in
              if String.equal v "'Unspecified'" then None
-             else Some (Tezos_crypto.Chain_id.of_b58check_exn v) )
+             else Some (Tezai_base58_digest.Identifier.Chain_id.decode v) )
         ; test= Int.of_string (Re.Group.get matches 3) }
     with e ->
       failf
