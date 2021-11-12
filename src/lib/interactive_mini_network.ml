@@ -121,16 +121,14 @@ the chain to resume
   end
 
   let chain_id_of_hash hash =
-    let open Tezos_crypto in
-    Option.map (Block_hash.of_b58check_opt hash) ~f:(fun bh ->
-        bh |> Chain_id.of_block_hash |> Chain_id.to_b58check )
+    let open Tezai_base58_digest.Identifier in
+    Chain_id.of_base58_block_hash hash
 
   let process_choice state ~protocol_kind choice =
     let json_file = path state in
     let pp_hash_fancily ppf h =
       let open More_fmt in
-      pf ppf "`%s` (corresponding chain-id: `%s`)" h
-        (chain_id_of_hash h |> Option.value ~default:"ERROR-WRONG-HASH") in
+      pf ppf "`%s` (corresponding chain-id: `%s`)" h (chain_id_of_hash h) in
     match Caml.Sys.file_exists json_file with
     | true ->
         System.read_file state json_file
@@ -165,9 +163,9 @@ the chain to resume
               let seed =
                 Fmt.str "%d:%f" (Random.int 1_000_000) (Unix.gettimeofday ())
               in
-              let open Tezos_crypto in
-              let block_hash = Block_hash.hash_string [seed] in
-              Block_hash.to_b58check block_hash in
+              let open Tezai_base58_digest.Identifier in
+              let block_hash = Block_hash.hash_string seed in
+              Block_hash.encode block_hash in
         Console.sayf state
           More_fmt.(
             fun ppf () ->

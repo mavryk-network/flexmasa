@@ -17,4 +17,5 @@
     tezos-hacl-glue-unix
     bls12-381-unix
     ptime.clock.os
+    tezai-base58-digest
  ))
