@@ -18,6 +18,7 @@
   (digestif (>= "0.9.0"))
   (dune (>= "2.9"))
   (ppx_inline_test (>= "0.14.0"))
+  (ppx_expect (>= "0.14.0"))
  )
 )
 
