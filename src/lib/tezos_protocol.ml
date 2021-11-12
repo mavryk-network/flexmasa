@@ -1,27 +1,25 @@
 open Internal_pervasives
 
 module Key = struct
+  module Crypto = Tezai_tz1_crypto.Signer
+
   module Of_name = struct
     type t =
       { name: string
-      ; pkh: Tezos_crypto.Ed25519.Public_key_hash.t
-      ; pk: Tezos_crypto.Ed25519.Public_key.t
-      ; sk: Tezos_crypto.Ed25519.Secret_key.t }
+      ; pkh: Crypto.Public_key_hash.t
+      ; pk: Crypto.Public_key.t
+      ; sk: Crypto.Secret_key.t }
 
     let make name =
-      let seed =
-        Bytes.of_string
-          (String.concat ~sep:"" (List.init 42 ~f:(fun _ -> name))) in
-      let pkh, pk, sk = Tezos_crypto.Ed25519.generate_key ~seed () in
+      let sk = Crypto.Secret_key.of_seed name in
+      let pk = Crypto.Public_key.of_secret_key sk in
+      let pkh = Crypto.Public_key_hash.of_public_key pk in
+      (* let pkh, pk, sk = Tezos_crypto.Ed25519.generate_key ~seed () in *)
       {name; pkh; pk; sk}
 
-    let pubkey n = Tezos_crypto.Ed25519.Public_key.to_b58check (make n).pk
-
-    let pubkey_hash n =
-      Tezos_crypto.Ed25519.Public_key_hash.to_b58check (make n).pkh
-
-    let private_key n =
-      "unencrypted:" ^ Tezos_crypto.Ed25519.Secret_key.to_b58check (make n).sk
+    let pubkey n = Crypto.Public_key.to_base58 (make n).pk
+    let pubkey_hash n = Crypto.Public_key_hash.to_base58 (make n).pkh
+    let private_key n = "unencrypted:" ^ Crypto.Secret_key.to_base58 (make n).sk
   end
 end
 

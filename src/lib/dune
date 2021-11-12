@@ -18,4 +18,5 @@
     bls12-381-unix
     ptime.clock.os
     tezai-base58-digest
+    tezai-tz1-crypto
  ))
