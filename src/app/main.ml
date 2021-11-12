@@ -71,15 +71,12 @@ module Small_utilities = struct
                     then res
                     else
                       let seed = seed ^ Int.to_string count in
-                      let open Tezos_crypto in
-                      let block_hash = Block_hash.hash_string [seed] in
-                      let chain_id =
-                        block_hash |> Chain_id.of_block_hash
-                        |> Chain_id.to_b58check in
+                      let open Tezai_base58_digest.Identifier in
+                      let block_hash = Block_hash.(hash_string seed |> encode) in
+                      let chain_id = Chain_id.of_base58_block_hash block_hash in
                       let acc =
                         if String.is_suffix ~suffix:pattern chain_id then
-                          (seed, Block_hash.to_b58check block_hash, chain_id)
-                          :: res
+                          (seed, block_hash, chain_id) :: res
                         else res in
                       loop (count + 1) acc in
                   let res = loop 0 [] in
