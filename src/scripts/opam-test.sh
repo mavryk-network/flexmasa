@@ -19,7 +19,7 @@ opam pin -n add tezos-hacl-glue-unix "$vendor/src/lib_hacl_glue/unix/"
 # opam install --yes ringo hacl-star tezos-lwt-result-stdlib tezos-error-monad tezos-stdlib tezos-event-logging tezos-stdlib-unix tezos-clic tezos-crypto tezos-hacl-glue-unix
 
 # There is seems to be a dependency missing:
-opam install --yes ppx_inline_test
+opam install --yes ppx_inline_test ppx_expect
 
 # Now the test:
 opam pin -n add flextesa src/lib/
