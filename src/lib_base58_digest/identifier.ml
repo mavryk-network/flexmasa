@@ -1,5 +1,19 @@
 module List = ListLabels
 
+module Base58_prefixed (Parameters : sig
+  val prefix : string
+end) =
+struct
+  include Parameters
+
+  let encode s = Raw.String.to_base58 (prefix ^ s)
+
+  let decode s =
+    let whole = Raw.String.of_base58 s in
+    let prelen = String.length prefix in
+    String.sub whole prelen (String.length whole - prelen)
+end
+
 module Base58_hash (Parameters : sig
   val prefix : string val size : int
 end) =
@@ -7,12 +21,8 @@ struct
   include Parameters
 
   let hash_string = Crypto_hash.String.blake2b ~size
-  let encode s = Raw.String.to_base58 (prefix ^ s)
 
-  let decode s =
-    let whole = Raw.String.of_base58 s in
-    let prelen = String.length prefix in
-    String.sub whole prelen (String.length whole - prelen)
+  include Base58_prefixed (Parameters)
 end
 
 module Block_hash = struct
@@ -94,4 +104,20 @@ module Kt1_address = struct
           "Trying of_base58_operation_hash %s ~index:%ld = %S Vs %s\n" op index
           computed expected_kt1 ;
         computed = expected_kt1 )
+end
+
+module Ed25519 = struct
+  module Secret_key = struct
+    include Base58_prefixed (struct let prefix = Prefix.ed25519_seed end)
+  end
+
+  module Public_key = struct
+    include Base58_prefixed (struct let prefix = Prefix.ed25519_public_key end)
+  end
+
+  module Public_key_hash = struct
+    include Base58_hash (struct
+      let prefix = Prefix.ed25519_public_key_hash let size = 20
+    end)
+  end
 end

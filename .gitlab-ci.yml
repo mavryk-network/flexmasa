@@ -51,7 +51,7 @@ unit-tests:
   stage: build
   script:
      - bash -c "$SHOW_INFO"
-     - opam install --deps-only --with-test ./tezai-base58-digest.opam
+     - opam install --deps-only --with-test ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam
      - dune runtest
 
 docker:test:
