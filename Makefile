@@ -13,4 +13,7 @@ clean:
 	dune clean
 
 fmt:
-	find ./src/ \( ! -name ".#*" \) \( -name "*.mli" -o -name "*.ml" \) -exec ocamlformat --profile=compact -i {} \;
+	dune build flextesa.opam flextesa-cli.opam \
+             tezai-base58-digest.opam \
+             tezai-tz1-crypto.opam \
+             @fmt --auto-promote
