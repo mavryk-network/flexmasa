@@ -151,8 +151,8 @@ the chain to resume
                 (fun ppf -> function
                   | `From_protocol_kind -> pf ppf "."
                   | choice ->
-                      pf ppf " (user choice “%a” is then ignored)."
-                        Choice.pp choice )
+                      pf ppf " (user choice “%a” is then ignored)." Choice.pp
+                        choice )
                 choice)
         >>= fun () -> return hash
     | false ->
@@ -360,7 +360,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   let keyed_clients = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.(
-      shell_env_help :: all_defaults state ~nodes
+      (shell_env_help :: all_defaults state ~nodes)
       @ [ secret_keys state ~protocol
         ; forge_and_inject_piece_of_json state ~clients:keyed_clients ]
       @ arbitrary_commands_for_each_and_all_clients state ~clients) ;

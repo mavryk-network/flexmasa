@@ -219,7 +219,7 @@ module Attached_result = struct
                         pf ppf ":" ;
                         let lines =
                           let sep = String.make 50 '`' in
-                          sep :: List.drop sl (List.length sl - 20) @ [sep]
+                          (sep :: List.drop sl (List.length sl - 20)) @ [sep]
                         in
                         cut ppf () ;
                         vertical_box ~indent:0 ppf (fun ppf ->
