@@ -41,10 +41,14 @@ mkdir -p "$output_path/api"
 
 opam exec -- opam install --yes odoc odig omd.1.3.1
 
-opam exec -- dune build @src/lib/doc
+say "Build @doc"
+opam exec -- dune build @doc
 
 
 cp -r _build/default/_doc/_html/* "$output_path/"
+chmod -R u+rw "$output_path/"
+
+say "Getting Odig theme"
 
 cp -r $(odig odoc-theme path odig.light)/* "$output_path/"
 
@@ -95,8 +99,8 @@ cat > "$output" <<EOF
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   </head>
-  <body>
-    <main class="content">
+  <body class="odoc">
+    <main class="odoc-content">
 EOF
 cat "$input" >> "$output"
 cat >> "$output" <<'EOF'
