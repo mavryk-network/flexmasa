@@ -10,8 +10,9 @@ FROM ubuntu:21.04 as run_image
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --yes
 RUN apt-get install --yes curl libev-dev libffi-dev rlwrap unzip netbase
-# Get link from https://gitlab.com/tezos/tezos/-/releases
-RUN curl -L https://gitlab.com/tezos/tezos/-/jobs/1612155317/artifacts/download -o /usr/bin/bins.zip
+# Get link from the master pipeline, or from
+# https://gitlab.com/tezos/tezos/-/releases
+RUN curl -L https://gitlab.com/tezos/tezos/-/jobs/1784112584/artifacts/download -o /usr/bin/bins.zip
 RUN sh -c 'curl https://raw.githubusercontent.com/zcash/zcash/master/zcutil/fetch-params.sh | sh'
 WORKDIR /usr/bin
 RUN unzip bins.zip
