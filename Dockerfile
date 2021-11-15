@@ -25,5 +25,11 @@ RUN chmod a+rx /usr/bin/flextesarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/granabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/hangzbox
 RUN sed -i s/default_protocol=Granada/default_protocol=Hangzhou/ /usr/bin/hangzbox
+COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
+RUN sed -i s/default_protocol=Granada/default_protocol=Alpha/ /usr/bin/alphabox
 RUN chmod a+rx /usr/bin/granabox
 RUN chmod a+rx /usr/bin/hangzbox
+RUN chmod a+rx /usr/bin/alphabox
+RUN cp /usr/bin/alphabox /usr/bin/tenderbox
+
+
