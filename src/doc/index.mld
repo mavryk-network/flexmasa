@@ -3,3 +3,8 @@
 
 See the toplevel module {!Flextesa}.
 
+See also “Tezos Alternate Implementation” miniature libraries:
+
+- {!Tezai_base58_digest}
+- {!Tezai_tz1_crypto}
+

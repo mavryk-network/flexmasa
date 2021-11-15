@@ -306,7 +306,7 @@ val multisig_storage_counter :
      Asynchronous_result.t
 
 module Ledger : sig
-  type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
+  type hwm = {main: int; test: int; chain: string option}
 
   val get_hwm :
        < application_name: string

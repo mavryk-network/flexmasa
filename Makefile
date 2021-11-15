@@ -2,15 +2,18 @@
 
 all: build
 
-vendors:
-	sh src/scripts/ensure-vendors.sh
-
 build:
-	dune build src/test/main.exe src/app/main.exe && \
+	dune build @check src/test/main.exe src/app/main.exe && \
              ln -sf _build/default/src/app/main.exe flextesa
+
+test:
+	dune runtest
 
 clean:
 	dune clean
 
 fmt:
-	find ./src/ \( ! -name ".#*" \) \( -name "*.mli" -o -name "*.ml" \) -exec ocamlformat --profile=compact -i {} \;
+	dune build flextesa.opam flextesa-cli.opam \
+             tezai-base58-digest.opam \
+             tezai-tz1-crypto.opam \
+             @fmt --auto-promote

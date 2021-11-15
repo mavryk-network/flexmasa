@@ -23,8 +23,7 @@ module Operations = struct
               (List.rev_map t.operations ~f:(function
                 | `Transfer (cli, msg, dest, res) ->
                     desc_list (haf "Transfer: %S" cli)
-                      [ af "→ %s" msg; af "dest: %s" dest
-                      ; ocaml_string_list res ]
+                      [af "→ %s" msg; af "dest: %s" dest; ocaml_string_list res]
                 | `Endorse (n, msg, res) ->
                     desc_list
                       (haf "Node-endorsed: %S" n)

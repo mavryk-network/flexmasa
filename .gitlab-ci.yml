@@ -41,10 +41,18 @@ lint:
   stage: build
   script:
      - bash -c "$SHOW_INFO"
-     - opam install ocamlformat.0.18.0
+     - opam install ocamlformat.0.19.0
      - opam exec -- ocamlformat --version
      - opam exec -- make fmt
      - git diff --exit-code
+
+unit-tests:
+  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
+  stage: build
+  script:
+     - bash -c "$SHOW_INFO"
+     - opam install --deps-only --with-test ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam
+     - dune runtest
 
 docker:test:
   image: "$dind_image"

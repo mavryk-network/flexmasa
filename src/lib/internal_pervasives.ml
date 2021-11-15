@@ -89,6 +89,52 @@ module Dbg = struct
   let pp_any fmt v = Dum.to_formatter fmt v
 end
 
+module Date = struct
+  open Ptime
+
+  type t = {time: Ptime.t; tz: int}
+
+  let opt_exn msg o = Option.value_exn ~message:(Fmt.str "Date: %s" msg) o
+
+  let pp_debug ppf {time; tz} =
+    Fmt.pf ppf "{time: %s; tz: %d}" (Ptime.to_rfc3339 time) tz
+
+  let now ?(tz_s = 0) () =
+    let time =
+      Unix.gettimeofday () +. Float.of_int tz_s
+      |> Ptime.of_float_s |> opt_exn "now failed" in
+    {time; tz= tz_s}
+
+  module Local = struct
+    let default_tz_s = ref 0
+
+    let () =
+      let open Unix in
+      let now = gettimeofday () in
+      let local = localtime now |> mktime |> fst in
+      let gm = gmtime now |> mktime |> fst in
+      let tz_seconds = local -. gm in
+      default_tz_s := Float.to_int tz_seconds
+
+    let now () = now ~tz_s:!default_tz_s ()
+  end
+
+  let to_short_string ?(with_tz = true) {time; tz} =
+    let (y, m, d), ((hh, mm, ss), _) = to_date_time time in
+    let ms = frac_s time |> Span.to_float_s in
+    Fmt.str "%04d%02d%02d-%02d%02d%02d.%03d%s" y m d hh mm ss
+      (ms *. 1000. |> Float.to_int)
+      ( if with_tz then
+        Fmt.str "%s%02d%02d"
+          (if tz >= 0 then "+" else "-")
+          (abs tz / 60 / 60)
+          (abs tz / 60 % 60)
+      else "" )
+
+  let to_rfc3339 {time; tz} =
+    Ptime.to_rfc3339 ~space:false ~frac_s:6 ~tz_offset_s:tz time
+end
+
 module More_fmt = struct
   (** Little experiment for fun … *)
   include Fmt
@@ -173,7 +219,7 @@ module Attached_result = struct
                         pf ppf ":" ;
                         let lines =
                           let sep = String.make 50 '`' in
-                          sep :: List.drop sl (List.length sl - 20) @ [sep]
+                          (sep :: List.drop sl (List.length sl - 20)) @ [sep]
                         in
                         cut ppf () ;
                         vertical_box ~indent:0 ppf (fun ppf ->
@@ -534,6 +580,27 @@ module System = struct
   let command (_state : _ Base_state.t) s =
     System_error.catch Lwt_unix.system s
     >>= fun status -> return Poly.(status = Lwt_unix.WEXITED 0)
+
+  let rec ensure_directory_path_exn ?(perm = 0o755) dir =
+    let open Lwt in
+    Lwt_unix.file_exists dir
+    >>= function
+    | false ->
+        ensure_directory_path_exn (Caml.Filename.dirname dir)
+        >>= fun () ->
+        Lwt.catch
+          (fun () -> Lwt_unix.mkdir dir perm)
+          (function
+            | Unix.Unix_error (Unix.EEXIST, _, _) ->
+                (* This is the case where the directory has been created
+                   by another Lwt.t, after the call to Lwt_unix.file_exists. *)
+                Lwt.return_unit
+            | e -> Lwt.fail e )
+    | true -> (
+        Lwt_unix.stat dir
+        >>= function
+        | {st_kind= S_DIR; _} -> Lwt.return_unit
+        | _ -> Lwt.fail_with "Not a directory" )
 
   let editor_opt state =
     let attempts =

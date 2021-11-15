@@ -61,10 +61,17 @@ Don't forget to clean-up your resources (`docker kill my-sandbox`).
 
 ## Build
 
-You need, Tezos' libraries (with `proto_alpha`) opam-installed or locally
-vendored:
+With Opam ≥ 2.1:
 
-    make vendors
+```sh
+opam switch create . --deps-only \
+     --formula='"ocaml-base-compiler" {>= "4.13" & < "4.14"}'
+eval $(opam env)
+opam install --deps-only --with-test --with-doc \
+     ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam \
+     ./flextesa.opam ./flextesa-cli.opam # Most of this should be already done.
+opam install merlin ocamlformat.0.19.0    # For development.
+```
 
 Then:
 
@@ -72,14 +79,6 @@ Then:
 
 The above builds the `flextesa` library, the `flextesa` command line application
 (see `./flextesa --help`) and the tests (in `src/test`).
-
-One can easily create an opam-switch which should just work with the above:
-
-    opam switch create . 4.12.0
-    opam switch import src/tezos-master.opam-switch
-    opam exec -- bash local-vendor/tezos-master/scripts/install_build_deps.rust.sh
-
-(where `<name>` is preferably a fresh name).
 
 
 ## MacOSX Users

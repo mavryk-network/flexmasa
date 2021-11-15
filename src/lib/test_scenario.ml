@@ -64,7 +64,8 @@ module Topology = struct
     match (topo, res) with
     | Mesh _, l -> List.map l ~f:(fun nod -> nod.Tezos_node.id)
     | Bottleneck {left; right; _}, (l, i, r) ->
-        i.Tezos_node.id :: node_ids left.topology l @ node_ids right.topology r
+        (i.Tezos_node.id :: node_ids left.topology l)
+        @ node_ids right.topology r
     | Net_in_the_middle {left; right; middle}, (l, i, r) ->
         node_ids middle.topology i @ node_ids left.topology l
         @ node_ids right.topology r
@@ -76,7 +77,7 @@ module Topology = struct
     match topology with
     | Mesh {size} -> List.init size ~f:make_ith
     | Bottleneck {name; left; right} ->
-        sprintf "%s%s" prefix name :: continue left @ continue right
+        (sprintf "%s%s" prefix name :: continue left) @ continue right
     | Net_in_the_middle {left; right; middle} ->
         continue middle @ continue left @ continue right
 

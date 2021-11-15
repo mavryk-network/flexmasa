@@ -167,8 +167,7 @@ module Commands = struct
       ["ka"; "killall"] (fun () -> Running_processes.kill_all state)
 
   let secret_keys state ~protocol =
-    unit_loop_no_args
-      ~description:"Show the protocol's “bootstrap” accounts."
+    unit_loop_no_args ~description:"Show the protocol's “bootstrap” accounts."
       ["boa"; "bootstrap-accounts"] (fun () ->
         Console.sayf state
           More_fmt.(
@@ -235,8 +234,7 @@ module Commands = struct
         Console.say state
           EF.(
             desc_list
-              (af "Balances from levels %d to “head” (port :%d)" save_point
-                 port )
+              (af "Balances from levels %d to “head” (port :%d)" save_point port)
               (List.map results ~f:(fun (hsh, init, cur) ->
                    let tz i = Float.of_int i /. 1_000_000. in
                    desc (haf "%s:" hsh)
@@ -368,10 +366,10 @@ module Commands = struct
             desc_list (af "Done")
               [ desc (haf "Command:")
                   (ocaml_string_list
-                     (( match use_admin with
-                      | `Client -> "<client>"
-                      | `Admin _ -> "<admin>" )
-                      :: args ) )
+                     ( ( match use_admin with
+                       | `Client -> "<client>"
+                       | `Admin _ -> "<admin>" )
+                     :: args ) )
               ; desc (haf "Results")
                   (list
                      (List.map different_results ~f:(fun (_, res) ->
@@ -398,9 +396,8 @@ module Commands = struct
       ?make_individual_command_names ?all_clients_command_names state ~clients =
     arbitrary_command_on_all_clients state ?make_admin ~clients
       ?command_names:all_clients_command_names
-    ::
-    arbitrary_commands_for_each_client state ?make_admin ~clients
-      ?make_command_names:make_individual_command_names
+    :: arbitrary_commands_for_each_client state ?make_admin ~clients
+         ?make_command_names:make_individual_command_names
 
   let client_list_in_help_messages clients =
     match clients with

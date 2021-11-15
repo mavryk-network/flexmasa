@@ -108,16 +108,13 @@ let ef ?(all = false) state =
     label (af "Processes:") (list all_procs))
 
 let start t process =
-  let date =
-    Tezos_stdlib_unix.Systime_os.now () |> Tezos_base.Time.System.to_notation
-  in
+  let date = Date.now () |> Date.to_short_string in
   let open_file f =
     System_error.catch
       ~attach:[("open_file", `String_value f)]
       Lwt.Infix.(
         fun () ->
-          Tezos_stdlib_unix.Lwt_utils_unix.create_dir ~perm:0o700
-            (Caml.Filename.dirname f)
+          System.ensure_directory_path_exn ~perm:0o700 (Caml.Filename.dirname f)
           >>= fun () ->
           Lwt_unix.file_exists f
           >>= fun exists ->

@@ -15,7 +15,7 @@ let base_dir t ~state = Paths.root state // sprintf "Client-base-%s" t.id
 open Tezos_executable.Make_cli
 
 let client_call ?(wait = "none") state t args =
-  "--wait" :: wait :: optf "port" "%d" t.port
+  ("--wait" :: wait :: optf "port" "%d" t.port)
   @ opt "base-dir" (base_dir ~state t)
   @ args
 
@@ -324,7 +324,7 @@ let multisig_storage_counter state client contract_id =
   with e -> System_error.fail_fatalf "Exception getting counter: %a" Exn.pp e
 
 module Ledger = struct
-  type hwm = {main: int; test: int; chain: Tezos_crypto.Chain_id.t option}
+  type hwm = {main: int; test: int; chain: string option}
 
   let set_hwm state ~client ~uri ~level =
     successful_client_cmd state ~client
@@ -355,7 +355,7 @@ module Ledger = struct
         ; chain=
             (let v = Re.Group.get matches 2 in
              if String.equal v "'Unspecified'" then None
-             else Some (Tezos_crypto.Chain_id.of_b58check_exn v) )
+             else Some (Tezai_base58_digest.Identifier.Chain_id.decode v) )
         ; test= Int.of_string (Re.Group.get matches 3) }
     with e ->
       failf
@@ -473,24 +473,21 @@ module Keyed = struct
       String.chop_prefix_exn ~prefix:"Signature:" sign_res |> String.strip in
     Dbg.e EF.(af "To Decode: %s" to_decode) ;
     let decoded =
-      Option.value_exn ~message:"base58 dec"
-        (Tezos_crypto.Base58.safe_decode to_decode)
+      Tezai_base58_digest.Identifier.Ed25519.Signature.decode to_decode
       |> Hex.of_string ?ignore:None |> Hex.show in
     say state EF.(desc (shout "DECODED:") (af "%S" decoded))
     >>= fun () ->
-    let actual_signature = String.chop_prefix_exn ~prefix:"09f5cd8612" decoded in
     say state
       EF.(
         desc_list (af "Injecting Operation")
           [ ef_json "Injecting" (json :> Ezjsonm.value)
           ; desc (haf "op:")
               (af "%d: %S" (String.length operation_bytes) operation_bytes)
-          ; desc (haf "sign:")
-              (af "%d: %S" (String.length actual_signature) actual_signature) ])
+          ; desc (haf "sign:") (af "%d: %S" (String.length decoded) decoded) ])
     >>= fun () ->
     rpc state ~client:keyed_client.client
       ~path:"/injection/operation?chain=main"
-      (`Post (sprintf "\"%s%s\"" operation_bytes actual_signature))
+      (`Post (sprintf "\"%s%s\"" operation_bytes decoded))
 
   let find_mempool_counter_exn (json : Ezjsonm.value) hash_key : int =
     match json with

@@ -41,15 +41,21 @@ mkdir -p "$output_path/api"
 
 opam exec -- opam install --yes odoc odig omd.1.3.1
 
-opam exec -- dune build @src/lib/doc
+say "Build @doc"
+opam exec -- dune build @doc
 
 
 cp -r _build/default/_doc/_html/* "$output_path/"
+chmod -R u+rw "$output_path/"
+
+say "Getting Odig theme"
 
 cp -r $(odig odoc-theme path odig.light)/* "$output_path/"
 
 lib_index_fragment=$(mktemp "/tmp/lib-index-XXXX.html")
 odoc html-frag src/doc/index.mld \
+     -I _build/default/src/lib_base58_digest/.tezai_base58_digest.objs/byte/ \
+     -I _build/default/src/lib_tz1_crypto/.tezai_tz1_crypto.objs/byte/ \
      -I _build/default/src/lib/.flextesa.objs/byte/ -o "$lib_index_fragment"
 lib_index="$output_path/lib-index.html"
 
@@ -95,8 +101,8 @@ cat > "$output" <<EOF
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   </head>
-  <body>
-    <main class="content">
+  <body class="odoc">
+    <main class="odoc-content">
 EOF
 cat "$input" >> "$output"
 cat >> "$output" <<'EOF'

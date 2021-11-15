@@ -126,8 +126,7 @@ module Contract = struct
       $ value
           (opt (some string) None
              (info [flag_name "main"]
-                ~doc:
-                  (sprintf "Name of “main” contract for %s." contract_name) ) )
+                ~doc:(sprintf "Name of “main” contract for %s." contract_name) ) )
       $ value
           (opt
              (list ~sep:',' non_dir_file)
