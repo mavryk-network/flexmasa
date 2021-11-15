@@ -9,7 +9,7 @@ RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
 FROM ubuntu:21.04 as run_image
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --yes
-RUN apt-get install --yes curl libev-dev libffi-dev rlwrap unzip netbase
+RUN apt-get install --yes curl libev4 libffi7 rlfe unzip netbase
 # Get link from the master pipeline, or from
 # https://gitlab.com/tezos/tezos/-/releases
 RUN curl -L https://gitlab.com/tezos/tezos/-/jobs/1784112584/artifacts/download -o /usr/bin/bins.zip
@@ -20,7 +20,7 @@ RUN cp tezos-binaries/* .
 RUN chmod a+rx tezos-*
 # https://gitlab.com/tezos/tezos/-/issues/634
 COPY --from=0 /usr/bin/flextesa /usr/bin/flextesa
-RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
+RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlfe flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/granabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/hangzbox
