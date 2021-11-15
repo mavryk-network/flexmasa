@@ -95,7 +95,9 @@ module Protocol_kind = struct
         | _ -> None ) )
 
   let canonical_hash : t -> string = function
-    | `Hangzhou -> "PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r"
+    | `Hangzhou ->
+        "PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
+        (* Version 1: "PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r" *)
     | `Granada -> "PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV"
     | `Florence -> "PsFLorenaUUuikDWvMDr6fGBRG8kt3e3D3fHoXK1j1BFRxeSH4i"
     | `Carthage -> "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
@@ -106,7 +108,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
-    | `Hangzhou -> "011-PtHangzH"
+    | `Hangzhou -> "011-PtHangz2"
     | `Granada -> "010-PtGRANAD"
     | `Florence -> "009-PsFLoren"
     | `Carthage -> "006-PsCARTHA"
