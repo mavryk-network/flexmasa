@@ -20,11 +20,19 @@ runone () {
     "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/    ||/'
 }
 
-
-all () {
+grana () {
     runone "mini-granada" flextesa mini --protocol-kind Granada --time-between-blocks 2 --until-level 4 --number-of-boot 1 --size 1
+}
+hangz () {
     runone "mini-hangz2" flextesa mini --protocol-kind Hangzhou --time-between-blocks 1 --minimal-block 1 --until-level 4 --number-of-boot 1 --size 1
-    # runone "mini-alpha" flextesa mini --protocol-kind Alpha --time-between-blocks 2 --minimal-block 2 --until-level 4 --number-of-boot 1 --size 1
+}
+alpha () {
+    runone "mini-alpha" flextesa mini --protocol-kind Alpha --time-between-blocks 2 --minimal-block 2 --until-level 4 --number-of-boot 1 --size 1
+}
+all () {
+    grana
+    hangz
+    alpha
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }

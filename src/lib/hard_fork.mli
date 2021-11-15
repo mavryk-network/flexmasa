@@ -13,6 +13,7 @@ See ["src/lib/interactive_mini_network.ml"] for an example of usage.
 
 type t = private
   { level: int
+  ; protocol_kind: Tezos_protocol.Protocol_kind.t
   ; protocol_hash: string
   ; name: string
   ; baker: Tezos_executable.t

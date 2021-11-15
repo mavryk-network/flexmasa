@@ -222,7 +222,12 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~protocol_kind:protocol.kind
     ~executables:
       ( [node_exec; client_exec]
-      @ ( if state#test_baking then [baker_exec; endorser_exec; accuser_exec]
+      @ ( if state#test_baking then
+          if
+            Tezos_protocol.Protocol_kind.wants_endorser_daemon
+              protocol.Tezos_protocol.kind
+          then [baker_exec; endorser_exec; accuser_exec]
+          else [baker_exec; accuser_exec]
         else [] )
       @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables )
   >>= fun () ->
