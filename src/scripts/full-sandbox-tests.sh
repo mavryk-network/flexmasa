@@ -47,10 +47,33 @@ alpha () {
            --time-between-blocks 2 --minimal-block 2 $until_4 \
            --number-of-boot 1 --size 1
 }
+
+g2h () {
+    runone "granada-2-hangzhou" flextesa mini \
+           --protocol-kind Granada \
+           --hard-fork 4:Hangzhou: \
+           --time-between-blocks 2 --number-of-boot 1 --size 1 \
+           $until_8
+}
+h2a () {
+    # Hangzhou to Alpha:
+    # - Alpha switches the block-time to 30s, so we wait only a couple of
+    #   of blocks after the transition.
+    # - Transition fails if within the first cycle, we leave the cycle
+    #   length at 8 blocks and switch at level 10.
+    runone "hangzhou-2-alpha" flextesa mini \
+           --protocol-kind Hangz \
+           --hard-fork 10:Alpha: \
+           --time-between-blocks 2 --number-of-boot 2 --size 2 \
+           $until_12
+}
+
 all () {
     grana
     hangz
     alpha
+    g2h
+    h2a
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
