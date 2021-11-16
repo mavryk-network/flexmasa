@@ -15,7 +15,8 @@ RUN apt-get install --yes curl libev4 libffi7 rlfe unzip netbase
 RUN curl -L https://gitlab.com/tezos/tezos/-/jobs/1784112584/artifacts/download -o /usr/bin/bins.zip
 WORKDIR /usr/bin
 RUN unzip bins.zip
-RUN cp tezos-binaries/* .
+RUN mv tezos-binaries/* .
+RUN rm -fr bins.zip tezos-binaries tezos-snoop tezos-proxy-server
 RUN chmod a+rx tezos-*
 ENV SAPLING_SPEND='sapling-spend.params'
 ENV SAPLING_OUTPUT='sapling-output.params'
