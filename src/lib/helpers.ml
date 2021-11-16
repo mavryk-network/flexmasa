@@ -34,6 +34,8 @@ let wait_for ?(attempts_factor = 0.) ?(silent = false) state ~attempts ~seconds
     >>= function
     | `Done x -> return x
     | `Not_done msg when nth < attempts ->
+        seconds ()
+        >>= fun seconds ->
         let sleep_time = Float.((attempts_factor * of_int nth) + seconds) in
         ( if not silent then
           say state
@@ -350,3 +352,16 @@ module Timing = struct
     let stop = Unix.gettimeofday () in
     return (res, stop -. start)
 end
+
+let curl_rpc_cmd state ~port ~path =
+  Running_processes.run_cmdf state "curl http://localhost:%d/%s" port path
+  >>= fun curl_res ->
+  Console.display_errors_of_command state curl_res ~should_output:true
+  >>= fun success ->
+  if not success then return None
+  else
+    ( try
+        Ezjsonm.value_from_string (String.concat ~sep:"\n" curl_res#out)
+        |> return
+      with e -> System_error.fail_fatalf "Parsing JSON: %s" (Exn.to_string e) )
+    >>= fun json -> return (Some json)

@@ -197,11 +197,37 @@ let run_dsl_cmd state clients nodes dsl_command =
       Traffic_generation.Dsl.run state ~nodes ~clients dsl_sexp
 
 let run_wait_level protocol state nodes opt lvl =
-  let seconds =
-    let tbb =
-      protocol.Tezos_protocol.time_between_blocks |> List.hd
-      |> Option.value ~default:10 in
-    Float.of_int tbb *. 3. in
+  let port =
+    let n = List.hd_exn nodes in
+    n.Tezos_node.rpc_port in
+  let seconds () =
+    Dbg.e EF.(wf "Figuring out TBB") ;
+    Asynchronous_result.bind_on_result
+      (Helpers.curl_rpc_cmd state ~port
+         ~path:"/chains/main/blocks/head/context/constants" )
+      ~f:
+        (let default () =
+           Dbg.e EF.(wf "Getting default TBB") ;
+           protocol.Tezos_protocol.time_between_blocks |> List.hd
+           |> Option.value ~default:10 in
+         function
+         | Ok (Some json) ->
+             Dbg.e EF.(wf "Got JSON") ;
+             return
+               Jqo.(
+                 try
+                   field json ~k:"round_durations"
+                   |> get_strings |> List.hd_exn |> Int.of_string
+                 with _ -> (
+                   try
+                     field json ~k:"time_between_blocks"
+                     |> get_strings |> List.hd_exn |> Int.of_string
+                   with _ -> default () ))
+         | Ok None | Error _ -> return (default ()) )
+    >>= fun tbb ->
+    let seconds = Float.of_int tbb *. 1.5 in
+    Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds) ;
+    return seconds in
   let attempts = lvl in
   Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds nodes
     opt

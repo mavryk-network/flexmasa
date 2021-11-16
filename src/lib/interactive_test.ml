@@ -36,19 +36,6 @@ module Commands = struct
         let all = flag "all" sxp in
         Console.say state (Running_processes.ef ~all state) )
 
-  let curl_rpc_cmd state ~port ~path =
-    Running_processes.run_cmdf state "curl http://localhost:%d/%s" port path
-    >>= fun curl_res ->
-    Console.display_errors_of_command state curl_res ~should_output:true
-    >>= fun success ->
-    if not success then return None
-    else
-      ( try
-          Ezjsonm.value_from_string (String.concat ~sep:"\n" curl_res#out)
-          |> return
-        with e -> cmdline_fail "Parsing JSON: %s" (Exn.to_string e) )
-      >>= fun json -> return (Some json)
-
   let do_jq _state ~msg ~f = function
     | None -> cmdline_fail "%s: No JSON" msg
     | Some json -> (
@@ -82,7 +69,7 @@ module Commands = struct
         >>= fun port ->
         get_pp_json state sexps
         >>= fun pp_json ->
-        curl_rpc_cmd state ~port ~path
+        Helpers.curl_rpc_cmd state ~port ~path
         >>= fun json_opt ->
         do_jq ~msg:doc state json_opt ~f:jq
         >>= fun processed_json ->
@@ -198,12 +185,12 @@ module Commands = struct
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
         >>= fun port ->
-        curl_rpc_cmd state ~port
+        Helpers.curl_rpc_cmd state ~port
           ~path:"/chains/main/blocks/head/context/contracts"
         >>= fun json_opt ->
         do_jq state ~msg:"Getting contract list" ~f:Jqo.get_strings json_opt
         >>= fun contracts ->
-        curl_rpc_cmd state ~port ~path:"/chains/main/checkpoint"
+        Helpers.curl_rpc_cmd state ~port ~path:"/chains/main/checkpoint"
         >>= fun chkpto ->
         do_jq state chkpto ~msg:"Getting checkpoint"
           ~f:
@@ -219,7 +206,7 @@ module Commands = struct
           let path =
             sprintf "/chains/main/blocks/%s/context/contracts/%s/balance" block
               contract in
-          curl_rpc_cmd state ~port ~path
+          Helpers.curl_rpc_cmd state ~port ~path
           >>= fun jo ->
           do_jq state jo ~msg:"Getting balance" ~f:(fun j ->
               Jqo.get_string j |> Int.of_string ) in
@@ -253,7 +240,7 @@ module Commands = struct
       (fun sexps ->
         Sexp_options.port_number state sexps ~default_port
         >>= fun port ->
-        curl_rpc_cmd state ~port
+        Helpers.curl_rpc_cmd state ~port
           ~path:"/chains/main/blocks/head/context/contracts"
         >>= fun json_opt ->
         do_jq state ~msg:"Getting contract list" ~f:Jqo.get_strings json_opt
