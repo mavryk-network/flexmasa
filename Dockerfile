@@ -13,12 +13,18 @@ RUN apt-get install --yes curl libev4 libffi7 rlfe unzip netbase
 # Get link from the master pipeline, or from
 # https://gitlab.com/tezos/tezos/-/releases
 RUN curl -L https://gitlab.com/tezos/tezos/-/jobs/1784112584/artifacts/download -o /usr/bin/bins.zip
-RUN sh -c 'curl https://raw.githubusercontent.com/zcash/zcash/master/zcutil/fetch-params.sh | sh'
 WORKDIR /usr/bin
 RUN unzip bins.zip
 RUN cp tezos-binaries/* .
 RUN chmod a+rx tezos-*
-# https://gitlab.com/tezos/tezos/-/issues/634
+ENV SAPLING_SPEND='sapling-spend.params'
+ENV SAPLING_OUTPUT='sapling-output.params'
+# ENV SAPLING_SPROUT_GROTH16_NAME='sprout-groth16.params'
+ENV DOWNLOAD_URL="https://download.z.cash/downloads"
+ENV LOCALLOC=/usr/share/zcash-params
+RUN mkdir -p $LOCALLOC
+RUN curl --output "$LOCALLOC/$SAPLING_OUTPUT" -L "$DOWNLOAD_URL/$SAPLING_OUTPUT"
+RUN curl --output "$LOCALLOC/$SAPLING_SPEND" -L "$DOWNLOAD_URL/$SAPLING_SPEND"
 COPY --from=0 /usr/bin/flextesa /usr/bin/flextesa
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlfe flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
