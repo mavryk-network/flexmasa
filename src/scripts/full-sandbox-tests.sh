@@ -34,8 +34,8 @@ runone () {
 
 
 grana () {
-    runone "mini-granada" flextesa mini --protocol-kind Granada 
-    --time-between-blocks 2 $until_4 --number-of-boot 1 --size 1
+    runone "mini-granada" flextesa mini --protocol-kind Granada \
+           --time-between-blocks 2 $until_4 --number-of-boot 1 --size 1
 }
 hangz () {
     runone "mini-hangz2" flextesa mini --protocol-kind Hangzhou \
