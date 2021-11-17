@@ -22,9 +22,7 @@ image=registry.gitlab.com/smondet/flextesa:078822f2-run
 ```
 
 On top of the `flextesa` executable and Octez suite, it has the `*box` scripts
-to quickly start networks with predefined parameters:
-
-For instance:
+to quickly start networks with predefined parameters. For instance:
 
 ```sh
 script=granabox
@@ -107,7 +105,7 @@ Notes:
   before the end of the first cycle is not supported by Octez.
 - The `hangzbox` script can also switch to `Alpha`, but the current version of
   Tenderbake will switch to mainnet block-times (a.k.a. 30 seconds) instead of
-  inheriting with the current values (cf.
+  inheriting the current values (cf.
   [tezos/tezos!3850](https://gitlab.com/tezos/tezos/-/merge_requests/3850)).
 
 These scripts correspond to the tutorial at
