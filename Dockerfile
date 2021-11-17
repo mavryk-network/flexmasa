@@ -57,5 +57,6 @@ RUN chmod a+rx /usr/bin/granabox
 RUN chmod a+rx /usr/bin/hangzbox
 RUN chmod a+rx /usr/bin/alphabox
 RUN cp /usr/bin/alphabox /usr/bin/tenderbox
+RUN /usr/bin/granabox initclient
 
 
