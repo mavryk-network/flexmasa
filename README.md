@@ -14,17 +14,15 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `TODO:release`:
+The current _released_ image is `tqtezos/flextesa:20211119`
+(also available at `registry.gitlab.com/smondet/flextesa:078822f2-run`):
+
+It is built top of the `flextesa` executable and Octez suite; it also contains
+the `*box` scripts to quickly start networks with predefined parameters. For
+instance:
 
 ```sh
-# TODO
-image=registry.gitlab.com/smondet/flextesa:078822f2-run
-```
-
-On top of the `flextesa` executable and Octez suite, it has the `*box` scripts
-to quickly start networks with predefined parameters. For instance:
-
-```sh
+image=tqtezos/flextesa:20211119
 script=granabox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
