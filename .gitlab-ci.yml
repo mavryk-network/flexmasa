@@ -30,11 +30,17 @@ docker:images:
     - docker --version
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - date
     - docker pull ocaml/opam:ubuntu-21.04-ocaml-4.12
+    - date
     - docker build . --target build_step -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
+    - date
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
+    - date
     - docker build . --target run_image -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+    - date
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+    - date
 
 lint:
   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
@@ -54,22 +60,29 @@ unit-tests:
      - opam install --deps-only --with-test ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam
      - dune runtest
 
-docker:test:
-  image: "$dind_image"
-  services:
-    - "$dind_service"
+#docker:test:
+#  image: "$dind_image"
+#  services:
+#    - "$dind_service"
+#  stage: build
+#  variables:
+#    DOCKER_DRIVER: overlay2
+#  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
+#    FF_NETWORK_PER_BUILD: "true"
+#  artifacts:
+#     paths:
+#     - mini-net-root
+#  script:
+#    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" cat /usr/bin/flextesarl
+#    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Granada --keep-root --time-between-blocks 2 --until-level 6 --number-of-boot 1 --size 1
+#    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Hangzhou --keep-root --time-between-blocks 3 --minimal-block 2 --until-level 6 --number-of-boot 1 --size 1
+#    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Alpha --keep-root --time-between-blocks 3 --minimal-block 2 --until-level 6 --number-of-boot 1 --size 1
+
+docker:test:full:
+  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
   stage: build
-  variables:
-    DOCKER_DRIVER: overlay2
-  # https://forum.gitlab.com/t/pipeline-stuck-with-fetch-https-dl-cdn-alpinelinux-org-alpine-v3-14-main-x86-64-apkindex-tar-gz/59074/4
-    FF_NETWORK_PER_BUILD: "true"
-  artifacts:
-     paths:
-     - mini-net-root
   script:
-    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" cat /usr/bin/flextesarl
-    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Granada --keep-root --time-between-blocks 2 --until-level 10 --number-of-boot 1 --size 1
-    - docker run "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" flextesa mini --root /root --protocol-kind Hangzhou --keep-root --time-between-blocks 3 --minimal-block 2 --until-level 10 --number-of-boot 1 --size 1
+    - ./src/scripts/full-sandbox-tests.sh
 
 
 makewebsite:

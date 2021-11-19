@@ -55,6 +55,7 @@ module Protocol_kind : sig
   val canonical_hash : t -> string
   val daemon_suffix_exn : t -> string
   val wants_contract_manager : t -> bool
+  val wants_endorser_daemon : t -> bool
 end
 
 (** [t] wraps bootstrap parameters for sandboxed protocols. *)

@@ -34,18 +34,6 @@ module Commands : sig
        ; .. >
     -> Console.Prompt.item
 
-  val curl_rpc_cmd :
-       < application_name: string
-       ; console: Console.t
-       ; paths: Paths.t
-       ; runner: Running_processes.State.t
-       ; .. >
-    -> port:int
-    -> path:string
-    -> ( Ezjsonm.value option
-       , [> `Command_line of string | System_error.t] )
-       Asynchronous_result.t
-
   val do_jq :
        < application_name: string ; console: Console.t ; paths: Paths.t ; .. >
     -> msg:string

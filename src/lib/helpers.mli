@@ -18,12 +18,15 @@ val wait_for :
   -> ?silent:bool
   -> < application_name: string ; console: Console.t ; .. >
   -> attempts:int
-  -> seconds:float
+  -> seconds:
+       (   unit
+        -> ( float
+           , ([> System_error.t | `Waiting_for of string * [`Time_out]]
+              as
+              'errors ) )
+           Asynchronous_result.t )
   -> (   int
-      -> ( [`Done of 'a | `Not_done of string]
-         , ([> System_error.t | `Waiting_for of string * [`Time_out]] as 'errors)
-         )
-         Asynchronous_result.t )
+      -> ([`Done of 'a | `Not_done of string], 'errors) Asynchronous_result.t )
   -> ('a, 'errors) Asynchronous_result.t
 (** Try to wait for an event. The pause between attempts is
     [(attempts_factor * attempts) + seconds] where the default
@@ -138,3 +141,14 @@ module Timing : sig
     -> ('b * float, 'c) Asynchronous_result.t
   (** Time the duration of a function *)
 end
+
+val curl_rpc_cmd :
+     < application_name: string
+     ; console: Console.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+     Internal_pervasives.Base_state.t
+  -> port:int
+  -> path:string
+  -> (Ezjsonm.value option, [> System_error.t]) Asynchronous_result.t

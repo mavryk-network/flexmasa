@@ -53,7 +53,7 @@ You can always type `help` (or `h`) to see available commands, and `quit` (or
 
 The improve user-experience on normal terminals (i.e. not Emacs …) it is
 recommended to wrap the `flextesa` command in command-line edition tool like
-`rlwrap` or `ledit`.
+`rlfe`, `rlwrap` or `ledit`.
 
 More Examples
 -------------

@@ -156,12 +156,16 @@ module Queries : sig
        ; runner: Running_processes.State.t
        ; .. >
     -> attempts:int
-    -> seconds:float
+    -> seconds:
+         (   unit
+          -> ( float
+             , ([> System_error.t | `Waiting_for of string * [`Time_out]]
+                as
+                'errors ) )
+             Asynchronous_result.t )
     -> Tezos_node.t list
     -> [< `At_least of int | `Equal_to of int]
-    -> ( unit
-       , [> System_error.t | `Waiting_for of string * [`Time_out]] )
-       Asynchronous_result.t
+    -> (unit, 'errors) Asynchronous_result.t
   (** Try-sleep-loop waiting for all given nodes to reach a given level. *)
 
   val wait_for_bake :

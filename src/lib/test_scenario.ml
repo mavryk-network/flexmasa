@@ -228,7 +228,8 @@ module Queries = struct
       match List.max_elt ~compare:Int.compare levels with
       | Some n -> n
       | None -> 0 in
-    wait_for_all_levels_to_be state ~silent:true ~attempts:20 ~seconds:1.0
+    wait_for_all_levels_to_be state ~silent:true ~attempts:20
+      ~seconds:(fun () -> return 1.0)
       ~attempts_factor:0.8 nodes
       (`At_least (max_level + 1))
 end
@@ -295,7 +296,8 @@ module Network = struct
         Tezos_client.wait_for_node_bootstrap state client )
     >>= fun () ->
     (* We make sure all nodes got activation before trying to continue: *)
-    Queries.wait_for_all_levels_to_be state ~attempts:20 ~seconds:0.5
+    Queries.wait_for_all_levels_to_be state ~attempts:20
+      ~seconds:(fun () -> return 0.5)
       ~attempts_factor:0.8 nodes (`At_least 1)
 end
 

@@ -14,30 +14,36 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `tqtezos/flextesa:20211025`, on top of the
-`flextesa` executable and Octez suite, it has the `*box` scripts to quickly
-start networks:
+The current _released_ image is `tqtezos/flextesa:20211119`
+(also available at `registry.gitlab.com/smondet/flextesa:078822f2-run`):
 
-For instance:
+It is built top of the `flextesa` executable and Octez suite; it also contains
+the `*box` scripts to quickly start networks with predefined parameters. For
+instance:
 
 ```sh
-image=tqtezos/flextesa:20211025
+image=tqtezos/flextesa:20211119
+script=granabox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
-       "$image" granabox start
+       -e block_time=3 \
+       "$image" "$script" start
 ```
 
-of for Hangzhou:
+All the available scripts start single-node full-sandboxes (i.e. there is a
+baker advancing the blockchain):
 
+- `granabox`: Granada protocol.
+- `hangzbox`: Hangzhou protocol.
+- `alphabox` (aliased to `tenderbox`): Alpha protocol, the development version
+  of the `I` protocol at the time the docker-build was last updated.
+    - See also `docker run "$image" tezos-node --version`.
 
-```sh
-docker run --rm --name my-sandbox --detach -p 20000:20000 \
-       "$image" hangzbox start
-```
+The default `block_time` is 5 seconds.
 
-See also the account available by default:
+See also the accounts available by default:
 
-```sh
- $ docker exec my-sandbox granabox info
+```default
+ $ docker exec my-sandbox $script info
 Usable accounts:
 
 - alice
@@ -52,11 +58,60 @@ Usable accounts:
 Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
 ```
 
-These scripts correspond to the tutorial at
-<https://assets.tqtezos.com/docs/setup/2-sandbox/> (now deprecated but still
-relevant).
+The implementation for these scripts is `src/scripts/tutorial-box.sh`, they are
+just calls to `flextesa mini-net` (see its general
+[documentation](./src/doc/mini-net.md)).
 
-Don't forget to clean-up your resources (`docker kill my-sandbox`).
+The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
+You can use any client, including the `tezos-client` inside the docker
+container, which happens to be already configured:
+
+```default
+$ alias tcli='docker exec my-sandbox tezos-client'
+$ tcli get balance for alice
+2000000 ꜩ
+```
+
+The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
+user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
+a Granada sandbox which switches to Hangzhou at level 20:
+
+```default
+$ docker run --rm --name my-sandbox --detach -p 20000:20000 \
+         -e block_time=3 \
+         "$image" granabox start --hard-fork 20:Hangzhou:
+```
+
+With `tcli` above and `jq` you can keep checking the following to observe the
+protocol change:
+
+```default
+$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
+{
+  "level": 24,
+  "level_position": 23,
+  "cycle": 2,
+  "cycle_position": 7,
+  "expected_commitment": true
+}
+"PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
+```
+
+Notes:
+
+- The default cycle length in the sandboxes is 8 blocks and switching protocols
+  before the end of the first cycle is not supported by Octez.
+- The `hangzbox` script can also switch to `Alpha`, but the current version of
+  Tenderbake will switch to mainnet block-times (a.k.a. 30 seconds) instead of
+  inheriting the current values (cf.
+  [tezos/tezos!3850](https://gitlab.com/tezos/tezos/-/merge_requests/3850)).
+
+These scripts correspond to the tutorial at
+<https://assets.tqtezos.com/docs/setup/2-sandbox/> (which is now deprecated but
+still relevant).
+
+Don't forget to clean-up your resources when you are done:
+`docker kill my-sandbox`.
 
 
 ## Build
@@ -94,19 +149,20 @@ export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/b
 
 ## Build Docker Image
 
-See `docker/Dockerfile`, usually requires modifications with each new version of
-Octez or new protocol (for now, it clones a specific branch of Flextesa):
+See `./Dockerfile`, usually requires modifications with each new version of
+Octez or new protocols.
+
+There are 2 images: `-build` (all dependencies) and `-run` (stripped down image
+with only runtime requirements).
+
+The images are built by the CI, see the job `docker:images:` in
+`./.gitlab-ci.yml`.
+
+To build locally:
 
 ```sh
-image=tqtezos/flextesa:20211005
-# Make the “build” image
 docker build --target build_step -t flextesa-build .
-docker tag flextesa-build "${image}-build"
-docker push "${image}-build"
-# Tag and push (optional, requires access rights):
 docker build --target run_image -t flextesa-run .
-docker tag flextesa-local "$image"
-docker push "$image"
 ```
 
 Do not forget to test it:

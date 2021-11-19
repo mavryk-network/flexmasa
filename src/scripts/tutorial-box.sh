@@ -53,6 +53,14 @@ Root path (logs, chain data, etc.): $root_path (inside container).
 EOF
 }
 
+all_commands="$all_commands
+* initclient : Setup the local tezos-client."
+initclient () {
+    tezos-client --endpoint http://localhost:20000 config update
+    tezos-client import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    tezos-client import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+}
+
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
     usage
