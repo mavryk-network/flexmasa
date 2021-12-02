@@ -14,15 +14,16 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `tqtezos/flextesa:20211119`
-(also available at `registry.gitlab.com/smondet/flextesa:078822f2-run`):
+The current _released_ image is `tqtezos/flextesa:2021TODO`
+(also available at `registry.gitlab.com/smondet/flextesa:70D070D0-run`):
 
 It is built top of the `flextesa` executable and Octez suite; it also contains
 the `*box` scripts to quickly start networks with predefined parameters. For
 instance:
 
 ```sh
-image=tqtezos/flextesa:20211119
+image=tqtezos/flextesa:2021..
+image=registry.gitlab.com/smondet/flextesa:8bea4e08-run
 script=granabox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -43,7 +44,7 @@ The default `block_time` is 5 seconds.
 See also the accounts available by default:
 
 ```default
- $ docker exec my-sandbox $script info
+$ docker exec my-sandbox $script info
 Usable accounts:
 
 - alice
@@ -78,7 +79,7 @@ a Granada sandbox which switches to Hangzhou at level 20:
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
-         -e block_time=3 \
+         -e block_time=2 \
          "$image" granabox start --hard-fork 20:Hangzhou:
 ```
 
@@ -101,10 +102,8 @@ Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `hangzbox` script can also switch to `Alpha`, but the current version of
-  Tenderbake will switch to mainnet block-times (a.k.a. 30 seconds) instead of
-  inheriting the current values (cf.
-  [tezos/tezos!3850](https://gitlab.com/tezos/tezos/-/merge_requests/3850)).
+- The `hangzbox` script can also switch to `Alpha` (e.g.
+  `--hard-fork 16:Alpha:`).
 
 These scripts correspond to the tutorial at
 <https://assets.tqtezos.com/docs/setup/2-sandbox/> (which is now deprecated but
