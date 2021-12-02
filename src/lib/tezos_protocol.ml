@@ -197,7 +197,16 @@ let protocol_parameters_json t : Ezjsonm.t =
           ; ( "minimal_participation_ratio"
             , dict [("numerator", int 2); ("denominator", int 3)] )
           ; ( "round_durations"
-            , dict [("round0", string "1"); ("round1", string "1")] )
+            , dict
+                (let round0, round1 =
+                   match t.time_between_blocks with
+                   | [] ->
+                       Fmt.failwith
+                         "time_between_blocks cannot be an empty list"
+                   | [one] -> (one, one)
+                   | one :: two :: _ -> (one, two) in
+                 [ ("round0", string (Int.to_string round0))
+                 ; ("round1", string (Int.to_string round1)) ] ) )
           ; ("max_slashing_period", int 2)
           ; ("frozen_deposits_percentage", int 10)
           ; ( "ratio_of_frozen_deposits_slashed_per_double_endorsement"
@@ -494,7 +503,10 @@ let cli_term state =
   $ Arg.(
       let doc =
         "Set the time between blocks bootstrap-parameter, e.g. `2,3,2`, the \
-         first value is used as minimal-block-delay." in
+         first value is used as minimal-block-delay. For Tenderbake, we fill \
+         the `round0` and `round1` fields of `round_durations` with the 2 \
+         first values of the list, or duplicate the first if it is the only \
+         one." in
       pure (fun x -> `Time_between_blocks x)
       $ value
           (opt (list ~sep:',' int) def.time_between_blocks
