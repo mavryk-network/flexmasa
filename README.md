@@ -180,6 +180,12 @@ repository:
 [Flexible Network Sandboxes](https://tezos.gitlab.io/developer/flextesa.html)
 (it uses the `tezos-sandbox` executable which is implemented there).
 
+Blog posts:
+
+- [2019-06-14](https://obsidian.systems/blog/introducing-flextesa-robust-testing-tools-for-tezos-and-its-applications)
+- [2021-10-14](https://medium.com/the-aleph/new-flextesa-docker-image-and-some-development-news-f0d5360f01bd)
+- [2021-11-29](https://medium.com/the-aleph/flextesa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
+
 TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com)
 documentation shows how to quickly set up a
 [docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
