@@ -58,5 +58,5 @@ RUN chmod a+rx /usr/bin/hangzbox
 RUN chmod a+rx /usr/bin/alphabox
 RUN cp /usr/bin/alphabox /usr/bin/tenderbox
 RUN /usr/bin/granabox initclient
-
+ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
 
