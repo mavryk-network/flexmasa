@@ -39,12 +39,12 @@ grana () {
 }
 hangz () {
     runone "mini-hangz2" flextesa mini --protocol-kind Hangzhou \
-           --time-between-blocks 1 --minimal-block 1 $until_4 \
+           --time-between-blocks 1 $until_4 \
            --number-of-boot 1 --size 1
 }
 alpha () {
     runone "mini-alpha" flextesa mini --protocol-kind Alpha \
-           --time-between-blocks 2 --minimal-block 2 $until_4 \
+           --time-between-blocks 2 $until_4 \
            --number-of-boot 1 --size 1
 }
 
