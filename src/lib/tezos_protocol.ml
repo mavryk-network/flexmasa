@@ -135,7 +135,6 @@ type t =
   ; name: string (* e.g. alpha *)
   ; hash: string
   ; time_between_blocks: int list
-  ; minimal_block_delay: int
   ; baking_reward_per_endorsement: int list
   ; endorsement_reward: int list
   ; blocks_per_roll_snapshot: int
@@ -162,7 +161,6 @@ let default () =
   ; name= "alpha"
   ; hash= "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
   ; time_between_blocks= [2; 3]
-  ; minimal_block_delay= 2
   ; baking_reward_per_endorsement= [78_125; 11_719]
   ; endorsement_reward= [78_125; 52_083]
   ; blocks_per_roll_snapshot= 4
@@ -223,8 +221,13 @@ let protocol_parameters_json t : Ezjsonm.t =
           ; ( "baking_reward_per_endorsement"
             , list_of_zs t.baking_reward_per_endorsement )
           ; ("endorsement_reward", list_of_zs t.endorsement_reward)
-          ; ("minimal_block_delay", string (Int.to_string t.minimal_block_delay))
-          ]
+          ; ( "minimal_block_delay"
+            , string
+                (Int.to_string
+                   ( try List.hd_exn t.time_between_blocks
+                     with _ ->
+                       Fmt.failwith
+                         "time_between_blocks cannot be the empty list" ) ) ) ]
       | _ -> failwith "unsupported protocol" in
     let granada_specific_parameters =
       match subkind with
@@ -404,7 +407,6 @@ let cli_term state =
       (`Blocks_per_voting_period blocks_per_voting_period)
       (`Protocol_hash hash_opt)
       (`Time_between_blocks time_between_blocks)
-      (`Minimal_block_delay minimal_block_delay)
       (`Blocks_per_cycle blocks_per_cycle)
       (`Preserved_cycles preserved_cycles)
       (`Timestamp_delay timestamp_delay)
@@ -424,7 +426,6 @@ let cli_term state =
       ; hash
       ; bootstrap_accounts
       ; time_between_blocks
-      ; minimal_block_delay
       ; preserved_cycles
       ; timestamp_delay
       ; blocks_per_voting_period } )
@@ -491,21 +492,14 @@ let cli_term state =
                   "Set the (initial) protocol hash (the default is to derive  \
                    it from the protocol kind)." ) ))
   $ Arg.(
+      let doc =
+        "Set the time between blocks bootstrap-parameter, e.g. `2,3,2`, the \
+         first value is used as minimal-block-delay." in
       pure (fun x -> `Time_between_blocks x)
       $ value
           (opt (list ~sep:',' int) def.time_between_blocks
              (info ["time-between-blocks"] ~docv:"COMMA-SEPARATED-SECONDS" ~docs
-                ~doc:
-                  "Set the time between blocks bootstrap-parameter, e.g. \
-                   `2,3,2`." ) ))
-  $ Arg.(
-      pure (fun x -> `Minimal_block_delay x)
-      $ value
-          (opt int def.minimal_block_delay
-             (info ["minimal-block-delay"] ~docv:"SECONDS" ~docs
-                ~doc:
-                  "Set the minimal delay between blocks bootstrap-parameter, \
-                   e.g. `2`." ) ))
+                ~doc ) ))
   $ Arg.(
       pure (fun x -> `Blocks_per_cycle x)
       $ value
