@@ -23,7 +23,7 @@ instance:
 
 ```sh
 image=tqtezos/flextesa:2021..
-image=registry.gitlab.com/smondet/flextesa:8bea4e08-run
+image=registry.gitlab.com/smondet/flextesa:1769f3cc-run
 script=granabox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -73,6 +73,9 @@ $ tcli get balance for alice
 2000000 ꜩ
 ```
 
+You can always stop the sandbox, and clean-up your resources with:
+`docker kill my-sandbox`.
+
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
 a Granada sandbox which switches to Hangzhou at level 20:
@@ -108,9 +111,6 @@ Notes:
 These scripts correspond to the tutorial at
 <https://assets.tqtezos.com/docs/setup/2-sandbox/> (which is now deprecated but
 still relevant).
-
-Don't forget to clean-up your resources when you are done:
-`docker kill my-sandbox`.
 
 
 ## Build
