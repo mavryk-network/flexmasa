@@ -277,7 +277,32 @@ module Network = struct
     let node_0 = List.hd_exn nodes in
     let client = Tezos_client.of_node node_0 ~exec:client_exec in
     Dbg.e EF.(af "Trying to bootstrap client") ;
-    Tezos_client.wait_for_node_bootstrap state client
+    Asynchronous_result.enrich
+      (Tezos_client.wait_for_node_bootstrap state client) ~attach:(fun () ->
+        (* Most node problems show up here so we augment the error
+           with the logs & such. *)
+        let file_or_empty path =
+          Asynchronous_result.bind_on_error
+            ~f:(fun ~result:_ _ -> return "")
+            (System.read_file state path)
+          >>= fun string ->
+          let content =
+            match string with
+            | "" -> `String_value "EMPTY"
+            | more -> `Verbatim (String.split ~on:'\n' more) in
+          return content in
+        let logfile = Tezos_node.log_output state node_0 in
+        let process = Tezos_node.process state node_0 in
+        let stderr = Running_processes.output_path state process `Stderr in
+        file_or_empty logfile
+        >>= fun log_content ->
+        file_or_empty stderr
+        >>= fun err_content ->
+        return
+          [ ("node-stderr-file", `String_value stderr)
+          ; ("node-stderr-content", err_content)
+          ; ("node-log-file", `String_value logfile)
+          ; ("log-content", log_content) ] )
     >>= fun () ->
     Tezos_client.rpc state ~client `Get ~path:"/chains/main/blocks/head/header"
     >>= fun json ->
