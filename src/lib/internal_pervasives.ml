@@ -236,7 +236,7 @@ module Asynchronous_result = struct
 
   let yield () =
     (* https://github.com/ocsigen/lwt/issues/631 *)
-    if false then Lwt_unix.auto_yield 0.005 () else Lwt_main.yield ()
+    if false then Lwt_unix.auto_pause 0.005 () else Lwt.pause ()
 
   let fail ?attach error_value : (_, _) t =
     Lwt.return (error ?attachments:attach error_value)
@@ -270,11 +270,7 @@ module Asynchronous_result = struct
     | {result= Error e; attachments= attach} as res ->
         f ~result:res e
         >>= fun {result; attachments} ->
-        Lwt.return
-          { result
-          ; attachments=
-              List.dedup_and_sort ~compare:Poly.compare (attachments @ attach)
-          }
+        Lwt.return {result; attachments= attachments @ attach}
 
   let transform_error o ~f =
     let open Lwt.Infix in
@@ -284,12 +280,16 @@ module Asynchronous_result = struct
     | {result= Error e; attachments} ->
         Lwt.return {result= Error (f e); attachments}
 
-  let enrich : attachment:(string * content) list -> 'a -> ('b, 'c) t =
-   fun ~attachment x ->
+  let enrich :
+         attach:(unit -> ((string * content) list, 'c) t)
+      -> ('b, 'c) t
+      -> ('b, 'c) t =
+   fun ~attach x ->
     bind_on_error x ~f:(fun ~result _ ->
-        Lwt.return
-          Attached_result.
-            {result with attachments= result.attachments @ attachment} )
+        bind (attach ()) (fun attach_more ->
+            Lwt.return
+              Attached_result.
+                {result with attachments= result.attachments @ attach_more} ) )
 
   let bind_all :
          ('ok, 'error) t
@@ -398,7 +398,7 @@ module Asynchronous_result = struct
     match
       Lwt_main.run
         Lwt.(
-          Lwt_unix.yield ()
+          Lwt.pause ()
           >>= fun () ->
           Dbg.e EF.(wf "Lwt_main.run") ;
           r ())

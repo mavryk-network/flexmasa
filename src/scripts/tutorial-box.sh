@@ -31,7 +31,6 @@ start () {
              --set-history-mode N000:archive \
              --number-of-b 1 \
              --time-b "$time_bb" \
-             --minimal-block-delay "$time_bb" \
              --add-bootstrap-account="$alice@2_000_000_000_000" \
              --add-bootstrap-account="$bob@2_000_000_000_000" \
              --no-daemons-for=alice \

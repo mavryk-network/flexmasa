@@ -8,7 +8,7 @@ RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
 # Get link from the master pipeline, or from
 # https://gitlab.com/tezos/tezos/-/releases
-RUN sudo curl -L https://gitlab.com/tezos/tezos/-/jobs/1784112584/artifacts/download -o /usr/bin/bins.zip
+RUN sudo curl -L https://gitlab.com/tezos/tezos/-/jobs/1838794710/artifacts/download -o /usr/bin/bins.zip
 WORKDIR /usr/bin
 RUN sudo unzip bins.zip
 RUN sudo mv tezos-binaries/* .
@@ -58,5 +58,5 @@ RUN chmod a+rx /usr/bin/hangzbox
 RUN chmod a+rx /usr/bin/alphabox
 RUN cp /usr/bin/alphabox /usr/bin/tenderbox
 RUN /usr/bin/granabox initclient
-
+ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
 

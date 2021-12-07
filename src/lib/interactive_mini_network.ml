@@ -311,7 +311,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
            if List.mem ~equal:String.equal no_daemons_for key then None
            else
              Some
-               ( acc
+               ( node
+               , acc
                , client
                , to_keyed acc client
                , Option.value_map hard_fork ~default:[]
@@ -320,13 +321,13 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                        ~key ~protocol_kind:protocol.kind
                    ; Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
                        ~protocol_kind:protocol.kind node ~key ] ) ) in
-  List_sequential.iter keys_and_daemons ~f:(fun (_, _, kc, _) ->
+  List_sequential.iter keys_and_daemons ~f:(fun (_, _, _, kc, _) ->
       Tezos_client.Keyed.initialize state kc >>= fun _ -> return () )
   >>= fun () ->
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.
       [ generate_traffic_command state
-          ~clients:(List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc))
+          ~clients:(List.map keys_and_daemons ~f:(fun (_, _, _, kc, _) -> kc))
           ~nodes ] ;
   ( if state#test_baking then
     let accusers =
@@ -338,7 +339,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         Running_processes.start state (Tezos_daemon.process state acc)
         >>= fun {process= _; lwt= _} -> return () )
     >>= fun () ->
-    List_sequential.iter keys_and_daemons ~f:(fun (_acc, client, kc, daemons) ->
+    List_sequential.iter keys_and_daemons
+      ~f:(fun (_node, _acc, client, kc, daemons) ->
         Tezos_client.wait_for_node_bootstrap state client
         >>= fun () ->
         let key_name = kc.Tezos_client.Keyed.key_name in
@@ -362,7 +364,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             >>= fun {process= _; lwt= _} -> return () ) )
   else
     List.fold ~init:(return []) keys_and_daemons
-      ~f:(fun prev_m (_acc, client, keyed, _) ->
+      ~f:(fun prev_m (_node, _acc, client, keyed, _) ->
         prev_m
         >>= fun prev ->
         Tezos_client.wait_for_node_bootstrap state client
@@ -380,13 +382,14 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Traffic_generation.Commands.init_cmd_history state
   (* clear the command history file *)
   >>= fun () ->
-  let clients = List.map keys_and_daemons ~f:(fun (_, c, _, _) -> c) in
+  let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in
     let env = build state ~protocol ~clients in
     write state env ~path >>= fun () -> return (help_command state env ~path))
   >>= fun shell_env_help ->
-  let keyed_clients = List.map keys_and_daemons ~f:(fun (_, _, kc, _) -> kc) in
+  let keyed_clients =
+    List.map keys_and_daemons ~f:(fun (_, _, _, kc, _) -> kc) in
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.(
       (shell_env_help :: all_defaults state ~nodes)

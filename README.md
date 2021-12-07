@@ -14,16 +14,17 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `tqtezos/flextesa:20211119`
-(also available at `registry.gitlab.com/smondet/flextesa:078822f2-run`):
+The current _released_ image is `oxheadalpha/flextesa:20211207` (also available
+at `registry.gitlab.com/smondet/flextesa:68d674f9-run`, and
+`oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite; it also contains
 the `*box` scripts to quickly start networks with predefined parameters. For
 instance:
 
 ```sh
-image=tqtezos/flextesa:20211119
-script=granabox
+image=oxheadalpha/flextesa:20211207
+script=hangzbox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -43,7 +44,7 @@ The default `block_time` is 5 seconds.
 See also the accounts available by default:
 
 ```default
- $ docker exec my-sandbox $script info
+$ docker exec my-sandbox $script info
 Usable accounts:
 
 - alice
@@ -72,13 +73,16 @@ $ tcli get balance for alice
 2000000 ꜩ
 ```
 
+You can always stop the sandbox, and clean-up your resources with:
+`docker kill my-sandbox`.
+
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
 a Granada sandbox which switches to Hangzhou at level 20:
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
-         -e block_time=3 \
+         -e block_time=2 \
          "$image" granabox start --hard-fork 20:Hangzhou:
 ```
 
@@ -101,17 +105,12 @@ Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `hangzbox` script can also switch to `Alpha`, but the current version of
-  Tenderbake will switch to mainnet block-times (a.k.a. 30 seconds) instead of
-  inheriting the current values (cf.
-  [tezos/tezos!3850](https://gitlab.com/tezos/tezos/-/merge_requests/3850)).
+- The `hangzbox` script can also switch to `Alpha` (e.g.
+  `--hard-fork 16:Alpha:`).
 
 These scripts correspond to the tutorial at
 <https://assets.tqtezos.com/docs/setup/2-sandbox/> (which is now deprecated but
 still relevant).
-
-Don't forget to clean-up your resources when you are done:
-`docker kill my-sandbox`.
 
 
 ## Build
@@ -180,6 +179,12 @@ Some documentation, including many examples, is part of the `tezos/tezos`
 repository:
 [Flexible Network Sandboxes](https://tezos.gitlab.io/developer/flextesa.html)
 (it uses the `tezos-sandbox` executable which is implemented there).
+
+Blog posts:
+
+- [2019-06-14](https://obsidian.systems/blog/introducing-flextesa-robust-testing-tools-for-tezos-and-its-applications)
+- [2021-10-14](https://medium.com/the-aleph/new-flextesa-docker-image-and-some-development-news-f0d5360f01bd)
+- [2021-11-29](https://medium.com/the-aleph/flextesa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
 
 TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com)
 documentation shows how to quickly set up a
