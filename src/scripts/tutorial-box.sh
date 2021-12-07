@@ -56,8 +56,8 @@ all_commands="$all_commands
 * initclient : Setup the local tezos-client."
 initclient () {
     tezos-client --endpoint http://localhost:20000 config update
-    tezos-client import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    tezos-client import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    tezos-client --protocol PtHangz2aRng import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    tezos-client --protocol PtHangz2aRng import secret key bob "$(echo $bob | cut -d, -f 4)" --force
 }
 
 
