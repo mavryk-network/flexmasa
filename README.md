@@ -14,16 +14,16 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20211207` (also available
-at `registry.gitlab.com/smondet/flextesa:68d674f9-run`, and
-`oxheadalpha/flextesa:latest`):
+The current _released_ image is `oxheadalpha/flextesa:2021XXXX` (also available
+as `oxheadalpha/flextesa:latest`):
 
-It is built top of the `flextesa` executable and Octez suite; it also contains
-the `*box` scripts to quickly start networks with predefined parameters. For
-instance:
+It is built top of the `flextesa` executable and Octez suite, for 2
+architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
+also contains the `*box` scripts to quickly start networks with predefined
+parameters. For instance:
 
 ```sh
-image=oxheadalpha/flextesa:20211207
+image=oxheadalpha/flextesa:2021XXXX
 script=hangzbox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -146,15 +146,16 @@ the tests with:
 export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/bin:$PATH"
 ```
 
-## Build Docker Image
+## Build Of The Docker Image
 
-See `./Dockerfile`, usually requires modifications with each new version of
-Octez or new protocols.
+See `./Dockerfile`, it often requires modifications with each new version of
+Octez or for new protocols, the version of the Octez static binaries (`x86_64`
+and `arm64`) is set in `src/scripts/get-octez-static-binaries.sh`.
 
 There are 2 images: `-build` (all dependencies) and `-run` (stripped down image
 with only runtime requirements).
 
-The images are built by the CI, see the job `docker:images:` in
+The `x86_64` images are built by the CI, see the job `docker:images:` in
 `./.gitlab-ci.yml`.
 
 To build locally:
@@ -166,6 +167,75 @@ docker build --target run_image -t flextesa-run .
 
 Do not forget to test it:
 `docker run -it "$image" hangzbox start`
+
+To build the **released multi-architecture images**, we use
+[buildx](https://docs.docker.com/buildx/working-with-buildx/).  In short, this
+is the build itself:
+
+```sh
+docker buildx build --platform linux/arm64/v8,linux/amd64  . \
+       --target run_image \
+       --tag oxheadalpha/flextesa:test-20220320 \
+       --tag oxheadalpha/flextesa:test-latest \
+       --push
+```
+
+The build does not fit within the limits of Gitlab-CI.  Here are the
+instructions for Ubuntu 20.04 (Using a “click next” AWS instance: start an
+_“Ubuntu Server 20.04 LTS”_ host, the build can use quite a few CPUs at once and
+requires a larger disk, e.g. 128 GiB).
+
+Setting up Docker:
+
+```sh
+sudo apt update
+sudo apt install docker.io
+sudo adduser ubuntu docker
+```
+
+(may have to `sudo su ubuntu` to really get _into the group_)
+
+Install the `buildx` CLI plugin:
+
+```sh
+mkdir -p ~/.docker/cli-plugins/
+curl -L -o ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.7.1/buildx-v0.7.1.linux-amd64
+chmod a+x ~/.docker/cli-plugins/docker-buildx
+docker buildx --help # Test it !
+```
+
+Prepare the Qemu setup:
+
+```sh
+docker run --rm --privileged multiarch/qemu-user-static \
+       --reset -p yes --credential yes
+```
+
+Prepare the buildx environment:
+
+```sh
+docker login # Interactive, asks for user/password
+docker buildx create --use # Starts a container to clean-up later
+```
+
+Get the checkout of Flextesa you want to build:
+
+```sh
+git clone https://gitlab.com/smondet/flextesa -b smondet-docker-arm64
+cd flextesa
+```
+
+And, finally, start the build/tag/push in one go:
+
+```sh
+docker buildx build --platform linux/arm64/v8,linux/amd64  . \
+       --target run_image \
+       --tag oxheadalpha/flextesa:rc-20211210 \
+       --tag oxheadalpha/flextesa:rc-latest \
+       --push
+```
+
+
 
 ## More Documentation
 
