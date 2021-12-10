@@ -1,19 +1,13 @@
-FROM ocaml/opam:ubuntu-21.04-ocaml-4.12 as build_step
-ENV DEBIAN_FRONTEND=noninteractive
+FROM ocaml/opam:alpine-3.15-ocaml-4.12 as build_step
+#ENV DEBIAN_FRONTEND=noninteractive
 RUN sudo cp /usr/bin/opam-2.1 /usr/bin/opam
-#RUN opam update
+RUN sudo apk update
 ADD  --chown=opam:opam . ./
 RUN opam install --with-test --deps-only ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam ./flextesa.opam
 RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
-# Get link from the master pipeline, or from
-# https://gitlab.com/tezos/tezos/-/releases
-RUN sudo curl -L https://gitlab.com/tezos/tezos/-/jobs/1838794710/artifacts/download -o /usr/bin/bins.zip
+RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin/
 WORKDIR /usr/bin
-RUN sudo unzip bins.zip
-RUN sudo mv tezos-binaries/* .
-RUN sudo rm -fr bins.zip tezos-binaries
-RUN sudo chmod a+rx tezos-*
 ENV SAPLING_SPEND='sapling-spend.params'
 ENV SAPLING_OUTPUT='sapling-output.params'
 # ENV SAPLING_SPROUT_GROTH16_NAME='sprout-groth16.params'
@@ -22,10 +16,9 @@ ENV LOCALLOC=/usr/share/zcash-params
 RUN sudo mkdir -p $LOCALLOC
 RUN sudo curl --output "$LOCALLOC/$SAPLING_OUTPUT" -L "$DOWNLOAD_URL/$SAPLING_OUTPUT"
 RUN sudo curl --output "$LOCALLOC/$SAPLING_SPEND" -L "$DOWNLOAD_URL/$SAPLING_SPEND"
-FROM ubuntu:21.04 as run_image
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update --yes
-RUN apt-get install --yes curl libev4 libffi7 rlfe unzip netbase
+FROM alpine:3.15 as run_image
+RUN apk update
+RUN apk add curl libev libffi unzip gmp rlwrap
 WORKDIR /usr/bin
 COPY --from=0 /usr/bin/tezos-accuser-010-PtGRANAD .
 COPY --from=0 /usr/bin/tezos-accuser-011-PtHangz2 .
@@ -46,7 +39,7 @@ COPY --from=0 /usr/bin/tezos-node .
 COPY --from=0 /usr/bin/tezos-validator .
 COPY --from=0 /usr/bin/flextesa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
-RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlfe flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
+RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/granabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/hangzbox
