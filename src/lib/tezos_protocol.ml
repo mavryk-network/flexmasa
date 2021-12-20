@@ -63,12 +63,14 @@ module Protocol_kind = struct
     | `Florence
     | `Granada
     | `Hangzhou
+    | `Ithaca
     | `Alpha ]
 
   let names =
     [ ("Athens", `Athens); ("Babylon", `Babylon); ("Carthage", `Carthage)
     ; ("Delphi", `Delphi); ("Edo", `Edo); ("Florence", `Florence)
-    ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Alpha", `Alpha) ]
+    ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Ithaca", `Ithaca)
+    ; ("Alpha", `Alpha) ]
 
   let ( < ) k1 k2 =
     let rec aux = function
@@ -95,6 +97,7 @@ module Protocol_kind = struct
         | _ -> None ) )
 
   let canonical_hash : t -> string = function
+    | `Ithaca -> "PsiThaCaT47Zboaw71QWScM8sXeMM7bbQFncK9FLqYc6EKdpjVP"
     | `Hangzhou ->
         "PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
         (* Version 1: "PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r" *)
@@ -108,6 +111,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Ithaca -> "012-PsiThaCa"
     | `Hangzhou -> "011-PtHangz2"
     | `Granada -> "010-PtGRANAD"
     | `Florence -> "009-PsFLoren"
@@ -122,7 +126,11 @@ module Protocol_kind = struct
     | `Athens -> true
     | _ -> false
 
-  let wants_endorser_daemon : t -> bool = function `Alpha -> false | _ -> true
+  let wants_endorser_daemon : t -> bool = function
+    | `Ithaca | `Alpha -> false
+    | `Florence | `Carthage | `Delphi | `Hangzhou | `Babylon | `Edo | `Granada
+     |`Athens ->
+        true
 end
 
 type t =
@@ -176,18 +184,21 @@ let default () =
 let protocol_parameters_json t : Ezjsonm.t =
   let open Ezjsonm in
   ( match t.kind with
-  | `Granada | `Hangzhou | `Alpha -> ()
+  | `Ithaca | `Hangzhou | `Alpha -> ()
   | other ->
       Fmt.failwith
         "Flextesa cannot generate parameters for old protocols like %a, please \
          provide your own JSON file."
         Protocol_kind.pp other ) ;
+  let unsupported_protocol where t =
+    Fmt.failwith "BUG: %s -> Unsupported protocol: %a" where Protocol_kind.pp t
+  in
   let make_account (account, amount) =
     strings [Account.pubkey account; sprintf "%Ld" amount] in
   let extra_post_babylon_stuff subkind =
-    let alpha_specific_parameters =
+    let tenderbake_specific_parameters =
       match subkind with
-      | `Alpha ->
+      | `Ithaca | `Alpha ->
           [ ("max_operations_time_to_live", int 120)
           ; ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot)
           ; ("baking_reward_fixed_portion", string "10000000")
@@ -196,29 +207,33 @@ let protocol_parameters_json t : Ezjsonm.t =
           ; ("consensus_committee_size", int 67); ("consensus_threshold", int 6)
           ; ( "minimal_participation_ratio"
             , dict [("numerator", int 2); ("denominator", int 3)] )
-          ; ( "round_durations"
-            , dict
-                (let round0, round1 =
-                   match t.time_between_blocks with
-                   | [] ->
-                       Fmt.failwith
-                         "time_between_blocks cannot be an empty list"
-                   | [one] -> (one, one)
-                   | one :: two :: _ -> (one, two) in
-                 [ ("round0", string (Int.to_string round0))
-                 ; ("round1", string (Int.to_string round1)) ] ) )
+          ; ( "minimal_block_delay"
+            , string
+                ( match List.nth_exn t.time_between_blocks 0 with
+                | n -> Int.to_string n
+                | exception _ ->
+                    Fmt.failwith "time_between_blocks cannot be an empty list"
+                ) )
+          ; ( "delay_increment_per_round"
+            , string
+                ( match t.time_between_blocks with
+                | [n] | _ :: n :: _ -> Int.to_string n
+                | _ ->
+                    Fmt.failwith "time_between_blocks cannot be an empty list"
+                ) )
           ; ("max_slashing_period", int 2)
           ; ("frozen_deposits_percentage", int 10)
           ; ( "ratio_of_frozen_deposits_slashed_per_double_endorsement"
             , dict [("numerator", int 1); ("denominator", int 2)] )
           ; ("double_baking_punishment", string "640000000") ]
-      | `Granada | `Hangzhou -> []
-      | _ -> failwith "unsupported protocol" in
+      | `Hangzhou -> []
+      | other -> unsupported_protocol "tenderbake_specific_parameters" other
+    in
     let list_of_zs = list (fun i -> string (Int.to_string i)) in
-    let pre_alpha_specific_parameters =
+    let pre_tenderbake_specific_parameters =
       match subkind with
-      | `Alpha -> []
-      | `Granada | `Hangzhou ->
+      | `Alpha | `Ithaca -> []
+      | `Hangzhou ->
           [ ("blocks_per_roll_snapshot", int t.blocks_per_roll_snapshot)
           ; ("initial_endorsers", int 1)
           ; ("delay_per_missing_endorsement", string (Int.to_string 1))
@@ -237,13 +252,14 @@ let protocol_parameters_json t : Ezjsonm.t =
                      with _ ->
                        Fmt.failwith
                          "time_between_blocks cannot be the empty list" ) ) ) ]
-      | _ -> failwith "unsupported protocol" in
+      | other -> unsupported_protocol "pre_tenderbake_specific_parameters" other
+    in
     let granada_specific_parameters =
       match subkind with
       | `Granada -> [("michelson_maximum_type_size", int 1_000)]
-      | `Hangzhou | `Alpha -> []
-      | _ -> failwith "unsupported protocol" in
-    alpha_specific_parameters @ pre_alpha_specific_parameters
+      | `Ithaca | `Hangzhou | `Alpha -> []
+      | other -> unsupported_protocol "granada_specific_parameters" other in
+    tenderbake_specific_parameters @ pre_tenderbake_specific_parameters
     @ granada_specific_parameters in
   let common =
     [ ( "bootstrap_accounts"
