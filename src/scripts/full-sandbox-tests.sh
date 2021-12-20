@@ -33,14 +33,14 @@ runone () {
 }
 
 
-grana () {
-    runone "mini-granada" flextesa mini --protocol-kind Granada \
-           --time-between-blocks 2 $until_4 --number-of-boot 1 --size 1
-}
 hangz () {
     runone "mini-hangz2" flextesa mini --protocol-kind Hangzhou \
            --time-between-blocks 1 $until_4 \
            --number-of-boot 1 --size 1
+}
+itha () {
+    runone "mini-ithaca" flextesa mini --protocol-kind Ithaca \
+           --time-between-blocks 2 $until_4 --number-of-boot 1 --size 1
 }
 alpha () {
     runone "mini-alpha" flextesa mini --protocol-kind Alpha \
@@ -48,19 +48,17 @@ alpha () {
            --number-of-boot 1 --size 1
 }
 
-g2h () {
-    runone "granada-2-hangzhou" flextesa mini \
-           --protocol-kind Granada \
-           --hard-fork 4:Hangzhou: \
-           --time-between-blocks 2 --number-of-boot 1 --size 1 \
-           $until_8
+h2i () {
+    runone "hangzhou-2-ithaca" flextesa mini \
+           --protocol-kind Hangzhou \
+           --hard-fork 10:Ithaca: \
+           --time-between-blocks 1 --number-of-boot 1 --size 1 \
+           $until_12
 }
 h2a () {
     # Hangzhou to Alpha:
-    # - Alpha switches the block-time to 30s, so we wait only a couple of
-    #   of blocks after the transition.
-    # - Transition fails if within the first cycle, we leave the cycle
-    #   length at 8 blocks and switch at level 10.
+    # - Making Alpha switch from Ithaca has apparently not been implemented
+    # yet in Octez
     runone "hangzhou-2-alpha" flextesa mini \
            --protocol-kind Hangz \
            --hard-fork 10:Alpha: \
@@ -69,11 +67,11 @@ h2a () {
 }
 
 all () {
-    grana
     hangz
+    itha
     alpha
-    g2h
     h2a
+    h2i
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
