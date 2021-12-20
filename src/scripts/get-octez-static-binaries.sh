@@ -10,10 +10,11 @@ fi
 
 # Get IDs from the master pipeline, or from
 # https://gitlab.com/tezos/tezos/-/releases
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/433538226
 job_id=none
 case $(uname -m) in
-    x86_64 ) job_id=1838794710 ;;
-    aarch64 ) job_id=1838794719 ;;
+    x86_64 ) job_id=1904775019 ;;
+    aarch64 ) job_id=1904775026 ;;
     * ) echo "Unknown architecture: $(uname -a)" >&2 ; exit 4 ;;
 esac
 

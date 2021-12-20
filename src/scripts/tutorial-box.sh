@@ -1,6 +1,6 @@
 #! /bin/sh
 
-default_protocol=Granada
+default_protocol=Hangzhou
 
 all_commands="
 * usage | help | --help | -h: Display this help message."

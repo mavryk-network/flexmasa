@@ -20,17 +20,16 @@ FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap
 WORKDIR /usr/bin
-COPY --from=0 /usr/bin/tezos-accuser-010-PtGRANAD .
+COPY --from=0 /usr/bin/tezos-accuser-012-PsiThaCa .
 COPY --from=0 /usr/bin/tezos-accuser-011-PtHangz2 .
 COPY --from=0 /usr/bin/tezos-accuser-alpha .
 COPY --from=0 /usr/bin/tezos-admin-client .
-COPY --from=0 /usr/bin/tezos-baker-010-PtGRANAD .
+COPY --from=0 /usr/bin/tezos-baker-012-PsiThaCa .
 COPY --from=0 /usr/bin/tezos-baker-011-PtHangz2 .
 COPY --from=0 /usr/bin/tezos-baker-alpha .
 COPY --from=0 /usr/bin/tezos-client .
 COPY --from=0 /usr/bin/tezos-codec .
 COPY --from=0 /usr/bin/tezos-embedded-protocol-packer .
-COPY --from=0 /usr/bin/tezos-endorser-010-PtGRANAD .
 COPY --from=0 /usr/bin/tezos-endorser-011-PtHangz2 .
 #COPY --from=0 /usr/bin/tezos-init-sandboxed-client.sh .
 COPY --from=0 /usr/bin/tezos-node .
@@ -41,15 +40,14 @@ COPY --from=0 /usr/bin/flextesa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/granabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/hangzbox
-RUN sed -i s/default_protocol=Granada/default_protocol=Hangzhou/ /usr/bin/hangzbox
+COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/ithacabox
+RUN sed -i s/default_protocol=Hangzhou/default_protocol=Ithaca/ /usr/bin/ithacabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
-RUN sed -i s/default_protocol=Granada/default_protocol=Alpha/ /usr/bin/alphabox
-RUN chmod a+rx /usr/bin/granabox
+RUN sed -i s/default_protocol=Hangzhou/default_protocol=Alpha/ /usr/bin/alphabox
 RUN chmod a+rx /usr/bin/hangzbox
+RUN chmod a+rx /usr/bin/ithacabox
 RUN chmod a+rx /usr/bin/alphabox
-RUN cp /usr/bin/alphabox /usr/bin/tenderbox
-RUN /usr/bin/granabox initclient
+RUN /usr/bin/alphabox initclient
 ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
 
