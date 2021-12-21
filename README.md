@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20211210` (also available
+The current _released_ image is `oxheadalpha/flextesa:2021MMDD` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -23,7 +23,8 @@ also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
 
 ```sh
-image=oxheadalpha/flextesa:20211210
+image=oxheadalpha/flextesa:2021MMDD
+image=oxheadalpha/flextesa:rc-20211221
 script=hangzbox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -33,10 +34,10 @@ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
-- `granabox`: Granada protocol.
 - `hangzbox`: Hangzhou protocol.
-- `alphabox` (aliased to `tenderbox`): Alpha protocol, the development version
-  of the `I` protocol at the time the docker-build was last updated.
+- `ithacabox`: Ithaca protocol.
+- `alphabox`: Alpha protocol, the development version
+  of the `J` protocol at the time the docker-build was last updated.
     - See also `docker run "$image" tezos-node --version`.
 
 The default `block_time` is 5 seconds.
@@ -78,12 +79,12 @@ You can always stop the sandbox, and clean-up your resources with:
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
-a Granada sandbox which switches to Hangzhou at level 20:
+a Hangzhou sandbox which switches to Ithaca at level 20:
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
          -e block_time=2 \
-         "$image" granabox start --hard-fork 20:Hangzhou:
+         "$image" hangzbox start --hard-fork 20:Ithaca:
 ```
 
 With `tcli` above and `jq` you can keep checking the following to observe the
@@ -98,7 +99,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
+"PsiThaCaT47Zboaw71QWScM8sXeMM7bbQFncK9FLqYc6EKdpjVP"
 ```
 
 Notes:
