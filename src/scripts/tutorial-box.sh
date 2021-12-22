@@ -1,6 +1,6 @@
 #! /bin/sh
 
-default_protocol=Granada
+default_protocol=Hangzhou
 
 all_commands="
 * usage | help | --help | -h: Display this help message."
@@ -30,6 +30,7 @@ start () {
              --root "$root_path" --size 1 "$@" \
              --set-history-mode N000:archive \
              --number-of-b 1 \
+             --balance-of-bootstrap-accounts tez:100_000_000 \
              --time-b "$time_bb" \
              --add-bootstrap-account="$alice@2_000_000_000_000" \
              --add-bootstrap-account="$bob@2_000_000_000_000" \

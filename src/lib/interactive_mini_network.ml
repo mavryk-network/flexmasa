@@ -56,6 +56,13 @@ module Genesis_block_hash = struct
          * Seed: "tutobox11-3307590"
            → block: "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
            → chain-id: "NetXgbFy27eBoxH"
+      $ ./flextesa van --first --seed tutobox12- --attempts 100_000_000  Boxi
+     Flextesa.vanity-chain-id:  Looking for "Boxi"
+     Flextesa.vanity-chain-id:
+       Results:
+         * Seed: "tutobox12-10249265"
+           → block: "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
+           → chain-id: "NetXfHjxW3qBoxi"
     *)
     function
     | `Carthage -> "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
@@ -63,8 +70,8 @@ module Genesis_block_hash = struct
     | `Edo -> "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
     | `Florence -> "BMJqwuTLa3aSi3KAg4XtvSdVe5r7RuoXh5n15DwEoivx2Ve3Wfk"
     | `Granada -> "BLCRemfAUthe9XSXuJmuH5PmwvQk55aZUwtCbGZdjLh2niWZSJZ"
-    | `Hangzhou | `Alpha ->
-        "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
+    | `Hangzhou -> "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
+    | `Ithaca | `Alpha -> "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
   module Choice = struct
@@ -216,8 +223,8 @@ let run_wait_level protocol state nodes opt lvl =
              return
                Jqo.(
                  try
-                   field json ~k:"round_durations"
-                   |> get_strings |> List.hd_exn |> Int.of_string
+                   field json ~k:"minimal_block_delay"
+                   |> get_string |> Int.of_string
                  with _ -> (
                    try
                      field json ~k:"time_between_blocks"

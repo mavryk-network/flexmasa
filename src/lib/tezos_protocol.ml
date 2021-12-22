@@ -63,12 +63,14 @@ module Protocol_kind = struct
     | `Florence
     | `Granada
     | `Hangzhou
+    | `Ithaca
     | `Alpha ]
 
   let names =
     [ ("Athens", `Athens); ("Babylon", `Babylon); ("Carthage", `Carthage)
     ; ("Delphi", `Delphi); ("Edo", `Edo); ("Florence", `Florence)
-    ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Alpha", `Alpha) ]
+    ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Ithaca", `Ithaca)
+    ; ("Alpha", `Alpha) ]
 
   let ( < ) k1 k2 =
     let rec aux = function
@@ -95,6 +97,7 @@ module Protocol_kind = struct
         | _ -> None ) )
 
   let canonical_hash : t -> string = function
+    | `Ithaca -> "PsiThaCaT47Zboaw71QWScM8sXeMM7bbQFncK9FLqYc6EKdpjVP"
     | `Hangzhou ->
         "PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
         (* Version 1: "PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r" *)
@@ -108,6 +111,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Ithaca -> "012-PsiThaCa"
     | `Hangzhou -> "011-PtHangz2"
     | `Granada -> "010-PtGRANAD"
     | `Florence -> "009-PsFLoren"
@@ -122,7 +126,11 @@ module Protocol_kind = struct
     | `Athens -> true
     | _ -> false
 
-  let wants_endorser_daemon : t -> bool = function `Alpha -> false | _ -> true
+  let wants_endorser_daemon : t -> bool = function
+    | `Ithaca | `Alpha -> false
+    | `Florence | `Carthage | `Delphi | `Hangzhou | `Babylon | `Edo | `Granada
+     |`Athens ->
+        true
 end
 
 type t =
@@ -171,102 +179,115 @@ let default () =
   ; timestamp_delay= None
   ; custom_protocol_parameters= None }
 
-(* This function is, for now, kept in strong sync with the copy in Octez
-   at ["vendors/flextesa-lib/tezos_protocol.ml"]: *)
 let protocol_parameters_json t : Ezjsonm.t =
-  let open Ezjsonm in
-  ( match t.kind with
-  | `Granada | `Hangzhou | `Alpha -> ()
-  | other ->
-      Fmt.failwith
-        "Flextesa cannot generate parameters for old protocols like %a, please \
-         provide your own JSON file."
-        Protocol_kind.pp other ) ;
-  let make_account (account, amount) =
-    strings [Account.pubkey account; sprintf "%Ld" amount] in
-  let extra_post_babylon_stuff subkind =
-    let alpha_specific_parameters =
-      match subkind with
-      | `Alpha ->
-          [ ("max_operations_time_to_live", int 120)
-          ; ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot)
-          ; ("baking_reward_fixed_portion", string "10000000")
-          ; ("baking_reward_bonus_per_slot", string "4286")
-          ; ("endorsing_reward_per_slot", string "2857")
-          ; ("consensus_committee_size", int 67); ("consensus_threshold", int 6)
-          ; ( "minimal_participation_ratio"
-            , dict [("numerator", int 2); ("denominator", int 3)] )
-          ; ( "round_durations"
-            , dict
-                (let round0, round1 =
-                   match t.time_between_blocks with
-                   | [] ->
-                       Fmt.failwith
-                         "time_between_blocks cannot be an empty list"
-                   | [one] -> (one, one)
-                   | one :: two :: _ -> (one, two) in
-                 [ ("round0", string (Int.to_string round0))
-                 ; ("round1", string (Int.to_string round1)) ] ) )
-          ; ("max_slashing_period", int 2)
-          ; ("frozen_deposits_percentage", int 10)
-          ; ( "ratio_of_frozen_deposits_slashed_per_double_endorsement"
-            , dict [("numerator", int 1); ("denominator", int 2)] )
-          ; ("double_baking_punishment", string "640000000") ]
-      | `Granada | `Hangzhou -> []
-      | _ -> failwith "unsupported protocol" in
-    let list_of_zs = list (fun i -> string (Int.to_string i)) in
-    let pre_alpha_specific_parameters =
-      match subkind with
-      | `Alpha -> []
-      | `Granada | `Hangzhou ->
-          [ ("blocks_per_roll_snapshot", int t.blocks_per_roll_snapshot)
-          ; ("initial_endorsers", int 1)
-          ; ("delay_per_missing_endorsement", string (Int.to_string 1))
-          ; ( "time_between_blocks"
-            , list (ksprintf string "%d") t.time_between_blocks )
-          ; ("endorsers_per_block", int 56)
-          ; ("block_security_deposit", string (Int.to_string 640_000_000))
-          ; ("endorsement_security_deposit", string (Int.to_string 250_000))
-          ; ( "baking_reward_per_endorsement"
-            , list_of_zs t.baking_reward_per_endorsement )
-          ; ("endorsement_reward", list_of_zs t.endorsement_reward)
-          ; ( "minimal_block_delay"
-            , string
-                (Int.to_string
-                   ( try List.hd_exn t.time_between_blocks
-                     with _ ->
-                       Fmt.failwith
-                         "time_between_blocks cannot be the empty list" ) ) ) ]
-      | _ -> failwith "unsupported protocol" in
-    let granada_specific_parameters =
-      match subkind with
-      | `Granada -> [("michelson_maximum_type_size", int 1_000)]
-      | `Hangzhou | `Alpha -> []
-      | _ -> failwith "unsupported protocol" in
-    alpha_specific_parameters @ pre_alpha_specific_parameters
-    @ granada_specific_parameters in
-  let common =
-    [ ( "bootstrap_accounts"
-      , list make_account (t.bootstrap_accounts @ [(t.dictator, 10_000_000L)])
-      ); ("blocks_per_voting_period", int t.blocks_per_voting_period)
-    ; ("blocks_per_cycle", int t.blocks_per_cycle)
-    ; ("preserved_cycles", int t.preserved_cycles)
-    ; ("proof_of_work_threshold", ksprintf string "%d" t.proof_of_work_threshold)
-    ; ("blocks_per_commitment", int 4)
-    ; ("hard_gas_limit_per_operation", string (Int.to_string 1_040_000))
-    ; ("hard_gas_limit_per_block", string (Int.to_string 5_200_000))
-    ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
-    ; ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
-    ; ("origination_size", int 257)
-    ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
-    ; ("cost_per_byte", string (Int.to_string 250)); ("quorum_min", int 3_000)
-    ; ("quorum_max", int 7_000); ("min_proposal_quorum", int 500)
-    ; ("liquidity_baking_subsidy", string "2500000")
-    ; ("liquidity_baking_sunset_level", int 525600)
-    ; ("liquidity_baking_escape_ema_threshold", int 1000000) ] in
   match t.custom_protocol_parameters with
   | Some s -> s
-  | None -> dict (common @ extra_post_babylon_stuff t.kind)
+  | None ->
+      let open Ezjsonm in
+      ( match t.kind with
+      | `Ithaca | `Hangzhou | `Alpha -> ()
+      | other ->
+          Fmt.failwith
+            "Flextesa cannot generate parameters for old protocols like %a, \
+             please provide your own JSON file."
+            Protocol_kind.pp other ) ;
+      let unsupported_protocol where t =
+        Fmt.failwith "BUG: %s -> Unsupported protocol: %a" where
+          Protocol_kind.pp t in
+      let make_account (account, amount) =
+        strings [Account.pubkey account; sprintf "%Ld" amount] in
+      let common =
+        [ ( "bootstrap_accounts"
+          , list make_account
+              (t.bootstrap_accounts @ [(t.dictator, 10_000_000L)]) )
+        ; ("blocks_per_voting_period", int t.blocks_per_voting_period)
+        ; ("blocks_per_cycle", int t.blocks_per_cycle)
+        ; ("preserved_cycles", int t.preserved_cycles)
+        ; ( "proof_of_work_threshold"
+          , ksprintf string "%d" t.proof_of_work_threshold )
+        ; ("blocks_per_commitment", int 4)
+        ; ("hard_gas_limit_per_operation", string (Int.to_string 1_040_000))
+        ; ("hard_gas_limit_per_block", string (Int.to_string 5_200_000))
+        ; ("tokens_per_roll", string (Int.to_string 8_000_000_000))
+        ; ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
+        ; ("origination_size", int 257)
+        ; ("hard_storage_limit_per_operation", string (Int.to_string 60_000))
+        ; ("cost_per_byte", string (Int.to_string 250))
+        ; ("quorum_min", int 3_000); ("quorum_max", int 7_000)
+        ; ("min_proposal_quorum", int 500)
+        ; ("liquidity_baking_subsidy", string "2500000")
+        ; ("liquidity_baking_sunset_level", int 525600)
+        ; ("liquidity_baking_escape_ema_threshold", int 1000000) ] in
+      let alpha_specific_parameters =
+        match t.kind with
+        | `Alpha ->
+            [ ("tx_rollup_enable", bool false)
+            ; (* TODO: https://gitlab.com/tezos/tezos/-/issues/2152 *)
+              ("tx_rollup_origination_size", int 60_000) ]
+        | _ -> [] in
+      let tenderbake_specific_parameters =
+        match t.kind with
+        | `Ithaca | `Alpha ->
+            [ ("max_operations_time_to_live", int 120)
+            ; ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot)
+            ; ("baking_reward_fixed_portion", string "10000000")
+            ; ("baking_reward_bonus_per_slot", string "4286")
+            ; ("endorsing_reward_per_slot", string "2857")
+            ; ("consensus_committee_size", int 67)
+            ; ("consensus_threshold", int 6)
+            ; ( "minimal_participation_ratio"
+              , dict [("numerator", int 2); ("denominator", int 3)] )
+            ; ( "minimal_block_delay"
+              , string
+                  ( match List.nth_exn t.time_between_blocks 0 with
+                  | n -> Int.to_string n
+                  | exception _ ->
+                      Fmt.failwith "time_between_blocks cannot be an empty list"
+                  ) )
+            ; ( "delay_increment_per_round"
+              , string
+                  ( match t.time_between_blocks with
+                  | [n] | _ :: n :: _ -> Int.to_string n
+                  | _ ->
+                      Fmt.failwith "time_between_blocks cannot be an empty list"
+                  ) ); ("max_slashing_period", int 2)
+            ; ("frozen_deposits_percentage", int 10)
+            ; ( "ratio_of_frozen_deposits_slashed_per_double_endorsement"
+              , dict [("numerator", int 1); ("denominator", int 2)] )
+            ; ("double_baking_punishment", string "640000000") ]
+        | `Hangzhou -> []
+        | other -> unsupported_protocol "tenderbake_specific_parameters" other
+      in
+      let list_of_zs = list (fun i -> string (Int.to_string i)) in
+      let pre_tenderbake_specific_parameters =
+        match t.kind with
+        | `Alpha | `Ithaca -> []
+        | `Hangzhou ->
+            [ ("blocks_per_roll_snapshot", int t.blocks_per_roll_snapshot)
+            ; ("initial_endorsers", int 1)
+            ; ("delay_per_missing_endorsement", string (Int.to_string 1))
+            ; ( "time_between_blocks"
+              , list (ksprintf string "%d") t.time_between_blocks )
+            ; ("endorsers_per_block", int 56)
+            ; ("block_security_deposit", string (Int.to_string 640_000_000))
+            ; ("endorsement_security_deposit", string (Int.to_string 250_000))
+            ; ( "baking_reward_per_endorsement"
+              , list_of_zs t.baking_reward_per_endorsement )
+            ; ("endorsement_reward", list_of_zs t.endorsement_reward)
+            ; ( "minimal_block_delay"
+              , string
+                  (Int.to_string
+                     ( try List.hd_exn t.time_between_blocks
+                       with _ ->
+                         Fmt.failwith
+                           "time_between_blocks cannot be the empty list" ) ) )
+            ]
+        | other ->
+            unsupported_protocol "pre_tenderbake_specific_parameters" other
+      in
+      dict
+        ( common @ alpha_specific_parameters @ tenderbake_specific_parameters
+        @ pre_tenderbake_specific_parameters )
 
 let voting_period_to_string t (p : Voting_period.t) =
   (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)
