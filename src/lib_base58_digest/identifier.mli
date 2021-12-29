@@ -27,6 +27,7 @@ end
 
 module Operation_hash : Base58_hash_identifier
 module Script_expr_hash : Base58_hash_identifier
+module Protocol_hash : Base58_hash_identifier
 
 module Kt1_address : sig
   include Base58_hash_identifier

@@ -186,6 +186,12 @@ module Script_expr_hash = struct
   end)
 end
 
+module Protocol_hash = struct
+  include Base58_hash (struct
+    let prefix = Prefix.protocol_hash let size = 32
+  end)
+end
+
 module Ed25519 = struct
   module Secret_key = struct
     include Base58_prefixed (struct let prefix = Prefix.ed25519_seed end)
