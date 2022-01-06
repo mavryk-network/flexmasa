@@ -71,7 +71,7 @@ struct
         if String.equal pref prefix then ()
         else Format.kasprintf failwith "Wrong prefix: %S" pref ;
         let decoded = decode hashed_string in
-        let _ = Digestif.of_raw_string (Digestif.blake2b size) decoded in
+        let _ = Sized_blacke2b.of_raw_string decoded in
         () )
       "Cannot decode base58 from %S" hashed_string ;
     ()
