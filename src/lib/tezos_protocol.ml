@@ -223,7 +223,12 @@ let protocol_parameters_json t : Ezjsonm.t =
         | `Alpha ->
             [ ("tx_rollup_enable", bool false)
             ; (* TODO: https://gitlab.com/tezos/tezos/-/issues/2152 *)
-              ("tx_rollup_origination_size", int 60_000) ]
+              ("tx_rollup_origination_size", int 60_000)
+            ; ("cache_script_size", int 42)
+            ; ("cache_stake_distribution_cycles", int 42)
+            ; ("cache_sampler_state_cycles", int 42)
+            ; ("sc_rollup_enable", bool false)
+            ; ("sc_rollup_origination_size", int 42) ]
         | _ -> [] in
       let tenderbake_specific_parameters =
         match t.kind with
