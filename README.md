@@ -34,7 +34,7 @@ All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
 - `hangzbox`: Hangzhou protocol.
-- `ithacabox`: Ithaca protocol.
+- `ithacabox`: Ithaca-2 protocol.
 - `alphabox`: Alpha protocol, the development version
   of the `J` protocol at the time the docker-build was last updated.
     - See also `docker run "$image" tezos-node --version`.
@@ -98,7 +98,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PsiThaCaT47Zboaw71QWScM8sXeMM7bbQFncK9FLqYc6EKdpjVP"
+"Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
 ```
 
 Notes:
