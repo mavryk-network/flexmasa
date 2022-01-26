@@ -55,12 +55,9 @@ h2i () {
            --time-between-blocks 1 --number-of-boot 1 --size 1 \
            $until_12
 }
-h2a () {
-    # Hangzhou to Alpha:
-    # - Making Alpha switch from Ithaca has apparently not been implemented
-    # yet in Octez
-    runone "hangzhou-2-alpha" flextesa mini \
-           --protocol-kind Hangz \
+i2a () {
+    runone "ithaca2-2-alpha" flextesa mini \
+           --protocol-kind Itha \
            --hard-fork 10:Alpha: \
            --time-between-blocks 2 --number-of-boot 2 --size 2 \
            $until_12
@@ -70,8 +67,8 @@ all () {
     hangz
     itha
     alpha
-    h2a
     h2i
+    i2a
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
