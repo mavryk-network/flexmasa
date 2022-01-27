@@ -20,11 +20,11 @@ FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap
 WORKDIR /usr/bin
-COPY --from=0 /usr/bin/tezos-accuser-012-PsiThaCa .
+COPY --from=0 /usr/bin/tezos-accuser-012-Psithaca .
 COPY --from=0 /usr/bin/tezos-accuser-011-PtHangz2 .
 COPY --from=0 /usr/bin/tezos-accuser-alpha .
 COPY --from=0 /usr/bin/tezos-admin-client .
-COPY --from=0 /usr/bin/tezos-baker-012-PsiThaCa .
+COPY --from=0 /usr/bin/tezos-baker-012-Psithaca .
 COPY --from=0 /usr/bin/tezos-baker-011-PtHangz2 .
 COPY --from=0 /usr/bin/tezos-baker-alpha .
 COPY --from=0 /usr/bin/tezos-client .

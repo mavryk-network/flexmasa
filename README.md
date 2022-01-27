@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20211221` (also available
+The current _released_ image is `oxheadalpha/flextesa:20220127` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -23,7 +23,7 @@ also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
 
 ```sh
-image=oxheadalpha/flextesa:20211221
+image=oxheadalpha/flextesa:latest
 script=hangzbox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -34,7 +34,7 @@ All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
 - `hangzbox`: Hangzhou protocol.
-- `ithacabox`: Ithaca protocol.
+- `ithacabox`: Ithaca-2 protocol.
 - `alphabox`: Alpha protocol, the development version
   of the `J` protocol at the time the docker-build was last updated.
     - See also `docker run "$image" tezos-node --version`.
@@ -98,7 +98,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PsiThaCaT47Zboaw71QWScM8sXeMM7bbQFncK9FLqYc6EKdpjVP"
+"Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
 ```
 
 Notes:

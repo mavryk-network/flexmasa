@@ -97,7 +97,7 @@ module Protocol_kind = struct
         | _ -> None ) )
 
   let canonical_hash : t -> string = function
-    | `Ithaca -> "PsiThaCaT47Zboaw71QWScM8sXeMM7bbQFncK9FLqYc6EKdpjVP"
+    | `Ithaca -> "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
     | `Hangzhou ->
         "PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
         (* Version 1: "PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r" *)
@@ -111,7 +111,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
-    | `Ithaca -> "012-PsiThaCa"
+    | `Ithaca -> "012-Psithaca"
     | `Hangzhou -> "011-PtHangz2"
     | `Granada -> "010-PtGRANAD"
     | `Florence -> "009-PsFLoren"
@@ -223,7 +223,12 @@ let protocol_parameters_json t : Ezjsonm.t =
         | `Alpha ->
             [ ("tx_rollup_enable", bool false)
             ; (* TODO: https://gitlab.com/tezos/tezos/-/issues/2152 *)
-              ("tx_rollup_origination_size", int 60_000) ]
+              ("tx_rollup_origination_size", int 60_000)
+            ; ("cache_script_size", int 42)
+            ; ("cache_stake_distribution_cycles", int 42)
+            ; ("cache_sampler_state_cycles", int 42)
+            ; ("sc_rollup_enable", bool false)
+            ; ("sc_rollup_origination_size", int 42) ]
         | _ -> [] in
       let tenderbake_specific_parameters =
         match t.kind with
