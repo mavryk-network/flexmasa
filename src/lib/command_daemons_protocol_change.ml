@@ -74,10 +74,10 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
     ~second_endorser_exec ~second_accuser_exec ~admin_exec ~new_protocol_path
     ~extra_dummy_proposals_batch_size ~extra_dummy_proposals_batch_levels
     ~waiting_attempts test_variant () =
-  Helpers.clear_root state >>= fun () ->
-  Helpers.System_dependencies.precheck
-    state
-    `Or_fail
+  Helpers.clear_root state
+  >>= fun () ->
+  Helpers.System_dependencies.precheck state `Or_fail
+    ~protocol_kind:protocol.Tezos_protocol.kind
     ~protocol_paths:[new_protocol_path]
     ~executables:
       [
@@ -112,19 +112,10 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
   let accusers =
     List.concat_map nodes ~f:(fun node ->
         let client = Tezos_client.of_node node ~exec:client_exec in
-        [
-          Tezos_daemon.accuser_of_node
-            ~exec:first_accuser_exec
-            ~client
-            node
-            ~name_tag:"first";
-          Tezos_daemon.accuser_of_node
-            ~exec:second_accuser_exec
-            ~client
-            node
-            ~name_tag:"second";
-        ])
-  in
+        [ Tezos_daemon.accuser_of_node ~protocol_kind:protocol.kind
+            ~exec:first_accuser_exec ~client node ~name_tag:"first"
+        ; Tezos_daemon.accuser_of_node ~protocol_kind:protocol.kind
+            ~exec:second_accuser_exec ~client node ~name_tag:"second" ] ) in
   List_sequential.iter accusers ~f:(fun acc ->
       Running_processes.start state (Tezos_daemon.process state acc)
       >>= fun _ -> return ())
@@ -142,35 +133,19 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
            if List.mem ~equal:String.equal no_daemons_for key then None
            else
              Some
-               ( acc,
-                 client,
-                 [
-                   Tezos_daemon.baker_of_node
-                     ~exec:first_baker_exec
-                     ~client
-                     node
+               ( acc
+               , client
+               , [ Tezos_daemon.baker_of_node ~protocol_kind:protocol.kind
+                     ~exec:first_baker_exec ~client node ~key ~name_tag:"first"
+                 ; Tezos_daemon.baker_of_node ~protocol_kind:protocol.kind
+                     ~exec:second_baker_exec ~client ~name_tag:"second" node
                      ~key
-                     ~name_tag:"first";
-                   Tezos_daemon.baker_of_node
-                     ~exec:second_baker_exec
-                     ~client
-                     ~name_tag:"second"
-                     node
-                     ~key;
-                   Tezos_daemon.endorser_of_node
-                     ~exec:first_endorser_exec
-                     ~name_tag:"first"
-                     ~client
-                     node
-                     ~key;
-                   Tezos_daemon.endorser_of_node
-                     ~exec:second_endorser_exec
-                     ~name_tag:"second"
-                     ~client
-                     node
-                     ~key;
-                 ] ))
-  in
+                 ; Tezos_daemon.endorser_of_node ~protocol_kind:protocol.kind
+                     ~exec:first_endorser_exec ~name_tag:"first" ~client node
+                     ~key
+                 ; Tezos_daemon.endorser_of_node ~protocol_kind:protocol.kind
+                     ~exec:second_endorser_exec ~name_tag:"second" ~client node
+                     ~key ] ) ) in
   List_sequential.iter keys_and_daemons ~f:(fun (acc, client, daemons) ->
       Tezos_client.wait_for_node_bootstrap state client >>= fun () ->
       let (key, priv) = Tezos_protocol.Account.(name acc, private_key acc) in
@@ -285,6 +260,7 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
             (protocol.Tezos_protocol.hash, first_baker_exec, first_endorser_exec);
             (new_protocol_hash, second_baker_exec, second_endorser_exec);
           ]
+        ~protocol
       >>= fun () ->
       let msg =
         EF.(
@@ -347,8 +323,9 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
       (List.init extra_dummy_proposals_batch_size ~f:(fun s ->
            sprintf "proto-%s-%d" tag s))
       ~f:(fun s ->
-        (t, Tezai_base58_digest__Identifier.Protocol_hash.(hash_string [s] |> to_b58check)))
-  in
+        ( t
+        , Tezai_base58_digest__Identifier.Protocol_hash.(
+            hash_string s |> encode) ) ) in
   let extra_dummy_protocols =
     List.bind extra_dummy_proposals_batch_levels ~f:(fun l ->
         make_dummy_protocol_hashes l (sprintf "%d" l))
