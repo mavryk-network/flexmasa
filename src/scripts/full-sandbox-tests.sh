@@ -63,12 +63,114 @@ i2a () {
            $until_12
 }
 
+daem-h2i () {
+    runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
+        src/scripts/dummy_protocols/proto_012_Psithaca/lib_protocol/TEZOS_PROTOCOL \
+	    --base-port 15_000 \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-between-blocks 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-hash PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx \
+	    --protocol-kind Hangzhou \
+	    --tezos-client tezos-client \
+	    --tezos-admin tezos-admin-client \
+	    --tezos-node tezos-node \
+	    --first-baker tezos-baker-011-PtHangz2 \
+	    --first-endorser tezos-endorser-011-PtHangz2 \
+	    --first-accuser tezos-accuser-011-PtHangz2 \
+	    --second-baker tezos-baker-012-Psithaca \
+	    --second-endorser tezos-baker-012-Psithaca \
+	    --second-accuser tezos-accuser-012-Psithaca
+}
+
+daem-h2i-nay () {
+    runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
+        src/scripts/dummy_protocols/proto_012_Psithaca/lib_protocol/TEZOS_PROTOCOL \
+        --base-port 15_000 \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-between-blocks 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-hash PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx \
+	    --protocol-kind Hangzhou \
+	    --tezos-client tezos-client \
+	    --tezos-admin tezos-admin-client \
+	    --tezos-node tezos-node \
+	    --first-baker tezos-baker-011-PtHangz2 \
+	    --first-endorser tezos-endorser-011-PtHangz2 \
+	    --first-accuser tezos-accuser-011-PtHangz2 \
+	    --second-baker tezos-baker-012-Psithaca \
+	    --second-endorser tezos-baker-012-Psithaca \
+	    --second-accuser tezos-accuser-012-Psithaca \
+        --test-variant nay-for-promotion
+}
+
+daem-i2a () {
+    runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
+        src/scripts/dummy_protocols/proto_alpha/lib_protocol/TEZOS_PROTOCOL \
+	    --base-port 16_000 \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-betw 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-hash Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A \
+	    --protocol-kind Ithaca \
+	    --tezos-client tezos-client \
+	    --tezos-admin tezos-admin-client \
+	    --tezos-node tezos-node \
+	    --first-baker tezos-baker-012-Psithaca \
+	    --first-endorser tezos-baker-012-Psithaca \
+	    --first-accuser tezos-accuser-012-Psithaca \
+	    --second-baker tezos-baker-alpha \
+	    --second-endorser tezos-baker-alpha \
+	    --second-accuser tezos-accuser-alpha
+}
+
+daem-i2a-nay () {
+    runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
+        src/scripts/dummy_protocols/proto_alpha/lib_protocol/TEZOS_PROTOCOL \
+	    --base-port 16_000 \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-betw 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-hash Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A \
+	    --protocol-kind Ithaca \
+	    --tezos-client tezos-client \
+	    --tezos-admin tezos-admin-client \
+	    --tezos-node tezos-node \
+	    --first-baker tezos-baker-012-Psithaca \
+	    --first-endorser tezos-baker-012-Psithaca \
+	    --first-accuser tezos-accuser-012-Psithaca \
+	    --second-baker tezos-baker-alpha \
+	    --second-endorser tezos-baker-alpha \
+	    --second-accuser tezos-accuser-alpha \
+        --test-variant nay-for-promotion
+}
+
 all () {
     hangz
     itha
     alpha
     h2i
     i2a
+    daem-h2i
+    daem-h2i-nay
+    daem-h2a
+    daem-h2a-nay
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
