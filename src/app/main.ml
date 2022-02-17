@@ -1,3 +1,5 @@
+[@@@warning "-3"]
+
 open Flextesa.Internal_pervasives
 
 module Small_utilities = struct

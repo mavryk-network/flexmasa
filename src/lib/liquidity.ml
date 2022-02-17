@@ -1,3 +1,5 @@
+[@@@warning "-3"]
+
 open Internal_pervasives
 module MFmt = Experiments.Markup_fmt
 

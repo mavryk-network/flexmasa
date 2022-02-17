@@ -1,3 +1,5 @@
+[@@@warning "-3"]
+
 open Internal_pervasives
 
 type custom_network = [`Json of Ezjsonm.value]
