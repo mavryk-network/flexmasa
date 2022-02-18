@@ -111,4 +111,5 @@ module Configuration_directory = struct
                (info ~docs
                   ["clean-kiln-configuration"]
                   ~doc:"Delete configuration path before generating it" ) )))
+    [@@warning "-3"]
 end

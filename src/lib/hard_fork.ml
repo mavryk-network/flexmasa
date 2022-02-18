@@ -43,6 +43,7 @@ let cmdliner_term base_state ~docs ?(prefix = "hard-fork") () =
   $ Tezos_executable.cli_term ~extra_doc base_state `Baker prefix
   $ Tezos_executable.cli_term ~extra_doc base_state `Endorser prefix
   $ Tezos_executable.cli_term ~extra_doc base_state `Accuser prefix
+  [@@warning "-3"]
 
 let executables {protocol_kind; baker; endorser; accuser; _} =
   if Tezos_protocol.Protocol_kind.wants_endorser_daemon protocol_kind then

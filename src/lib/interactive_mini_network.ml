@@ -125,6 +125,7 @@ the chain to resume
               (opt (some string) None
                  (info ["genesis-block-hash"] ~docv:"BLOCK-HASH|<special-value>"
                     ~doc ) )) )
+      [@@warning "-3"]
   end
 
   let chain_id_of_hash hash =
@@ -559,3 +560,4 @@ let cmd () =
              for a given number of blocks, cf. `--until-level LEVEL`." ] in
     info "mini-network" ~man ~doc in
   (term, info)
+  [@@warning "-3"]

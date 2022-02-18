@@ -266,4 +266,5 @@ module History_modes = struct
                 ~doc:
                   "Set the history mode for a given (named) node, e.g. \
                    `N000:archive`." ) ))
+    [@@warning "-3"]
 end

@@ -84,3 +84,4 @@ let cli_term ?(extra_doc = "") state kind prefix =
           ~doc:
             (sprintf "Binary for the `tezos-%s` to use%s." (kind_string kind)
                extra_doc ))
+  [@@warning "-3"]

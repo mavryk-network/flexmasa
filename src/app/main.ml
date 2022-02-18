@@ -23,6 +23,7 @@ module Small_utilities = struct
                commas: `name,pub-key,pub-key-hash,private-uri` (hence \
                compatible with the `--add-bootstrap-account` option of some of \
                the test scenarios)." ] )
+    [@@warning "-3"]
 
   let netstat_ports ~pp_error () =
     let open Cmdliner in
@@ -51,6 +52,7 @@ module Small_utilities = struct
           ~name:"netstat-ports" () )
       (info "netstat-listening-ports"
          ~doc:"Like `netstat -nut | awk something-something` but glorified." )
+    [@@warning "-3"]
 
   let vanity_chain_id ~pp_error () =
     let open Cmdliner in
@@ -134,6 +136,7 @@ module Small_utilities = struct
          ~doc:
            "Find a block hash to set as Genesis which makes-up a given \
             chain-id suffix." )
+    [@@warning "-3"]
 
   let all ~pp_error () =
     [ key_of_name_command (); netstat_ports ~pp_error ()
@@ -148,5 +151,10 @@ let () =
     (Term.eval_choice
        (help : unit Term.t * _)
        ( Small_utilities.all ~pp_error ()
+<<<<<<< HEAD
        @ [Flextesa.Interactive_mini_network.cmd ()]
        @ [Flextesa.Command_daemons_protocol_change.cmd ()] ) )
+=======
+       @ [Flextesa.Interactive_mini_network.cmd ()] ) )
+  [@@warning "-3"]
+>>>>>>> 0932e0c98c9d7c8388a1ebe7a803c7c0bcc53ce2
