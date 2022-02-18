@@ -1,5 +1,3 @@
-[@@@warning "-3"]
-
 open Internal_pervasives
 
 module Command_making_state = struct
@@ -75,9 +73,11 @@ module Run_command = struct
 
   let term ~pp_error () =
     Cmdliner.Term.pure (fun (state, run) -> or_hard_fail state run ~pp_error)
+    [@@warning "-3"]
 
   let make ~pp_error t (i : Cmdliner.Term.info) =
     Cmdliner.Term.(term ~pp_error () $ t, i)
+    [@@warning "-3"]
 end
 
 module Full_default_state = struct
@@ -116,6 +116,7 @@ module Full_default_state = struct
                     ~doc:
                       "Completely disable baking/endorsing/accusing (you need \
                        to bake manually to make the chain advance)." ) )))
+    [@@warning "-3"]
 end
 
 let cli_state ?default_interactivity ?disable_interactivity ~name () =

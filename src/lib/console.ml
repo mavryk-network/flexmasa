@@ -1,5 +1,3 @@
-[@@@warning "-3"]
-
 open Internal_pervasives
 
 type t =
@@ -64,6 +62,7 @@ let cli_term () =
             sprintf "Control terminal colors (%s)."
               (String.concat ~sep:", " (List.map answers ~f:fst)) in
           value & opt (enum answers) `G & info ["color"] ~doc)))
+  [@@warning "-3"]
 
 let do_output t =
   Lwt.(

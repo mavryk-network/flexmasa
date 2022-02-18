@@ -1,5 +1,3 @@
-[@@@warning "-3"]
-
 open Internal_pervasives
 
 module Key = struct
@@ -490,6 +488,7 @@ let cli_term state =
                    tezos-node point of view, use at your own risk)."
                 ~docv:"JSON-FILE" ~docs ) ))
   $ Protocol_kind.cmdliner_term () ~docs
+  [@@warning "-3"]
 
 module Pretty_print = struct
   open More_fmt

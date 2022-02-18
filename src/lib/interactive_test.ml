@@ -1,5 +1,3 @@
-[@@@warning "-3"]
-
 open Internal_pervasives
 open Traffic_generation.Commands
 
@@ -684,6 +682,7 @@ module Interactivity = struct
               ~doc:
                 "Add a pause with a command prompt at the end of the test, \
                  only in case of test failure."))
+    [@@warning "-3"]
 end
 
 module Pauser = struct
