@@ -495,3 +495,4 @@ let cmd () =
                 depending on the `--test-variant` option)." ] ) ] in
     info "daemons-upgrade" ~man ~doc in
   (term, info)
+  [@@warning "-3"]
