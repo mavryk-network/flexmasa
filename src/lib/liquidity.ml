@@ -135,6 +135,7 @@ module Contract = struct
                 ~doc:
                   (sprintf "Paths to extra liquidity %s contract-library files."
                      contract_name ) ) ))
+    [@@warning "-3"]
 end
 
 module On_chain = struct

@@ -20,3 +20,4 @@ let cli_term ?(option_name = "root-path") ~default_root () =
           value & opt string default_root
           & info [option_name]
               ~doc:(sprintf "Root path for all configs/data to use."))))
+  [@@warning "-3"]

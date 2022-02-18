@@ -1,3 +1,5 @@
+[@@@warning "-3"]
+
 (** Functions for building test-scenarios commands. *)
 
 open Internal_pervasives
