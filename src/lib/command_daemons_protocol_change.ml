@@ -252,7 +252,7 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
            sprintf "proto-%s-%d" tag s ) )
       ~f:(fun s ->
         ( t
-        , Tezai_base58_digest__Identifier.Protocol_hash.(
+        , Tezai_base58_digest.Identifier.Protocol_hash.(
             hash_string s |> encode) ) ) in
   let extra_dummy_protocols =
     List.bind extra_dummy_proposals_batch_levels ~f:(fun l ->
@@ -476,7 +476,7 @@ let cmd () =
       ; `Blocks
           (List.concat_map variants ~f:(fun (n, _, desc) ->
                [`Noblank; `P (sprintf "* `%s`: %s" n desc)] ) )
-      ; `P "The test is interactive-only:"
+      ; `P "When the test is interactive:"
       ; `Blocks
           (List.concat_mapi
              ~f:(fun i s -> [`Noblank; `P (sprintf "%d) %s" (i + 1) s)])
