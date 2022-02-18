@@ -169,8 +169,8 @@ all () {
     i2a
     daem-h2i
     daem-h2i-nay
-    daem-h2a
-    daem-h2a-nay
+    daem-i2a
+    daem-i2a-nay
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
