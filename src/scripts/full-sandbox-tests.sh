@@ -65,7 +65,7 @@ i2a () {
 
 daem-h2i () {
     runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
-        src/scripts/dummy_protocols/proto_012_Psithaca/lib_protocol/TEZOS_PROTOCOL \
+        --next-protocol-kind Ithaca \
 	    --base-port 15_000 \
 	    --extra-dummy-proposals-batch-size 2 \
 	    --extra-dummy-proposals-batch-levels 3,5 \
@@ -89,7 +89,7 @@ daem-h2i () {
 
 daem-h2i-nay () {
     runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
-        src/scripts/dummy_protocols/proto_012_Psithaca/lib_protocol/TEZOS_PROTOCOL \
+        --next-protocol-kind Ithaca \
         --base-port 15_000 \
 	    --extra-dummy-proposals-batch-size 2 \
 	    --extra-dummy-proposals-batch-levels 3,5 \
@@ -114,7 +114,7 @@ daem-h2i-nay () {
 
 daem-i2a () {
     runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
-        src/scripts/dummy_protocols/proto_alpha/lib_protocol/TEZOS_PROTOCOL \
+        --next-protocol-kind Alpha \
 	    --base-port 16_000 \
 	    --extra-dummy-proposals-batch-size 2 \
 	    --extra-dummy-proposals-batch-levels 3,5 \
@@ -138,7 +138,7 @@ daem-i2a () {
 
 daem-i2a-nay () {
     runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
-        src/scripts/dummy_protocols/proto_alpha/lib_protocol/TEZOS_PROTOCOL \
+        --next-protocol-kind Alpha \
 	    --base-port 16_000 \
 	    --extra-dummy-proposals-batch-size 2 \
 	    --extra-dummy-proposals-batch-levels 3,5 \

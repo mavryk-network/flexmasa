@@ -54,17 +54,16 @@ let wait_for_voting_period ?level_within_period state ~protocol ~client
                 [markdown_verbatim (String.concat ~sep:"\n" res#out)])
           >>= fun () -> return (`Not_done message) )
 
-let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
-    ?generate_kiln_config ~node_exec ~client_exec ~first_baker_exec
-    ~first_endorser_exec ~first_accuser_exec ~second_baker_exec
-    ~second_endorser_exec ~second_accuser_exec ~admin_exec ~new_protocol_path
+let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
+    ?external_peer_ports ?generate_kiln_config ~node_exec ~client_exec
+    ~first_baker_exec ~first_endorser_exec ~first_accuser_exec
+    ~second_baker_exec ~second_endorser_exec ~second_accuser_exec ~admin_exec
     ~extra_dummy_proposals_batch_size ~extra_dummy_proposals_batch_levels
     ~waiting_attempts test_variant () =
   Helpers.clear_root state
   >>= fun () ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~protocol_kind:protocol.Tezos_protocol.kind
-    ~protocol_paths:[new_protocol_path]
     ~executables:
       [ node_exec; client_exec; first_baker_exec; first_endorser_exec
       ; first_accuser_exec; second_baker_exec; second_endorser_exec
@@ -148,46 +147,8 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
       @ [secret_keys state ~protocol]
       @ arbitrary_commands_for_each_and_all_clients state ~make_admin
           ~clients:(List.map nodes ~f:(Tezos_client.of_node ~exec:client_exec))) ;
-  (*
-     For each node we try to see if the node knows about the protocol,
-     if it does we're good, if not we inject it.
-     This is because `inject` fails when the node already knows a protocol.
-  *)
-  List.fold ~init:(return None) nodes ~f:(fun prevm nod ->
-      prevm
-      >>= fun _ ->
-      System.read_file state (new_protocol_path // "TEZOS_PROTOCOL")
-      >>= fun protocol ->
-      ( try return Jqo.(of_string protocol |> field ~k:"hash" |> get_string)
-        with e ->
-          failf "Cannot parse %s/TEZOS_PROTOCOL: %s" new_protocol_path
-            (Exn.to_string e) )
-      >>= fun hash ->
-      let client = Tezos_client.of_node ~exec:client_exec nod in
-      Tezos_client.rpc state ~client `Get ~path:"/protocols"
-      >>= fun protocols ->
-      match protocols with
-      | `A l
-        when List.exists l ~f:(function
-               | `String h -> String.equal h hash
-               | _ -> false ) ->
-          Console.say state
-            EF.(
-              wf "Node `%s` already knows protocol `%s`." nod.Tezos_node.id hash)
-          >>= fun () -> return (Some hash)
-      | _ ->
-          let admin = make_admin client in
-          Tezos_admin_client.inject_protocol admin state ~path:new_protocol_path
-          >>= fun (_, new_protocol_hash) ->
-          ( if String.equal new_protocol_hash hash then
-            Console.say state
-              EF.(
-                wf "Injected protocol `%s` in `%s`" new_protocol_hash
-                  nod.Tezos_node.id)
-          else
-            failf "Injecting protocol %s failed (≠ %s)" new_protocol_hash hash
-          )
-          >>= fun () -> return (Some hash) )
+  (* Flextesa sandbox tests assume the node already knows about the protocol. We skip protocol injection. *)
+  return (Some Tezos_protocol.Protocol_kind.(canonical_hash next_protocol_kind))
   >>= fun prot_opt ->
   ( match prot_opt with
   | Some s -> return s
@@ -252,8 +213,8 @@ let run state ~protocol ~size ~base_port ~no_daemons_for ?external_peer_ports
            sprintf "proto-%s-%d" tag s ) )
       ~f:(fun s ->
         ( t
-        , Tezai_base58_digest.Identifier.Protocol_hash.(
-            hash_string s |> encode) ) ) in
+        , Tezai_base58_digest.Identifier.Protocol_hash.(hash_string s |> encode)
+        ) ) in
   let extra_dummy_protocols =
     List.bind extra_dummy_proposals_batch_levels ~f:(fun l ->
         make_dummy_protocol_hashes l (sprintf "%d" l) ) in
@@ -373,7 +334,7 @@ let cmd () =
         second_baker_exec
         second_endorser_exec
         second_accuser_exec
-        (`Protocol_path new_protocol_path)
+        (`Next_protocol next_protocol_kind)
         (`Extra_dummy_proposals_batch_size extra_dummy_proposals_batch_size)
         (`Extra_dummy_proposals_batch_levels extra_dummy_proposals_batch_levels)
         generate_kiln_config
@@ -385,7 +346,7 @@ let cmd () =
             ~first_baker_exec ~first_endorser_exec ~first_accuser_exec
             ~second_baker_exec ~second_endorser_exec ~second_accuser_exec
             ~admin_exec ?generate_kiln_config ~external_peer_ports
-            ~no_daemons_for ~new_protocol_path test_variant ~waiting_attempts
+            ~no_daemons_for ~next_protocol_kind test_variant ~waiting_attempts
             ~extra_dummy_proposals_batch_size
             ~extra_dummy_proposals_batch_levels in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
@@ -426,11 +387,12 @@ let cmd () =
     $ Tezos_executable.cli_term base_state `Endorser "second"
     $ Tezos_executable.cli_term base_state `Accuser "second"
     $ Arg.(
-        const (fun p -> `Protocol_path (Caml.Filename.dirname p))
-        $ required
-            (pos 0 (some string) None
-               (info [] ~docs ~doc:"The protocol to inject and vote on."
-                  ~docv:"PROTOCOL-PATH" ) ))
+        const (fun p -> `Next_protocol p)
+        $ value
+            Tezos_protocol.Protocol_kind.(
+              opt (enum names) default
+                (info ["next-protocol-kind"] ~docs
+                   ~doc:"The protocol to be injected." )))
     $ Arg.(
         const (fun l -> `Extra_dummy_proposals_batch_size l)
         $ value
