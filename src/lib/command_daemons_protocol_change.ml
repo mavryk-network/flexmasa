@@ -438,7 +438,10 @@ let cmd () =
       ; `Blocks
           (List.concat_map variants ~f:(fun (n, _, desc) ->
                [`Noblank; `P (sprintf "* `%s`: %s" n desc)] ) )
-      ; `P "When the test is interactive:"
+      ; `P
+          "The upgrade protocol is designated by `--next-protocol-kind`  \
+           (which should be the one understood by the `--second-*` \
+           executables)."; `P "When the test is interactive:"
       ; `Blocks
           (List.concat_mapi
              ~f:(fun i s -> [`Noblank; `P (sprintf "%d) %s" (i + 1) s)])
@@ -448,9 +451,7 @@ let cmd () =
              ; "An interactive pause is done to let the user play with the \
                 `first` protocol."
              ; "Once the user quits the prompt (`q` or `quit` command), a full \
-                voting round happens with a single proposal: the one at \
-                `PROTOCOL-PATH` (which should be the one understood by the \
-                `--second-*` executables)."
+                voting round happens with a single proposal."
              ; "Once the potential protocol switch has happened (and been \
                 verified), the test re-enters an interactive prompt to let the \
                 user play with the protocol (the first or second one, \
