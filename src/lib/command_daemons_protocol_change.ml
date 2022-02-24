@@ -65,9 +65,19 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
   Helpers.System_dependencies.precheck state `Or_fail
     ~protocol_kind:protocol.Tezos_protocol.kind
     ~executables:
-      [ node_exec; client_exec; first_baker_exec; first_endorser_exec
-      ; first_accuser_exec; second_baker_exec; second_endorser_exec
-      ; second_accuser_exec ]
+      ( [node_exec; client_exec]
+      @
+      if state#test_baking then
+        if
+          Tezos_protocol.Protocol_kind.wants_endorser_daemon
+            protocol.Tezos_protocol.kind
+        then
+          [ first_baker_exec; first_endorser_exec; first_accuser_exec
+          ; second_baker_exec; second_endorser_exec; second_accuser_exec ]
+        else
+          [ first_baker_exec; first_accuser_exec; second_baker_exec
+          ; second_accuser_exec ]
+      else [] )
   >>= fun () ->
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
     ~base_port state ~node_exec ~client_exec
