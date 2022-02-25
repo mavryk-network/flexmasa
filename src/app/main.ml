@@ -151,5 +151,6 @@ let () =
     (Term.eval_choice
        (help : unit Term.t * _)
        ( Small_utilities.all ~pp_error ()
-       @ [Flextesa.Interactive_mini_network.cmd ()] ) )
+       @ [Flextesa.Interactive_mini_network.cmd ()]
+       @ [Flextesa.Command_daemons_protocol_change.cmd ()] ) )
   [@@warning "-3"]

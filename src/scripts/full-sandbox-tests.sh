@@ -63,12 +63,76 @@ i2a () {
            $until_12
 }
 
+daem-h2i () {
+    runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
+        --next-protocol-kind Ithaca \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-between-blocks 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-kind Hangzhou \
+	    --second-baker tezos-baker-012-Psithaca \
+        --test-variant full-upgrade
+}
+
+daem-h2i-nay () {
+    runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
+        --next-protocol-kind Ithaca \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-between-blocks 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-kind Hangzhou \
+	    --second-baker tezos-baker-012-Psithaca \
+        --test-variant nay-for-promotion
+}
+
+daem-i2a () {
+    runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
+        --next-protocol-kind Alpha \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-betw 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-kind Ithaca \
+	    --second-baker tezos-baker-alpha \
+        --test-variant full-upgrade
+}
+
+daem-i2a-nay () {
+    runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
+        --next-protocol-kind Alpha \
+	    --extra-dummy-proposals-batch-size 2 \
+	    --extra-dummy-proposals-batch-levels 3,5 \
+	    --size 2 \
+	    --number-of-b 2 \
+	    --time-betw 3 \
+	    --blocks-per-vot 14 \
+	    --with-timestamp \
+	    --protocol-kind Ithaca \
+	    --second-baker tezos-baker-alpha \
+        --test-variant nay-for-promotion
+}
+
 all () {
     hangz
     itha
     alpha
     h2i
     i2a
+    daem-h2i
+    daem-h2i-nay
+    daem-i2a
+    daem-i2a-nay
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }

@@ -169,7 +169,7 @@ module More_fmt = struct
       (Ezjsonm.value_to_string ~minify:false json |> String.split ~on:'\n')
 end
 
-(** An “decorated result type” based on polymorphic variants *)
+(** A “decorated result type” based on polymorphic variants *)
 module Attached_result = struct
   type content =
     [ `Text of string
