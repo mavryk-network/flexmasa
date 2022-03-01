@@ -59,8 +59,8 @@ Usable accounts:
 Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
 ```
 
-The implementation for these scripts is `src/scripts/tutorial-box.sh`, they are
-just calls to `flextesa mini-net` (see its general
+The implementation for these scripts is `src/scripts/tutorial-box.sh`. They're
+just calls to `flextesa mini-net` and `flextesa daemons-upgrade` (see its general
 [documentation](./src/doc/mini-net.md)).
 
 The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
@@ -100,6 +100,20 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
 }
 "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
 ```
+
+With the `daemons-upgrade` command the sandbox network will do a full voting round
+followed by a protocol change.
+
+``` default
+$ docker run --rm --name my-sandbox -p 20000:20000 \
+         -e block_time=2 \
+         "$image" hangzbox start-upgrade
+```
+
+The `Hangzbox` script runs interactively pausing twice during the test; once on
+the Hangzhou network and then again after the upgrade to Ithaca. This will allow
+you to interact with the network at different stages. The `ithacabox` script will
+upgrade to the Alpha network.
 
 Notes:
 
@@ -240,7 +254,8 @@ docker buildx build --platform linux/arm64/v8,linux/amd64  . \
 ## More Documentation
 
 The command `flextesa mini-net [...]` has a dedicated documentation
-page: [The `mini-net` Command](./src/doc/mini-net.md).
+page: [The `mini-net` Command](./src/doc/mini-net.md). Information regarding
+the command `flextesa daemons-upgrade`can also be found there.
 
 The API documentation of the Flextesa OCaml library starts here:
 [Flextesa: API](https://tezos.gitlab.io/flextesa/lib-index.html).
