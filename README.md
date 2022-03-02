@@ -101,7 +101,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
 "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
 ```
 
-With the `daemons-upgrade` command the sandbox network will do a full voting round
+With the `start-upgrade` command the sandbox network will do a full voting round
 followed by a protocol change.
 
 ``` default
