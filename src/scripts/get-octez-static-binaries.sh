@@ -10,11 +10,11 @@ fi
 
 # Get IDs from the master pipeline, or from
 # https://gitlab.com/tezos/tezos/-/releases
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/456081643
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/479417578
 job_id=none
 case $(uname -m) in
-    x86_64 ) job_id=2014873589 ;;
-    aarch64 ) job_id=2014873612 ;;
+    x86_64 ) job_id=2136984736 ;;
+    aarch64 ) job_id=2136984737 ;;
     * ) echo "Unknown architecture: $(uname -a)" >&2 ; exit 4 ;;
 esac
 
@@ -22,8 +22,7 @@ esac
     curl -L "https://gitlab.com/tezos/tezos/-/jobs/$job_id/artifacts/download" -o "$dest_dir/bins.zip"
     cd "$dest_dir"
     unzip bins.zip
-    mv tezos-binaries/* .
+    mv tezos-binaries/$(uname -m)/* .
     rm -fr bins.zip tezos-binaries/
     chmod a+rx tezos-*
 )
-
