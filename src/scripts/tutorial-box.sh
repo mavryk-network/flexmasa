@@ -81,7 +81,7 @@ start_upgrade () {
 	    --protocol-kind $default_protocol \
 	    --second-baker tezos-baker-$next_protocol \
         --test-variant full-upgrade \
-        --interactive true
+        --interactive false
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then

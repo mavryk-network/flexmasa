@@ -102,19 +102,19 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
 "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
 ```
 
-With the `start-upgrade` command the sandbox network will do a full voting round
-followed by a protocol change.
+With the `start_upgrade` command the sandbox network will do a full voting round
+followed by a protocol change. Flextesa will kill all processes once the upgrade
+is complete.
 
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 \
          -e block_time=2 \
-         "$image" hangzbox start-upgrade
+         "$image" hangzbox start_upgrade
 ```
 
-The `Hangzbox` script runs interactively pausing twice during the test; once on
-the Hangzhou network and then again after the upgrade to Ithaca. This will allow
-you to interact with the network at different stages. The `ithacabox` script will
-upgrade to the Alpha network.
+The `hangzbox` script will start with the `Hanzhou` protocol and upgrade to
+`Ithaca` while `ithacabox` script will start with `Ithaca` and upgrade to
+protocol `Alpha`.
 
 Notes:
 
@@ -255,8 +255,10 @@ docker buildx build --platform linux/arm64/v8,linux/amd64  . \
 ## More Documentation
 
 The command `flextesa mini-net [...]` has a dedicated documentation
-page: [The `mini-net` Command](./src/doc/mini-net.md). Information regarding
-the command `flextesa daemons-upgrade`can also be found there.
+page: [The `mini-net` Command](./src/doc/mini-net.md).
+
+Documentation regarding `flextesa daemons-upgrade [...]` can be found here:
+[The `daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
 
 The API documentation of the Flextesa OCaml library starts here:
 [Flextesa: API](https://tezos.gitlab.io/flextesa/lib-index.html).
