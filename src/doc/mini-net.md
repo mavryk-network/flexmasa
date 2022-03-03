@@ -223,29 +223,3 @@ catch-up, it is better to use “small” networks:
 
 Stopping the sandbox with `quit`, and restarting with the same command some time
 later usually works.
-
-### The Daemons Upgrade Command
-
-This test builds and runs a sandbox network to do a full voting round followed by a protocol change. There are two variations of the test
-which is set with the `--test-variant` option. `--test-variant full-upgrade` will go through the voting phases and complete the protocol
-change while `--test-variant nay-for-promotion` will complete all of the voting phases and end with majority "nay" votes in the final phase.
-Thus, keeping the protocol the same.
-
-In addition to the steps described in the section "Accessing Tezos Software" above, the daemons-upgrade command requires that you provide
-baker executable for the next protocol with the `--second-baker` option.
-
-For example, the follow will run the daemons upgrade beginning with the Hangzhou protocol and upgrading to the Ithaca protocol.
-
-```
-$ flextesa daemons-upgrade
-    --next-protocol Ithaca
-    --protocol-kind Hangzou
-    --second-baker tezos-baker-012-Psithaca
-    --test-variant full-upgrade
-    --interacive true
-```
-
-With the option `--interactive true` Flextesa will pause twice during the test; once on the Hangzhou network and once after the upgrade to Ithaca.
-This will allow you to interact with the network at different stages. See notes on interactivity above.
-
-A complete list of the `deamons-upgrads` options can be accessed with the `--help` option.

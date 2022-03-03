@@ -60,8 +60,9 @@ Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
 ```
 
 The implementation for these scripts is `src/scripts/tutorial-box.sh`. They're
-just calls to `flextesa mini-net` and `flextesa daemons-upgrade` (see its general
-[documentation](./src/doc/mini-net.md)).
+just calls to `flextesa mini-net` and `flextesa daemons-upgrade`. More info
+on these commands can be found in the documentation for [mini-net](./src/doc/mini-net.md)
+and [daemons-upgrade](./src/doc/daemons-upgrade.md).
 
 The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
 You can use any client, including the `tezos-client` inside the docker
