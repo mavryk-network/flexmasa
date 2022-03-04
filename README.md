@@ -59,10 +59,9 @@ Usable accounts:
 Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
 ```
 
-The implementation for these scripts is `src/scripts/tutorial-box.sh`. They're
-just calls to `flextesa mini-net` and `flextesa daemons-upgrade`. More info
-on these commands can be found in the documentation for [mini-net](./src/doc/mini-net.md)
-and [daemons-upgrade](./src/doc/daemons-upgrade.md).
+The implementation for these scripts is `src/scripts/tutorial-box.sh`, they are
+just calls to `flextesa mini-net` (see its general
+[documentation](./src/doc/mini-net.md)).
 
 The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
 You can use any client, including the `tezos-client` inside the docker
@@ -102,20 +101,6 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
 "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
 ```
 
-With the `start_upgrade` command the sandbox network will do a full voting round
-followed by a protocol change. Flextesa will kill all processes once the upgrade
-is complete.
-
-``` default
-$ docker run --rm --name my-sandbox -p 20000:20000 \
-         -e block_time=2 \
-         "$image" hangzbox start_upgrade
-```
-
-The `hangzbox` script will start with the `Hanzhou` protocol and upgrade to
-`Ithaca` while `ithacabox` script will start with `Ithaca` and upgrade to
-protocol `Alpha`.
-
 Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
@@ -127,6 +112,29 @@ These scripts correspond to the tutorial at
 <https://assets.tqtezos.com/docs/setup/2-sandbox/> (which is now deprecated but
 still relevant).
 
+### Development Version
+
+The `start_upgrade` command is included with
+`registry.gitlab.com/philsaxton/flextesa:2761a93f-run`.
+
+This implementation of `src/scripts/tutorial-box.sh` is a call to
+`flextesa daemons-upgrade` (see its general
+[daemons-upgrade](./src/doc/daemons-upgrade.md)).
+
+``` default
+$ image=registry.gitlab.com/philsaxton/flextesa:2761a93f-run
+$ docker run --rm --name my-sandbox -p 20000:20000 \
+         -e block_time=2 \
+         "$image" hangzbox start_upgrade
+```
+
+With `start_upgrade` the sandbox network will do a full voting round followed
+by a protocol change. Once the upgrade is complete, flextesa will kill all
+processes.
+
+The `hangzbox` script will start with the `Hanzhou` protocol and upgrade to
+`Ithaca` while `ithacabox` will start with `Ithaca` and upgrade to
+protocol `Alpha`.
 
 ## Build
 

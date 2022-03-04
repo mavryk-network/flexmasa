@@ -68,6 +68,7 @@ head -n "$toc_spot" ./README.md  | omd > "$main_index_fragment"
 tail +$toc_spot  ./README.md \
     | sed 's@https://tezos.gitlab.io/flextesa/lib-index.html@./lib-index.html@' \
     | sed 's@./src/doc/mini-net.md@./mini-net.html@' \
+    | sed 's@./src/doc/daemons-upgrade.md@./daemons-upgrade.html@' \
     | omd >> "$main_index_fragment"
 main_index="$output_path/index.html"
 
