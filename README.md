@@ -112,6 +112,29 @@ These scripts correspond to the tutorial at
 <https://assets.tqtezos.com/docs/setup/2-sandbox/> (which is now deprecated but
 still relevant).
 
+### Development Version
+
+The `start_upgrade` command is included with
+`registry.gitlab.com/philsaxton/flextesa:2761a93f-run`.
+
+This implementation of `src/scripts/tutorial-box.sh` is a call to
+`flextesa daemons-upgrade` (see its general
+[daemons-upgrade](./src/doc/daemons-upgrade.md)).
+
+``` default
+$ image=registry.gitlab.com/philsaxton/flextesa:2761a93f-run
+$ docker run --rm --name my-sandbox -p 20000:20000 \
+         -e block_time=2 \
+         "$image" hangzbox start_upgrade
+```
+
+With `start_upgrade` the sandbox network will do a full voting round followed
+by a protocol change. Once the upgrade is complete, flextesa will kill all
+processes.
+
+The `hangzbox` script will start with the `Hanzhou` protocol and upgrade to
+`Ithaca` while `ithacabox` will start with `Ithaca` and upgrade to
+protocol `Alpha`.
 
 ## Build
 
@@ -241,6 +264,9 @@ docker buildx build --platform linux/arm64/v8,linux/amd64  . \
 
 The command `flextesa mini-net [...]` has a dedicated documentation
 page: [The `mini-net` Command](./src/doc/mini-net.md).
+
+Documentation regarding `flextesa daemons-upgrade [...]` can be found here:
+[The `daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
 
 The API documentation of the Flextesa OCaml library starts here:
 [Flextesa: API](https://tezos.gitlab.io/flextesa/lib-index.html).

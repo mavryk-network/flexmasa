@@ -68,6 +68,7 @@ head -n "$toc_spot" ./README.md  | omd > "$main_index_fragment"
 tail +$toc_spot  ./README.md \
     | sed 's@https://tezos.gitlab.io/flextesa/lib-index.html@./lib-index.html@' \
     | sed 's@./src/doc/mini-net.md@./mini-net.html@' \
+    | sed 's@./src/doc/daemons-upgrade.md@./daemons-upgrade.html@' \
     | omd >> "$main_index_fragment"
 main_index="$output_path/index.html"
 
@@ -87,6 +88,22 @@ EOF
     echo '``````'
 } | omd >> "$mini_net_fragment"
 mini_net="$output_path/mini-net.html"
+
+daemons_upgrade_fragment=$(mktemp "/tmp/daemons-upgrade-XXXX.html")
+{
+    cat ./src/doc/daemons-upgrade.md ;
+    cat <<'EOF'
+
+## Manpage Of daemons-upgrade
+
+For convenience, here is the output of `flextesa daemons-upgrade --help`:
+
+EOF
+    echo '``````'
+    ./flextesa daemons-upgrade --help=plain
+    echo '``````'
+} | omd >> "$daemons_upgrade_fragment"
+daemons_upgrade="$output_path/daemons-upgrade.html"
 
 make_page () {
     input="$1"
@@ -115,10 +132,11 @@ EOF
 make_page "$lib_index_fragment" "$lib_index" "Flextesa: API"
 make_page "$main_index_fragment" "$main_index" "Flextesa: Home"
 make_page "$mini_net_fragment" "$mini_net" "Flextesa: Mini-net Command"
-
+make_page "$daemons_upgrade_fragment" "$daemons_upgrade" "Flextesa: daemons-upgrade Command"
 
 say "done: file://$PWD/$main_index"
 say "done: file://$PWD/$mini_net"
+say "done: file://$PWD/$daemons_upgrade"
 say "done: file://$PWD/$lib_index"
 say "done: file://$PWD/$output_path/flextesa/Flextesa/index.html"
 
