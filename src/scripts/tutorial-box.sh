@@ -62,24 +62,28 @@ initclient () {
 }
 
 all_commands="$all_commands
-* start-upgrade : Start the interactive daemons upgrade sandbox"
+* start-upgrade : Start the daemons upgrade sandbox."
 daemons_root=/tmp/daemons-upgrade-box
 next_protocol_name=Ithaca
 next_protocol=012-Psithaca
 
 start_upgrade () {
     flextesa daemons-upgrade \
-        --next-protocol-kind $next_protocol_name \
-        --root-path $daemons_root \
-	    --extra-dummy-proposals-batch-size 2 \
-	    --extra-dummy-proposals-batch-levels 3,5 \
-	    --size 2 \
-	    --number-of-b 2 \
-	    --time-between-blocks $time_bb \
-	    --blocks-per-vot 14 \
-	    --with-timestamp \
-	    --protocol-kind $default_protocol \
-	    --second-baker tezos-baker-$next_protocol \
+        --next-protocol-kind "$next_protocol_name" \
+        --root-path "$daemons_root" \
+        --extra-dummy-proposals-batch-size 2 \
+        --extra-dummy-proposals-batch-levels 3,5 \
+        --size 2 \
+        --number-of-b 2 \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --no-daemons-for=alice \
+        --no-daemons-for=bob \
+        --time-between-blocks "$time_bb" \
+        --blocks-per-vot 14 \
+        --with-timestamp \
+        --protocol-kind "$default_protocol" \
+        --second-baker tezos-baker-"$next_protocol" \
         --test-variant full-upgrade \
         --interactive false
 }
