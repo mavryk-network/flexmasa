@@ -66,6 +66,7 @@ all_commands="$all_commands
 daemons_root=/tmp/daemons-upgrade-box
 next_protocol_name=Ithaca
 next_protocol=012-Psithaca
+vote_period=${blocks_per_voting_period:-16}
 
 start_upgrade () {
     flextesa daemons-upgrade \
@@ -80,7 +81,7 @@ start_upgrade () {
         --no-daemons-for=alice \
         --no-daemons-for=bob \
         --time-between-blocks "$time_bb" \
-        --blocks-per-vot 14 \
+        --blocks-per-voting-period "$vote_period" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
         --second-baker tezos-baker-"$next_protocol" \
