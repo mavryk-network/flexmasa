@@ -41,33 +41,11 @@ start () {
 }
 
 all_commands="$all_commands
-* info : Show accounts and information about the sandbox."
-info () {
-    cat >&2 <<EOF
-Usable accounts:
-
-- $(echo $alice | sed 's/,/\n  * /g')
-- $(echo $bob | sed 's/,/\n  * /g')
-
-Root path (logs, chain data, etc.): $root_path (inside container).
-EOF
-}
-
-all_commands="$all_commands
-* initclient : Setup the local tezos-client."
-initclient () {
-    tezos-client --endpoint http://localhost:20000 config update
-    tezos-client --protocol PtHangz2aRng import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    tezos-client --protocol PtHangz2aRng import secret key bob "$(echo $bob | cut -d, -f 4)" --force
-}
-
-all_commands="$all_commands
 * start-upgrade : Start the daemons upgrade sandbox."
 daemons_root=/tmp/daemons-upgrade-box
 next_protocol_name=Ithaca
 next_protocol=012-Psithaca
 vote_period=${blocks_per_voting_period:-16}
-
 start_upgrade () {
     flextesa daemons-upgrade \
         --next-protocol-kind "$next_protocol_name" \
@@ -87,6 +65,27 @@ start_upgrade () {
         --second-baker tezos-baker-"$next_protocol" \
         --test-variant full-upgrade \
         --interactive false
+}
+
+all_commands="$all_commands
+* info : Show accounts and information about the sandbox."
+info () {
+    cat >&2 <<EOF
+Usable accounts:
+
+- $(echo $alice | sed 's/,/\n  * /g')
+- $(echo $bob | sed 's/,/\n  * /g')
+
+Root path (logs, chain data, etc.): $root_path (inside container).
+EOF
+}
+
+all_commands="$all_commands
+* initclient : Setup the local tezos-client."
+initclient () {
+    tezos-client --endpoint http://localhost:20000 config update
+    tezos-client --protocol PtHangz2aRng import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    tezos-client --protocol PtHangz2aRng import secret key bob "$(echo $bob | cut -d, -f 4)" --force
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
