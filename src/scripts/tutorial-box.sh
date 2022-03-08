@@ -53,7 +53,8 @@ start_upgrade () {
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 \
-        --number-of-b 2 \
+        --number-of-bootstrap-accounts 2 \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --add-bootstrap-account="$bob@2_000_000_000_000" \
         --no-daemons-for=alice \
