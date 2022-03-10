@@ -65,7 +65,8 @@ start_upgrade () {
         --protocol-kind "$default_protocol" \
         --second-baker tezos-baker-"$next_protocol" \
         --test-variant full-upgrade \
-        --interactive false
+        --interactive false \
+        --until-level 200_000_000
 }
 
 all_commands="$all_commands
