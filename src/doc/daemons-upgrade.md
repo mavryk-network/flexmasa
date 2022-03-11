@@ -60,6 +60,7 @@ is complete.
         --protocol-kind Ithaca \
         --size 2 \
         --number-of-bootstrap-accounts 2 \
+        --until-level 2_000_000 \
         --time-between-blocks 5 \
         --next-protocol-kind Alpha \
         --second-baker tezos-baker-alpha \
@@ -70,10 +71,13 @@ is complete.
 ```
 
 The above command activates the `Ithaca` protocol, starts 2 nodes and 2
-bootstrap accounts; with a blocktime of 5 seconds. The test will propose the
-protocol `Alpha` upgrade. The voting periods are set to 14 blocks. In addition,
-two dummy protocols will be proposed at levels 3 and 5 within the proposal
-period. Finally, a timestamp will be displayed with each message.
+bootstrap accounts. The sandbox will run for 2×10⁶ blocks with a blocktime of 5
+seconds before killing all processes.
+
+The test will propose the protocol `Alpha` upgrade. The voting periods are set
+to 14 blocks. In addition, two dummy protocols will be proposed at levels 3 and
+5 within the proposal period. Finally, a timestamp will be displayed with each
+message.
 
 * The `daemons-upgrade` command shares many options with the `mini-network` command
 (see it's [documentation](./src/doc/mini-net.md)).
@@ -107,3 +111,20 @@ the upgrade.
 
 Similarly, the option `--pause-at-end` will allow you to interact with the
 network before Flextesa kills all processes and quits.
+
+If one runs the `daemons-upgrade` interactively with the `--until-level` option,
+Flextesa will do the second (or final) pause after reaching the level set by the
+user.
+
+For example:
+```
+    $ flextesa daemons-upgrade \
+        --protocol-kind Ithaca --next-protocol Alpha \
+        --second-baker tezos-baker-012-Psithaca \
+        --pause-at-end true \
+        --until-level 200
+```
+
+The above command will start the `Ithaca` network, do the upgrade to `Alpha`
+protocol, continue running until block 200, then pause once before finally
+killing all processes.
