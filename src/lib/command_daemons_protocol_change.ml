@@ -305,7 +305,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
       else return (`Done ()) )
   >>= fun () ->
   match wait_level with
-  | `Interactive ->
+  | `Interactive_pause ->
       Interactive_test.Pauser.generic state
         EF.
           [ wf "Test finished, protocol is now %s, things should keep baking."
@@ -441,7 +441,7 @@ let cmd () =
         pure (fun l ->
             match l with
             | Some l -> `Wait_level (`At_least l)
-            | None -> `Interactive )
+            | None -> `Interactive_pause )
         $ value
             (opt (some int) None
                (info ["until-level"] ~docs
