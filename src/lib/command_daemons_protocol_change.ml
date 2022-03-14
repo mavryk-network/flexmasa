@@ -54,42 +54,6 @@ let wait_for_voting_period ?level_within_period state ~protocol ~client
                 [markdown_verbatim (String.concat ~sep:"\n" res#out)])
           >>= fun () -> return (`Not_done message) )
 
-let run_wait_level protocol state nodes opt lvl =
-  let port =
-    let n = List.hd_exn nodes in
-    n.Tezos_node.rpc_port in
-  let seconds () =
-    Dbg.e EF.(wf "Figuring out TBB") ;
-    Asynchronous_result.bind_on_result
-      (Helpers.curl_rpc_cmd state ~port
-         ~path:"/chains/main/blocks/head/context/constants" )
-      ~f:
-        (let default () =
-           Dbg.e EF.(wf "Getting default TBB") ;
-           protocol.Tezos_protocol.time_between_blocks |> List.hd
-           |> Option.value ~default:10 in
-         function
-         | Ok (Some json) ->
-             Dbg.e EF.(wf "Got JSON") ;
-             return
-               Jqo.(
-                 try
-                   field json ~k:"minimal_block_delay"
-                   |> get_string |> Int.of_string
-                 with _ -> (
-                   try
-                     field json ~k:"time_between_blocks"
-                     |> get_strings |> List.hd_exn |> Int.of_string
-                   with _ -> default () ))
-         | Ok None | Error _ -> return (default ()) )
-    >>= fun tbb ->
-    let seconds = Float.of_int tbb *. 1.5 in
-    Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds) ;
-    return seconds in
-  let attempts = lvl in
-  Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds nodes
-    opt
-
 let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     ?external_peer_ports ?generate_kiln_config ~node_exec ~client_exec
     ~first_baker_exec ~first_endorser_exec ~first_accuser_exec
@@ -348,7 +312,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
               protocol_to_wait_for
           ; markdown_verbatim (String.concat ~sep:"\n" res#out) ]
   | `Wait_level (`At_least lvl as opt) ->
-      run_wait_level protocol state nodes opt lvl
+      Test_scenario.Queries.run_wait_level protocol state nodes opt lvl
 
 let cmd () =
   let open Cmdliner in
