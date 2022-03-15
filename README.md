@@ -123,18 +123,41 @@ This implementation of `src/scripts/tutorial-box.sh` is a call to
 
 ``` default
 $ image=registry.gitlab.com/philsaxton/flextesa:2761a93f-run
-$ docker run --rm --name my-sandbox -p 20000:20000 \
+$ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e block_time=2 \
          "$image" hangzbox start_upgrade
 ```
 
-With `start_upgrade` the sandbox network will do a full voting round followed
-by a protocol change. Once the upgrade is complete, flextesa will kill all
-processes.
+With `start_upgrade` the sandbox network will do a full voting round followed by
+a protocol change. The `hangzbox` script will start with the `Hangzhou` protocol
+and upgrade to `Ithaca` while `ithacabox` will start with `Ithaca` and upgrade
+to protocol `Alpha`.
 
-The `hangzbox` script will start with the `Hanzhou` protocol and upgrade to
-`Ithaca` while `ithacabox` will start with `Ithaca` and upgrade to
-protocol `Alpha`.
+Voting occurs over five periods. You can adjust the length of the voting periods
+with the variable `blocks_per_voting_period`. Batches of dummy proposals will be
+inserted with `extra_dummy_proposals_batch_size`. These proposals can be
+scheduled at specific block-levels within the first (Proposal) voting period,
+using the variable `extra_dummy_proposals_batch_level`.
+
+``` default
+$ docker run --rm --name my-sandbox -p 20000:20000 --detach \
+         -e blocks_per_voting_period=12 \
+         -e extra_dummy_proposals_batch_level=2 \
+         -e extra_dummy_proposals_batch_size=2,4 \
+         "$image" itacazbox start_upgrade
+```
+
+The above command will result in 5 total proposals and upgrade to the Alpha
+proposal.
+
+The default values are:
+
+- `blocks_per_voting_period` = 16
+- `extra_dummy_proposals_batch_size` = 2
+- `extra_dummy_proposals_batch_level` = 3,5
+
+Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
+accounts by default.
 
 ## Build
 
