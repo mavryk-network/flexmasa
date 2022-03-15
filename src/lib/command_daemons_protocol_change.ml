@@ -59,7 +59,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     ~first_baker_exec ~first_endorser_exec ~first_accuser_exec
     ~second_baker_exec ~second_endorser_exec ~second_accuser_exec ~admin_exec
     ~extra_dummy_proposals_batch_size ~extra_dummy_proposals_batch_levels
-    ~waiting_attempts test_variant () =
+    ~waiting_attempts test_variant wait_level () =
   Helpers.clear_root state
   >>= fun () ->
   Helpers.System_dependencies.precheck state `Or_fail
@@ -304,11 +304,15 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
                protocol_to_wait_for ) )
       else return (`Done ()) )
   >>= fun () ->
-  Interactive_test.Pauser.generic state
-    EF.
-      [ wf "Test finished, protocol is now %s, things should keep baking."
-          protocol_to_wait_for
-      ; markdown_verbatim (String.concat ~sep:"\n" res#out) ]
+  match wait_level with
+  | `Interactive_pause ->
+      Interactive_test.Pauser.generic state
+        EF.
+          [ wf "Test finished, protocol is now %s, things should keep baking."
+              protocol_to_wait_for
+          ; markdown_verbatim (String.concat ~sep:"\n" res#out) ]
+  | `Wait_level (`At_least lvl as opt) ->
+      Test_scenario.Queries.run_wait_level protocol state nodes opt lvl
 
 let cmd () =
   let open Cmdliner in
@@ -349,6 +353,7 @@ let cmd () =
         (`Extra_dummy_proposals_batch_levels extra_dummy_proposals_batch_levels)
         generate_kiln_config
         test_variant
+        wait_level
         state
       ->
         let actual_test =
@@ -358,7 +363,7 @@ let cmd () =
             ~admin_exec ?generate_kiln_config ~external_peer_ports
             ~no_daemons_for ~next_protocol_kind test_variant ~waiting_attempts
             ~extra_dummy_proposals_batch_size
-            ~extra_dummy_proposals_batch_levels in
+            ~extra_dummy_proposals_batch_levels wait_level in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test) )
     $ Arg.(
@@ -432,6 +437,15 @@ let cmd () =
              (enum (List.map variants ~f:(fun (n, v, _) -> (n, v))))
              `Full_upgrade
              (info ~docs ["test-variant"] ~doc) ))
+    $ Arg.(
+        pure (fun l ->
+            match l with
+            | Some l -> `Wait_level (`At_least l)
+            | None -> `Interactive_pause )
+        $ value
+            (opt (some int) None
+               (info ["until-level"] ~docs
+                  ~doc:"Run the sandbox until a given level (not interactive)" ) ))
     $ Test_command_line.cli_state ~name:"daemons-upgrade" () in
   let info =
     let doc =

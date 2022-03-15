@@ -204,42 +204,6 @@ let run_dsl_cmd state clients nodes dsl_command =
       >>= fun dsl_sexp ->
       Traffic_generation.Dsl.run state ~nodes ~clients dsl_sexp
 
-let run_wait_level protocol state nodes opt lvl =
-  let port =
-    let n = List.hd_exn nodes in
-    n.Tezos_node.rpc_port in
-  let seconds () =
-    Dbg.e EF.(wf "Figuring out TBB") ;
-    Asynchronous_result.bind_on_result
-      (Helpers.curl_rpc_cmd state ~port
-         ~path:"/chains/main/blocks/head/context/constants" )
-      ~f:
-        (let default () =
-           Dbg.e EF.(wf "Getting default TBB") ;
-           protocol.Tezos_protocol.time_between_blocks |> List.hd
-           |> Option.value ~default:10 in
-         function
-         | Ok (Some json) ->
-             Dbg.e EF.(wf "Got JSON") ;
-             return
-               Jqo.(
-                 try
-                   field json ~k:"minimal_block_delay"
-                   |> get_string |> Int.of_string
-                 with _ -> (
-                   try
-                     field json ~k:"time_between_blocks"
-                     |> get_strings |> List.hd_exn |> Int.of_string
-                   with _ -> default () ))
-         | Ok None | Error _ -> return (default ()) )
-    >>= fun tbb ->
-    let seconds = Float.of_int tbb *. 1.5 in
-    Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds) ;
-    return seconds in
-  let attempts = lvl in
-  Test_scenario.Queries.wait_for_all_levels_to_be state ~attempts ~seconds nodes
-    opt
-
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
@@ -404,27 +368,28 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       @ [ secret_keys state ~protocol
         ; forge_and_inject_piece_of_json state ~clients:keyed_clients ]
       @ arbitrary_commands_for_each_and_all_clients state ~clients) ;
-  match test_kind with
-  | `Interactive ->
-      Interactive_test.Pauser.generic state ~force:true
-        EF.[haf "Sandbox is READY \\o/"]
-  | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
-      run_dsl_cmd state keyed_clients nodes dsl_command
-      >>= fun () ->
-      Interactive_test.Pauser.generic state ~force:true
-        EF.[haf "Sandbox is READY \\o/"]
-  | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
-      run_dsl_cmd state keyed_clients nodes dsl_command
-      >>= fun () ->
-      let opt = `At_least lvl in
-      run_wait_level protocol state nodes opt lvl
-  | `Random_traffic (`Any, `Until level) ->
-      System.sleep 10.
-      >>= fun () ->
-      Traffic_generation.Random.run state ~protocol ~nodes
-        ~clients:keyed_clients ~until_level:level `Any
-  | `Wait_level (`At_least lvl as opt) ->
-      run_wait_level protocol state nodes opt lvl
+  Test_scenario.Queries.(
+    match test_kind with
+    | `Interactive ->
+        Interactive_test.Pauser.generic state ~force:true
+          EF.[haf "Sandbox is READY \\o/"]
+    | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
+        run_dsl_cmd state keyed_clients nodes dsl_command
+        >>= fun () ->
+        Interactive_test.Pauser.generic state ~force:true
+          EF.[haf "Sandbox is READY \\o/"]
+    | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
+        run_dsl_cmd state keyed_clients nodes dsl_command
+        >>= fun () ->
+        let opt = `At_least lvl in
+        run_wait_level protocol state nodes opt lvl
+    | `Random_traffic (`Any, `Until level) ->
+        System.sleep 10.
+        >>= fun () ->
+        Traffic_generation.Random.run state ~protocol ~nodes
+          ~clients:keyed_clients ~until_level:level `Any
+    | `Wait_level (`At_least lvl as opt) ->
+        run_wait_level protocol state nodes opt lvl)
 
 let cmd () =
   let open Cmdliner in

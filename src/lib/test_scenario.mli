@@ -168,6 +168,23 @@ module Queries : sig
     -> (unit, 'errors) Asynchronous_result.t
   (** Try-sleep-loop waiting for all given nodes to reach a given level. *)
 
+  val run_wait_level :
+       Tezos_protocol.t
+    -> < application_name: string
+       ; console: Console.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+       Base_state.t
+    -> Tezos_node.t List.t
+    -> [< `At_least of int | `Equal_to of int]
+    -> int
+    -> ( unit
+       , [> `System_error of [`Fatal] * System_error.static
+         | `Waiting_for of string * [`Time_out] ] )
+       Asynchronous_result.t
+  (** Runs wait_for_all_levels_to_be and provides [~seconds] by querying the node for time_between_blocks. *)
+
   val wait_for_bake :
        < application_name: string
        ; console: Console.t
