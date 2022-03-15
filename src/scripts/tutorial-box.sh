@@ -40,18 +40,21 @@ start () {
              --protocol-kind "$default_protocol"
 }
 
+vote_period=${blocks_per_voting_period:-16}
+dummy_props=${extra_dummy_proposals_batch_size:-2}
+dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
+
 all_commands="$all_commands
 * start-upgrade : Start the daemons upgrade sandbox."
 daemons_root=/tmp/daemons-upgrade-box
 next_protocol_name=Ithaca
 next_protocol=012-Psithaca
-vote_period=${blocks_per_voting_period:-16}
 start_upgrade () {
     flextesa daemons-upgrade \
         --next-protocol-kind "$next_protocol_name" \
         --root-path "$daemons_root" \
-        --extra-dummy-proposals-batch-size 2 \
-        --extra-dummy-proposals-batch-levels 3,5 \
+        --extra-dummy-proposals-batch-size "$dummy_props" \
+        --extra-dummy-proposals-batch-levels "$dummy_levels" \
         --size 2 \
         --number-of-bootstrap-accounts 2 \
         --balance-of-bootstrap-accounts tez:100_000_000 \
@@ -65,7 +68,6 @@ start_upgrade () {
         --protocol-kind "$default_protocol" \
         --second-baker tezos-baker-"$next_protocol" \
         --test-variant full-upgrade \
-        --interactive false \
         --until-level 200_000_000
 }
 
