@@ -12,9 +12,10 @@ fi
 # https://gitlab.com/tezos/tezos/-/releases
 # This time: https://gitlab.com/tezos/tezos/-/pipelines/479417578
 job_id=none
+directory_name=
 case $(uname -m) in
-    x86_64 ) job_id=2136984736 ;;
-    aarch64 ) job_id=2136984737 ;;
+    x86_64 ) job_id=2136984736 ; directory_name=x86_64 ;;
+    aarch64 ) job_id=2136984737 ; directory_name=arm64 ;;
     * ) echo "Unknown architecture: $(uname -a)" >&2 ; exit 4 ;;
 esac
 
@@ -22,7 +23,7 @@ esac
     curl -L "https://gitlab.com/tezos/tezos/-/jobs/$job_id/artifacts/download" -o "$dest_dir/bins.zip"
     cd "$dest_dir"
     unzip bins.zip
-    mv tezos-binaries/$(uname -m)/* .
+    mv tezos-binaries/$directory_name/* .
     rm -fr bins.zip tezos-binaries/
     chmod a+rx tezos-*
 )
