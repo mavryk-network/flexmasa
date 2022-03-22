@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20220127` (also available
+The current _released_ image is `oxheadalpha/flextesa:20220321` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -76,6 +76,8 @@ $ tcli get balance for alice
 You can always stop the sandbox, and clean-up your resources with:
 `docker kill my-sandbox`.
 
+### User-Activated-Upgrades
+
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
 a Hangzhou sandbox which switches to Ithaca at level 20:
@@ -112,17 +114,15 @@ These scripts correspond to the tutorial at
 <https://assets.tqtezos.com/docs/setup/2-sandbox/> (which is now deprecated but
 still relevant).
 
-### Development Version
+### Full Governance Upgrade
 
-The `start_upgrade` command is included with
-`registry.gitlab.com/philsaxton/flextesa:2761a93f-run`.
+The `start_upgrade` command is included with the docker image.
 
-This implementation of `src/scripts/tutorial-box.sh` is a call to
-`flextesa daemons-upgrade` (see its general
+This implementation of `src/scripts/tutorial-box.sh` is a call to `flextesa
+daemons-upgrade` (see its general
 [daemons-upgrade](./src/doc/daemons-upgrade.md)).
 
 ``` default
-$ image=registry.gitlab.com/philsaxton/flextesa:2761a93f-run
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e block_time=2 \
          "$image" hangzbox start_upgrade
