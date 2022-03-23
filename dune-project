@@ -1,5 +1,5 @@
 (lang dune 2.8)
-;; (name flextesa)
+(name flextesa)
 (generate_opam_files true)
 (license MIT)
 (source (uri git+https://gitlab.com/tezos/flextesa.git))
