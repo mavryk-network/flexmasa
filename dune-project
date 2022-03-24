@@ -9,20 +9,6 @@
 (maintainers "seb@mondet.org")
 
 (package
- (name tezai-base58-digest)
- (synopsis "Tezos Base58 hash-encodings based on Digestif")
- (description "Tezos Base58 hash-encodings, including common prefixes, \
-               based on the Digestif library.")
- (version 0.2)
- (depends
-  (digestif (>= "0.9.0"))
-  (dune (>= "2.9"))
-  (ppx_inline_test (>= "0.14.0"))
-  (ppx_expect (>= "0.14.0"))
- )
-)
-
-(package
  (name tezai-tz1-crypto)
  (synopsis "Tezos Ed25519 Accounts Based on Mirage-Crypto")
  (description "Tezos Ed25519 Accounts Based on Mirage-Crypto.")
