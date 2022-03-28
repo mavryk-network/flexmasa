@@ -47,7 +47,7 @@ paths can be passed with command line options:
 
 Both examples above, activate the protocol `Hangzhou`, and propose the `Ithaca`
 upgrade. The sandbox network will do a full voting round followed by a protocol
-change. Finally, Flexseta will kill all processes once the daemon-upgrade test
+change. Finally, Flextesa will kill all processes once the daemon-upgrade test
 is complete.
 
 * If you are using the docker image, valid `tezos-*` executables are already in
@@ -74,10 +74,10 @@ The above command activates the `Ithaca` protocol, starts 2 nodes and 2
 bootstrap accounts. The sandbox will run for 2×10⁶ blocks with a blocktime of 5
 seconds before killing all processes.
 
-The test will propose the protocol `Alpha` upgrade. The voting periods are set
-to 14 blocks. In addition, two dummy protocols will be proposed at levels 3 and
-5 within the proposal period. Finally, a timestamp will be displayed with each
-message.
+The test will propose the protocol `Alpha` upgrade. Each voting period (there
+are five) will last 14 blocks. In addition, two batches of two dummy protocols
+will be proposed at levels 3 and 5 within the proposal voting (the first)
+period. Finally, a timestamp will be displayed with each message.
 
 * The `daemons-upgrade` command shares many options with the `mini-network` command
 (see it's [documentation](./src/doc/mini-net.md)).
@@ -91,7 +91,6 @@ There are two variations of the test set with the `--test-variant` option:
   the protocol change (this is the default variant).
 - `--test-variant nay-for-promotion` will complete all of the voting phases with
   "nay" votes winning the final phase.
-
 
 Interactivity
 -------------------------------------------------------------------------------
