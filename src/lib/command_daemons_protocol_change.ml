@@ -108,6 +108,10 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     |> List.filter_mapi ~f:(fun idx acc ->
            let node, client = pick_a_node_and_client idx in
            let key = Tezos_protocol.Account.name acc in
+           let if_proto_wants protokind f =
+             if Tezos_protocol.Protocol_kind.wants_endorser_daemon protokind
+             then [f ()]
+             else [] in
            if List.mem ~equal:String.equal no_daemons_for key then None
            else
              Some
@@ -115,15 +119,18 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
                , client
                , [ Tezos_daemon.baker_of_node ~protocol_kind:protocol.kind
                      ~exec:first_baker_exec ~client node ~key ~name_tag:"first"
-                 ; Tezos_daemon.baker_of_node ~protocol_kind:protocol.kind
+                 ; Tezos_daemon.baker_of_node ~protocol_kind:next_protocol_kind
                      ~exec:second_baker_exec ~client ~name_tag:"second" node
-                     ~key
-                 ; Tezos_daemon.endorser_of_node ~protocol_kind:protocol.kind
-                     ~exec:first_endorser_exec ~name_tag:"first" ~client node
-                     ~key
-                 ; Tezos_daemon.endorser_of_node ~protocol_kind:protocol.kind
-                     ~exec:second_endorser_exec ~name_tag:"second" ~client node
-                     ~key ] ) ) in
+                     ~key ]
+                 @ if_proto_wants protocol.kind (fun () ->
+                       Tezos_daemon.endorser_of_node
+                         ~protocol_kind:protocol.kind ~exec:first_endorser_exec
+                         ~name_tag:"first" ~client node ~key )
+                 @ if_proto_wants next_protocol_kind (fun () ->
+                       Tezos_daemon.endorser_of_node
+                         ~protocol_kind:next_protocol_kind
+                         ~exec:second_endorser_exec ~name_tag:"second" ~client
+                         node ~key ) ) ) in
   List_sequential.iter keys_and_daemons ~f:(fun (acc, client, daemons) ->
       Tezos_client.wait_for_node_bootstrap state client
       >>= fun () ->
