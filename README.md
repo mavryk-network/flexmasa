@@ -167,8 +167,9 @@ With Opam ≥ 2.1:
 opam switch create . --deps-only \
      --formula='"ocaml-base-compiler" {>= "4.13" & < "4.14"}'
 eval $(opam env)
+opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-digest.git
 opam install --deps-only --with-test --with-doc \
-     ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam \
+     ./tezai-tz1-crypto.opam \
      ./flextesa.opam ./flextesa-cli.opam # Most of this should be already done.
 opam install merlin ocamlformat.0.19.0    # For development.
 ```

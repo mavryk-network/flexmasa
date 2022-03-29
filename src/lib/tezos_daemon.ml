@@ -38,10 +38,16 @@ let to_script state (t : t) =
   match t.args with
   | Baker key ->
       let node_path = Tezos_node.data_dir state t.node in
+      let extra_options =
+        match t.protocol_kind with
+        | `Alpha -> ["--liquidity-baking-toggle-vote"; "pass"]
+        | _ -> [] in
       call t
-        [ "--endpoint"; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
-        ; "--base-dir"; base_dir; "run"; "with"; "local"; "node"; node_path; key
-        ]
+        ( [ "--endpoint"
+          ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
+          ; "--base-dir"; base_dir; "run"; "with"; "local"; "node"; node_path
+          ; key ]
+        @ extra_options )
   | Endorser key ->
       call t
         [ "--endpoint"; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
