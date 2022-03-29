@@ -142,8 +142,8 @@ using the variable `extra_dummy_proposals_batch_level`.
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e blocks_per_voting_period=12 \
-         -e extra_dummy_proposals_batch_level=2 \
-         -e extra_dummy_proposals_batch_size=2,4 \
+         -e extra_dummy_proposals_batch_size=2 \
+         -e extra_dummy_proposals_batch_level=2,4 \
          "$image" itacazbox start_upgrade
 ```
 
