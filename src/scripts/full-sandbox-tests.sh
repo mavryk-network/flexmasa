@@ -86,7 +86,6 @@ daem-h2i-nay () {
 	    --size 2 \
 	    --number-of-b 2 \
 	    --time-between-blocks 3 \
-	    --blocks-per-vot 14 \
 	    --with-timestamp \
 	    --protocol-kind Hangzhou \
 	    --second-baker tezos-baker-012-Psithaca \
@@ -101,7 +100,6 @@ daem-i2a () {
 	    --size 2 \
 	    --number-of-b 2 \
 	    --time-betw 3 \
-	    --blocks-per-vot 14 \
 	    --with-timestamp \
 	    --protocol-kind Ithaca \
 	    --second-baker tezos-baker-alpha \
@@ -116,7 +114,6 @@ daem-i2a-nay () {
 	    --size 2 \
 	    --number-of-b 2 \
 	    --time-betw 3 \
-	    --blocks-per-vot 14 \
 	    --with-timestamp \
 	    --protocol-kind Ithaca \
 	    --second-baker tezos-baker-alpha \

@@ -82,7 +82,8 @@ unit-tests:
   stage: build
   script:
      - sh -c "$SHOW_INFO"
-     - opam install --deps-only --with-test ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam
+     - opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-digest.git
+     - opam install --deps-only --with-test ./tezai-tz1-crypto.opam
      - dune runtest
 
 docker:test:full:

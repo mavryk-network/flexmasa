@@ -3,7 +3,8 @@ FROM ocaml/opam:alpine-3.15-ocaml-4.12 as build_step
 RUN sudo cp /usr/bin/opam-2.1 /usr/bin/opam
 RUN sudo apk update
 ADD  --chown=opam:opam . ./
-RUN opam install --with-test --deps-only ./tezai-base58-digest.opam ./tezai-tz1-crypto.opam ./flextesa.opam
+RUN opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-digest.git
+RUN opam install --with-test --deps-only ./tezai-tz1-crypto.opam ./flextesa.opam
 RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
 RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin/

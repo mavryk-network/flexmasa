@@ -200,7 +200,15 @@ let protocol_parameters_json t : Ezjsonm.t =
         [ ( "bootstrap_accounts"
           , list make_account
               (t.bootstrap_accounts @ [(t.dictator, 10_000_000L)]) )
-        ; ("blocks_per_voting_period", int t.blocks_per_voting_period)
+        ; ( match t.kind with
+          | `Alpha ->
+              let computed = t.blocks_per_voting_period / t.blocks_per_cycle in
+              if computed = 0 then
+                Fmt.failwith
+                  "Alpha protocol wants (t.blocks_per_voting_period / \
+                   t.blocks_per_cycle) >= 1" ;
+              ("cycles_per_voting_period", int computed)
+          | _ -> ("blocks_per_voting_period", int t.blocks_per_voting_period) )
         ; ("blocks_per_cycle", int t.blocks_per_cycle)
         ; ("preserved_cycles", int t.preserved_cycles)
         ; ( "proof_of_work_threshold"
@@ -217,23 +225,36 @@ let protocol_parameters_json t : Ezjsonm.t =
         ; ("min_proposal_quorum", int 500)
         ; ("liquidity_baking_subsidy", string "2500000")
         ; ("liquidity_baking_sunset_level", int 525600)
-        ; ("liquidity_baking_escape_ema_threshold", int 1000000) ] in
+        ; ( match t.kind with
+          | `Alpha ->
+              ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000)
+          | _ -> ("liquidity_baking_escape_ema_threshold", int 1000000) ) ]
+      in
       let alpha_specific_parameters =
         match t.kind with
         | `Alpha ->
             [ ("cache_script_size", int 100_000_000)
             ; ("cache_stake_distribution_cycles", int 8)
             ; ("cache_sampler_state_cycles", int 8)
-            ; ("tx_rollup_enable", bool false)
+            ; ("tx_rollup_enable", bool true)
             ; (* TODO: https://gitlab.com/tezos/tezos/-/issues/2152 *)
               ("tx_rollup_origination_size", int 60_000)
             ; ("tx_rollup_hard_size_limit_per_inbox", int 100_000)
             ; ("tx_rollup_hard_size_limit_per_message", int 5_000)
+            ; ("tx_rollup_max_withdrawals_per_batch", int 255)
             ; ("tx_rollup_commitment_bond", string "10_000_000_000")
             ; ("tx_rollup_finality_period", int 2_000)
-            ; ("tx_rollup_max_unfinalized_levels", int 2_100)
+            ; ("tx_rollup_max_inboxes_count", int 2_100)
+            ; ("tx_rollup_withdraw_period", int 2_000)
+            ; ("tx_rollup_max_messages_per_inbox", int 1_010)
+            ; ("tx_rollup_max_commitments_count", int 4_100)
+            ; ("tx_rollup_cost_per_byte_ema_factor", int 120)
+            ; ("tx_rollup_max_ticket_payload_size", int 10_240)
+            ; ("tx_rollup_rejection_max_proof_size", int 30_000)
             ; ("sc_rollup_enable", bool false)
-            ; ("sc_rollup_origination_size", int 42) ]
+            ; ("sc_rollup_origination_size", int 6_314)
+            ; ("sc_rollup_challenge_window_in_blocks", int 20_160)
+            ; ("sc_rollup_max_available_messages", int 1_000_000) ]
         | _ -> [] in
       let tenderbake_specific_parameters =
         match t.kind with
