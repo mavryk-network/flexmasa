@@ -9,14 +9,7 @@ RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
 RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin/
 WORKDIR /usr/bin
-ENV SAPLING_SPEND='sapling-spend.params'
-ENV SAPLING_OUTPUT='sapling-output.params'
-# ENV SAPLING_SPROUT_GROTH16_NAME='sprout-groth16.params'
-ENV DOWNLOAD_URL="https://download.z.cash/downloads"
-ENV LOCALLOC=/usr/share/zcash-params
-RUN sudo mkdir -p $LOCALLOC
-RUN sudo curl --output "$LOCALLOC/$SAPLING_OUTPUT" -L "$DOWNLOAD_URL/$SAPLING_OUTPUT"
-RUN sudo curl --output "$LOCALLOC/$SAPLING_SPEND" -L "$DOWNLOAD_URL/$SAPLING_SPEND"
+RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
 FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap
