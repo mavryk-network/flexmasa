@@ -1,6 +1,19 @@
 #! /bin/sh
 
-default_protocol=Hangzhou
+default_protocol=Ithaca
+next_protocol_name=Jakarta
+next_protocol=013-PtJakart
+case "$(basename $0)" in
+    "jakartabox" )
+        default_protocol=Jakarta
+        next_protocol_name=Alpha
+        next_protocol=alpha ;;
+    "alphabox" )
+        default_protocol=Alpha
+        next_protocol_name=Failure
+        next_protocol=alpha ;;
+    * ) ;;
+esac
 
 all_commands="
 * usage | help | --help | -h: Display this help message."
@@ -23,7 +36,7 @@ time_bb=${block_time:-5}
 export alice="$(flextesa key alice)"
 export bob="$(flextesa key bob)"
 all_commands="$all_commands
-* start : Start the sandbox."
+* start : Start a sandbox with the $default_protocol protocol."
 root_path=/tmp/mini-box
 start () {
     flextesa mini-net \
@@ -45,10 +58,8 @@ dummy_props=${extra_dummy_proposals_batch_size:-2}
 dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
 
 all_commands="$all_commands
-* start-upgrade : Start the daemons upgrade sandbox."
+* start-upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
 daemons_root=/tmp/daemons-upgrade-box
-next_protocol_name=Ithaca
-next_protocol=012-Psithaca
 start_upgrade () {
     flextesa daemons-upgrade \
         --next-protocol-kind "$next_protocol_name" \
@@ -88,8 +99,8 @@ all_commands="$all_commands
 * initclient : Setup the local tezos-client."
 initclient () {
     tezos-client --endpoint http://localhost:20000 config update
-    tezos-client --protocol PtHangz2aRng import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    tezos-client --protocol PtHangz2aRng import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    tezos-client --protocol Psithaca2MLR import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    tezos-client --protocol Psithaca2MLR import secret key bob "$(echo $bob | cut -d, -f 4)" --force
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then

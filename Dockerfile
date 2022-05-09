@@ -33,13 +33,9 @@ COPY --from=0 /usr/bin/flextesa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/hangzbox
+COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/jakartabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/ithacabox
-RUN sed -i s/default_protocol=Hangzhou/default_protocol=Ithaca/ /usr/bin/ithacabox
-RUN sed -i s/next_protocol_name=Ithaca/next_protocol_name=Alpha/ /usr/bin/ithacabox
-RUN sed -i s/next_protocol=012-Psithaca/next_protocol=alpha/ /usr/bin/ithacabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
-RUN sed -i s/default_protocol=Hangzhou/default_protocol=Alpha/ /usr/bin/alphabox
 RUN chmod a+rx /usr/bin/hangzbox
 RUN chmod a+rx /usr/bin/ithacabox
 RUN chmod a+rx /usr/bin/alphabox
