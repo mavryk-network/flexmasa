@@ -40,8 +40,10 @@ let to_script state (t : t) =
       let node_path = Tezos_node.data_dir state t.node in
       let extra_options =
         match t.protocol_kind with
-        | `Alpha -> ["--liquidity-baking-toggle-vote"; "pass"]
-        | _ -> [] in
+        | `Jakarta | `Alpha -> ["--liquidity-baking-toggle-vote"; "pass"]
+        | `Florence | `Carthage | `Delphi | `Ithaca | `Hangzhou | `Babylon
+         |`Edo | `Granada | `Athens ->
+            [] in
       call t
         ( [ "--endpoint"
           ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port

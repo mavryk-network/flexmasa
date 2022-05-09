@@ -63,6 +63,20 @@ module Genesis_block_hash = struct
          * Seed: "tutobox12-10249265"
            → block: "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
            → chain-id: "NetXfHjxW3qBoxi"
+      $ ./flextesa van --first --seed tutobox13- --attempts 100_000_000  BoxJ
+     Flextesa.vanity-chain-id:  Looking for "BoxJ"
+     Flextesa.vanity-chain-id:
+       Results:
+         * Seed: "tutobox13-9735310"
+           → block: "BLfSRBVkFEdfDEwU5NSqNWoDh2N5HCCvmzj4rS3sPPCt6jSvGJC"
+           → chain-id: "NetXq4AxoF7BoxJ"
+      $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
+     Flextesa.vanity-chain-id:  Looking for "BoxA"
+     Flextesa.vanity-chain-id:
+       Results:
+         * Seed: "alphabox-31164447"
+           → block: "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
+           → chain-id: "NetXmGq7LPFBoxA"
     *)
     function
     | `Carthage -> "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
@@ -71,7 +85,9 @@ module Genesis_block_hash = struct
     | `Florence -> "BMJqwuTLa3aSi3KAg4XtvSdVe5r7RuoXh5n15DwEoivx2Ve3Wfk"
     | `Granada -> "BLCRemfAUthe9XSXuJmuH5PmwvQk55aZUwtCbGZdjLh2niWZSJZ"
     | `Hangzhou -> "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
-    | `Ithaca | `Alpha -> "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
+    | `Ithaca -> "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
+    | `Jakarta -> "BLfSRBVkFEdfDEwU5NSqNWoDh2N5HCCvmzj4rS3sPPCt6jSvGJC"
+    | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
   module Choice = struct
