@@ -36,7 +36,7 @@ RUN chmod a+rx /usr/bin/flextesarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/jakartabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/ithacabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
-RUN chmod a+rx /usr/bin/hangzbox
+RUN chmod a+rx /usr/bin/jakartabox
 RUN chmod a+rx /usr/bin/ithacabox
 RUN chmod a+rx /usr/bin/alphabox
 RUN /usr/bin/alphabox initclient
