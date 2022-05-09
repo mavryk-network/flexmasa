@@ -8,23 +8,22 @@ RUN opam install --with-test --deps-only ./tezai-tz1-crypto.opam ./flextesa.opam
 RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
 RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin/
-WORKDIR /usr/bin
+#WORKDIR /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
 FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap
 WORKDIR /usr/bin
 COPY --from=0 /usr/bin/tezos-accuser-012-Psithaca .
-COPY --from=0 /usr/bin/tezos-accuser-011-PtHangz2 .
+COPY --from=0 /usr/bin/tezos-accuser-013-PtJakart .
 COPY --from=0 /usr/bin/tezos-accuser-alpha .
 COPY --from=0 /usr/bin/tezos-admin-client .
 COPY --from=0 /usr/bin/tezos-baker-012-Psithaca .
-COPY --from=0 /usr/bin/tezos-baker-011-PtHangz2 .
+COPY --from=0 /usr/bin/tezos-baker-013-PtJakart .
 COPY --from=0 /usr/bin/tezos-baker-alpha .
 COPY --from=0 /usr/bin/tezos-client .
 COPY --from=0 /usr/bin/tezos-codec .
 COPY --from=0 /usr/bin/tezos-embedded-protocol-packer .
-COPY --from=0 /usr/bin/tezos-endorser-011-PtHangz2 .
 #COPY --from=0 /usr/bin/tezos-init-sandboxed-client.sh .
 COPY --from=0 /usr/bin/tezos-node .
 #COPY --from=0 /usr/bin/tezos-sandboxed-node.sh .
