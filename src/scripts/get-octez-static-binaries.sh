@@ -15,16 +15,16 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/503052943
-# (from 2022-03-28)
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/534685166
+# (from 2022-05-09)
 # 
 directory_name=
 case $(uname -m) in
     x86_64 ) 
-        download_uri="https://www.dropbox.com/s/6o2utzwyfabgsu0/bins-20220328-daac653b-x86_64.zip?raw=1"
+        download_uri="https://www.dropbox.com/s/rfw3l5huo9ol16t/octez-static-x86_64-20220509-72018764.zip?raw=1"
         directory_name=x86_64 ;;
     aarch64 )
-        download_uri="https://www.dropbox.com/s/rrdld76iift2d9o/bins-20220328-daac653b-arm64.zip?raw=1"
+        download_uri="https://www.dropbox.com/s/0z1qnfkvgc28d5o/octez-static-arm64-20220509-72018764.zip?raw=1"
         directory_name=arm64 ;;
     * ) echo "Unknown architecture: $(uname -a)" >&2 ; exit 4 ;;
 esac
