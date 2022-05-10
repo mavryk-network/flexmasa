@@ -64,13 +64,14 @@ module Protocol_kind = struct
     | `Granada
     | `Hangzhou
     | `Ithaca
+    | `Jakarta
     | `Alpha ]
 
   let names =
     [ ("Athens", `Athens); ("Babylon", `Babylon); ("Carthage", `Carthage)
     ; ("Delphi", `Delphi); ("Edo", `Edo); ("Florence", `Florence)
     ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Ithaca", `Ithaca)
-    ; ("Alpha", `Alpha) ]
+    ; ("Jakarta", `Jakarta); ("Alpha", `Alpha) ]
 
   let ( < ) k1 k2 =
     let rec aux = function
@@ -97,6 +98,7 @@ module Protocol_kind = struct
         | _ -> None ) )
 
   let canonical_hash : t -> string = function
+    | `Jakarta -> "PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY"
     | `Ithaca -> "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
     | `Hangzhou ->
         "PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx"
@@ -111,6 +113,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Jakarta -> "013-PtJakart"
     | `Ithaca -> "012-Psithaca"
     | `Hangzhou -> "011-PtHangz2"
     | `Granada -> "010-PtGRANAD"
@@ -127,7 +130,7 @@ module Protocol_kind = struct
     | _ -> false
 
   let wants_endorser_daemon : t -> bool = function
-    | `Ithaca | `Alpha -> false
+    | `Ithaca | `Jakarta | `Alpha -> false
     | `Florence | `Carthage | `Delphi | `Hangzhou | `Babylon | `Edo | `Granada
      |`Athens ->
         true
@@ -185,7 +188,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       let open Ezjsonm in
       ( match t.kind with
-      | `Ithaca | `Hangzhou | `Alpha -> ()
+      | `Ithaca | `Jakarta | `Alpha -> ()
       | other ->
           Fmt.failwith
             "Flextesa cannot generate parameters for old protocols like %a, \
@@ -201,12 +204,12 @@ let protocol_parameters_json t : Ezjsonm.t =
           , list make_account
               (t.bootstrap_accounts @ [(t.dictator, 10_000_000L)]) )
         ; ( match t.kind with
-          | `Alpha ->
+          | `Jakarta | `Alpha ->
               let computed = t.blocks_per_voting_period / t.blocks_per_cycle in
               if computed = 0 then
                 Fmt.failwith
-                  "Alpha protocol wants (t.blocks_per_voting_period / \
-                   t.blocks_per_cycle) >= 1" ;
+                  "Jakarta & Alpha protocols want (t.blocks_per_voting_period \
+                   / t.blocks_per_cycle) >= 1" ;
               ("cycles_per_voting_period", int computed)
           | _ -> ("blocks_per_voting_period", int t.blocks_per_voting_period) )
         ; ("blocks_per_cycle", int t.blocks_per_cycle)
@@ -226,13 +229,13 @@ let protocol_parameters_json t : Ezjsonm.t =
         ; ("liquidity_baking_subsidy", string "2500000")
         ; ("liquidity_baking_sunset_level", int 525600)
         ; ( match t.kind with
-          | `Alpha ->
+          | `Jakarta | `Alpha ->
               ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000)
           | _ -> ("liquidity_baking_escape_ema_threshold", int 1000000) ) ]
       in
-      let alpha_specific_parameters =
+      let jakarta_specific_parameters =
         match t.kind with
-        | `Alpha ->
+        | `Jakarta | `Alpha ->
             [ ("cache_script_size", int 100_000_000)
             ; ("cache_stake_distribution_cycles", int 8)
             ; ("cache_sampler_state_cycles", int 8)
@@ -251,14 +254,23 @@ let protocol_parameters_json t : Ezjsonm.t =
             ; ("tx_rollup_cost_per_byte_ema_factor", int 120)
             ; ("tx_rollup_max_ticket_payload_size", int 10_240)
             ; ("tx_rollup_rejection_max_proof_size", int 30_000)
+            ; ("tx_rollup_sunset_level", int32 3_473_409l)
             ; ("sc_rollup_enable", bool false)
             ; ("sc_rollup_origination_size", int 6_314)
             ; ("sc_rollup_challenge_window_in_blocks", int 20_160)
             ; ("sc_rollup_max_available_messages", int 1_000_000) ]
         | _ -> [] in
+      let alpha_specific_parameters =
+        match t.kind with
+        | `Alpha ->
+            [ ("sc_rollup_stake_amount_in_mutez", int 42_000_000)
+            ; ("sc_rollup_commitment_frequency_in_blocks", int 40)
+            ; ("sc_rollup_commitment_storage_size_in_bytes", int 84)
+            ; ("sc_rollup_max_lookahead_in_blocks", int 10_000) ]
+        | _ -> [] in
       let tenderbake_specific_parameters =
         match t.kind with
-        | `Ithaca | `Alpha ->
+        | `Ithaca | `Jakarta | `Alpha ->
             [ ("max_operations_time_to_live", int 120)
             ; ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot)
             ; ("baking_reward_fixed_portion", string "10000000")
@@ -289,36 +301,10 @@ let protocol_parameters_json t : Ezjsonm.t =
         | `Hangzhou -> []
         | other -> unsupported_protocol "tenderbake_specific_parameters" other
       in
-      let list_of_zs = list (fun i -> string (Int.to_string i)) in
-      let pre_tenderbake_specific_parameters =
-        match t.kind with
-        | `Alpha | `Ithaca -> []
-        | `Hangzhou ->
-            [ ("blocks_per_roll_snapshot", int t.blocks_per_roll_snapshot)
-            ; ("initial_endorsers", int 1)
-            ; ("delay_per_missing_endorsement", string (Int.to_string 1))
-            ; ( "time_between_blocks"
-              , list (ksprintf string "%d") t.time_between_blocks )
-            ; ("endorsers_per_block", int 56)
-            ; ("block_security_deposit", string (Int.to_string 640_000_000))
-            ; ("endorsement_security_deposit", string (Int.to_string 250_000))
-            ; ( "baking_reward_per_endorsement"
-              , list_of_zs t.baking_reward_per_endorsement )
-            ; ("endorsement_reward", list_of_zs t.endorsement_reward)
-            ; ( "minimal_block_delay"
-              , string
-                  (Int.to_string
-                     ( try List.hd_exn t.time_between_blocks
-                       with _ ->
-                         Fmt.failwith
-                           "time_between_blocks cannot be the empty list" ) ) )
-            ]
-        | other ->
-            unsupported_protocol "pre_tenderbake_specific_parameters" other
-      in
+      (* let list_of_zs = list (fun i -> string (Int.to_string i)) in *)
       dict
-        ( common @ alpha_specific_parameters @ tenderbake_specific_parameters
-        @ pre_tenderbake_specific_parameters )
+        ( common @ jakarta_specific_parameters @ alpha_specific_parameters
+        @ tenderbake_specific_parameters )
 
 let voting_period_to_string t (p : Voting_period.t) =
   (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)

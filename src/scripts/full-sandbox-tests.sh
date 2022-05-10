@@ -29,18 +29,18 @@ runone () {
     log="$rootroot/log.txt"
     say "Running $name ($rootroot)"
     mkdir -p "$rootroot"
-    $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/    ||/'
+    $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/  ||/'
 }
 
 
-hangz () {
-    runone "mini-hangz2" flextesa mini --protocol-kind Hangzhou \
-           --time-between-blocks 1 $until_4 \
-           --number-of-boot 1 --size 1
-}
 itha () {
     runone "mini-ithaca" flextesa mini --protocol-kind Ithaca \
            --time-between-blocks 2 $until_4 --number-of-boot 1 --size 1
+}
+jak () {
+    runone "mini-jak" flextesa mini --protocol-kind Jakarta \
+           --time-between-blocks 1 $until_4 \
+           --number-of-boot 1 --size 1
 }
 alpha () {
     runone "mini-alpha" flextesa mini --protocol-kind Alpha \
@@ -48,88 +48,88 @@ alpha () {
            --number-of-boot 1 --size 1
 }
 
-h2i () {
-    runone "hangzhou-2-ithaca" flextesa mini \
-           --protocol-kind Hangzhou \
-           --hard-fork 10:Ithaca: \
+i2j () {
+    runone "itha2jak" flextesa mini \
+           --protocol-kind Ithaca \
+           --hard-fork 10:Jakarta: \
            --time-between-blocks 1 --number-of-boot 1 --size 1 \
            $until_12
 }
-i2a () {
-    runone "ithaca2-2-alpha" flextesa mini \
-           --protocol-kind Itha \
+j2a () {
+    runone "jak2alpha" flextesa mini \
+           --protocol-kind Jak \
            --hard-fork 10:Alpha: \
            --time-between-blocks 2 --number-of-boot 2 --size 2 \
            $until_12
 }
 
-daem-h2i () {
-    runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
-        --next-protocol-kind Ithaca \
-	    --extra-dummy-proposals-batch-size 2 \
-	    --extra-dummy-proposals-batch-levels 3,5 \
-	    --size 2 \
-	    --number-of-b 2 \
-	    --time-between-blocks 3 \
-	    --blocks-per-vot 14 \
-	    --with-timestamp \
-	    --protocol-kind Hangzhou \
-	    --second-baker tezos-baker-012-Psithaca \
-        --test-variant full-upgrade
+daem-i2j () {
+    runone "dameons-upgrade-i2j" flextesa daemons-upgrade \
+	   --protocol-kind Itha \
+           --next-protocol-kind Jak \
+	   --second-baker tezos-baker-013-PtJakart \
+	   --extra-dummy-proposals-batch-size 2 \
+	   --extra-dummy-proposals-batch-levels 3,5 \
+	   --size 2 \
+	   --number-of-b 2 \
+	   --time-between-blocks 3 \
+	   --blocks-per-vot 14 \
+	   --with-timestamp \
+           --test-variant full-upgrade
 }
 
-daem-h2i-nay () {
-    runone "dameons-upgrade-hanzhou-2-ithaca" flextesa daemons-upgrade \
-        --next-protocol-kind Ithaca \
-	    --extra-dummy-proposals-batch-size 2 \
-	    --extra-dummy-proposals-batch-levels 3,5 \
-	    --size 2 \
-	    --number-of-b 2 \
-	    --time-between-blocks 3 \
-	    --with-timestamp \
-	    --protocol-kind Hangzhou \
-	    --second-baker tezos-baker-012-Psithaca \
-        --test-variant nay-for-promotion
+daem-i2j-nay () {
+    runone "dameons-upgrade-i2j-nay" flextesa daemons-upgrade \
+	   --protocol-kind Itha \
+           --next-protocol-kind Jak \
+	   --second-baker tezos-baker-013-PtJakart \
+	   --extra-dummy-proposals-batch-size 2 \
+	   --extra-dummy-proposals-batch-levels 3,5 \
+	   --size 2 \
+	   --number-of-b 2 \
+	   --time-between-blocks 3 \
+	   --with-timestamp \
+           --test-variant nay-for-promotion
 }
 
-daem-i2a () {
-    runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
-        --next-protocol-kind Alpha \
-	    --extra-dummy-proposals-batch-size 2 \
-	    --extra-dummy-proposals-batch-levels 3,5 \
-	    --size 2 \
-	    --number-of-b 2 \
-	    --time-betw 3 \
-	    --with-timestamp \
-	    --protocol-kind Ithaca \
-	    --second-baker tezos-baker-alpha \
-        --test-variant full-upgrade
+daem-j2a () {
+    runone "dameons-upgrade-j2a" flextesa daemons-upgrade \
+	   --protocol-kind Jak \
+           --next-protocol-kind Alpha \
+	   --second-baker tezos-baker-alpha \
+	   --extra-dummy-proposals-batch-size 2 \
+	   --extra-dummy-proposals-batch-levels 3,5 \
+	   --size 2 \
+	   --number-of-b 2 \
+	   --time-betw 3 \
+	   --with-timestamp \
+           --test-variant full-upgrade
 }
 
-daem-i2a-nay () {
-    runone "dameons-upgrade-hanzhou-2-alpha" flextesa daemons-upgrade \
-        --next-protocol-kind Alpha \
-	    --extra-dummy-proposals-batch-size 2 \
-	    --extra-dummy-proposals-batch-levels 3,5 \
-	    --size 2 \
-	    --number-of-b 2 \
-	    --time-betw 3 \
-	    --with-timestamp \
-	    --protocol-kind Ithaca \
-	    --second-baker tezos-baker-alpha \
-        --test-variant nay-for-promotion
+daem-j2a-nay () {
+    runone "dameons-upgrade-j2a-nay" flextesa daemons-upgrade \
+	   --protocol-kind Jak \
+           --next-protocol-kind Alpha \
+	   --second-baker tezos-baker-alpha \
+	   --extra-dummy-proposals-batch-size 2 \
+	   --extra-dummy-proposals-batch-levels 3,5 \
+	   --size 2 \
+	   --number-of-b 2 \
+	   --time-betw 3 \
+	   --with-timestamp \
+           --test-variant nay-for-promotion
 }
 
 all () {
-    hangz
     itha
+    jak
     alpha
-    h2i
-    i2a
-    daem-h2i
-    daem-h2i-nay
-    daem-i2a
-    daem-i2a-nay
+    i2j
+    j2a
+    daem-i2j
+    daem-i2j-nay
+    daem-j2a
+    daem-j2a-nay
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
