@@ -389,14 +389,16 @@ module Asynchronous_result = struct
               Lwt.fail e )
   end
 
-  let run_application r =
+  let run_application :
+      ?lwt_run:('a Lwt.t -> 'a) -> (unit -> (unit, 'b) t) -> unit =
+   fun ?(lwt_run = Lwt_main.run) r ->
     Lwt_main.at_exit
       Lwt.(
         fun () ->
           Dbg.e EF.(wf "Lwt-at-exit: run_application") ;
           return ()) ;
     match
-      Lwt_main.run
+      lwt_run
         Lwt.(
           Lwt.pause ()
           >>= fun () ->
