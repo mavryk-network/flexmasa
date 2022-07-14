@@ -233,7 +233,7 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000)
           | _ -> ("liquidity_baking_escape_ema_threshold", int 1000000) ) ]
       in
-      let jakarta_specific_parameters =
+      let since_jakarta =
         match t.kind with
         | `Jakarta | `Alpha ->
             [ ("cache_script_size", int 100_000_000)
@@ -257,16 +257,33 @@ let protocol_parameters_json t : Ezjsonm.t =
             ; ("tx_rollup_sunset_level", int32 3_473_409l)
             ; ("sc_rollup_enable", bool false)
             ; ("sc_rollup_origination_size", int 6_314)
-            ; ("sc_rollup_challenge_window_in_blocks", int 20_160)
-            ; ("sc_rollup_max_available_messages", int 1_000_000) ]
+            ; ("sc_rollup_challenge_window_in_blocks", int 20_160) ]
+        | _ -> [] in
+      let jakarta_specific_parameters =
+        match t.kind with
+        | `Jakarta -> [("sc_rollup_max_available_messages", int 1_000_000)]
         | _ -> [] in
       let alpha_specific_parameters =
         match t.kind with
         | `Alpha ->
-            [ ("sc_rollup_stake_amount_in_mutez", int 42_000_000)
-            ; ("sc_rollup_commitment_frequency_in_blocks", int 40)
-            ; ("sc_rollup_commitment_storage_size_in_bytes", int 84)
-            ; ("sc_rollup_max_lookahead_in_blocks", int 10_000) ]
+            [ (* ("sc_rollup_stake_amount_in_mutez", int 42_000_000)
+                 ; ("sc_rollup_commitment_frequency_in_blocks", int 40)
+                 ; ("sc_rollup_commitment_storage_size_in_bytes", int 84)
+                 ; *) ("sc_rollup_max_lookahead_in_blocks", int 30_000)
+            ; ( "sc_rollup_max_number_of_messages_per_commitment_period"
+              , int 32_765 ); ("sc_rollup_stake_amount", string "10000000000")
+            ; ("sc_rollup_commitment_period_in_blocks", int 20160)
+            ; ("sc_rollup_max_active_outbox_levels", int 20160)
+            ; ("sc_rollup_max_outbox_messages_per_level", int 100)
+            ; ("sc_rollup_number_of_sections_in_dissection", int 32)
+            ; ("sc_rollup_timeout_period_in_blocks", int 20160)
+            ; ("nonce_revelation_threshold", int 4)
+            ; ("vdf_difficulty", string "50000")
+            ; ( "dal_parametric"
+              , `O
+                  [ ("feature_enable", bool false); ("number_of_slots", int 16)
+                  ; ("number_of_shards", int 256); ("endorsement_lag", int 1)
+                  ; ("availability_threshold", int 50) ] ) ]
         | _ -> [] in
       let tenderbake_specific_parameters =
         match t.kind with
@@ -303,8 +320,8 @@ let protocol_parameters_json t : Ezjsonm.t =
       in
       (* let list_of_zs = list (fun i -> string (Int.to_string i)) in *)
       dict
-        ( common @ jakarta_specific_parameters @ alpha_specific_parameters
-        @ tenderbake_specific_parameters )
+        ( common @ since_jakarta @ jakarta_specific_parameters
+        @ alpha_specific_parameters @ tenderbake_specific_parameters )
 
 let voting_period_to_string t (p : Voting_period.t) =
   (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)
