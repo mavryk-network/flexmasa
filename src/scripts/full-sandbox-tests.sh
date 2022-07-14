@@ -35,6 +35,9 @@ runone () {
 current=Jakarta
 next=Kathmandu
 next_suffix=014-PtKathma
+# Alpha is still upgrading from Jak:
+before_alpha=$current
+
 
 quickmini () {
     proto="$1"
@@ -51,8 +54,8 @@ c2n () {
            $until_12
 }
 n2a () {
-    runone "${next}2alpha" flextesa mini \
-           --protocol-kind "$next" \
+    runone "${before_alpha}2alpha" flextesa mini \
+           --protocol-kind "$before_alpha" \
            --hard-fork 10:Alpha: \
            --time-between-blocks 2 --number-of-boot 2 --size 2 \
            $until_12
@@ -89,7 +92,7 @@ daem_c2n_nay () {
 
 daem_n2a () {
     runone "dameons-upgrade-n2a" flextesa daemons-upgrade \
-	   --protocol-kind "$next" \
+	   --protocol-kind "$before_alpha" \
            --next-protocol-kind Alpha \
 	   --second-baker tezos-baker-alpha \
 	   --extra-dummy-proposals-batch-size 2 \
