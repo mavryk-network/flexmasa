@@ -71,7 +71,7 @@ daem_c2n () {
 	   --size 2 \
 	   --number-of-b 2 \
 	   --time-between-blocks 3 \
-	   --blocks-per-vot 14 \
+	   --blocks-per-vot 20 \
 	   --with-timestamp \
            --test-variant full-upgrade
 }
