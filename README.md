@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20220510` (also available
+The current _released_ image is `oxheadalpha/flextesa:2022TODO` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -24,7 +24,7 @@ parameters. For instance:
 
 ```sh
 image=oxheadalpha/flextesa:latest
-script=ithacabox
+script=jakartabox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -33,10 +33,10 @@ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
-- `ithacabox`: Ithaca-2 protocol.
 - `jakartabox`: Jakarta-2 protocol.
+- `kathmandubox`: Kathmandu protocol.
 - `alphabox`: Alpha protocol, the development version
-  of the `K` protocol at the time the docker-build was last updated.
+  of the `L` protocol at the time the docker-build was last updated.
     - See also `docker run "$image" tezos-node --version`.
 
 The default `block_time` is 5 seconds.
@@ -80,12 +80,12 @@ You can always stop the sandbox, and clean-up your resources with:
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
-a Ithaca sandbox which switches to Jakarta at level 20:
+a Jakarta sandbox which switches to Kathmandu at level 20:
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
          -e block_time=2 \
-         "$image" ithacabox start --hard-fork 20:Jakarta:
+         "$image" jakartabox start --hard-fork 20:Kath:
 ```
 
 With `tcli` above and `jq` you can keep checking the following to observe the
@@ -100,7 +100,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY"
+"PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
 ```
 
 Notes:
@@ -125,13 +125,14 @@ daemons-upgrade` (see its general
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e block_time=2 \
-         "$image" ithacabox start_upgrade
+         "$image" jakartabox start_upgrade
 ```
 
 With `start_upgrade` the sandbox network will do a full voting round followed by
-a protocol change. The `ithacabox` script will start with the `Ithaca` protocol
-and upgrade to `Jakarta` while `jakartabox` will start with `Jakarta` and
-upgrade to protocol `Alpha`.
+a protocol change. The `jakartabox` script will start with the `Jakarta`
+protocol and upgrade to `Kathmandu`; with the current version `kathmandubox`
+cannot upgrade to `Alpha` (too early in the development of `L` at the time of
+writing).
 
 Voting occurs over five periods. You can adjust the length of the voting periods
 with the variable `blocks_per_voting_period`. Batches of dummy proposals will be
@@ -144,7 +145,7 @@ $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e blocks_per_voting_period=12 \
          -e extra_dummy_proposals_batch_size=2 \
          -e extra_dummy_proposals_batch_level=2,4 \
-         "$image" ithacabox start_upgrade
+         "$image" jakartabox start_upgrade
 ```
 
 The above command will result in 5 total proposals and upgrade to the Alpha
