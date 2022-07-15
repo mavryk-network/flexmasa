@@ -32,57 +32,55 @@ runone () {
     $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/  ||/'
 }
 
+current=Jakarta
+next=Kathmandu
+next_suffix=014-PtKathma
+# Alpha is still upgrading from Jak:
+before_alpha=$current
 
-itha () {
-    runone "mini-ithaca" flextesa mini --protocol-kind Ithaca \
-           --time-between-blocks 2 $until_4 --number-of-boot 1 --size 1
-}
-jak () {
-    runone "mini-jak" flextesa mini --protocol-kind Jakarta \
+
+quickmini () {
+    proto="$1"
+    runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
            --time-between-blocks 1 $until_4 \
            --number-of-boot 1 --size 1
 }
-alpha () {
-    runone "mini-alpha" flextesa mini --protocol-kind Alpha \
-           --time-between-blocks 2 $until_4 \
-           --number-of-boot 1 --size 1
-}
 
-i2j () {
-    runone "itha2jak" flextesa mini \
-           --protocol-kind Ithaca \
-           --hard-fork 10:Jakarta: \
+c2n () {
+    runone "${currrent}2${next}" flextesa mini \
+           --protocol-kind "$current" \
+           --hard-fork 10:$next: \
            --time-between-blocks 1 --number-of-boot 1 --size 1 \
            $until_12
 }
-j2a () {
-    runone "jak2alpha" flextesa mini \
-           --protocol-kind Jak \
+n2a () {
+    runone "${before_alpha}2alpha" flextesa mini \
+           --protocol-kind "$before_alpha" \
            --hard-fork 10:Alpha: \
            --time-between-blocks 2 --number-of-boot 2 --size 2 \
            $until_12
 }
 
-daem-i2j () {
-    runone "dameons-upgrade-i2j" flextesa daemons-upgrade \
-	   --protocol-kind Itha \
-           --next-protocol-kind Jak \
-	   --second-baker tezos-baker-013-PtJakart \
+daem_c2n () {
+    runone "dameons-upgrade-c2n" flextesa daemons-upgrade \
+	   --protocol-kind "$current" \
+           --next-protocol-kind "$next" \
+	   --second-baker tezos-baker-$next_suffix \
 	   --extra-dummy-proposals-batch-size 2 \
 	   --extra-dummy-proposals-batch-levels 3,5 \
 	   --size 2 \
 	   --number-of-b 2 \
 	   --time-between-blocks 3 \
-	   --blocks-per-vot 14 \
+	   --blocks-per-vot 20 \
 	   --with-timestamp \
            --test-variant full-upgrade
 }
 
-daem-i2j-nay () {
-    runone "dameons-upgrade-i2j-nay" flextesa daemons-upgrade \
-	   --protocol-kind Itha \
-           --next-protocol-kind Jak \
-	   --second-baker tezos-baker-013-PtJakart \
+daem_c2n_nay () {
+    runone "dameons-upgrade-c2n-nay" flextesa daemons-upgrade \
+	   --protocol-kind "$current" \
+           --next-protocol-kind "$current" \
+	   --second-baker tezos-baker-$next_suffix \
 	   --extra-dummy-proposals-batch-size 2 \
 	   --extra-dummy-proposals-batch-levels 3,5 \
 	   --size 2 \
@@ -92,9 +90,9 @@ daem-i2j-nay () {
            --test-variant nay-for-promotion
 }
 
-daem-j2a () {
-    runone "dameons-upgrade-j2a" flextesa daemons-upgrade \
-	   --protocol-kind Jak \
+daem_n2a () {
+    runone "dameons-upgrade-n2a" flextesa daemons-upgrade \
+	   --protocol-kind "$before_alpha" \
            --next-protocol-kind Alpha \
 	   --second-baker tezos-baker-alpha \
 	   --extra-dummy-proposals-batch-size 2 \
@@ -104,32 +102,17 @@ daem-j2a () {
 	   --time-betw 3 \
 	   --with-timestamp \
            --test-variant full-upgrade
-}
-
-daem-j2a-nay () {
-    runone "dameons-upgrade-j2a-nay" flextesa daemons-upgrade \
-	   --protocol-kind Jak \
-           --next-protocol-kind Alpha \
-	   --second-baker tezos-baker-alpha \
-	   --extra-dummy-proposals-batch-size 2 \
-	   --extra-dummy-proposals-batch-levels 3,5 \
-	   --size 2 \
-	   --number-of-b 2 \
-	   --time-betw 3 \
-	   --with-timestamp \
-           --test-variant nay-for-promotion
 }
 
 all () {
-    itha
-    jak
-    alpha
-    i2j
-    j2a
-    daem-i2j
-    daem-i2j-nay
-    daem-j2a
-    daem-j2a-nay
+    quickmini "$current"
+    quickmini "$next"
+    quickmini Alpha
+    c2n
+    n2a
+    daem_c2n
+    daem_c2n_nay
+    daem_n2a
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }

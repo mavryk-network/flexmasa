@@ -1,11 +1,11 @@
 #! /bin/sh
 
-default_protocol=Ithaca
-next_protocol_name=Jakarta
-next_protocol=013-PtJakart
+default_protocol=Jakarta
+next_protocol_name=Kathmandu
+next_protocol=014-PtKathma
 case "$(basename $0)" in
-    "jakartabox" )
-        default_protocol=Jakarta
+    "kathmandubox" )
+        default_protocol=Kathmandu
         next_protocol_name=Alpha
         next_protocol=alpha ;;
     "alphabox" )
