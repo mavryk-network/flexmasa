@@ -65,13 +65,14 @@ module Protocol_kind = struct
     | `Hangzhou
     | `Ithaca
     | `Jakarta
+    | `Kathmandu
     | `Alpha ]
 
   let names =
     [ ("Athens", `Athens); ("Babylon", `Babylon); ("Carthage", `Carthage)
     ; ("Delphi", `Delphi); ("Edo", `Edo); ("Florence", `Florence)
     ; ("Granada", `Granada); ("Hangzhou", `Hangzhou); ("Ithaca", `Ithaca)
-    ; ("Jakarta", `Jakarta); ("Alpha", `Alpha) ]
+    ; ("Jakarta", `Jakarta); ("Kathmandu", `Kathmandu); ("Alpha", `Alpha) ]
 
   let ( < ) k1 k2 =
     let rec aux = function
@@ -98,6 +99,7 @@ module Protocol_kind = struct
         | _ -> None ) )
 
   let canonical_hash : t -> string = function
+    | `Kathmandu -> "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
     | `Jakarta -> "PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY"
     | `Ithaca -> "Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A"
     | `Hangzhou ->
@@ -113,6 +115,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Kathmandu -> "014-PtKathma"
     | `Jakarta -> "013-PtJakart"
     | `Ithaca -> "012-Psithaca"
     | `Hangzhou -> "011-PtHangz2"
@@ -130,7 +133,7 @@ module Protocol_kind = struct
     | _ -> false
 
   let wants_endorser_daemon : t -> bool = function
-    | `Ithaca | `Jakarta | `Alpha -> false
+    | `Ithaca | `Jakarta | `Kathmandu | `Alpha -> false
     | `Florence | `Carthage | `Delphi | `Hangzhou | `Babylon | `Edo | `Granada
      |`Athens ->
         true
@@ -188,7 +191,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       let open Ezjsonm in
       ( match t.kind with
-      | `Ithaca | `Jakarta | `Alpha -> ()
+      | `Ithaca | `Jakarta | `Kathmandu | `Alpha -> ()
       | other ->
           Fmt.failwith
             "Flextesa cannot generate parameters for old protocols like %a, \
@@ -204,7 +207,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           , list make_account
               (t.bootstrap_accounts @ [(t.dictator, 10_000_000L)]) )
         ; ( match t.kind with
-          | `Jakarta | `Alpha ->
+          | `Jakarta | `Kathmandu | `Alpha ->
               let computed = t.blocks_per_voting_period / t.blocks_per_cycle in
               if computed = 0 then
                 Fmt.failwith
@@ -229,13 +232,13 @@ let protocol_parameters_json t : Ezjsonm.t =
         ; ("liquidity_baking_subsidy", string "2500000")
         ; ("liquidity_baking_sunset_level", int 525600)
         ; ( match t.kind with
-          | `Jakarta | `Alpha ->
+          | `Jakarta | `Kathmandu | `Alpha ->
               ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000)
           | _ -> ("liquidity_baking_escape_ema_threshold", int 1000000) ) ]
       in
-      let jakarta_specific_parameters =
+      let since_jakarta =
         match t.kind with
-        | `Jakarta | `Alpha ->
+        | `Jakarta | `Kathmandu | `Alpha ->
             [ ("cache_script_size", int 100_000_000)
             ; ("cache_stake_distribution_cycles", int 8)
             ; ("cache_sampler_state_cycles", int 8)
@@ -257,20 +260,45 @@ let protocol_parameters_json t : Ezjsonm.t =
             ; ("tx_rollup_sunset_level", int32 3_473_409l)
             ; ("sc_rollup_enable", bool false)
             ; ("sc_rollup_origination_size", int 6_314)
-            ; ("sc_rollup_challenge_window_in_blocks", int 20_160)
-            ; ("sc_rollup_max_available_messages", int 1_000_000) ]
+            ; ("sc_rollup_challenge_window_in_blocks", int 20_160) ]
+        | _ -> [] in
+      let jakarta_specific_parameters =
+        match t.kind with
+        | `Jakarta | `Kathmandu ->
+            [("sc_rollup_max_available_messages", int 1_000_000)]
+        | _ -> [] in
+      let since_kathmandu =
+        match t.kind with
+        | `Kathmandu | `Alpha ->
+            [ ("nonce_revelation_threshold", int 4)
+            ; ("sc_rollup_stake_amount", string "10000000000")
+            ; ("sc_rollup_commitment_period_in_blocks", int 20160)
+            ; ("sc_rollup_max_lookahead_in_blocks", int 30_000)
+            ; ("sc_rollup_max_active_outbox_levels", int 20160)
+            ; ("sc_rollup_max_outbox_messages_per_level", int 100)
+            ; ("vdf_difficulty", string "50000")
+            ; ( "dal_parametric"
+              , `O
+                  [ ("feature_enable", bool false); ("number_of_slots", int 16)
+                  ; ("number_of_shards", int 256); ("endorsement_lag", int 1)
+                  ; ("availability_threshold", int 50) ] ) ]
         | _ -> [] in
       let alpha_specific_parameters =
         match t.kind with
+        (* `Kathmandu *)
         | `Alpha ->
-            [ ("sc_rollup_stake_amount_in_mutez", int 42_000_000)
-            ; ("sc_rollup_commitment_frequency_in_blocks", int 40)
-            ; ("sc_rollup_commitment_storage_size_in_bytes", int 84)
-            ; ("sc_rollup_max_lookahead_in_blocks", int 10_000) ]
+            [ (* ("sc_rollup_stake_amount_in_mutez", int 42_000_000)
+                 ; ("sc_rollup_commitment_frequency_in_blocks", int 40)
+                 ; ("sc_rollup_commitment_storage_size_in_bytes", int 84)
+                 ; *)
+              ( "sc_rollup_max_number_of_messages_per_commitment_period"
+              , int 32_765 )
+            ; ("sc_rollup_number_of_sections_in_dissection", int 32)
+            ; ("sc_rollup_timeout_period_in_blocks", int 20160) ]
         | _ -> [] in
       let tenderbake_specific_parameters =
         match t.kind with
-        | `Ithaca | `Jakarta | `Alpha ->
+        | `Ithaca | `Jakarta | `Kathmandu | `Alpha ->
             [ ("max_operations_time_to_live", int 120)
             ; ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot)
             ; ("baking_reward_fixed_portion", string "10000000")
@@ -303,8 +331,8 @@ let protocol_parameters_json t : Ezjsonm.t =
       in
       (* let list_of_zs = list (fun i -> string (Int.to_string i)) in *)
       dict
-        ( common @ jakarta_specific_parameters @ alpha_specific_parameters
-        @ tenderbake_specific_parameters )
+        ( common @ since_jakarta @ jakarta_specific_parameters @ since_kathmandu
+        @ alpha_specific_parameters @ tenderbake_specific_parameters )
 
 let voting_period_to_string t (p : Voting_period.t) =
   (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)
