@@ -14,13 +14,25 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:2022TODO` (also available
+The current _released_ image is `oxheadalpha/flextesa:20220715` (also available
 as `oxheadalpha/flextesa:latest`):
+
+<span style="color: red"><b>WARNING:</b></span> This version is for `amd64`
+architectures only, and was not built for ARM64 hosts like Apple Silicon. This
+is because of an issue with the Octez distribution:
+[tezos/tezos#3420](https://gitlab.com/tezos/tezos/-/issues/3420). For now, Apple
+Silicon users can still use the previous release `oxheadalpha/flextesa:20220510`
+to run Jakarta sandboxes, but not Kathmandu ones.
+
+
+<!--
 
 It is built top of the `flextesa` executable and Octez suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
 also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
+
+-->
 
 ```sh
 image=oxheadalpha/flextesa:latest
