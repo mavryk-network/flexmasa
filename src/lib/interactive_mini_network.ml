@@ -231,7 +231,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
-    accuser_exec test_kind () =
+    accuser_exec test_kind ?tx () =
   ( if clear_root then
     Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
     >>= fun () -> Helpers.clear_root state
@@ -251,7 +251,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
           then [baker_exec; endorser_exec; accuser_exec]
           else [baker_exec; accuser_exec]
         else [] )
-      @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables )
+      @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables
+      @ Option.value_map tx ~default:[] ~f:Tx_rollup.executables )
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.")
   >>= fun () ->
@@ -377,6 +378,26 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun () ->
   Traffic_generation.Commands.init_cmd_history state
   (* clear the command history file *)
+  >>= (fun () ->
+        match tx with
+        | None -> return ()
+        | Some tx -> (
+            Test_scenario.Queries.run_wait_level protocol state nodes
+              (`At_least tx.level) tx.level
+            >>= fun _ ->
+            let rollup_name = tx.name in
+            match keys_and_daemons with
+            | [] -> return ()
+            | h :: _ ->
+                h
+                |> fun (_, acc, client, _, _) ->
+                Tx_rollup.originate state rollup_name client
+                  (Tezos_protocol.Account.name acc)
+                >>= fun _ ->
+                Console.say state
+                  EF.(
+                    wf "Transactional Rollup %s has been originated."
+                      rollup_name) ) )
   >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
@@ -424,7 +445,7 @@ let cmd () =
       ~command_name:"mininet" () in
   let docs = Manpage_builder.section_test_scenario base_state in
   let term =
-    pure
+    const
       (fun
         test_kind
         (`Clear_root clear_root)
@@ -443,10 +464,11 @@ let cmd () =
         generate_kiln_config
         nodes_history_mode_edits
         state
+        tx
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ~clear_root ~nodes_history_mode_edits
+            ?hard_fork ?tx ~clear_root ~nodes_history_mode_edits
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
             ~genesis_block_choice test_kind in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
@@ -532,7 +554,8 @@ let cmd () =
     $ Genesis_block_hash.Choice.cmdliner_term ()
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
-    $ Test_command_line.Full_default_state.cmdliner_term base_state () in
+    $ Test_command_line.Full_default_state.cmdliner_term base_state ()
+    $ Tx_rollup.cmdliner_term ~docs base_state () in
   let info =
     let doc = "Small network sandbox with bakers, endorsers, and accusers." in
     let man : Manpage.block list =
