@@ -18,7 +18,15 @@ module Unix_files_sink : sig
 end
 
 (** The type [kind] is used to distinguish ['a t] executables. *)
-type kind = [`Node | `Baker | `Endorser | `Accuser | `Client | `Admin]
+type kind =
+  [ `Node
+  | `Baker
+  | `Endorser
+  | `Accuser
+  | `Client
+  | `Admin
+  | `Tx_rollup_node
+  | `Tx_rollup_client ]
 
 (** The wrapper of the tezos-executable. *)
 type t = private
