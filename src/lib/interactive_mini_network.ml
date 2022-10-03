@@ -385,20 +385,33 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             Test_scenario.Queries.run_wait_level protocol state nodes
               (`At_least tx.level) tx.level
             >>= fun _ ->
-            let rollup_name = tx.name in
             match keys_and_daemons with
             | [] -> return ()
             | h :: _ ->
                 h
-                |> fun (_, acc, client, _, _) ->
-                Tx_rollup.originate state rollup_name client
-                  (Tezos_protocol.Account.name acc)
+                |> fun (_, acc, client, key, _) ->
+                Tx_rollup.Account.originate_and_confirm state ~name:tx.name
+                  ~client
+                  ~acc:(Tezos_protocol.Account.name acc)
+                  ~confirmations:1 ()
+                >>= fun (account, _) ->
+                let tx_node =
+                  Tx_rollup.Tx_node.make ~mode:tx.mode ~protocol:protocol.kind
+                    ~endpoint:base_port ~exec:tx.node ~client ~account
+                    ~operation_signers:
+                      (Tx_rollup.Tx_node.signers ~operator:key.key_name
+                         ~batcher:key.key_name (* batcher_key.key_name *) () )
+                    () in
+                Running_processes.start state
+                  Tx_rollup.Tx_node.(process state tx_node start_script)
                 >>= fun _ ->
                 Console.say state
                   EF.(
-                    wf "Transactional Rollup %s has been originated."
-                      rollup_name) ) )
-  >>= fun () ->
+                    desc_list
+                      (haf "Transactional rollup is ready:")
+                      [ desc (af "Name:") (af "%S" account.name)
+                      ; desc (af "Address:") (af "`%s`" account.address) ]) ) )
+  >>= fun _ ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in
