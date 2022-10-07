@@ -2,12 +2,35 @@ open Internal_pervasives
 
 module Account = struct
   type t =
-    {name: string; operation_hash: string; address: string; out: string list}
+    { name: string
+    ; operation_hash: string
+    ; address: string
+    ; origination_account: string
+    ; out: string list }
 
-  let make ~name ~operation_hash ~address ~out : t =
-    {name; operation_hash; address; out}
+  let make ~name ~operation_hash ~address ~origination_account ~out : t =
+    {name; operation_hash; address; origination_account; out}
 
-  (*  TODO this is wonky but it works. Maybe there is a better way.*)
+  let gas_account ~client name =
+    let acc = Tezos_protocol.Account.of_namef "%s" name in
+    let key =
+      let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
+      Tezos_client.Keyed.make client ~key_name:key ~secret_key:priv in
+    (acc, key)
+
+  let fund state ~client ~amount ~from ~dst =
+    Tezos_client.successful_client_cmd state ~client
+      ["transfer"; amount; "from"; from; "to"; dst; "--burn-cap"; "15"]
+
+  let originate state ~name ~client ~acc =
+    Tezos_client.successful_client_cmd state ~client
+      ["originate"; "tx"; "rollup"; name; "from"; acc; "--burn-cap"; "15"]
+
+  let confirm state ~client ?(confirmations = 0) ~operation_hash () =
+    Tezos_client.successful_client_cmd state ~client
+      [ "wait"; "for"; operation_hash; "to"; "be"; "included"; "--confirmations"
+      ; Int.to_string confirmations ]
+
   let parse_origination ~lines =
     let rec prefix_from_list ~prefix = function
       | [] -> None
@@ -26,37 +49,26 @@ module Account = struct
       >>= fun suf ->
       String.chop_suffix ~suffix:"'" suf
       >>= fun operation_hash ->
+      prefix_from_list ~prefix:"From:" l
+      >>= fun origination_account ->
       prefix_from_list ~prefix:"Originated tx rollup:" l
       >>= fun address ->
       prefix_from_list ~prefix:"Transaction rollup memorized as" l
-      >>= fun name -> return (make ~name ~operation_hash ~address ~out:lines))
-
-  let originate state ~name ~client ~acc =
-    Tezos_client.successful_client_cmd state ~client
-      ["originate"; "tx"; "rollup"; name; "from"; acc; "--burn-cap"; "15"]
-
-  let confirm state ~client ?(confirmations = 0) ~operation_hash () =
-    Tezos_client.successful_client_cmd state ~client
-      [ "wait"; "for"; operation_hash; "to"; "be"; "included"; "--confirmations"
-      ; Int.to_string confirmations ]
-
-  let originate_and_confirm state ~name ~client ~acc ?confirmations () =
-    originate state ~name ~client ~acc
-    >>= fun res ->
-    return (parse_origination ~lines:res#out)
-    >>= fun rollup ->
-    match rollup with
-    | None ->
-        System_error.fail_fatalf
-          "Tx_rollup.originate_and_confirm - failed to parse rollup."
-    | Some acc ->
-        confirm state ~client ?confirmations ~operation_hash:acc.operation_hash
-          ()
-        >>= fun conf -> return (acc, conf#out)
+      >>= fun name ->
+      return
+        (make ~name ~operation_hash ~address ~origination_account ~out:lines))
 end
 
 module Tx_node = struct
   type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
+
+  type operation_signer =
+    | Operator of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Batch of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Finalize_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Remove_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Rejection of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Dispatch_withdrawal of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
 
   type t =
     { id: string
@@ -68,15 +80,39 @@ module Tx_node = struct
     ; mode: mode
     ; cors_origin: string option
     ; account: Account.t
-    ; operation_signers: string list }
+    ; operation_signers: operation_signer list }
+
+  let operation_signers ~client ~id ~operator ~batch ?finalize ?remove
+      ?rejection ?dispatch () : operation_signer list =
+    let acc str = Account.gas_account ~client (sprintf "%s-%s" id str) in
+    let op_key = acc operator in
+    let batch_key = acc batch in
+    let or_op_key = function None -> op_key | Some s -> acc s in
+    [ Operator op_key; Batch batch_key; Finalize_commitment (or_op_key finalize)
+    ; Remove_commitment (or_op_key remove); Rejection (or_op_key rejection)
+    ; Dispatch_withdrawal (or_op_key dispatch) ]
+
+  let defult_signers client id : operation_signer list =
+    operation_signers ~client ~id ~operator:"operator-signer"
+      ~batch:"batch-signer" ~finalize:"finalize-commitment-signer"
+      ~remove:"remove-commitment-signer" ~rejection:"rejection-signer"
+      ~dispatch:"dispatch-withdrawals-signer" ()
+
+  let operation_signer_map os ~f =
+    match os with
+    | Operator s
+     |Batch s
+     |Finalize_commitment s
+     |Remove_commitment s
+     |Rejection s
+     |Dispatch_withdrawal s ->
+        f s
 
   let make_path p ~config t =
     Paths.root config // sprintf "tx-rollup-%s" t.id // p
 
   let data_dir config t = make_path "data-dir" ~config t
   let exec_path config t = make_path "exec" ~config t
-
-  open Tezos_executable.Make_cli
 
   let mode_string = function
     | Observer -> "observer"
@@ -86,22 +122,12 @@ module Tx_node = struct
     | Operator -> "operator"
     | Custom -> "custom "
 
-  let signers ~operator ~batcher ?finalize_commitment ?remove_commitment
-      ?rejection ?dispatch_withdrawals () =
-    let or_op_key = function None -> operator | Some k -> k in
-    opt "operator" operator @ opt "batch-signer" batcher
-    @ opt "finalize-commitment-signer" (or_op_key finalize_commitment)
-    @ opt "remove-commitment-signer" (or_op_key remove_commitment)
-    @ opt "rejection-signer" (or_op_key rejection)
-    @ opt "dispatch-withdrawals-signer" (or_op_key dispatch_withdrawals)
-
   let make ?id ?port ~endpoint ~protocol ~exec ~client ~mode ?cors_origin
-      ~account ~operation_signers () =
-    { id=
-        (fun s ->
-          sprintf "%s-%s-node-%s" account.Account.name (mode_string mode)
-            (Option.value s ~default:"000") )
-          id
+      ~account ?operation_signers () : t =
+    let name =
+      sprintf "%s-%s-node-%s" account.Account.name (mode_string mode)
+        (Option.value id ~default:"000") in
+    { id= name
     ; port
     ; endpoint
     ; protocol
@@ -110,36 +136,52 @@ module Tx_node = struct
     ; mode
     ; cors_origin
     ; account
-    ; operation_signers }
+    ; operation_signers=
+        Option.value operation_signers ~default:(defult_signers client name) }
+
+  open Tezos_executable.Make_cli
 
   let call state t command =
     let client_dir = Tezos_client.base_dir ~state t.client in
+    Tezos_executable.call state t.exec ~protocol_kind:t.protocol
+      ~path:(exec_path state t // sprintf "exec-toru-%s" t.id)
+      ( opt "endpoint" (sprintf "http://localhost:%d" t.endpoint)
+      @ opt "base-dir" client_dir @ command )
+
+  let common_options state t =
+    let singer_options =
+      Tezos_protocol.Account.(
+        function
+        | Operator (acc, _) -> opt "operator" (name acc)
+        | Batch (acc, _) -> opt "batch-signer" (name acc)
+        | Finalize_commitment (acc, _) ->
+            opt "finalize-commitment-signer" (name acc)
+        | Remove_commitment (acc, _) ->
+            opt "remove-commitment-signer" (name acc)
+        | Rejection (acc, _) -> opt "rejection-signer" (name acc)
+        | Dispatch_withdrawal (acc, _) ->
+            opt "dispatch-withdrawals-signer" (name acc)) in
     let cors_origin =
       match t.cors_origin with
       | Some _ as s -> s
       | None -> Environment_configuration.default_cors_origin state in
-    Tezos_executable.call state t.exec ~protocol_kind:t.protocol
-      ~path:(exec_path state t // sprintf "exec-toru-%s" t.id)
-      (* TODO try:  t.node.Tezos_node.rpc_port *)
-      ( opt "endpoint" (sprintf "http://localhost:%d" t.endpoint)
-      @ opt "base-dir" client_dir
-      (* @ opt "config-file" (config_file state t) *)
-      @ command
-      @ opt "data-dir" (data_dir state t)
-      @ Option.value_map cors_origin
-          ~f:(fun s ->
-            flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s
-            )
-          ~default:[]
-      @ flag "allow-deposit" @ t.operation_signers )
+    flag "allow-deposit"
+    @ opt "data-dir" (data_dir state t)
+    @ List.concat_map t.operation_signers ~f:singer_options
+    @ Option.value_map cors_origin
+        ~f:(fun s ->
+          flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s )
+        ~default:[]
 
   let init state t =
     call state t
       ( ["init"; mode_string t.mode; "config"; "for"; t.account.address]
-      @ flag "force" )
+      @ flag "force" @ common_options state t )
 
   let run state t =
-    call state t ["run"; mode_string t.mode; "for"; t.account.address]
+    call state t
+      ( ["run"; mode_string t.mode; "for"; t.account.address]
+      @ common_options state t )
 
   let start_script state t =
     let open Genspio.EDSL in
@@ -150,8 +192,6 @@ module Tx_node = struct
     Running_processes.Process.genspio
       (sprintf "%s-node-for-tx-rollup-%s" (mode_string t.mode) t.account.name)
       (script state t)
-
-  (* TODO Maybe add signer key options too? *)
 
   let cmdliner_term state ~extra_doc =
     let open Cmdliner in
@@ -186,12 +226,25 @@ type t =
   ; client: Tezos_executable.t
   ; mode: Tx_node.mode }
 
+let origination_account ~client name =
+  Account.gas_account ~client (sprintf "%s-origination-account" name)
+
+let originate_and_confirm state ~name ~client ~acc ?confirmations () =
+  Account.originate state ~name ~client ~acc
+  >>= fun res ->
+  return (Account.parse_origination ~lines:res#out)
+  >>= fun rollup ->
+  match rollup with
+  | None ->
+      System_error.fail_fatalf
+        "Tx_rollup.originate_and_confirm - failed to parse rollup."
+  | Some acc ->
+      Account.confirm state ~client ?confirmations
+        ~operation_hash:acc.operation_hash ()
+      >>= fun conf -> return (acc, conf#out)
+
 let executables ({client; node; _} : t) = [client; node]
 
-(* TODO
-   add option for conformations required
-   add option for mode
-*)
 let cmdliner_term base_state ~docs () =
   let open Cmdliner in
   let open Term in

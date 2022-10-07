@@ -382,26 +382,39 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         match tx with
         | None -> return ()
         | Some tx -> (
-            Test_scenario.Queries.run_wait_level protocol state nodes
-              (`At_least tx.level) tx.level
-            >>= fun _ ->
-            match keys_and_daemons with
-            | [] -> return ()
-            | h :: _ ->
-                h
-                |> fun (_, acc, client, key, _) ->
-                Tx_rollup.Account.originate_and_confirm state ~name:tx.name
-                  ~client
-                  ~acc:(Tezos_protocol.Account.name acc)
-                  ~confirmations:1 ()
-                >>= fun (account, _) ->
+            List.hd keys_and_daemons
+            |> function
+            | None -> return ()
+            | Some (_, boot_acc, cli, _, _) ->
+                let orig_acc, orig_key =
+                  Tx_rollup.origination_account ~client:cli tx.name in
+                Tezos_client.Keyed.initialize state orig_key
+                >>= fun _ ->
+                let orig = Tezos_protocol.Account.name orig_acc in
+                let funder = Tezos_protocol.Account.name boot_acc in
+                Tx_rollup.Account.fund state ~client:cli ~amount:"1000"
+                  ~from:funder ~dst:orig
+                >>= fun _ ->
+                Test_scenario.Queries.run_wait_level protocol state nodes
+                  (`At_least tx.level) tx.level
+                >>= fun () ->
+                Tx_rollup.originate_and_confirm state ~name:tx.name ~client:cli
+                  ~acc:orig ~confirmations:1 ()
+                >>= fun (account, _conf) ->
                 let tx_node =
                   Tx_rollup.Tx_node.make ~mode:tx.mode ~protocol:protocol.kind
-                    ~endpoint:base_port ~exec:tx.node ~client ~account
-                    ~operation_signers:
-                      (Tx_rollup.Tx_node.signers ~operator:key.key_name
-                         ~batcher:key.key_name (* batcher_key.key_name *) () )
-                    () in
+                    ~endpoint:base_port ~exec:tx.node ~client:cli ~account ()
+                in
+                List_sequential.iter tx_node.operation_signers ~f:(fun os ->
+                    Tx_rollup.Tx_node.operation_signer_map os
+                      ~f:(fun (op_acc, op_key) ->
+                        Tezos_client.Keyed.initialize state op_key
+                        >>= fun _ ->
+                        Tx_rollup.Account.fund state ~client:cli ~amount:"1000"
+                          ~from:funder
+                          ~dst:(Tezos_protocol.Account.name op_acc) )
+                    >>= fun _ -> return () )
+                >>= fun () ->
                 Running_processes.start state
                   Tx_rollup.Tx_node.(process state tx_node start_script)
                 >>= fun _ ->
@@ -411,7 +424,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                       (haf "Transactional rollup is ready:")
                       [ desc (af "Name:") (af "%S" account.name)
                       ; desc (af "Address:") (af "`%s`" account.address) ]) ) )
-  >>= fun _ ->
+  >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in

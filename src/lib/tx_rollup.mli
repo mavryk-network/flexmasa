@@ -2,30 +2,40 @@ open Internal_pervasives
 
 module Account : sig
   type t =
-    {name: string; operation_hash: string; address: string; out: string list}
+    { name: string
+    ; operation_hash: string
+    ; address: string
+    ; origination_account: string
+    ; out: string list }
 
-  val originate_and_confirm :
+  val fund :
        < application_name: string
        ; console: Console.t
        ; env_config: Environment_configuration.t
        ; paths: Paths.t
        ; runner: Running_processes.State.t
        ; .. >
-    -> name:string
     -> client:Tezos_client.t
-    -> acc:string
-    -> ?confirmations:int
-    -> unit
-    -> ( t * string list
+    -> amount:string
+    -> from:string
+    -> dst:string
+    -> ( < err: string list ; out: string list ; status: Unix.process_status >
        , [> `Process_error of Process_result.Error.error
          | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
-  (** [originate_and_confirm state name client acc] is a call to tezo-client [client] call to
-      originate transactional rollup [name]. [acc] is the gass account. *)
+  (** [fund state client tez acc dst] is a client call to send [amount] of tez form from [acc] to [dist]. *)
 end
 
 module Tx_node : sig
   type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
+
+  type operation_signer =
+    | Operator of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Batch of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Finalize_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Remove_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Rejection of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Dispatch_withdrawal of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
 
   type t =
     { id: string
@@ -37,18 +47,26 @@ module Tx_node : sig
     ; mode: mode
     ; cors_origin: string option
     ; account: Account.t
-    ; operation_signers: string list }
+    ; operation_signers: operation_signer list }
 
-  val signers :
-       operator:string
-    -> batcher:string
-    -> ?finalize_commitment:string
-    -> ?remove_commitment:string
+  val operation_signers :
+       client:Tezos_client.t
+    -> id:string
+    -> operator:string
+    -> batch:string
+    -> ?finalize:string
+    -> ?remove:string
     -> ?rejection:string
-    -> ?dispatch_withdrawals:string
+    -> ?dispatch:string
     -> unit
-    -> string list
-  (** [signers] is a list of operation signers for the specific rollup operations. *)
+    -> operation_signer list
+  (** [signers] is a list of operation signers for rollup operations. *)
+
+  val operation_signer_map :
+       operation_signer
+    -> f:(Tezos_protocol.Account.t * Tezos_client.Keyed.t -> 'a)
+    -> 'a
+  (** [operation_signer_map f signer] applies [f] to [signer]*)
 
   val make :
        ?id:string
@@ -60,16 +78,15 @@ module Tx_node : sig
     -> mode:mode
     -> ?cors_origin:string
     -> account:Account.t
-    -> operation_signers:string list
+    -> ?operation_signers:operation_signer list
     -> unit
     -> t
-  (** [make] is a type for builing a tx_rollup_node command. *)
 
   val start_script :
        < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
     -> t
     -> unit Genspio.Language.t
-  (** [start script] runs the tx_rollup_node commans init and run accourning to [t]. *)
+  (** [start script] runs the tx_rollup_node commands init and run accourning to [t]. *)
 
   val process :
     'a -> t -> ('a -> t -> 'b Genspio.Language.t) -> Running_processes.Process.t
@@ -88,12 +105,35 @@ type t =
   ; client: Tezos_executable.t
   ; mode: Tx_node.mode }
 
+val origination_account :
+     client:Tezos_client.t
+  -> string
+  -> Tezos_protocol.Account.t * Tezos_client.Keyed.t
+
+val originate_and_confirm :
+     < application_name: string
+     ; console: Console.t
+     ; env_config: Environment_configuration.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> name:string
+  -> client:Tezos_client.t
+  -> acc:string
+  -> ?confirmations:int
+  -> unit
+  -> ( Account.t * string list
+     , [> `Process_error of Process_result.Error.error
+       | `System_error of [`Fatal] * System_error.static ] )
+     Asynchronous_result.t
+(** [originate_and_confirm state name client acc] is a tezo-client [client] call to
+      originate a transactional rollup called [name]. [acc] is the gas account. *)
+
 val executables : t -> Tezos_executable.t list
-(** List of executables for the Transactional Rollup *)
 
 val cmdliner_term :
      < manpager: Manpage_builder.State.t ; .. >
   -> docs:string
   -> unit
   -> t option Cmdliner.Term.t
-(** List of executables for the Transactional Rollup *)
+(** A cmdliner term for the tx_rollup option. *)
