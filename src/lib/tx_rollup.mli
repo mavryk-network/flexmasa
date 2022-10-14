@@ -24,6 +24,23 @@ module Account : sig
          | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
   (** [fund state client tez acc dst] is a client call to send [amount] of tez form from [acc] to [dist]. *)
+
+  val fund_multiple :
+       < application_name: string
+       ; console: Console.t
+       ; env_config: Environment_configuration.t
+       ; paths: Paths.t
+       ; runner: Running_processes.State.t
+       ; .. >
+    -> client:Tezos_client.t
+    -> from:string
+    -> recipiants:(string * string) list
+    -> ( < err: string list ; out: string list ; status: Unix.process_status >
+       , [> `Process_error of Process_result.Error.error
+         | `System_error of [`Fatal] * System_error.static ] )
+       Asynchronous_result.t
+  (** [fund_multiple state client from recipiants] is a client call to transfer tez form from [from] to a
+      list of [recipants]. Recipaints is a (destination account, tezos amount) list. *)
 end
 
 module Tx_node : sig

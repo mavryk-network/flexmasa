@@ -22,6 +22,16 @@ module Account = struct
     Tezos_client.successful_client_cmd state ~client
       ["transfer"; amount; "from"; from; "to"; dst; "--burn-cap"; "15"]
 
+  let fund_multiple state ~client ~from ~(recipiants : (string * string) list) =
+    let json =
+      let open Ezjsonm in
+      list dict
+        (List.fold recipiants ~init:[] ~f:(fun acc (dst, amt) ->
+             [("destination", string dst); ("amount", string amt)] :: acc ) )
+      |> to_string in
+    Tezos_client.successful_client_cmd state ~client
+      ["multiple"; "transfers"; "from"; from; "using"; json; "--burn-cap"; "15"]
+
   let originate state ~name ~client ~acc =
     Tezos_client.successful_client_cmd state ~client
       ["originate"; "tx"; "rollup"; name; "from"; acc; "--burn-cap"; "15"]

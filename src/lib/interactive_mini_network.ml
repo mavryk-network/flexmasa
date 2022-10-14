@@ -407,14 +407,19 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                 in
                 List_sequential.iter tx_node.operation_signers ~f:(fun os ->
                     Tx_rollup.Tx_node.operation_signer_map os
-                      ~f:(fun (op_acc, op_key) ->
-                        Tezos_client.Keyed.initialize state op_key
-                        >>= fun _ ->
-                        Tx_rollup.Account.fund state ~client:cli ~amount:"1000"
-                          ~from:funder
-                          ~dst:(Tezos_protocol.Account.name op_acc) )
+                      ~f:(fun (_op_acc, op_key) ->
+                        Tezos_client.Keyed.initialize state op_key )
                     >>= fun _ -> return () )
                 >>= fun () ->
+                let dstlist =
+                  List.fold tx_node.operation_signers ~init:[] ~f:(fun d os ->
+                      let dst_key =
+                        Tx_rollup.Tx_node.operation_signer_map os
+                          ~f:(fun (_, os_key) -> os_key.key_name) in
+                      (dst_key, "100") :: d ) in
+                Tx_rollup.Account.fund_multiple state ~client:cli ~from:orig
+                  ~recipiants:dstlist
+                >>= fun _ ->
                 Running_processes.start state
                   Tx_rollup.Tx_node.(process state tx_node start_script)
                 >>= fun _ ->
@@ -423,7 +428,9 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                     desc_list
                       (haf "Transactional rollup is ready:")
                       [ desc (af "Name:") (af "%S" account.name)
-                      ; desc (af "Address:") (af "`%s`" account.address) ]) ) )
+                      ; desc (af "Address:") (af "`%s`" account.address)
+                      ; desc (af "Operation") (af "`%s`" account.operation_hash)
+                      ]) ) )
   >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
