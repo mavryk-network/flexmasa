@@ -94,13 +94,15 @@ module Tx_node = struct
 
   let operation_signers ~client ~id ~operator ~batch ?finalize ?remove
       ?rejection ?dispatch () : operation_signer list =
-    let acc str = Account.gas_account ~client (sprintf "%s-%s" id str) in
-    let op_key = acc operator in
-    let batch_key = acc batch in
-    let or_op_key = function None -> op_key | Some s -> acc s in
-    [ Operator op_key; Batch batch_key; Finalize_commitment (or_op_key finalize)
-    ; Remove_commitment (or_op_key remove); Rejection (or_op_key rejection)
-    ; Dispatch_withdrawal (or_op_key dispatch) ]
+    let acc_and_key str = Account.gas_account ~client (sprintf "%s-%s" id str) in
+    let of_option opt opr_signer =
+      Option.value_map opt ~default:[] ~f:(fun s ->
+          [opr_signer (acc_and_key s)] ) in
+    [Operator (acc_and_key operator); Batch (acc_and_key batch)]
+    @ of_option finalize (fun s -> Finalize_commitment s)
+    @ of_option remove (fun s -> Remove_commitment s)
+    @ of_option rejection (fun s -> Rejection s)
+    @ of_option dispatch (fun s -> Dispatch_withdrawal s)
 
   let defult_signers client id : operation_signer list =
     operation_signers ~client ~id ~operator:"operator-signer"
