@@ -83,6 +83,25 @@ start_upgrade () {
 }
 
 all_commands="$all_commands
+* start : Start a transactional rollup sandbox with the $default_protocol protocol."
+root_path=/tmp/mini-box
+start_toru() {
+    flextesa mini-net \
+        --root "$root_path" --size 1 "$@" \
+        --set-history-mode N000:archive \
+        --number-of-b 2 \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --time-b "$time_bb" \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --no-daemons-for=alice \
+        --no-daemons-for=bob \
+        --until-level 200_000_000 \
+        --protocol-kind "$default_protocol" \
+        --tx-rollup 3:torubox
+}
+
+all_commands="$all_commands
 * info : Show accounts and information about the sandbox."
 info () {
     cat >&2 <<EOF
