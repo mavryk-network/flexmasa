@@ -47,7 +47,7 @@ quickmini () {
 }
 
 c2n () {
-    runone "${currrent}2${next}" flextesa mini \
+    runone "${current}2${next}" flextesa mini \
            --protocol-kind "$current" \
            --hard-fork 10:$next: \
            --time-between-blocks 1 --number-of-boot 1 --size 1 \
