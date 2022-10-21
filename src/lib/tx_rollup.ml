@@ -83,7 +83,7 @@ module Tx_node = struct
   type t =
     { id: string
     ; port: int option
-    ; endpoint: int
+    ; endpoint: int option
     ; protocol: Tezos_protocol.Protocol_kind.t
     ; exec: Tezos_executable.t
     ; client: Tezos_client.t
@@ -134,7 +134,7 @@ module Tx_node = struct
     | Operator -> "operator"
     | Custom -> "custom "
 
-  let make ?id ?port ~endpoint ~protocol ~exec ~client ~mode ?cors_origin
+  let make ?id ?port ?endpoint ~protocol ~exec ~client ~mode ?cors_origin
       ~account ?operation_signers () : t =
     let name =
       sprintf "%s-%s-node-%s" account.Account.name (mode_string mode)
@@ -157,7 +157,8 @@ module Tx_node = struct
     let client_dir = Tezos_client.base_dir ~state t.client in
     Tezos_executable.call state t.exec ~protocol_kind:t.protocol
       ~path:(exec_path state t // sprintf "exec-toru-%s" t.id)
-      ( opt "endpoint" (sprintf "http://localhost:%d" t.endpoint)
+      ( Option.value_map t.endpoint ~default:[] ~f:(fun e ->
+            opt "endpoint" (sprintf "http://localhost:%d" e) )
       @ opt "base-dir" client_dir @ command )
 
   let common_options state t =

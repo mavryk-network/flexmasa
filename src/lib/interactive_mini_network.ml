@@ -403,8 +403,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                 >>= fun (account, _conf) ->
                 let tx_node =
                   Tx_rollup.Tx_node.make ~mode:tx.mode ~protocol:protocol.kind
-                    ~endpoint:base_port ~exec:tx.node ~client:cli ~account ()
-                in
+                    ~exec:tx.node ~client:cli ~account () in
                 List_sequential.iter tx_node.operation_signers ~f:(fun os ->
                     Tx_rollup.Tx_node.operation_signer_map os
                       ~f:(fun (_op_acc, op_key) ->

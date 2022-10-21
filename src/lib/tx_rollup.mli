@@ -57,7 +57,7 @@ module Tx_node : sig
   type t =
     { id: string
     ; port: int option
-    ; endpoint: int
+    ; endpoint: int option
     ; protocol: Tezos_protocol.Protocol_kind.t
     ; exec: Tezos_executable.t
     ; client: Tezos_client.t
@@ -88,7 +88,7 @@ module Tx_node : sig
   val make :
        ?id:string
     -> ?port:int
-    -> endpoint:int
+    -> ?endpoint:int
     -> protocol:Tezos_protocol.Protocol_kind.t
     -> exec:Tezos_executable.t
     -> client:Tezos_client.t
