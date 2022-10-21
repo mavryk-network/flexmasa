@@ -69,6 +69,47 @@ module Account = struct
         (make ~name ~operation_hash ~address ~origination_account ~out:lines))
 end
 
+module Deposit_contract = struct
+  type t = string
+
+  let make : string -> t = fun s -> s
+
+  let originate state ?(rollup_name = "toru") ~client ~acc () =
+    Tezos_client.successful_client_cmd state ~client
+      [ "originate"; "contract"; rollup_name ^ "-deposit-contract"
+      ; "transferring"; "0"; "from"; acc; "running"
+      ; "parameter (pair string nat tx_rollup_l2_address address);\n\
+         storage unit;\n\
+         code {\n\
+        \       CAR;\n\
+        \       UNPAIR 4;\n\
+        \       TICKET;\n\
+        \       PAIR;\n\
+        \       SWAP;\n\
+        \       CONTRACT %deposit (pair (ticket string) tx_rollup_l2_address);\n\
+        \       ASSERT_SOME;\n\
+        \       SWAP;\n\
+        \       PUSH mutez 0;\n\
+        \       SWAP;\n\
+        \       TRANSFER_TOKENS;\n\
+        \       UNIT;\n\
+        \       NIL operation;\n\
+        \       DIG 2;\n\
+        \       CONS;\n\
+        \       PAIR;\n\
+        \     }\n"; "--burn-cap"; "15" ]
+
+  let parse_origination ~lines =
+    let rec prefix_from_list ~prefix = function
+      | [] -> None
+      | x :: xs ->
+          if not (String.is_prefix x ~prefix) then prefix_from_list ~prefix xs
+          else Some x in
+    let l = List.map lines ~f:String.lstrip in
+    Option.(
+      prefix_from_list ~prefix:"KT1" l >>= fun address -> return (make address))
+end
+
 module Tx_node = struct
   type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
 
@@ -255,6 +296,16 @@ let originate_and_confirm state ~name ~client ~acc ?confirmations () =
       Account.confirm state ~client ?confirmations
         ~operation_hash:acc.operation_hash ()
       >>= fun conf -> return (acc, conf#out)
+
+let publish_deposit_contract state rollup_name client acc =
+  let open Deposit_contract in
+  originate state ~rollup_name ~client ~acc ()
+  >>= fun res ->
+  match parse_origination ~lines:res#out with
+  | None ->
+      System_error.fail_fatalf
+        "Tx_rollup.publish - failed to parse deposit contract."
+  | Some address -> return address
 
 let executables ({client; node; _} : t) = [client; node]
 

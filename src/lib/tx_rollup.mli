@@ -146,6 +146,21 @@ val originate_and_confirm :
 (** [originate_and_confirm state name client acc] is a tezo-client [client] call to
       originate a transactional rollup called [name]. [acc] is the gas account. *)
 
+val publish_deposit_contract :
+     < application_name: string
+     ; console: Console.t
+     ; env_config: Environment_configuration.t
+     ; paths: Paths.t
+     ; runner: Running_processes.State.t
+     ; .. >
+  -> string
+  -> Tezos_client.t
+  -> string
+  -> ( string
+     , [> `Process_error of Process_result.Error.error
+       | `System_error of [`Fatal] * System_error.static ] )
+     Asynchronous_result.t
+
 val executables : t -> Tezos_executable.t list
 
 val cmdliner_term :

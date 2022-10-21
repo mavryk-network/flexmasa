@@ -386,21 +386,31 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             |> function
             | None -> return ()
             | Some (_, boot_acc, cli, _, _) ->
-                let orig_acc, orig_key =
+                let toru_orig_acc, toru_orig_key =
                   Tx_rollup.origination_account ~client:cli tx.name in
-                Tezos_client.Keyed.initialize state orig_key
+                Tezos_client.Keyed.initialize state toru_orig_key
                 >>= fun _ ->
-                let orig = Tezos_protocol.Account.name orig_acc in
+                let contract_orig_acc, contract_orig_key =
+                  Tx_rollup.origination_account ~client:cli
+                    (sprintf "%s-deposit-contract" tx.name) in
+                Tezos_client.Keyed.initialize state contract_orig_key
+                >>= fun _ ->
+                let toru_orig = Tezos_protocol.Account.name toru_orig_acc in
+                let contract_orig =
+                  Tezos_protocol.Account.name contract_orig_acc in
                 let funder = Tezos_protocol.Account.name boot_acc in
-                Tx_rollup.Account.fund state ~client:cli ~amount:"1000"
-                  ~from:funder ~dst:orig
+                Tx_rollup.Account.fund_multiple state ~client:cli ~from:funder
+                  ~recipiants:[(toru_orig, "1000"); (contract_orig, "10")]
                 >>= fun _ ->
                 Test_scenario.Queries.run_wait_level protocol state nodes
                   (`At_least tx.level) tx.level
                 >>= fun () ->
                 Tx_rollup.originate_and_confirm state ~name:tx.name ~client:cli
-                  ~acc:orig ~confirmations:1 ()
+                  ~acc:toru_orig ~confirmations:1 ()
                 >>= fun (account, _conf) ->
+                Tx_rollup.publish_deposit_contract state tx.name cli
+                  contract_orig
+                >>= fun deposit_contract ->
                 let tx_node =
                   Tx_rollup.Tx_node.make ~mode:tx.mode ~protocol:protocol.kind
                     ~exec:tx.node ~client:cli ~account () in
@@ -416,8 +426,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                         Tx_rollup.Tx_node.operation_signer_map os
                           ~f:(fun (_, os_key) -> os_key.key_name) in
                       (dst_key, "100") :: d ) in
-                Tx_rollup.Account.fund_multiple state ~client:cli ~from:orig
-                  ~recipiants:dstlist
+                Tx_rollup.Account.fund_multiple state ~client:cli
+                  ~from:toru_orig ~recipiants:dstlist
                 >>= fun _ ->
                 Running_processes.start state
                   Tx_rollup.Tx_node.(process state tx_node start_script)
@@ -429,7 +439,9 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                       [ desc (af "Name:") (af "%S" account.name)
                       ; desc (af "Address:") (af "`%s`" account.address)
                       ; desc (af "Operation") (af "`%s`" account.operation_hash)
-                      ]) ) )
+                      ; desc
+                          (af "Deposit-contract Address")
+                          (af "`%s`" deposit_contract) ]) ) )
   >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
