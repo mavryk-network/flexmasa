@@ -290,7 +290,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         | `Kathmandu | `Lima | `Alpha ->
             [ ("nonce_revelation_threshold", int 4)
             ; ("sc_rollup_stake_amount", string "10000000000")
-            ; ("sc_rollup_commitment_period_in_blocks", int 20160)
+            ; ("sc_rollup_commitment_period_in_blocks", int 30)
             ; ("sc_rollup_max_lookahead_in_blocks", int 30_000)
             ; ("sc_rollup_max_active_outbox_levels", int 20160)
             ; ("sc_rollup_max_outbox_messages_per_level", int 100)
