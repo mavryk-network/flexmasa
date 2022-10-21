@@ -104,7 +104,15 @@ daem_n2a () {
            --test-variant full-upgrade
 }
 
-all () {
+toru() {
+    proto="$1"
+    runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
+        --time-between-blocks 2 $until_8 \
+        --number-of-boot 1 --size 1 \
+        --tx-rollup 3:mini-tx-rollup
+}
+
+all() {
     quickmini "$current"
     quickmini "$next"
     quickmini Alpha
