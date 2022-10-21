@@ -32,11 +32,11 @@ runone () {
     $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/  ||/'
 }
 
-current=Jakarta
-next=Kathmandu
-next_suffix=014-PtKathma
-# Alpha is still upgrading from Jak:
-before_alpha=$current
+current=Kathmandu
+next=Lima
+next_suffix=PtLimaPt
+# Alpha is upgrading from Lima:
+before_alpha=$next
 
 
 quickmini () {
