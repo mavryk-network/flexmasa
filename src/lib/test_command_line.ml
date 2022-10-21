@@ -54,10 +54,10 @@ module Common_errors = struct
 end
 
 module Run_command = struct
-  let or_hard_fail state main ~pp_error : unit =
+  let or_hard_fail ?lwt_run state main ~pp_error : unit =
     let open Asynchronous_result in
     Dbg.e EF.(wf "Run_command.or_hard_fail") ;
-    run_application (fun () ->
+    run_application ?lwt_run (fun () ->
         Dbg.e EF.(wf "Run_command.or_hard_fail bind_on_error") ;
         bind_on_error (main ()) ~f:(fun ~result _ ->
             Dbg.e EF.(wf "Run_command.or_hard_fail on result") ;

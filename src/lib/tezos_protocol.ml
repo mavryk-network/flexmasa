@@ -85,7 +85,7 @@ module Protocol_kind = struct
 
   let default = `Alpha
 
-  let cmdliner_term ~docs () : t Cmdliner.Term.t =
+  let cmdliner_term ?(default = default) ~docs () : t Cmdliner.Term.t =
     let open Cmdliner in
     Arg.(
       value
