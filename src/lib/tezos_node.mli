@@ -34,7 +34,7 @@ val make :
   -> int list
   -> t
 (** Create a node value (inert, not started), see 
-   ["tezos-node run --help"] for corresponding parameters.
+   ["octez-node run --help"] for corresponding parameters.
 
 - [?single_process]: defaults to [true] (for now since multi-process
   validations still suffers from some bugs).

@@ -11,18 +11,18 @@ Accessing Tezos Software
 
 Flexstesa needs access to the Tezos software. In particular, the
 `daemons-upgrade` command requires the baker daemons, (`tezo-baker-011-PtHangz2`,
-`tezos-baker-012-psithaca`, `tezos-baker-alpha`) depending on which protocol
+`octez-baker-012-psithaca`, `octez-baker-alpha`) depending on which protocol
 upgrade is being tested.
 
 An easy way to let Flextesa find them is to add them to the `PATH`. For instance,
-if all the Tezos utilities have been build at `/path/to/tezos-repo/`:
+if all the Tezos utilities have been build at `/path/to/octez-repo/`:
 
 ```
-    $ export PATH=/path/to/tezos-repo/:$PATH
+    $ export PATH=/path/to/octez-repo/:$PATH
     $ flextesa daemons-upgrade \
         --protocol-kind Hangzhou \
         --next-protocol-kind Ithaca \
-        --second-baker tezos-baker-012-Psithaca
+        --second-baker octez-baker-012-Psithaca
 ```
 
 Note: Flextesa will infer the executables needed based on the value passed to
@@ -35,14 +35,14 @@ paths can be passed with command line options:
 ```
     $ flextesa daemons-upgrade  \
         --protocol-kind Hangzhou --next-protocol-kind Ithaca \
-        --tezos-node /path/to/tezos-repo/tezos-node \
-        --tezos-client /path/to/tezos-repo/tezos-client \
-        --first-accuser /path/to/tezos-repo/tezos-accuser-011-PtHangz2 \
-        --first-endorser /path/to/tezos-repo/tezos-endorser-011-PtHangz2 \
-        --first-baker /path/to/tezos-repo/tezos-baker-011-PtHangz2 \
-        --second-accuser /path/to/tezos-repo/tezos-accuser-011-PtHangz2 \
-        --second-endorser /path/to/tezos-repo/tezos-endorser-011-PtHangz2 \
-        --second-baker /path/to/tezos-repo/tezos-baker-012-Psithaca
+        --octez-node /path/to/octez-repo/octez-node \
+        --octez-client /path/to/octez-repo/octez-client \
+        --first-accuser /path/to/octez-repo/octez-accuser-011-PtHangz2 \
+        --first-endorser /path/to/octez-repo/octez-endorser-011-PtHangz2 \
+        --first-baker /path/to/octez-repo/octez-baker-011-PtHangz2 \
+        --second-accuser /path/to/octez-repo/octez-accuser-011-PtHangz2 \
+        --second-endorser /path/to/octez-repo/octez-endorser-011-PtHangz2 \
+        --second-baker /path/to/octez-repo/octez-baker-012-Psithaca
 ```
 
 Both examples above, activate the protocol `Hangzhou`, and propose the `Ithaca`
@@ -50,7 +50,7 @@ upgrade. The sandbox network will do a full voting round followed by a protocol
 change. Finally, Flextesa will kill all processes once the daemon-upgrade test
 is complete.
 
-* If you are using the docker image, valid `tezos-*` executables are already in
+* If you are using the docker image, valid `octez-*` executables are already in
   the `$PATH`.
 
 ### Example:
@@ -63,7 +63,7 @@ is complete.
         --until-level 2_000_000 \
         --time-between-blocks 5 \
         --next-protocol-kind Alpha \
-        --second-baker tezos-baker-alpha \
+        --second-baker octez-baker-alpha \
         --blocks-per-voting-period 14 \
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
@@ -98,7 +98,7 @@ Interactivity
 ```
     $ flextesa daemons-upgrade \
         --protocol-kind Hangzhou --next-protocol Ithaca \
-        --second-baker tezos-baker-012-Psithaca \
+        --second-baker octez-baker-012-Psithaca \
         --interactive true
 ```
 
@@ -119,7 +119,7 @@ For example:
 ```
     $ flextesa daemons-upgrade \
         --protocol-kind Ithaca --next-protocol Alpha \
-        --second-baker tezos-baker-012-Psithaca \
+        --second-baker octez-baker-012-Psithaca \
         --pause-at-end true \
         --until-level 200
 ```

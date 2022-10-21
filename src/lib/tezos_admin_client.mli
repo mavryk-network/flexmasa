@@ -1,4 +1,4 @@
-(** Wrapper around the [tezos-admin-client] application. *)
+(** Wrapper around the [octez-admin-client] application. *)
 open Internal_pervasives
 
 (** [t] is very similar to {!Tezos_client.t}. *)

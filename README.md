@@ -49,7 +49,7 @@ baker advancing the blockchain):
 - `kathmandubox`: Kathmandu protocol.
 - `alphabox`: Alpha protocol, the development version
   of the `L` protocol at the time the docker-build was last updated.
-    - See also `docker run "$image" tezos-node --version`.
+    - See also `docker run "$image" octez-node --version`.
 
 The default `block_time` is 5 seconds.
 
@@ -76,11 +76,11 @@ just calls to `flextesa mini-net` (see its general
 [documentation](./src/doc/mini-net.md)).
 
 The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
-You can use any client, including the `tezos-client` inside the docker
+You can use any client, including the `octez-client` inside the docker
 container, which happens to be already configured:
 
 ```default
-$ alias tcli='docker exec my-sandbox tezos-client'
+$ alias tcli='docker exec my-sandbox octez-client'
 $ tcli get balance for alice
 2000000 ꜩ
 ```

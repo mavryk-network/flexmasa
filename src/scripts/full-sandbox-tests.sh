@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # Those are tests that should succeed in a well configured environment:
-# - flextesa command line app, and `tezos-*` binaries available in PATH
+# - flextesa command line app, and `octez-*` binaries available in PATH
 # - Alpha protocol is “similar enough” to the one pulled by the `Dockerfile`
 
 set -e
@@ -65,7 +65,7 @@ daem_c2n () {
     runone "dameons-upgrade-c2n" flextesa daemons-upgrade \
 	   --protocol-kind "$current" \
            --next-protocol-kind "$next" \
-	   --second-baker tezos-baker-$next_suffix \
+	   --second-baker octez-baker-$next_suffix \
 	   --extra-dummy-proposals-batch-size 2 \
 	   --extra-dummy-proposals-batch-levels 3,5 \
 	   --size 2 \
@@ -80,7 +80,7 @@ daem_c2n_nay () {
     runone "dameons-upgrade-c2n-nay" flextesa daemons-upgrade \
 	   --protocol-kind "$current" \
            --next-protocol-kind "$current" \
-	   --second-baker tezos-baker-$next_suffix \
+	   --second-baker octez-baker-$next_suffix \
 	   --extra-dummy-proposals-batch-size 2 \
 	   --extra-dummy-proposals-batch-levels 3,5 \
 	   --size 2 \
@@ -94,7 +94,7 @@ daem_n2a () {
     runone "dameons-upgrade-n2a" flextesa daemons-upgrade \
 	   --protocol-kind "$before_alpha" \
            --next-protocol-kind Alpha \
-	   --second-baker tezos-baker-alpha \
+	   --second-baker octez-baker-alpha \
 	   --extra-dummy-proposals-batch-size 2 \
 	   --extra-dummy-proposals-batch-levels 3,5 \
 	   --size 2 \

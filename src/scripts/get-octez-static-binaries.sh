@@ -33,7 +33,7 @@ esac
     curl -L "$download_uri" -o "$dest_dir/bins.zip"
     cd "$dest_dir"
     unzip bins.zip
-    mv tezos-binaries/$directory_name/* .
-    rm -fr bins.zip tezos-binaries/
-    chmod a+rx tezos-*
+    mv octez-binaries/$directory_name/* .
+    rm -fr bins.zip octez-binaries/
+    chmod a+rx octez-*
 )

@@ -115,7 +115,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
-    | `Kathmandu -> "014-PtKathma"
+    | `Kathmandu -> "PtKathma"
     | `Jakarta -> "013-PtJakart"
     | `Ithaca -> "012-Psithaca"
     | `Hangzhou -> "011-PtHangz2"
@@ -525,7 +525,7 @@ let cli_term state =
                 ~doc:
                   "Use these protocol parameters instead of the generated ones \
                    (technically this invalidates most other options from a \
-                   tezos-node point of view, use at your own risk)."
+                   node's point of view, use at your own risk)."
                 ~docv:"JSON-FILE" ~docs ) ))
   $ Protocol_kind.cmdliner_term () ~docs
   [@@warning "-3"]

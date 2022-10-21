@@ -399,9 +399,9 @@ let cmd () =
                (info ["no-daemons-for"] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv)." ) ))
     $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node "tezos"
-    $ Tezos_executable.cli_term base_state `Client "tezos"
-    $ Tezos_executable.cli_term base_state `Admin "tezos"
+    $ Tezos_executable.cli_term base_state `Node "octez"
+    $ Tezos_executable.cli_term base_state `Client "octez"
+    $ Tezos_executable.cli_term base_state `Admin "octez"
     $ Tezos_executable.cli_term base_state `Baker "first"
     $ Tezos_executable.cli_term base_state `Endorser "first"
     $ Tezos_executable.cli_term base_state `Accuser "first"
