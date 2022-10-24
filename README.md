@@ -208,26 +208,20 @@ docker build --target run_image -t flextesa-run .
 ```
 
 Do not forget to test it:
-`docker run -it "$image" hangzbox start`
+`docker run -it "$image" limabox start`
 
-To build the **released multi-architecture images**, we use
-[buildx](https://docs.docker.com/buildx/working-with-buildx/).  In short, this
-is the build itself:
+### Multi-Architecture Image
 
-```sh
-docker buildx build --platform linux/arm64/v8,linux/amd64  . \
-       --target run_image \
-       --tag oxheadalpha/flextesa:test-20220320 \
-       --tag oxheadalpha/flextesa:test-latest \
-       --push
-```
+To build the **released multi-architecture images**, we used to use
+[buildx](https://docs.docker.com/buildx/working-with-buildx/) but this does not
+work anymore (Qemu cannot handle the build on the foreign archtecture).  We use
+the “manifest method” cf.
+[docker.com](https://www.docker.com/blog/multi-arch-build-and-images-the-simple-way/).
+We need one host for each architecture (AMD64 and ARM64).
 
-The build does not fit within the limits of Gitlab-CI.  Here are the
-instructions for Ubuntu 20.04 (Using a “click next” AWS instance: start an
-_“Ubuntu Server 20.04 LTS”_ host, the build can use quite a few CPUs at once and
-requires a larger disk, e.g. 128 GiB).
+#### On Each Architechture
 
-Setting up Docker:
+Setting up Docker (example of AWS-like Ubuntu hosts):
 
 ```sh
 sudo apt update
@@ -237,44 +231,25 @@ sudo adduser ubuntu docker
 
 (may have to `sudo su ubuntu` to really get _into the group_)
 
-Install the `buildx` CLI plugin:
+Build and push the image (you may need to `docker login`):
 
 ```sh
-mkdir -p ~/.docker/cli-plugins/
-curl -L -o ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.7.1/buildx-v0.7.1.linux-amd64
-chmod a+x ~/.docker/cli-plugins/docker-buildx
-docker buildx --help # Test it !
+base=oxheadalpha/flextesa
+tag=20221024-rc
+docker build --target run_image -t flextesa-run .
+docker tag flextesa-run "$base:$tag-$(uname -p)"
+docker push "$base:$tag-$(uname -p)"
 ```
 
-Prepare the Qemu setup:
+#### Merging The Manifests
+
+On any host:
 
 ```sh
-docker run --rm --privileged multiarch/qemu-user-static \
-       --reset -p yes --credential yes
-```
-
-Prepare the buildx environment:
-
-```sh
-docker login # Interactive, asks for user/password
-docker buildx create --use # Starts a container to clean-up later
-```
-
-Get the checkout of Flextesa you want to build:
-
-```sh
-git clone https://gitlab.com/smondet/flextesa -b smondet-docker-arm64
-cd flextesa
-```
-
-And, finally, start the build/tag/push in one go:
-
-```sh
-docker buildx build --platform linux/arm64/v8,linux/amd64  . \
-       --target run_image \
-       --tag oxheadalpha/flextesa:rc-20211210 \
-       --tag oxheadalpha/flextesa:rc-latest \
-       --push
+docker manifest create $base:$tag \
+      --amend $base:$tag-aarch64 \
+      --amend $base:$tag-x86_64
+docker manifest push $base:$tag
 ```
 
 
