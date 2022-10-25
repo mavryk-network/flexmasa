@@ -40,4 +40,5 @@ RUN chmod a+rx /usr/bin/kathmandubox
 RUN chmod a+rx /usr/bin/limabox
 RUN chmod a+rx /usr/bin/alphabox
 RUN /usr/bin/alphabox initclient
+RUN ln -s /usr/bin/octez-client /usr/bin/tezos-client
 ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
