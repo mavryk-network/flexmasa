@@ -1,8 +1,8 @@
 (** This module wraps the type ['kind t] around the notion of
-    tezos-executable: a path to a binary with tezos-specific properties. *)
+    octez-executable: a path to a binary with octez-specific properties. *)
 
 (** Helper functions to construct exec-style command lines for
-    ["tezos-*"] applications. *)
+    ["octez-*"] applications. *)
 module Make_cli : sig
   val flag : string -> string list
   val opt : string -> string -> string list
@@ -20,7 +20,7 @@ end
 (** The type [kind] is used to distinguish ['a t] executables. *)
 type kind = [`Node | `Baker | `Endorser | `Accuser | `Client | `Admin]
 
-(** The wrapper of the tezos-executable. *)
+(** The wrapper of the octez-executable. *)
 type t = private
   { kind: kind
   ; binary: string option
@@ -33,7 +33,7 @@ val make :
   -> ?environment:(string * string) list
   -> kind
   -> t
-(** Create a ["tezos-node"] executable. *)
+(** Create a ["octez-node"] executable. *)
 
 val get : ?protocol_kind:Tezos_protocol.Protocol_kind.t -> t -> string
 (** The path to the executable. *)
@@ -56,6 +56,6 @@ val cli_term :
   -> kind
   -> string
   -> t Cmdliner.Term.t
-(** Build a [Cmdliner] term which creates tezos-executables, the
+(** Build a [Cmdliner] term which creates octez-executables, the
     second argument is a prefix of option names (e.g. ["tezos"] for the
-    option ["--tezos-accuser-alpha-binary"]). *)
+    option ["--octez-accuser-alpha-binary"]). *)

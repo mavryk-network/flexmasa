@@ -243,8 +243,8 @@ module System_dependencies = struct
         >>= fun () ->
         ( if
           List.exists more ~f:(function
-            | `Missing_exec ("tezos-node", _)
-              when Caml.Sys.file_exists ("." // "tezos-node") ->
+            | `Missing_exec ("octez-node", _)
+              when Caml.Sys.file_exists ("." // "octez-node") ->
                 true
             | _ -> false )
         then
@@ -252,9 +252,9 @@ module System_dependencies = struct
             EF.(
               desc (prompt "Tip:")
                 (wf
-                   "The `tezos-node` executable is missing but there seems to \
+                   "The `octez-node` executable is missing but there seems to \
                     be one in the current directory, maybe you can pass \
-                    `./tezos-node` with the right option (see `--help`) or \
+                    `./octez-node` with the right option (see `--help`) or \
                     simply add `export PATH=.:$PATH` to allow unix tools to \
                     find it." ))
         else return () )
@@ -284,19 +284,19 @@ module Shell_environement = struct
               (Tezos_client.client_call state c []) in
           let cmd exec = String.concat ~sep:" " (exec :: call) in
           let extra =
-            let help = "Call the tezos-client used by the sandbox." in
+            let help = "Call the octez-client used by the sandbox." in
             match
               Tezos_executable.get ~protocol_kind:protocol.Tezos_protocol.kind
                 c.Tezos_client.exec
             with
-            | "tezos-client" -> []
+            | "octez-client" -> []
             | f when Caml.Filename.is_relative f ->
                 [(sprintf "c%d" i, cmd (Caml.Sys.getcwd () // f), help)]
             | f -> [(sprintf "c%d" i, cmd (Caml.Sys.getcwd () // f), help)]
           in
           [ ( sprintf "tc%d" i
-            , cmd "tezos-client"
-            , "Call the `tezos-client` from the path." ) ]
+            , cmd "octez-client"
+            , "Call the `octez-client` from the path." ) ]
           @ extra ) in
     make ~aliases
 

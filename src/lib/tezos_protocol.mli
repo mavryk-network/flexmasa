@@ -49,11 +49,12 @@ module Protocol_kind : sig
     | `Ithaca
     | `Jakarta
     | `Kathmandu
+    | `Lima
     | `Alpha ]
 
   val default : t
   val names : (string * t) list
-  val cmdliner_term : docs:string -> unit -> t Cmdliner.Term.t
+  val cmdliner_term : ?default:t -> docs:string -> unit -> t Cmdliner.Term.t
   val pp : t Fmt.t
   val canonical_hash : t -> string
   val daemon_suffix_exn : t -> string

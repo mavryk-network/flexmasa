@@ -77,6 +77,13 @@ module Genesis_block_hash = struct
          * Seed: "tutobox15-8628610"
            → block: "BMZd8EyX6m221RMzeP3Eu2f28vrhNfCsUkoMUwGXYWihTJ5aD9m"
            → chain-id: "NetXj4nRMnbBoxK"
+      $ ./flextesa van --first --seed tutobox15- --attempts 100_000_000  BoxL
+     Flextesa.vanity-chain-id:  Looking for "BoxL"
+     Flextesa.vanity-chain-id:
+       Results:
+         * Seed: "tutobox15-5141571"
+           → block: "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
+           → chain-id: "NetXPabwW4tBoxL"
       $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
      Flextesa.vanity-chain-id:  Looking for "BoxA"
      Flextesa.vanity-chain-id:
@@ -95,6 +102,7 @@ module Genesis_block_hash = struct
     | `Ithaca -> "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
     | `Jakarta -> "BLfSRBVkFEdfDEwU5NSqNWoDh2N5HCCvmzj4rS3sPPCt6jSvGJC"
     | `Kathmandu -> "BMZd8EyX6m221RMzeP3Eu2f28vrhNfCsUkoMUwGXYWihTJ5aD9m"
+    | `Lima -> "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
@@ -230,8 +238,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
-    ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
-    accuser_exec test_kind () =
+    node_exec client_exec baker_exec endorser_exec accuser_exec test_kind () =
   ( if clear_root then
     Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
     >>= fun () -> Helpers.clear_root state
@@ -269,27 +276,6 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.")
   >>= fun () ->
-  Tezos_client.rpc state
-    ~client:(Tezos_client.of_node (List.hd_exn nodes) ~exec:client_exec)
-    `Get ~path:"/chains/main/chain_id"
-  >>= fun chain_id_json ->
-  let network_id =
-    match chain_id_json with `String s -> s | _ -> assert false in
-  Asynchronous_result.map_option generate_kiln_config ~f:(fun kiln_config ->
-      Kiln.Configuration_directory.generate state kiln_config ~protocol
-        ~peers:(List.map nodes ~f:(fun {Tezos_node.p2p_port; _} -> p2p_port))
-        ~sandbox_json:(Tezos_protocol.sandbox_path state protocol)
-        ~nodes:
-          (List.map nodes ~f:(fun {Tezos_node.rpc_port; _} ->
-               sprintf "http://localhost:%d" rpc_port ) )
-        ~bakers:
-          (List.map protocol.Tezos_protocol.bootstrap_accounts
-             ~f:(fun (account, _) ->
-               Tezos_protocol.Account.(name account, pubkey_hash account) ) )
-        ~network_string:network_id ~node_exec ~client_exec
-        ~protocol_execs:
-          [(protocol.Tezos_protocol.hash, baker_exec, endorser_exec)] )
-  >>= fun (_ : unit option) ->
   let to_keyed acc client =
     let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
     let keyed_client =
@@ -440,15 +426,14 @@ let cmd () =
         accu
         hard_fork
         genesis_block_choice
-        generate_kiln_config
         nodes_history_mode_edits
         state
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
             ?hard_fork ~clear_root ~nodes_history_mode_edits
-            ?generate_kiln_config ~external_peer_ports ~no_daemons_for
-            ~genesis_block_choice test_kind in
+            ~external_peer_ports ~no_daemons_for ~genesis_block_choice test_kind
+        in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test) )
     $ term_result ~usage:true
@@ -530,7 +515,6 @@ let cmd () =
     $ Tezos_executable.cli_term base_state `Accuser "tezos"
     $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Genesis_block_hash.Choice.cmdliner_term ()
-    $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state () in
   let info =
