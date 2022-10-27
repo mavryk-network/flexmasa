@@ -166,7 +166,7 @@ opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-
 opam install --deps-only --with-test --with-doc \
      ./tezai-tz1-crypto.opam \
      ./flextesa.opam ./flextesa-cli.opam # Most of this should be already done.
-opam install merlin ocamlformat.0.19.0    # For development.
+opam install merlin ocamlformat.0.24.1    # For development.
 ```
 
 Then:

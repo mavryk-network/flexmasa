@@ -73,7 +73,7 @@ lint:
   stage: build
   script:
      - sh -c "$SHOW_INFO"
-     - opam install ocamlformat.0.19.0
+     - opam install ocamlformat.0.24.1
      - opam exec -- ocamlformat --version
      - opam exec -- make fmt
      - git diff --exit-code
