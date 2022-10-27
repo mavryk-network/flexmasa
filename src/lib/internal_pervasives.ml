@@ -1,6 +1,6 @@
 (** Local “Pervasives” module for flextesa.
 
-See also ["docs/tutorials/flextesa.rst"]. *)
+    See also ["docs/tutorials/flextesa.rst"]. *)
 
 include Base
 
@@ -27,13 +27,15 @@ module EF = struct
   let ocaml_tuple =
     list ~delimiters:("(", ")") ~sep:","
       ~param:
-        { default_list with
-          space_after_opening= false
-        ; space_before_closing= false }
+        {
+          default_list with
+          space_after_opening = false;
+          space_before_closing = false;
+        }
 
-  let shout = atom ~param:{atom_style= Some "shout"}
-  let prompt = atom ~param:{atom_style= Some "prompt"}
-  let highlight = atom ~param:{atom_style= Some "prompt"}
+  let shout = atom ~param:{ atom_style = Some "shout" }
+  let prompt = atom ~param:{ atom_style = Some "prompt" }
+  let highlight = atom ~param:{ atom_style = Some "prompt" }
   let custom pr = Custom pr
   let pr f = custom (fun ppf -> f (Fmt.pf ppf))
   let desc_list s l = label s (list ~sep:"," l)
@@ -67,21 +69,23 @@ module Dbg = struct
   let () =
     Option.iter (Caml.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
       | "true" -> on := true
-      | _ -> () )
+      | _ -> ())
 
   let e ef =
     if !on then (
       EF.(
         list ~delimiters:("<DBG|", "|DBG>") ~sep:""
           ~param:
-            { default_list with
-              separator_style= Some "debug"
-            ; align_closing= true
-            ; space_after_opening= true
-            ; space_before_closing= true }
-          [ef]
-        |> Easy_format.Pretty.to_stderr) ;
-      Fmt.epr "\n%!" )
+            {
+              default_list with
+              separator_style = Some "debug";
+              align_closing = true;
+              space_after_opening = true;
+              space_before_closing = true;
+            }
+          [ ef ]
+        |> Easy_format.Pretty.to_stderr);
+      Fmt.epr "\n%!")
 
   let i (e : EF.t) = ignore e
   let f f = e (EF.pr f)
@@ -92,18 +96,19 @@ end
 module Date = struct
   open Ptime
 
-  type t = {time: Ptime.t; tz: int}
+  type t = { time : Ptime.t; tz : int }
 
   let opt_exn msg o = Option.value_exn ~message:(Fmt.str "Date: %s" msg) o
 
-  let pp_debug ppf {time; tz} =
+  let pp_debug ppf { time; tz } =
     Fmt.pf ppf "{time: %s; tz: %d}" (Ptime.to_rfc3339 time) tz
 
   let now ?(tz_s = 0) () =
     let time =
       Unix.gettimeofday () +. Float.of_int tz_s
-      |> Ptime.of_float_s |> opt_exn "now failed" in
-    {time; tz= tz_s}
+      |> Ptime.of_float_s |> opt_exn "now failed"
+    in
+    { time; tz = tz_s }
 
   module Local = struct
     let default_tz_s = ref 0
@@ -119,25 +124,25 @@ module Date = struct
     let now () = now ~tz_s:!default_tz_s ()
   end
 
-  let to_short_string ?(with_tz = true) {time; tz} =
+  let to_short_string ?(with_tz = true) { time; tz } =
     let (y, m, d), ((hh, mm, ss), _) = to_date_time time in
     let ms = frac_s time |> Span.to_float_s in
     Fmt.str "%04d%02d%02d-%02d%02d%02d.%03d%s" y m d hh mm ss
       (ms *. 1000. |> Float.to_int)
-      ( if with_tz then
-        Fmt.str "%s%02d%02d"
-          (if tz >= 0 then "+" else "-")
-          (abs tz / 60 / 60)
-          (abs tz / 60 % 60)
-      else "" )
+      (if with_tz then
+       Fmt.str "%s%02d%02d"
+         (if tz >= 0 then "+" else "-")
+         (abs tz / 60 / 60)
+         (abs tz / 60 % 60)
+      else "")
 
-  let to_rfc3339 {time; tz} =
+  let to_rfc3339 { time; tz } =
     Ptime.to_rfc3339 ~space:false ~frac_s:6 ~tz_offset_s:tz time
 end
 
 module More_fmt = struct
-  (** Little experiment for fun … *)
   include Fmt
+  (** Little experiment for fun … *)
 
   let vertical_box ?indent ppf f = vbox ?indent (fun ppf () -> f ppf) ppf ()
   let wrapping_box ?indent ppf f = box ?indent (fun ppf () -> f ppf) ppf ()
@@ -145,15 +150,17 @@ module More_fmt = struct
 
   let markdown_verbatim_list ppf l =
     vertical_box ~indent:0 ppf (fun ppf ->
-        cut ppf () ;
-        string ppf (String.make 45 '`') ;
-        List.iter l ~f:(fun l -> cut ppf () ; string ppf l) ;
-        cut ppf () ;
-        string ppf (String.make 45 '`') )
+        cut ppf ();
+        string ppf (String.make 45 '`');
+        List.iter l ~f:(fun l ->
+            cut ppf ();
+            string ppf l);
+        cut ppf ();
+        string ppf (String.make 45 '`'))
 
   let tag tag ppf f =
-    Caml.Format.(pp_open_stag ppf (String_tag tag)) ;
-    (f ppf : unit) ;
+    Caml.Format.(pp_open_stag ppf (String_tag tag));
+    (f ppf : unit);
     Caml.Format.pp_close_stag ppf ()
 
   let shout = tag "shout"
@@ -177,53 +184,56 @@ module Attached_result = struct
     | `Verbatim of string list
     | `String_list of string list ]
 
-  type ('ok, 'error) t =
-    {result: ('ok, 'error) Result.t; attachments: (string * content) list}
+  type ('ok, 'error) t = {
+    result : ('ok, 'error) Result.t;
+    attachments : (string * content) list;
+  }
 
-  let ok ?(attachments = []) o = {result= Ok o; attachments}
-  let error ?(attachments = []) o = {result= Error o; attachments}
+  let ok ?(attachments = []) o = { result = Ok o; attachments }
+  let error ?(attachments = []) o = { result = Error o; attachments }
 
-  let pp ppf ?pp_ok ?pp_error {result= the_result; attachments} =
+  let pp ppf ?pp_ok ?pp_error { result = the_result; attachments } =
     let open More_fmt in
     let result_part ppf =
       match the_result with
       | Ok o ->
           wrapping_box ~indent:4 ppf (fun ppf ->
-              prompt ppf (fun ppf -> pf ppf "OK") ;
-              Option.iter pp_ok ~f:(fun ppo -> pf ppf ":@ %a." ppo o) )
+              prompt ppf (fun ppf -> pf ppf "OK");
+              Option.iter pp_ok ~f:(fun ppo -> pf ppf ":@ %a." ppo o))
       | Error e ->
           wrapping_box ~indent:4 ppf (fun ppf ->
-              shout ppf (fun ppf -> pf ppf "Error") ;
-              Option.iter pp_error ~f:(fun ppe -> pf ppf ":@ %a." ppe e) ) in
+              shout ppf (fun ppf -> pf ppf "Error");
+              Option.iter pp_error ~f:(fun ppe -> pf ppf ":@ %a." ppe e))
+    in
     match attachments with
     | [] -> result_part ppf
     | more ->
         vertical_box ~indent:0 ppf (fun ppf ->
-            result_part ppf ;
+            result_part ppf;
             List.iter more ~f:(fun (k, v) ->
-                cut ppf () ;
+                cut ppf ();
                 wrapping_box ppf ~indent:2 (fun ppf ->
-                    pf ppf "* " ;
-                    prompt ppf (fun ppf -> string ppf k) ;
+                    pf ppf "* ";
+                    prompt ppf (fun ppf -> string ppf k);
                     match v with
                     | `Text t -> pf ppf ": %a" text t
                     | `String_value s -> pf ppf ": %S" s
                     | `String_list sl ->
-                        pf ppf ": [" ;
-                        cut ppf () ;
+                        pf ppf ": [";
+                        cut ppf ();
                         wrapping_box ~indent:2 ppf (fun ppf ->
-                            list ~sep:sp (fun ppf -> pf ppf "%S;") ppf sl ;
-                            pf ppf "]" )
+                            list ~sep:sp (fun ppf -> pf ppf "%S;") ppf sl;
+                            pf ppf "]")
                     | `Verbatim [] -> pf ppf ": EMPTY"
                     | `Verbatim sl ->
-                        pf ppf ":" ;
+                        pf ppf ":";
                         let lines =
                           let sep = String.make 50 '`' in
-                          (sep :: List.drop sl (List.length sl - 20)) @ [sep]
+                          (sep :: List.drop sl (List.length sl - 20)) @ [ sep ]
                         in
-                        cut ppf () ;
+                        cut ppf ();
                         vertical_box ~indent:0 ppf (fun ppf ->
-                            list ~sep:cut string ppf lines ) ) ) )
+                            list ~sep:cut string ppf lines))))
 end
 
 (** A wrapper around [('ok, 'a Error.t) result Lwt.t]. *)
@@ -245,71 +255,63 @@ module Asynchronous_result = struct
 
   let bind (o : (_, _) t) f : (_, _) t =
     let open Lwt.Infix in
-    o
-    >>= function
-    | {result= Ok o; attachments= attach} ->
-        yield ()
-        >>= fun () ->
-        f o
-        >>= fun {result; attachments} ->
-        Lwt.return {result; attachments= attachments @ attach}
-    | {result= Error _; _} as e -> Lwt.return e
+    o >>= function
+    | { result = Ok o; attachments = attach } ->
+        yield () >>= fun () ->
+        f o >>= fun { result; attachments } ->
+        Lwt.return { result; attachments = attachments @ attach }
+    | { result = Error _; _ } as e -> Lwt.return e
 
   let bind_on_error :
-         ('a, 'b) t
-      -> f:
-           (   result:('c, 'b) Attached_result.t
-            -> 'b
-            -> ('a, 'd) Attached_result.t Lwt.t )
-      -> ('a, 'd) t =
+      ('a, 'b) t ->
+      f:
+        (result:('c, 'b) Attached_result.t ->
+        'b ->
+        ('a, 'd) Attached_result.t Lwt.t) ->
+      ('a, 'd) t =
    fun o ~f ->
     let open Lwt.Infix in
-    o
-    >>= function
-    | {result= Ok _; _} as o -> Lwt.return o
-    | {result= Error e; attachments= attach} as res ->
-        f ~result:res e
-        >>= fun {result; attachments} ->
-        Lwt.return {result; attachments= attachments @ attach}
+    o >>= function
+    | { result = Ok _; _ } as o -> Lwt.return o
+    | { result = Error e; attachments = attach } as res ->
+        f ~result:res e >>= fun { result; attachments } ->
+        Lwt.return { result; attachments = attachments @ attach }
 
   let transform_error o ~f =
     let open Lwt.Infix in
-    o
-    >>= function
-    | {result= Ok _; _} as o -> Lwt.return o
-    | {result= Error e; attachments} ->
-        Lwt.return {result= Error (f e); attachments}
+    o >>= function
+    | { result = Ok _; _ } as o -> Lwt.return o
+    | { result = Error e; attachments } ->
+        Lwt.return { result = Error (f e); attachments }
 
   let enrich :
-         attach:(unit -> ((string * content) list, 'c) t)
-      -> ('b, 'c) t
-      -> ('b, 'c) t =
+      attach:(unit -> ((string * content) list, 'c) t) ->
+      ('b, 'c) t ->
+      ('b, 'c) t =
    fun ~attach x ->
     bind_on_error x ~f:(fun ~result _ ->
         bind (attach ()) (fun attach_more ->
             Lwt.return
               Attached_result.
-                {result with attachments= result.attachments @ attach_more} ) )
+                { result with attachments = result.attachments @ attach_more }))
 
   let bind_all :
-         ('ok, 'error) t
-      -> f:(('ok, 'error) Attached_result.t -> ('ok2, 'error2) t)
-      -> ('ok2, 'error2) t =
+      ('ok, 'error) t ->
+      f:(('ok, 'error) Attached_result.t -> ('ok2, 'error2) t) ->
+      ('ok2, 'error2) t =
    fun o ~f ->
     let open Lwt.Infix in
     o >>= fun res -> f res
 
   let bind_on_result :
-         ('ok, 'error) t
-      -> f:(('ok, 'error) Result.t -> ('ok2, 'error2) t)
-      -> ('ok2, 'error2) t =
+      ('ok, 'error) t ->
+      f:(('ok, 'error) Result.t -> ('ok2, 'error2) t) ->
+      ('ok2, 'error2) t =
    fun o ~f ->
     let open Lwt.Infix in
-    o
-    >>= fun {result; attachments= attach} ->
-    f result
-    >>= fun {result; attachments} ->
-    Lwt.return {result; attachments= attachments @ attach}
+    o >>= fun { result; attachments = attach } ->
+    f result >>= fun { result; attachments } ->
+    Lwt.return { result; attachments = attachments @ attach }
 
   (** The module opened everywhere. *)
   module M = Base.Monad.Make2 (struct
@@ -320,7 +322,11 @@ module Asynchronous_result = struct
     let map = `Define_using_bind
   end)
 
-  module Std = struct let ( >>= ) = bind let return = return let fail = fail end
+  module Std = struct
+    let ( >>= ) = bind
+    let return = return
+    let fail = fail
+  end
 
   (* We get all of JaneSt's functions and then overwrite some with our own: *)
   include M
@@ -334,11 +340,12 @@ module Asynchronous_result = struct
   module List_sequential = struct
     let iter l ~f =
       List.fold l ~init:(return ()) ~f:(fun pm x ->
-          pm >>= fun () : (_, _) t -> f x )
+          pm >>= fun () : (_, _) t -> f x)
 
     let iteri l ~f =
       List.fold l ~init:(return 0) ~f:(fun pm x ->
-          pm >>= fun n -> (f n x : (_, _) t) >>= fun () -> return (n + 1) )
+          pm >>= fun n ->
+          (f n x : (_, _) t) >>= fun () -> return (n + 1))
       >>= fun _ -> return ()
   end
 
@@ -352,23 +359,25 @@ module Asynchronous_result = struct
       let rec loop n =
         match n with
         | n when n <= 0 -> return ()
-        | n -> f (1 + times - n) >>= fun () -> loop (n - 1) in
+        | n -> f (1 + times - n) >>= fun () -> loop (n - 1)
+      in
       loop times
 
     let n_times_fold times initial_arg f =
       let rec loop n arg =
         match n with
         | n when n <= 0 -> return ()
-        | n -> f (1 + times - n) arg >>= fun x -> loop (n - 1) x in
+        | n -> f (1 + times - n) arg >>= fun x -> loop (n - 1) x
+      in
       loop times initial_arg
   end
 
   module Stream = struct
     let fold :
-           'elt Lwt_stream.t
-        -> f:('b -> 'elt -> ('b, 'error) t)
-        -> init:'b
-        -> ('b, 'error) t =
+        'elt Lwt_stream.t ->
+        f:('b -> 'elt -> ('b, 'error) t) ->
+        init:'b ->
+        ('b, 'error) t =
      fun stream ~f ~init ->
       let error = ref None in
       Lwt.catch
@@ -378,15 +387,15 @@ module Asynchronous_result = struct
               match prevm.result with
               | Ok x -> f x elt
               | Error _ ->
-                  error := Some prevm ;
-                  Lwt.fail Caml.Not_found )
-            stream (Attached_result.ok init) )
+                  error := Some prevm;
+                  Lwt.fail Caml.Not_found)
+            stream (Attached_result.ok init))
         (fun e ->
           match !error with
           | Some res -> Lwt.return res
           | None ->
               (* `f` threw a forbidden exception! *)
-              Lwt.fail e )
+              Lwt.fail e)
   end
 
   let run_application :
@@ -395,18 +404,17 @@ module Asynchronous_result = struct
     Lwt_main.at_exit
       Lwt.(
         fun () ->
-          Dbg.e EF.(wf "Lwt-at-exit: run_application") ;
-          return ()) ;
+          Dbg.e EF.(wf "Lwt-at-exit: run_application");
+          return ());
     match
       lwt_run
         Lwt.(
-          Lwt.pause ()
-          >>= fun () ->
-          Dbg.e EF.(wf "Lwt_main.run") ;
+          Lwt.pause () >>= fun () ->
+          Dbg.e EF.(wf "Lwt_main.run");
           r ())
     with
-    | {result= Ok (); _} -> Caml.exit 0
-    | {result= Error (`Die ret); _} -> Caml.exit ret
+    | { result = Ok (); _ } -> Caml.exit 0
+    | { result = Error (`Die ret); _ } -> Caml.exit ret
 end
 
 include Asynchronous_result.Std
@@ -415,11 +423,11 @@ module Loop = Asynchronous_result.Loop
 
 module System_error = struct
   type static = Exception of exn | Message of string
-  type t = [`System_error of [`Fatal] * static]
+  type t = [ `System_error of [ `Fatal ] * static ]
 
-  let fatal e : [> t] = `System_error (`Fatal, e)
-  let fatal_message e : [> t] = `System_error (`Fatal, Message e)
-  let fail_fatal ?attach e = fail ?attach (`System_error (`Fatal, e) : [> t])
+  let fatal e : [> t ] = `System_error (`Fatal, e)
+  let fatal_message e : [> t ] = `System_error (`Fatal, Message e)
+  let fail_fatal ?attach e = fail ?attach (`System_error (`Fatal, e) : [> t ])
 
   let catch ?attach f x =
     Lwt.catch
@@ -432,20 +440,21 @@ module System_error = struct
   let fail_fatalf ?attach fmt =
     Fmt.kstr (fun e -> fail_fatal ?attach (Message e)) fmt
 
-  let pp fmt (e : [< t]) =
+  let pp fmt (e : [< t ]) =
     match e with
     | `System_error (`Fatal, e) ->
         Fmt.pf fmt "@[<2>Fatal-system-error:@ %a@]"
           (fun ppf -> function
             | Exception e -> Fmt.exn ppf e
-            | Message e -> Fmt.string ppf e )
+            | Message e -> Fmt.string ppf e)
           e
 end
 
-(** A wrapper around a structural type describing the result of
-    external processes. *)
+(** A wrapper around a structural type describing the result of external
+    processes. *)
 module Process_result = struct
-  type t = < err: string list ; out: string list ; status: Unix.process_status >
+  type t =
+    < err : string list ; out : string list ; status : Unix.process_status >
 
   let status_to_string s =
     Lwt_unix.(
@@ -456,13 +465,13 @@ module Process_result = struct
 
   module Error = struct
     type error =
-      | Wrong_status of {status: Unix.process_status; message: string}
-      | Wrong_behavior of {message: string}
+      | Wrong_status of { status : Unix.process_status; message : string }
+      | Wrong_behavior of { message : string }
 
     type res = t
-    type t = [`Process_error of error]
+    type t = [ `Process_error of error ]
 
-    let make error : [> t] = `Process_error error
+    let make error : [> t ] = `Process_error error
     let fail ?attach error = Asynchronous_result.fail ?attach (make error)
 
     let wrong_status ?attach result msgf =
@@ -470,24 +479,27 @@ module Process_result = struct
         (fun message ->
           let attach =
             Option.value attach ~default:[]
-            @ [ ("stdout", `Verbatim result#out)
-              ; ("stderr", `Verbatim result#err) ] in
-          fail ~attach (Wrong_status {status= result#status; message}) )
+            @ [
+                ("stdout", `Verbatim result#out);
+                ("stderr", `Verbatim result#err);
+              ]
+          in
+          fail ~attach (Wrong_status { status = result#status; message }))
         msgf
 
     let wrong_behavior ?attach msgf =
-      Fmt.kstr (fun message -> fail ?attach (Wrong_behavior {message})) msgf
+      Fmt.kstr (fun message -> fail ?attach (Wrong_behavior { message })) msgf
 
     let pp ppf (`Process_error the_error) =
       let open More_fmt in
       wrapping_box ppf (fun ppf ->
-          pf ppf "Process-error:" ;
-          sp ppf () ;
+          pf ppf "Process-error:";
+          sp ppf ();
           match the_error with
-          | Wrong_status {status; message} ->
-              text ppf message ;
+          | Wrong_status { status; message } ->
+              text ppf message;
               pf ppf "; wrong-status: '%s'." (status_to_string status)
-          | Wrong_behavior {message} -> text ppf message )
+          | Wrong_behavior { message } -> text ppf message)
 
     let fail_if_non_zero (res : res) msg =
       if Poly.( <> ) res#status (Unix.WEXITED 0) then
@@ -496,11 +508,10 @@ module Process_result = struct
   end
 end
 
-(** The state within this library is packed into an open object
-    (structural) type, this module just defines the [application_name]
-    method. *)
+(** The state within this library is packed into an open object (structural)
+    type, this module just defines the [application_name] method. *)
 module Base_state = struct
-  type base = < application_name: string >
+  type base = < application_name : string >
   type 'a t = 'a constraint 'a = < base ; .. >
 end
 
@@ -515,17 +526,18 @@ module Manpage_builder = struct
     type doc = Lines of string list
 
     let man all_known : Cmdliner.Manpage.block list =
-      [`S Section.environment_variables]
+      [ `S Section.environment_variables ]
       @ List.map all_known ~f:(fun (name, Lines lines) ->
-            `I (name, String.concat ~sep:"\n" lines) )
+            `I (name, String.concat ~sep:"\n" lines))
   end
 
   module State = struct
-    type t =
-      { mutable used_sections: (int * string * Cmdliner.Manpage.block list) list
-      ; mutable env_variables: (string * Env_variables.doc) list }
+    type t = {
+      mutable used_sections : (int * string * Cmdliner.Manpage.block list) list;
+      mutable env_variables : (string * Env_variables.doc) list;
+    }
 
-    let make () = {used_sections= []; env_variables= []}
+    let make () = { used_sections = []; env_variables = [] }
     let _state state = state#manpager
 
     let add_section ?(man = []) state ~rank ~name =
@@ -547,19 +559,23 @@ module Manpage_builder = struct
   end
 
   let section ?man state ~rank ~name =
-    State.add_section ?man state ~rank ~name ;
+    State.add_section ?man state ~rank ~name;
     name
 
   let section_test_scenario state =
-    State.add_section state ~rank:0 ~name:Section.test_scenario ;
+    State.add_section state ~rank:0 ~name:Section.test_scenario;
     Section.test_scenario
 
   let make state ~intro_blob extra : Cmdliner.Manpage.block list =
     let sections = State.all_sections state in
     List.concat
-      [ [`P intro_blob]; extra; List.concat sections
-      ; Env_variables.man state#manpager.State.env_variables
-      ; [`S Cmdliner.Manpage.s_options] ]
+      [
+        [ `P intro_blob ];
+        extra;
+        List.concat sections;
+        Env_variables.man state#manpager.State.env_variables;
+        [ `S Cmdliner.Manpage.s_options ];
+      ]
 end
 
 (** Some {!Lwt_unix} functions. *)
@@ -570,26 +586,24 @@ module System = struct
     System_error.catch
       (fun () ->
         Lwt_io.with_file ?perm ~mode:Lwt_io.output path (fun out ->
-            Lwt_io.write out content ) )
+            Lwt_io.write out content))
       ()
 
   let read_file (_state : _ Base_state.t) path =
     System_error.catch
       (fun () ->
-        Lwt_io.with_file ~mode:Lwt_io.input path (fun out -> Lwt_io.read out) )
+        Lwt_io.with_file ~mode:Lwt_io.input path (fun out -> Lwt_io.read out))
       ()
 
   let command (_state : _ Base_state.t) s =
-    System_error.catch Lwt_unix.system s
-    >>= fun status -> return Poly.(status = Lwt_unix.WEXITED 0)
+    System_error.catch Lwt_unix.system s >>= fun status ->
+    return Poly.(status = Lwt_unix.WEXITED 0)
 
   let rec ensure_directory_path_exn ?(perm = 0o755) dir =
     let open Lwt in
-    Lwt_unix.file_exists dir
-    >>= function
+    Lwt_unix.file_exists dir >>= function
     | false ->
-        ensure_directory_path_exn (Caml.Filename.dirname dir)
-        >>= fun () ->
+        ensure_directory_path_exn (Caml.Filename.dirname dir) >>= fun () ->
         Lwt.catch
           (fun () -> Lwt_unix.mkdir dir perm)
           (function
@@ -597,28 +611,28 @@ module System = struct
                 (* This is the case where the directory has been created
                    by another Lwt.t, after the call to Lwt_unix.file_exists. *)
                 Lwt.return_unit
-            | e -> Lwt.fail e )
+            | e -> Lwt.fail e)
     | true -> (
-        Lwt_unix.stat dir
-        >>= function
-        | {st_kind= S_DIR; _} -> Lwt.return_unit
-        | _ -> Lwt.fail_with "Not a directory" )
+        Lwt_unix.stat dir >>= function
+        | { st_kind = S_DIR; _ } -> Lwt.return_unit
+        | _ -> Lwt.fail_with "Not a directory")
 
   let editor_opt state =
     let attempts =
-      let defaults = ["nano"; "vi"] in
-      try Caml.Sys.getenv "EDITOR" :: defaults with _ -> defaults in
+      let defaults = [ "nano"; "vi" ] in
+      try Caml.Sys.getenv "EDITOR" :: defaults with _ -> defaults
+    in
     List.fold attempts ~init:(return None) ~f:(fun prevm attempt ->
-        prevm
-        >>= function
+        prevm >>= function
         | Some s -> return (Some s)
         | None -> (
             Fmt.kstr (command state) "which %s > /dev/null 2>&1" attempt
-            >>= function true -> return (Some attempt) | false -> return None ) )
+            >>= function
+            | true -> return (Some attempt)
+            | false -> return None))
 
   let editor state =
-    editor_opt state
-    >>= function
+    editor_opt state >>= function
     | Some s -> return s
     | None -> System_error.fail_fatalf "Cannot find any editor."
 end
@@ -638,11 +652,12 @@ module Jqo = struct
         let foldf acc x =
           match x with
           | `O obj -> (
-            match List.Assoc.find obj ~equal:String.equal k with
-            | Some z -> z :: acc
-            | None -> acc )
+              match List.Assoc.find obj ~equal:String.equal k with
+              | Some z -> z :: acc
+              | None -> acc)
           | _ -> acc
-          (*expecting an object here*) in
+          (*expecting an object here*)
+        in
         List.fold val_list ~init:[] ~f:foldf
     | _ -> []
 
@@ -680,7 +695,8 @@ module Jqo = struct
             let target_val = field ~k:target_k x in
             target_val :: r
           else r
-      | Some _ -> r in
+      | Some _ -> r
+    in
     match json_arr with
     | `A l ->
         List.fold_right l ~init:[] ~f:(foldf match_key match_val target_key)
