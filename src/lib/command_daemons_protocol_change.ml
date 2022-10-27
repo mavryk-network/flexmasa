@@ -55,9 +55,9 @@ let wait_for_voting_period ?level_within_period state ~protocol ~client
           >>= fun () -> return (`Not_done message) )
 
 let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
-    ?external_peer_ports ?generate_kiln_config ~node_exec ~client_exec
-    ~first_baker_exec ~first_endorser_exec ~first_accuser_exec
-    ~second_baker_exec ~second_endorser_exec ~second_accuser_exec ~admin_exec
+    ?external_peer_ports ~node_exec ~client_exec ~first_baker_exec
+    ~first_endorser_exec ~first_accuser_exec ~second_baker_exec
+    ~second_endorser_exec ~second_accuser_exec ~admin_exec
     ~extra_dummy_proposals_batch_size ~extra_dummy_proposals_batch_levels
     ~waiting_attempts test_variant wait_level () =
   Helpers.clear_root state
@@ -82,12 +82,6 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
   Test_scenario.network_with_protocol ?external_peer_ports ~protocol ~size
     ~base_port state ~node_exec ~client_exec
   >>= fun (nodes, protocol) ->
-  Tezos_client.rpc state
-    ~client:(Tezos_client.of_node (List.hd_exn nodes) ~exec:client_exec)
-    `Get ~path:"/chains/main/chain_id"
-  >>= fun chain_id_json ->
-  let network_id =
-    match chain_id_json with `String s -> s | _ -> assert false in
   let accusers =
     List.concat_map nodes ~f:(fun node ->
         let client = Tezos_client.of_node node ~exec:client_exec in
@@ -171,30 +165,6 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
   | Some s -> return s
   | None -> failf "protocol injection problem?" )
   >>= fun new_protocol_hash ->
-  Asynchronous_result.map_option generate_kiln_config ~f:(fun kiln_config ->
-      Kiln.Configuration_directory.generate state kiln_config
-        ~peers:(List.map nodes ~f:(fun {Tezos_node.p2p_port; _} -> p2p_port))
-        ~sandbox_json:(Tezos_protocol.sandbox_path state protocol)
-        ~nodes:
-          (List.map nodes ~f:(fun {Tezos_node.rpc_port; _} ->
-               sprintf "http://localhost:%d" rpc_port ) )
-        ~bakers:
-          (List.map protocol.Tezos_protocol.bootstrap_accounts
-             ~f:(fun (account, _) ->
-               Tezos_protocol.Account.(name account, pubkey_hash account) ) )
-        ~network_string:network_id ~node_exec ~client_exec
-        ~protocol_execs:
-          [ (protocol.Tezos_protocol.hash, first_baker_exec, first_endorser_exec)
-          ; (new_protocol_hash, second_baker_exec, second_endorser_exec) ]
-        ~protocol
-      >>= fun () ->
-      let msg =
-        EF.(
-          desc
-            (shout "Kiln-Configuration DONE")
-            (wf "Kiln was configured at `%s`" kiln_config.path)) in
-      Console.say state msg >>= fun () -> return msg )
-  >>= fun kiln_info_opt ->
   Test_scenario.Queries.wait_for_all_levels_to_be state
     ~attempts:waiting_attempts
     ~seconds:(fun () -> return 10.)
@@ -206,7 +176,6 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
   Interactive_test.Pauser.generic state
     EF.
       [ wf "Test becomes interactive."
-      ; Option.value kiln_info_opt ~default:(wf "")
       ; wf "Please type `q` to start a voting/protocol-change period." ]
   >>= fun () ->
   wait_for_voting_period state ~protocol ~client:client_0
@@ -358,7 +327,6 @@ let cmd () =
         (`Next_protocol next_protocol_kind)
         (`Extra_dummy_proposals_batch_size extra_dummy_proposals_batch_size)
         (`Extra_dummy_proposals_batch_levels extra_dummy_proposals_batch_levels)
-        generate_kiln_config
         test_variant
         wait_level
         state
@@ -367,9 +335,8 @@ let cmd () =
           run state ~size ~base_port ~protocol ~node_exec ~client_exec
             ~first_baker_exec ~first_endorser_exec ~first_accuser_exec
             ~second_baker_exec ~second_endorser_exec ~second_accuser_exec
-            ~admin_exec ?generate_kiln_config ~external_peer_ports
-            ~no_daemons_for ~next_protocol_kind test_variant ~waiting_attempts
-            ~extra_dummy_proposals_batch_size
+            ~admin_exec ~external_peer_ports ~no_daemons_for ~next_protocol_kind
+            test_variant ~waiting_attempts ~extra_dummy_proposals_batch_size
             ~extra_dummy_proposals_batch_levels wait_level in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test) )
@@ -399,9 +366,9 @@ let cmd () =
                (info ["no-daemons-for"] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv)." ) ))
     $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node "tezos"
-    $ Tezos_executable.cli_term base_state `Client "tezos"
-    $ Tezos_executable.cli_term base_state `Admin "tezos"
+    $ Tezos_executable.cli_term base_state `Node "octez"
+    $ Tezos_executable.cli_term base_state `Client "octez"
+    $ Tezos_executable.cli_term base_state `Admin "octez"
     $ Tezos_executable.cli_term base_state `Baker "first"
     $ Tezos_executable.cli_term base_state `Endorser "first"
     $ Tezos_executable.cli_term base_state `Accuser "first"
@@ -433,7 +400,6 @@ let cmd () =
                   ~doc:
                     "Set the levels within the proposal period where batches \
                      of extra proposals appear, e.g. `3,5,7`." ) ))
-    $ Kiln.Configuration_directory.cli_term base_state
     $ Arg.(
         let doc =
           sprintf "Which variant of the test to run (one of {%s})"

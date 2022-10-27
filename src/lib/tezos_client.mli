@@ -1,4 +1,4 @@
-(** Wrapper around the main ["tezos-client"] application. *)
+(** Wrapper around the main ["octez-client"] application. *)
 open Internal_pervasives
 
 type t = {id: string; port: int; exec: Tezos_executable.t}
@@ -21,7 +21,7 @@ val client_call :
   -> client
   -> string list
   -> string list
-(** Build the arguments for a given default tezos-client (not
+(** Build the arguments for a given default octez-client (not
     including the executable). *)
 
 val client_command :
@@ -30,7 +30,7 @@ val client_command :
   -> client
   -> string list
   -> unit Genspio.Language.t
-(** Build a tezos-client command, the default [?wait] is ["none"]. *)
+(** Build a octez-client command, the default [?wait] is ["none"]. *)
 
 (** {3 Run Specific Client Commands } *)
 

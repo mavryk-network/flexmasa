@@ -15,16 +15,16 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/587803531
-# (from 2022-07-14)
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/673570097
+# (from 2022-10-21)
 # 
 directory_name=
 case $(uname -m) in
     x86_64 ) 
-        download_uri="https://www.dropbox.com/s/e1wpv0ns0uoybzq/octez-static-x86_64-20220714-16139989.zip?raw=1"
+        download_uri="https://www.dropbox.com/s/ueed8of0d2qmgyx/octez-static-x86_64-20221021-7f29704d21.zip?raw=1"
         directory_name=x86_64 ;;
     aarch64 )
-        download_uri="https://www.dropbox.com/s/22r5zxvrdk1m669/octez-static-arm64-20220714-16139989.zip?raw=1"
+        download_uri="https://www.dropbox.com/s/begoarxuhcfrk7o/octez-static-arm64-20221021-7f29704d21.zip?raw=1"
         directory_name=arm64 ;;
     * ) echo "Unknown architecture: $(uname -a)" >&2 ; exit 4 ;;
 esac
@@ -33,7 +33,7 @@ esac
     curl -L "$download_uri" -o "$dest_dir/bins.zip"
     cd "$dest_dir"
     unzip bins.zip
-    mv tezos-binaries/$directory_name/* .
-    rm -fr bins.zip tezos-binaries/
-    chmod a+rx tezos-*
+    mv octez-binaries/$directory_name/* .
+    rm -fr bins.zip octez-binaries/
+    chmod a+rx octez-*
 )
