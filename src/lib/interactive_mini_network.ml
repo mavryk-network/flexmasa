@@ -412,8 +412,11 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                   contract_orig
                 >>= fun deposit_contract ->
                 let tx_node =
-                  Tx_rollup.Tx_node.make ~mode:tx.mode ~protocol:protocol.kind
-                    ~exec:tx.node ~client:cli ~account () in
+                  Tx_rollup.Tx_node.(
+                    let port = !(next_port rpc_port nodes) in
+                    make ~port ~endpoint:base_port ~mode:tx.mode
+                      ~protocol:protocol.kind ~exec:tx.node ~client:cli ~account
+                      ()) in
                 List_sequential.iter tx_node.operation_signers ~f:(fun os ->
                     Tx_rollup.Tx_node.operation_signer_map os
                       ~f:(fun (_op_acc, op_key) ->
@@ -435,12 +438,16 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                 Console.say state
                   EF.(
                     desc_list
-                      (haf "Transactional rollup is ready:")
+                      (haf "Transactional Rollup Sandbox is ready:")
                       [ desc (af "Name:") (af "%S" account.name)
                       ; desc (af "Address:") (af "`%s`" account.address)
-                      ; desc (af "Operation") (af "`%s`" account.operation_hash)
+                      ; desc (af "Operation:")
+                          (af "`%s`" account.operation_hash)
                       ; desc
-                          (af "Deposit-contract Address")
+                          (af "Tx-rollup Node RPC port:")
+                          (af "`%d`" !Tx_rollup.Tx_node.rpc_port)
+                      ; desc
+                          (af "Deposit-contract Address:")
                           (af "`%s`" deposit_contract) ]) ) )
   >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in

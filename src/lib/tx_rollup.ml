@@ -175,6 +175,16 @@ module Tx_node = struct
     | Operator -> "operator"
     | Custom -> "custom "
 
+  let rpc_port = ref 0
+
+  let next_port (port : int ref) (nodes : Tezos_node.t list) =
+    let last =
+      List.(
+        fold nodes ~init:[] ~f:(fun i n -> n.rpc_port :: i)
+        |> max_elt ~compare:Int.compare) in
+    port := max !port (Option.value last ~default:20000) + 2 ;
+    port
+
   let make ?id ?port ?endpoint ~protocol ~exec ~client ~mode ?cors_origin
       ~account ?operation_signers () : t =
     let name =
@@ -225,6 +235,9 @@ module Tx_node = struct
     @ Option.value_map cors_origin
         ~f:(fun s ->
           flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s )
+        ~default:[]
+    @ Option.value_map t.port
+        ~f:(fun p -> opt "rpc-addr" (sprintf "0.0.0.0:%d" p))
         ~default:[]
 
   let init state t =

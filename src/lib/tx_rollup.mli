@@ -85,6 +85,9 @@ module Tx_node : sig
     -> 'a
   (** [operation_signer_map f signer] applies [f] to [signer]*)
 
+  val rpc_port : int ref
+  val next_port : int ref -> Tezos_node.t list -> int ref
+
   val make :
        ?id:string
     -> ?port:int
