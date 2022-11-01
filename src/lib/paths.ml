@@ -1,11 +1,13 @@
 open Internal_pervasives
 
-type t = {root: string}
+type t = { root : string }
 
 let make root =
-  { root=
-      ( if Caml.Filename.is_relative root then Caml.Sys.getcwd () // root
-      else root ) }
+  {
+    root =
+      (if Caml.Filename.is_relative root then Caml.Sys.getcwd () // root
+      else root);
+  }
 
 let root_path o = o.root
 let pp fmt o = Fmt.pf fmt "@[<2>{Root:@ %s}@]" (root_path o)
@@ -18,6 +20,6 @@ let cli_term ?(option_name = "root-path") ~default_root () =
       pure make
       $ Arg.(
           value & opt string default_root
-          & info [option_name]
+          & info [ option_name ]
               ~doc:(sprintf "Root path for all configs/data to use."))))
   [@@warning "-3"]
