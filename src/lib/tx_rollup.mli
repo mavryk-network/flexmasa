@@ -53,7 +53,7 @@ module Tx_node : sig
   type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
 
   type operation_signer =
-    | Operator of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Operator_signer of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Batch of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Finalize_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Remove_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)

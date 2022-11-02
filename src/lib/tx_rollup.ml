@@ -120,7 +120,7 @@ module Tx_node = struct
   type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
 
   type operation_signer =
-    | Operator of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
+    | Operator_signer of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Batch of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Finalize_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Remove_commitment of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
@@ -146,7 +146,7 @@ module Tx_node = struct
     let of_option opt opr_signer =
       Option.value_map opt ~default:[] ~f:(fun s ->
           [opr_signer (acc_and_key s)] ) in
-    [Operator (acc_and_key operator); Batch (acc_and_key batch)]
+    [Operator_signer (acc_and_key operator); Batch (acc_and_key batch)]
     @ of_option finalize (fun s -> Finalize_commitment s)
     @ of_option remove (fun s -> Remove_commitment s)
     @ of_option rejection (fun s -> Rejection s)
@@ -160,7 +160,7 @@ module Tx_node = struct
 
   let operation_signer_map os ~f =
     match os with
-    | Operator s
+    | Operator_signer s
      |Batch s
      |Finalize_commitment s
      |Remove_commitment s
@@ -224,7 +224,7 @@ module Tx_node = struct
     let singer_options =
       Tezos_protocol.Account.(
         function
-        | Operator (acc, _) -> opt "operator" (name acc)
+        | Operator_signer (acc, _) -> opt "operator" (name acc)
         | Batch (acc, _) -> opt "batch-signer" (name acc)
         | Finalize_commitment (acc, _) ->
             opt "finalize-commitment-signer" (name acc)
