@@ -1,5 +1,11 @@
 open Internal_pervasives
 
+type t =
+  { level: int
+  ; name: string
+  ; node: Tezos_executable.t
+  ; client: Tezos_executable.t }
+
 module Account : sig
   type t =
     { name: string
@@ -54,7 +60,7 @@ module Tx_node : sig
     | Rejection of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Dispatch_withdrawal of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
 
-  type t =
+  type node =
     { id: string
     ; port: int option
     ; endpoint: int option
@@ -64,7 +70,8 @@ module Tx_node : sig
     ; mode: mode
     ; cors_origin: string option
     ; account: Account.t
-    ; operation_signers: operation_signer list }
+    ; operation_signers: operation_signer list
+    ; tx_rollup: t }
 
   val operation_signers :
        client:Tezos_client.t
@@ -99,17 +106,21 @@ module Tx_node : sig
     -> ?cors_origin:string
     -> account:Account.t
     -> ?operation_signers:operation_signer list
+    -> tx_rollup:t
     -> unit
-    -> t
+    -> node
 
   val start_script :
        < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
-    -> t
+    -> node
     -> unit Genspio.Language.t
   (** [start script] runs the tx_rollup_node commands init and run accourning to [t]. *)
 
   val process :
-    'a -> t -> ('a -> t -> 'b Genspio.Language.t) -> Running_processes.Process.t
+       'a
+    -> node
+    -> ('a -> node -> 'b Genspio.Language.t)
+    -> Running_processes.Process.t
 
   val cmdliner_term :
        < manpager: Manpage_builder.State.t ; .. >
@@ -117,13 +128,6 @@ module Tx_node : sig
     -> mode Cmdliner.Term.t
   (** A cmdliner term for the tx_rollup_node "mode" option. *)
 end
-
-type t =
-  { level: int
-  ; name: string
-  ; node: Tezos_executable.t
-  ; client: Tezos_executable.t
-  ; mode: Tx_node.mode }
 
 val origination_account :
      client:Tezos_client.t

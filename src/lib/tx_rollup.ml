@@ -1,5 +1,11 @@
 open Internal_pervasives
 
+type t =
+  { level: int
+  ; name: string
+  ; node: Tezos_executable.t
+  ; client: Tezos_executable.t (* ; mode: Tx_node.mode *) }
+
 module Account = struct
   type t =
     { name: string
@@ -121,7 +127,7 @@ module Tx_node = struct
     | Rejection of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Dispatch_withdrawal of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
 
-  type t =
+  type node =
     { id: string
     ; port: int option
     ; endpoint: int option
@@ -131,7 +137,8 @@ module Tx_node = struct
     ; mode: mode
     ; cors_origin: string option
     ; account: Account.t
-    ; operation_signers: operation_signer list }
+    ; operation_signers: operation_signer list
+    ; tx_rollup: t }
 
   let operation_signers ~client ~id ~operator ~batch ?finalize ?remove
       ?rejection ?dispatch () : operation_signer list =
@@ -285,13 +292,6 @@ module Tx_node = struct
                       custom."
                      extra_doc ) ) ))
 end
-
-type t =
-  { level: int
-  ; name: string
-  ; node: Tezos_executable.t
-  ; client: Tezos_executable.t
-  ; mode: Tx_node.mode }
 
 let origination_account ~client name =
   Account.gas_account ~client (sprintf "%s-origination-account" name)
