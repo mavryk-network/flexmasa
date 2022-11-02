@@ -81,7 +81,7 @@ By typing `help` we see we can use the command `bake` to make new blocks:
 ...
 ```
 
-One can also use `tezos-client -P 4000 bake for ...` from outside the sandbox.
+One can also use `tezos-client -E http://localhost:4000 bake for ...` from outside the sandbox.
 
 Luckily such a client has already been configured by Flextesa; type `help-env`
 on the prompt:
@@ -98,18 +98,18 @@ Flextesa:
     Example:
 
         . /tmp/mininet-test/shell.env
-        tc0 list known addresses
-        tc0 rpc get /chains/main/blocks/head/metadata
+        c0 list known addresses
+        c0 rpc get /chains/main/blocks/head/metadata
 ```
 
 And indeed we can use such a client to bake a new block:
 
 ```
- $ tc0 list known addresses
+ $ c0 list known addresses
 bootacc-0: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU (unencrypted sk known)
 dictator-default: tz1aYQcaXmowUu59gAgMGdiX6ARR7gdmikZk (unencrypted sk known)
 
- $ tc0 bake for bootacc-0
+ $ c0 bake for bootacc-0
 Feb 12 10:30:42 - alpha.baking.forge: found 0 valid operations (0 refused) for timestamp 2020-02-12T15:30:42-00:00 (fitness 01::0000000000000002)
 Injected block BLehBRAoyFAB
 ```
