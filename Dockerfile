@@ -12,7 +12,7 @@ RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin/
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
 FROM alpine:3.15 as run_image
 RUN apk update
-RUN apk add curl libev libffi unzip gmp rlwrap
+RUN apk add curl libev libffi unzip gmp rlwrap jq
 WORKDIR /usr/bin
 COPY --from=0 /usr/bin/tezos-accuser-013-PtJakart .
 COPY --from=0 /usr/bin/tezos-accuser-014-PtKathma .

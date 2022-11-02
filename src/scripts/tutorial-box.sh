@@ -122,7 +122,14 @@ initclient () {
     tezos-client --protocol Psithaca2MLR import secret key bob "$(echo $bob | cut -d, -f 4)" --force
 }
 
-if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
+all_commands="$all_commands
+* toru_info : Show account and information about the trasanctional rollup sandbox."
+toru_info() {
+    jq . ${root_path}/tx-rollup-torubox/torubox-operator-node-000/data-dir/config.json
+    jq . ${root_path}/Client-base-C-N000/contracts | jq .
+}
+
+if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     usage
 else
     "$@"
