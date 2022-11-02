@@ -6,6 +6,9 @@ type t =
   ; node: Tezos_executable.t
   ; client: Tezos_executable.t (* ; mode: Tx_node.mode *) }
 
+let make_path p ~config t =
+  Paths.root config // sprintf "tx-rollup-%s" t.name // p
+
 module Account = struct
   type t =
     { name: string
@@ -168,11 +171,11 @@ module Tx_node = struct
      |Dispatch_withdrawal s ->
         f s
 
-  let make_path p ~config t =
-    Paths.root config // sprintf "tx-rollup-%s" t.id // p
+  let node_dir p config node =
+    make_path (sprintf "%s" node.id // p) ~config node.tx_rollup
 
-  let data_dir config t = make_path "data-dir" ~config t
-  let exec_path config t = make_path "exec" ~config t
+  let data_dir config node = node_dir "data-dir" config node
+  let exec_path config node = node_dir "exec" config node
 
   let mode_string = function
     | Observer -> "observer"
