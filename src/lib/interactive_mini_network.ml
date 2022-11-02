@@ -231,7 +231,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     ?generate_kiln_config node_exec client_exec baker_exec endorser_exec
-    accuser_exec test_kind ?tx () =
+    accuser_exec test_kind ?tx ?tx_node () =
   ( if clear_root then
     Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
     >>= fun () -> Helpers.clear_root state
@@ -412,11 +412,13 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                   contract_orig
                 >>= fun deposit_contract ->
                 let tx_node =
+                  let mode =
+                    Option.value tx_node
+                      ~default:(Operator : Tx_rollup.Tx_node.mode) in
                   Tx_rollup.Tx_node.(
                     let port = !(next_port rpc_port nodes) in
-                    make ~port ~endpoint:base_port ~mode:tx.mode
-                      ~protocol:protocol.kind ~exec:tx.node ~client:cli ~account
-                      ()) in
+                    make ~port ~endpoint:base_port ~mode ~protocol:protocol.kind
+                      ~exec:tx.node ~client:cli ~account ~tx_rollup:tx ()) in
                 List_sequential.iter tx_node.operation_signers ~f:(fun os ->
                     Tx_rollup.Tx_node.operation_signer_map os
                       ~f:(fun (_op_acc, op_key) ->
@@ -441,8 +443,6 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                       (haf "Transactional Rollup Sandbox is ready:")
                       [ desc (af "Name:") (af "%S" account.name)
                       ; desc (af "Address:") (af "`%s`" account.address)
-                      ; desc (af "Operation:")
-                          (af "`%s`" account.operation_hash)
                       ; desc
                           (af "Tx-rollup Node RPC port:")
                           (af "`%d`" !Tx_rollup.Tx_node.rpc_port)
@@ -516,10 +516,11 @@ let cmd () =
         nodes_history_mode_edits
         state
         tx
+        tx_node
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ?tx ~clear_root ~nodes_history_mode_edits
+            ?hard_fork ?tx ?tx_node ~clear_root ~nodes_history_mode_edits
             ?generate_kiln_config ~external_peer_ports ~no_daemons_for
             ~genesis_block_choice test_kind in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
@@ -606,7 +607,8 @@ let cmd () =
     $ Kiln.Configuration_directory.cli_term base_state
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
-    $ Tx_rollup.cmdliner_term ~docs base_state () in
+    $ Tx_rollup.cmdliner_term ~docs base_state ()
+    $ Tx_rollup.Tx_node.cmdliner_term base_state () in
   let info =
     let doc = "Small network sandbox with bakers, endorsers, and accusers." in
     let man : Manpage.block list =

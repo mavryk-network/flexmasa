@@ -124,8 +124,8 @@ module Tx_node : sig
 
   val cmdliner_term :
        < manpager: Manpage_builder.State.t ; .. >
-    -> extra_doc:string
-    -> mode Cmdliner.Term.t
+    -> unit
+    -> mode option Cmdliner.Term.t
   (** A cmdliner term for the tx_rollup_node "mode" option. *)
 end
 

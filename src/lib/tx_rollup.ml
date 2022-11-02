@@ -193,7 +193,7 @@ module Tx_node = struct
     port
 
   let make ?id ?port ?endpoint ~protocol ~exec ~client ~mode ?cors_origin
-      ~account ?operation_signers () : t =
+      ~account ?operation_signers ~tx_rollup () : node =
     let name =
       sprintf "%s-%s-node-%s" account.Account.name (mode_string mode)
         (Option.value id ~default:"000") in
@@ -207,7 +207,8 @@ module Tx_node = struct
     ; cors_origin
     ; account
     ; operation_signers=
-        Option.value operation_signers ~default:(defult_signers client name) }
+        Option.value operation_signers ~default:(defult_signers client name)
+    ; tx_rollup }
 
   open Tezos_executable.Make_cli
 
@@ -267,30 +268,33 @@ module Tx_node = struct
       (sprintf "%s-node-for-tx-rollup-%s" (mode_string t.mode) t.account.name)
       (script state t)
 
-  let cmdliner_term state ~extra_doc =
+  let cmdliner_term state () =
     let open Cmdliner in
     let open Term in
+    let extra_doc = " for transactional rollups (requires --tx-rollup)" in
     let docs =
       Manpage_builder.section state ~rank:2 ~name:"TRANSACTIONAL ROLLUP NODE"
     in
     const (fun mode ->
         match mode with
-        | "observer" -> Observer
-        | "accuser" -> Accuser
-        | "batcher" -> Batcher
-        | "maintenance" -> Maintenance
-        | "custom " -> Custom
-        | "operator" | _ -> Operator )
+        (*  TODO Does this want to be type mode option ?o *)
+        | Some "observer" -> Some Observer
+        | Some "accuser" -> Some Accuser
+        | Some "batcher" -> Some Batcher
+        | Some "maintenance" -> Some Maintenance
+        | Some "custom " -> Some Custom
+        | Some "operator" -> Some Operator
+        | None | _ -> None )
     $ Arg.(
         value
-          (opt string "operator"
-             (info ~docs ["tx-rollup-node-mode"]
-                ~doc:
-                  (sprintf
-                     "Set the rollup node's `mode` %s. Possible modes include: \
-                      operator, observer, accuser, batcher, maintenance and \
-                      custom."
-                     extra_doc ) ) ))
+        & opt (some string) None
+        & info ~docs ["tx-rollup-node-mode"]
+            ~doc:
+              (sprintf
+                 "Set the rollup node's `mode`%s. Possible modes include: \
+                  operator, observer, accuser, batcher, maintenance and \
+                  custom."
+                 extra_doc ))
 end
 
 let origination_account ~client name =
@@ -326,11 +330,11 @@ let cmdliner_term base_state ~docs () =
   let open Cmdliner in
   let open Term in
   let extra_doc = Fmt.str " for transactional rollups (requires --tx-rollup)" in
-  const (fun tx_rollup node client mode ->
+  const (fun tx_rollup node client ->
       Option.map tx_rollup ~f:(fun (level, name) ->
           let txr_name =
             match name with None -> "flextesa-tx-rollup" | Some n -> n in
-          {level; name= txr_name; node; client; mode} ) )
+          {level; name= txr_name; node; client} ) )
   $ Arg.(
       value
         (opt
@@ -341,4 +345,3 @@ let cmdliner_term base_state ~docs () =
               ~docv:"LEVEL:TX-ROLLUP-NAME" ) ))
   $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_node "tezos"
   $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_client "tezos"
-  $ Tx_node.cmdliner_term ~extra_doc base_state
