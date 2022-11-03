@@ -36,7 +36,7 @@ parameters. For instance:
 
 ```sh
 image=oxheadalpha/flextesa:latest
-script=jakartabox
+script=kathmandubox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -171,6 +171,83 @@ The default values are:
 
 Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
 accounts by default.
+
+### Transaction Optimistic Rollups
+
+The `start_toru` command included in the scripts is and implementation of the `flextesa mini-network` with the addition of the option ` --tx-rollup 3:torubox`.
+
+``` default
+$ docker run --rm --name my-sandbox --detach -p 20000:20000 \
+       "$image" "$script" start_toru
+```
+
+After starting up the mini-network, Flextesa will originate a transaction optimistic rollup called `tourbox` at bock level `3` and start a transaction rollup operator node. Like the scripts above, the Alice and Bob account twill be included by default.
+
+Before you can interact with the transaction rollup, you will need to retrieve some important information with the following command.
+
+``` default
+$ docker exec my-sandbox ${script} toru_info
+{
+  "data_dir": "/tmp/mini-box/tx-rollup-torubox/torubox-operator-node-000/data-dir",
+  "rollup_id": "txr1arPn95HNJ2JPxFL1q51LGgk4KeR4v36p8",
+  "rpc_addr": "0.0.0.0:20002",
+  "mode": "operator",
+  "signers": {
+    "operator": "tz1db9qaMMNoQPAATe2D3kafKzWWNuMhnmbT",
+    "submit_batch": "tz1YVgxuvoqc2DxLjMcmgcpgnWXn6wiJNf5E",
+    "finalize_commitment": "tz1WbzTV5WrHBbfbc8Bw55xaQWLjNvfcBKp4",
+    "remove_commitment": "tz1ihyGvQHQu1F6TVMqKJdPtw2BHqMcDotsT",
+    "rejection": "tz1gDMHL96KSohLp2H5RPFxAM7wATD7zffRV",
+    "dispatch_withdrawals": "tz1LuLiAjZs2sFgivjsuLiuB8nJA48pVfcQc"
+  },
+  "allow_deposit": true
+}
+[
+  {
+    "name": "torubox-deposit-contract",
+    "value": "KT1NjJEFRjAugzPwAkEccTAq3v2SYoScyGnL"
+  }
+]
+```
+
+For the next few examples we will record the `rollup_id`, `rpc_addr` and the `KT1` address for the `torubox-deposit-contract`. (We continue with `tcli` alias created above.)
+
+``` default
+$ rollup_id=txr1arPn95HNJ2JPxFL1q51LGgk4KeR4v36p8
+$ rpc_addr=20002
+$ contract=KT1NjJEFRjAugzPwAkEccTAq3v2SYoScyGnL
+```
+
+Next create a `tz4` transaction rollup address and transfer tickets to that address on the rollup via the `torubox-deposit-contract`:
+
+``` default
+$ tcli bls gen keys rollup_bob
+$ tcli bls show address roll_bob
+Hash: tz4EimhLzauGZjt6ebLDzbD9Dfuk9vwj7HUz
+Public Key: BLpk1x8Eu1D5DWnop7osZtDx8kkBgG83tFiNcyBKkFatUg1wKpVbmjY2QqJehfju1t7YydXidXhF
+
+$ bobs_tz4=tz4EimhLzauGZjt6ebLDzbD9Dfuk9vwj7HUz
+
+$ tcli transfer 0 from alice to "$contract" \
+        --arg "(Pair \"my_tickts\" 100 \"${bobs_tz4}\" \"${rollup_id}\")" \
+        --burn-cap 1
+```
+
+A successful transfer will produces a long out put. For this example, we are interested in the ticket.
+
+e.g. `Ticket hash: exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP`
+
+Use the ticket hash to check the balance of the roll_bob with the tx-rollup-client. As with the octez-client, you can use the rollup-client configured inside of the docker container. For example:
+
+``` default
+$ my_tickts=exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP
+$ alias torucli='docker exec my-sandbox tezos-tx-rollup-client-014-PtKathma -E http://localhost:${rpc_addr}'
+
+$ torucli get balance for rollup_bob of "$my_tickets"
+100
+```
+
+Note that the transaction rollup client should use the RPC address of the transaction rollup node.
 
 ## Build
 
