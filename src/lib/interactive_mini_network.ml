@@ -383,6 +383,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         | None -> return ()
         | Some tx -> (
             List.hd keys_and_daemons
+            (* The boot account at head is used to fund the two accounts which originate the TORU and the ticket-deposite-contract. *)
             |> function
             | None -> return ()
             | Some (_, boot_acc, cli, _, _) ->
@@ -402,6 +403,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                 Tx_rollup.Account.fund_multiple state ~client:cli ~from:funder
                   ~recipiants:[(toru_orig, "1000"); (contract_orig, "10")]
                 >>= fun _ ->
+                (* With the accounts funded we wait for LEVEL and then originate the TORU and deposit-contract. *)
                 Test_scenario.Queries.run_wait_level protocol state nodes
                   (`At_least tx.level) tx.level
                 >>= fun () ->
@@ -411,14 +413,14 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                 Tx_rollup.publish_deposit_contract state tx.name cli
                   contract_orig
                 >>= fun deposit_contract ->
+                (* Next configure the TORU node. *)
                 let tx_node =
-                  let mode =
-                    Option.value tx_node
-                      ~default:(Operator : Tx_rollup.Tx_node.mode) in
                   Tx_rollup.Tx_node.(
+                    let mode = Option.value tx_node ~default:(Operator : mode) in
                     let port = !(next_port rpc_port nodes) in
                     make ~port ~endpoint:base_port ~mode ~protocol:protocol.kind
                       ~exec:tx.node ~client:cli ~account ~tx_rollup:tx ()) in
+                (* Init and fund the TORU node operation signers. *)
                 List_sequential.iter tx_node.operation_signers ~f:(fun os ->
                     Tx_rollup.Tx_node.operation_signer_map os
                       ~f:(fun (_op_acc, op_key) ->
@@ -434,13 +436,14 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                 Tx_rollup.Account.fund_multiple state ~client:cli
                   ~from:toru_orig ~recipiants:dstlist
                 >>= fun _ ->
+                (* Start the TORU node. And print TORU information. *)
                 Running_processes.start state
                   Tx_rollup.Tx_node.(process state tx_node start_script)
                 >>= fun _ ->
                 Console.say state
                   EF.(
                     desc_list
-                      (haf "Transactional Rollup Sandbox is ready:")
+                      (haf "Transaction Rollup Sandbox is ready:")
                       [ desc (af "Name:") (af "%S" account.name)
                       ; desc (af "Address:") (af "`%s`" account.address)
                       ; desc
