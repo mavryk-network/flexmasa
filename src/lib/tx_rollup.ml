@@ -4,7 +4,7 @@ type t =
   { level: int
   ; name: string
   ; node: Tezos_executable.t
-  ; client: Tezos_executable.t (* ; mode: Tx_node.mode *) }
+  ; client: Tezos_executable.t }
 
 let make_path p ~config t =
   Paths.root config // sprintf "tx-rollup-%s" t.name // p
@@ -61,6 +61,7 @@ module Account = struct
                  (String.chop_prefix x ~prefix |> Option.value ~default:x) )
     in
     let l = List.map lines ~f:String.lstrip in
+    (* This is parsing the unicode cli output from the octez-client *)
     Option.(
       prefix_from_list ~prefix:"Operation hash is" l
       >>= fun op ->
@@ -216,6 +217,7 @@ module Tx_node = struct
   open Tezos_executable.Make_cli
 
   let call state t command =
+    (* The tx_rollup_node base directory is set to share with the octez_client and the endpoint will match the base_port passed to flextesa. *)
     let client_dir = Tezos_client.base_dir ~state t.client in
     Tezos_executable.call state t.exec ~protocol_kind:t.protocol
       ~path:(exec_path state t // sprintf "exec-toru-%s" t.id)
@@ -240,13 +242,16 @@ module Tx_node = struct
       match t.cors_origin with
       | Some _ as s -> s
       | None -> Environment_configuration.default_cors_origin state in
+    (* Allow deposit is required for obvious reasons. *)
     flag "allow-deposit"
+    (* The directory where the node configuration is store. *)
     @ opt "data-dir" (data_dir state t)
     @ List.concat_map t.operation_signers ~f:singer_options
     @ Option.value_map cors_origin
         ~f:(fun s ->
           flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s )
         ~default:[]
+    (* Set the nodes rpc_adderess. *)
     @ Option.value_map t.port
         ~f:(fun p -> opt "rpc-addr" (sprintf "0.0.0.0:%d" p))
         ~default:[]
@@ -272,15 +277,16 @@ module Tx_node = struct
       (script state t)
 
   let cmdliner_term state () =
+    (* This was added in anticipation of possibly creating multiple nodes of different mode types. *)
+    (* Maybe users what to run their own TORU node and would like Flextesa to run a passive observer node.*)
     let open Cmdliner in
     let open Term in
-    let extra_doc = " for transactional rollups (requires --tx-rollup)" in
+    let extra_doc = " for transaction rollups (requires --tx-rollup)" in
     let docs =
-      Manpage_builder.section state ~rank:2 ~name:"TRANSACTIONAL ROLLUP NODE"
-    in
+      Manpage_builder.section state ~rank:2
+        ~name:"TRANSACTION OPTIMISTIC ROLLUP NODE" in
     const (fun mode ->
         match mode with
-        (*  TODO Does this want to be type mode option ?o *)
         | Some "observer" -> Some Observer
         | Some "accuser" -> Some Accuser
         | Some "batcher" -> Some Batcher
@@ -294,9 +300,8 @@ module Tx_node = struct
         & info ~docs ["tx-rollup-node-mode"]
             ~doc:
               (sprintf
-                 "Set the rollup node's `mode`%s. Possible modes include: \
-                  operator, observer, accuser, batcher, maintenance and \
-                  custom."
+                 "Set the transaction rollup node's `mode`%s. The default mode \
+                  is `Operator`."
                  extra_doc ))
 end
 
@@ -311,7 +316,8 @@ let originate_and_confirm state ~name ~client ~acc ?confirmations () =
   match rollup with
   | None ->
       System_error.fail_fatalf
-        "Tx_rollup.originate_and_confirm - failed to parse rollup."
+        "Tx_rollup.originate_and_confirm - failed to parse tx_rollup \
+         origination."
   | Some acc ->
       Account.confirm state ~client ?confirmations
         ~operation_hash:acc.operation_hash ()
@@ -324,7 +330,7 @@ let publish_deposit_contract state rollup_name client acc =
   match parse_origination ~lines:res#out with
   | None ->
       System_error.fail_fatalf
-        "Tx_rollup.publish - failed to parse deposit contract."
+        "Tx_rollup.publish - failed to parse smart contract origination."
   | Some address -> return address
 
 let executables ({client; node; _} : t) = [client; node]
@@ -332,7 +338,7 @@ let executables ({client; node; _} : t) = [client; node]
 let cmdliner_term base_state ~docs () =
   let open Cmdliner in
   let open Term in
-  let extra_doc = Fmt.str " for transactional rollups (requires --tx-rollup)" in
+  let extra_doc = Fmt.str " for transaction rollups (requires --tx-rollup)" in
   const (fun tx_rollup node client ->
       Option.map tx_rollup ~f:(fun (level, name) ->
           let txr_name =
@@ -344,7 +350,7 @@ let cmdliner_term base_state ~docs () =
            (some (t2 ~sep:':' int (some string)))
            None
            (info ["tx-rollup"]
-              ~doc:"Orginate a transactional rollup `name` at `level`." ~docs
+              ~doc:"Originate a transaction rollup `name` at `level`." ~docs
               ~docv:"LEVEL:TX-ROLLUP-NAME" ) ))
   $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_node "tezos"
   $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_client "tezos"

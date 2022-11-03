@@ -7,6 +7,7 @@ type t =
   ; client: Tezos_executable.t }
 
 module Account : sig
+  (** This module is used for creating the gas accounts and parsing the rollup account information. *)
   type t =
     { name: string
     ; operation_hash: string
@@ -29,7 +30,7 @@ module Account : sig
        , [> `Process_error of Process_result.Error.error
          | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
-  (** [fund state client tez acc dst] is a client call to send [amount] of tez form from [acc] to [dist]. *)
+  (** [fund state client tez acc dst] is a octez-client call to send [amount] of tez form from [acc] to [dist]. *)
 
   val fund_multiple :
        < application_name: string
@@ -45,13 +46,15 @@ module Account : sig
        , [> `Process_error of Process_result.Error.error
          | `System_error of [`Fatal] * System_error.static ] )
        Asynchronous_result.t
-  (** [fund_multiple state client from recipiants] is a client call to transfer tez form from [from] to a
-      list of [recipants]. Recipaints is a (destination account, tezos amount) list. *)
+  (** [fund_multiple state client from recipiants] is an octez-client call to transfer tez form from [from] to a
+      list of [recipants]. Recipients is a (destination account, tezos amount) list. *)
 end
 
 module Tx_node : sig
+  (** A type for the tx_rollup node mode.*)
   type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
 
+  (** A type for tx_rollup_node operation signers.*)
   type operation_signer =
     | Operator_signer of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Batch of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
@@ -60,6 +63,7 @@ module Tx_node : sig
     | Rejection of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
     | Dispatch_withdrawal of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
 
+  (** A type for the tx_rollup_node configuration.*)
   type node =
     { id: string
     ; port: int option
@@ -93,7 +97,9 @@ module Tx_node : sig
   (** [operation_signer_map f signer] applies [f] to [signer]*)
 
   val rpc_port : int ref
+
   val next_port : int ref -> Tezos_node.t list -> int ref
+  (** [next_port p nl] will find the highest assigned port in [nl] or [p] (whichever is greater) and store the next port in p. *)
 
   val make :
        ?id:string
@@ -114,7 +120,7 @@ module Tx_node : sig
        < env_config: Environment_configuration.t ; paths: Paths.t ; .. >
     -> node
     -> unit Genspio.Language.t
-  (** [start script] runs the tx_rollup_node commands init and run accourning to [t]. *)
+  (** [start script node] runs the tx_rollup_node commands init and run according to [node]. *)
 
   val process :
        'a
@@ -150,8 +156,8 @@ val originate_and_confirm :
      , [> `Process_error of Process_result.Error.error
        | `System_error of [`Fatal] * System_error.static ] )
      Asynchronous_result.t
-(** [originate_and_confirm state name client acc] is a tezo-client [client] call to
-      originate a transactional rollup called [name]. [acc] is the gas account. *)
+(** [originate_and_confirm state name client acc] is an octez-client call to
+      originate a transaction rollup called [name]. [acc] is the gas account. *)
 
 val publish_deposit_contract :
      < application_name: string
