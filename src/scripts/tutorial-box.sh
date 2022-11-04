@@ -1,11 +1,15 @@
 #! /bin/sh
 
-default_protocol=Jakarta
-next_protocol_name=Kathmandu
-next_protocol=014-PtKathma
+default_protocol=Kathmandu
+next_protocol_name=Lima
+next_protocol=PtLimaPt
 case "$(basename $0)" in
     "kathmandubox" )
         default_protocol=Kathmandu
+        next_protocol_name=Lima
+        next_protocol=PtLimaPt ;;
+    "limabox" )
+        default_protocol=Lima
         next_protocol_name=Alpha
         next_protocol=alpha ;;
     "alphabox" )
@@ -21,7 +25,7 @@ usage () {
     cat >&2 <<EOF
 This script provides a Flextesa “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
-wallet software like \`tezos-client\`. This one uses the $default_protocol
+wallet software like \`octez-client\`. This one uses the $default_protocol
 protocol.
 
 usage: $0 <command>
@@ -77,7 +81,7 @@ start_upgrade () {
         --blocks-per-voting-period "$vote_period" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
-        --second-baker tezos-baker-"$next_protocol" \
+        --second-baker octez-baker-"$next_protocol" \
         --test-variant full-upgrade \
         --until-level 200_000_000
 }
@@ -115,11 +119,11 @@ EOF
 }
 
 all_commands="$all_commands
-* initclient : Setup the local tezos-client."
+* initclient : Setup the local octez-client."
 initclient () {
-    tezos-client --endpoint http://localhost:20000 config update
-    tezos-client --protocol Psithaca2MLR import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    tezos-client --protocol Psithaca2MLR import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    octez-client --endpoint http://localhost:20000 config update
+    octez-client --protocol Psithaca2MLR import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    octez-client --protocol Psithaca2MLR import secret key bob "$(echo $bob | cut -d, -f 4)" --force
 }
 
 all_commands="$all_commands

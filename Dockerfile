@@ -14,21 +14,21 @@ FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap jq
 WORKDIR /usr/bin
-COPY --from=0 /usr/bin/tezos-accuser-013-PtJakart .
-COPY --from=0 /usr/bin/tezos-accuser-014-PtKathma .
-COPY --from=0 /usr/bin/tezos-accuser-alpha .
-COPY --from=0 /usr/bin/tezos-admin-client .
-COPY --from=0 /usr/bin/tezos-baker-013-PtJakart .
-COPY --from=0 /usr/bin/tezos-baker-014-PtKathma .
-COPY --from=0 /usr/bin/tezos-baker-alpha .
-COPY --from=0 /usr/bin/tezos-client .
-COPY --from=0 /usr/bin/tezos-codec .
-COPY --from=0 /usr/bin/tezos-embedded-protocol-packer .
-#COPY --from=0 /usr/bin/tezos-init-sandboxed-client.sh .
-COPY --from=0 /usr/bin/tezos-node .
-#COPY --from=0 /usr/bin/tezos-sandboxed-node.sh .
-#COPY --from=0 /usr/bin/tezos-signer .
-COPY --from=0 /usr/bin/tezos-validator .
+COPY --from=0 /usr/bin/octez-accuser-PtKathma .
+COPY --from=0 /usr/bin/octez-accuser-PtLimaPt .
+COPY --from=0 /usr/bin/octez-accuser-alpha .
+COPY --from=0 /usr/bin/octez-admin-client .
+COPY --from=0 /usr/bin/octez-baker-PtLimaPt .
+COPY --from=0 /usr/bin/octez-baker-PtKathma .
+COPY --from=0 /usr/bin/octez-baker-alpha .
+COPY --from=0 /usr/bin/octez-client .
+COPY --from=0 /usr/bin/octez-codec .
+COPY --from=0 /usr/bin/octez-embedded-protocol-packer .
+#COPY --from=0 /usr/bin/octez-init-sandboxed-client.sh .
+COPY --from=0 /usr/bin/octez-node .
+#COPY --from=0 /usr/bin/octez-sandboxed-node.sh .
+#COPY --from=0 /usr/bin/octez-signer .
+COPY --from=0 /usr/bin/octez-validator .
 COPY --from=0 /usr/bin/flextesa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
 COPY --from=0 /usr/bin/tezos-tx-rollup-client-013-PtJakart .
@@ -39,12 +39,12 @@ COPY --from=0 /usr/bin/tezos-tx-rollup-node-014-PtKathma .
 COPY --from=0 /usr/bin/tezos-tx-rollup-node-alpha .
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/jakartabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/kathmandubox
+COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/limabox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
-RUN chmod a+rx /usr/bin/jakartabox
 RUN chmod a+rx /usr/bin/kathmandubox
+RUN chmod a+rx /usr/bin/limabox
 RUN chmod a+rx /usr/bin/alphabox
 RUN /usr/bin/alphabox initclient
+RUN ln -s /usr/bin/octez-client /usr/bin/tezos-client
 ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
-

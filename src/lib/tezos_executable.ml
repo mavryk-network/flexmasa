@@ -54,9 +54,9 @@ let default_binary ?protocol_kind t =
     | (`Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client), _
       ->
         Fmt.failwith
-          "Called default_binary with for tezos-%s and protocol_kind = None"
+          "Called default_binary with for octez-%s and protocol_kind = None"
           (kind_string t.kind) in
-  sprintf "tezos-%s" (with_suffix (kind_string t.kind))
+  sprintf "octez-%s" (with_suffix (kind_string t.kind))
 
 let get ?protocol_kind t =
   match t.binary with Some s -> s | None -> default_binary ?protocol_kind t
@@ -94,6 +94,6 @@ let cli_term ?(extra_doc = "") state kind prefix =
       & info ~docs
           [sprintf "%s-%s-binary" prefix (kind_string kind)]
           ~doc:
-            (sprintf "Binary for the `tezos-%s` to use%s." (kind_string kind)
+            (sprintf "Binary for the `octez-%s` to use%s." (kind_string kind)
                extra_doc ))
   [@@warning "-3"]

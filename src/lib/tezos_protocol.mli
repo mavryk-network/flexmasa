@@ -49,6 +49,7 @@ module Protocol_kind : sig
     | `Ithaca
     | `Jakarta
     | `Kathmandu
+    | `Lima
     | `Alpha ]
 
   val default : t

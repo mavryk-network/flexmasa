@@ -11,13 +11,13 @@ One can use `./flextesa mini-net --help` to see all the available options.
 Accessing Tezos Software
 ------------------------
 
-Flextesa needs to access `tezos-node`, `tezos-client`, and, depending on the
+Flextesa needs to access `octez-node`, `octez-client`, and, depending on the
 options, all the “baker deamons.”
 
 An easy way to let flextesa find them is to add them to the `PATH`, for instance
-if all the tezos utilities have been build at `/path/to/tezos-repo/`:
+if all the tezos utilities have been build at `/path/to/octez-repo/`:
 
-    $ export PATH=/path/to/tezos-repo/:$PATH
+    $ export PATH=/path/to/octez-repo/:$PATH
     $ flextesa mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2
 
@@ -26,18 +26,18 @@ can be passed with command line options:
 
     $ flextesa mini  \
                --size 3 --time-between-blocks 8 --number-of-boot 2 \
-               --tezos-node /path/to/tezos-repo/tezos-node \
-               --tezos-client /path/to/tezos-repo/tezos-client \
-               --tezos-baker /path/to/tezos-repo/tezos-baker-alpha \
-               --tezos-endorser /path/to/tezos-repo/tezos-endorser-alpha \
-               --tezos-accuser /path/to/tezos-repo/tezos-accuser-alpha
+               --octez-node /path/to/octez-repo/octez-node \
+               --octez-client /path/to/octez-repo/octez-client \
+               --octez-baker /path/to/octez-repo/octez-baker-alpha \
+               --octez-endorser /path/to/octez-repo/octez-endorser-alpha \
+               --octez-accuser /path/to/octez-repo/octez-accuser-alpha
 
 The above command starts 3 nodes, activates the protocol `alpha` with a
 block-time of 8 seconds (`alpha` is the development protocol of the `master`
 branch; it *mimics* the `mainnet` one), and starts baking daemons for 2
 bootstrap-baker accounts.
 
-* If you are using the docker image, valid `tezos-*` executables are already in
+* If you are using the docker image, valid `octez-*` executables are already in
   the `$PATH`.
 * The following sections assume you have these figured out (as additional
   arguments or in the `$PATH`).
@@ -67,8 +67,8 @@ to make faster and more reproducible tests for instance).
 
     $ flextesa mini  \
                --size 1 --number-of-boot 1 --base-port 4000 \
-               --tezos-node /path/to/tezos-repo/tezos-node \
-               --tezos-client /path/to/tezos-repo/tezos-client \
+               --octez-node /path/to/octez-repo/octez-node \
+               --octez-client /path/to/octez-repo/octez-client \
                --no-baking
 
 By typing `help` we see we can use the command `bake` to make new blocks:
@@ -81,7 +81,7 @@ By typing `help` we see we can use the command `bake` to make new blocks:
 ...
 ```
 
-One can also use `tezos-client -E http://localhost:4000 bake for ...` from outside the sandbox.
+One can also use `octez-client -E http://localhost:4000 bake for ...` from outside the sandbox.
 
 Luckily such a client has already been configured by Flextesa; type `help-env`
 on the prompt:
@@ -134,9 +134,9 @@ For instance:
                --number-of-bootstrap-accounts 1 \
                --time-b 5 \
                --until-level 2_000_000 \
-               --tezos-baker tezos-baker-005-PsBabyM1 \
-               --tezos-endor tezos-endorser-005-PsBabyM1 \
-               --tezos-accus tezos-accuser-005-PsBabyM1 \
+               --octez-baker octez-baker-005-PsBabyM1 \
+               --octez-endor octez-endorser-005-PsBabyM1 \
+               --octez-accus octez-accuser-005-PsBabyM1 \
                --protocol-kind Babylon \
                --protocol-hash PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
 
@@ -170,7 +170,7 @@ baking. See the output of the key generation:
 alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 ```
 
-One can use simply `tezos-client import secret key the-alice
+One can use simply `octez-client import secret key the-alice
 unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq` to interact
 with this account.
 
