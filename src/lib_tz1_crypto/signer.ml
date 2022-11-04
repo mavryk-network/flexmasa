@@ -25,10 +25,12 @@ module Secret_key = struct
     | str ->
         let seed =
           if String.length str < 32 then str
-          else Tezai_base58_digest.Crypto_hash.String.sha256 str in
+          else Tezai_base58_digest.Crypto_hash.String.sha256 str
+        in
         let alices =
           List.init ~len:32 ~f:(fun _ -> seed)
-          |> String.concat ~sep:"" |> String.sub ~pos:0 ~len:32 in
+          |> String.concat ~sep:"" |> String.sub ~pos:0 ~len:32
+        in
         (* let pub =
              Mirage_crypto_ec.Ed25519.(
                pub_of_priv
@@ -51,9 +53,10 @@ module Secret_key = struct
             Format.kasprintf failwith "Error: %a" Mirage_crypto_ec.pp_error err)
     in
     let test_of_seed seed =
-      of_seed seed = of_string (should_be_id (to_string (of_seed seed))) in
+      of_seed seed = of_string (should_be_id (to_string (of_seed seed)))
+    in
     List.for_all ~f:test_of_seed
-      ["alice"; "dsieljdsliejde"; String.init 50 ~f:Char.chr]
+      [ "alice"; "dsieljdsliejde"; String.init 50 ~f:Char.chr ]
 end
 
 module Public_key = struct
@@ -64,11 +67,11 @@ module Public_key = struct
     Bytes
       Mirage_crypto_ec.Ed25519.(
         pub_of_priv
-          ( match priv_of_cstruct (Cstruct.of_string s) with
+          (match priv_of_cstruct (Cstruct.of_string s) with
           | Ok priv -> priv
           | Error err ->
               Format.kasprintf failwith "Error: %a" Mirage_crypto_ec.pp_error
-                err )
+                err)
         |> pub_to_cstruct |> Cstruct.to_string)
 end
 
@@ -86,31 +89,32 @@ let%expect_test _ =
     let pk = Public_key.of_secret_key sk in
     let pkh = Public_key_hash.of_public_key pk in
     Format.printf "Seed: %S\nSK: %a\nPK: %a\nPKH: %a\n" seed Secret_key.pp sk
-      Public_key.pp pk Public_key_hash.pp pkh in
+      Public_key.pp pk Public_key_hash.pp pkh
+  in
   (* The following were checked against ["flextesa key-of-name"] using
      ["tezos-crypto"]. *)
-  show_of_seed "alice" ;
+  show_of_seed "alice";
   [%expect
     {|
     Seed: "alice"
     SK: edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
     PK: edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn
     PKH: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
-    |}] ;
-  show_of_seed "bob" ;
+    |}];
+  show_of_seed "bob";
   [%expect
     {|
     Seed: "bob"
     SK: edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt
     PK: edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4
     PKH: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
-    |}] ;
-  show_of_seed "chuck" ;
+    |}];
+  show_of_seed "chuck";
   [%expect
     {|
     Seed: "chuck"
     SK: edsk3RgXNjpM6MhBJjxjAcm4AVNp6B2jr9KKdLdTce63bgnAr9jmWS
     PK: edpktn8R91vDHirgNYz6DbK5TPHqTvJmtE3WqQoYitdmCSL94EKwQs
     PKH: tz1U6gfR9YAkJe8H2UNeo5zudU2mojsdkKYb
-    |}] ;
+    |}];
   ()
