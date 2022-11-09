@@ -406,7 +406,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             Tx_rollup.originate_and_confirm state ~name:tx.name ~client:cli
               ~acc:toru_orig ~confirmations:1 ()
             >>= fun (account, _conf) ->
-            Tx_rollup.publish_deposit_contract state tx.name cli contract_orig
+            Tx_rollup.publish_deposit_contract state protocol.kind tx.name cli
+              contract_orig
             >>= fun deposit_contract ->
             (* Next configure the TORU node. *)
             let tx_node =

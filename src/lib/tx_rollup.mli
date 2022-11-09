@@ -174,6 +174,7 @@ val publish_deposit_contract :
   ; paths : Paths.t
   ; runner : Running_processes.State.t
   ; .. > ->
+  Tezos_protocol.Protocol_kind.t ->
   string ->
   Tezos_client.t ->
   string ->

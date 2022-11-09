@@ -93,7 +93,59 @@ module Deposit_contract = struct
 
   let make : string -> t = fun s -> s
 
-  let originate state ?(rollup_name = "toru") ~client ~acc () =
+  let originate state ?(rollup_name = "toru")
+      ~(protocol : Tezos_protocol.Protocol_kind.t) ~client ~acc () =
+    let michelson =
+      match protocol with
+      | `Kathmandu ->
+          "parameter (pair string nat tx_rollup_l2_address address);\n\
+           storage unit;\n\
+           code {\n\
+          \       CAR;\n\
+          \       UNPAIR 4;\n\
+          \       TICKET;\n\
+          \       PAIR;\n\
+          \       SWAP;\n\
+          \       CONTRACT %deposit (pair (ticket string) tx_rollup_l2_address);\n\
+          \       ASSERT_SOME;\n\
+          \       SWAP;\n\
+          \       PUSH mutez 0;\n\
+          \       SWAP;\n\
+          \       TRANSFER_TOKENS;\n\
+          \       UNIT;\n\
+          \       NIL operation;\n\
+          \       DIG 2;\n\
+          \       CONS;\n\
+          \       PAIR;\n\
+          \     }\n"
+      | `Lima | `Alpha ->
+          "parameter (pair string nat tx_rollup_l2_address address);\n\
+           storage unit;\n\
+           code {\n\
+          \       CAR;\n\
+          \       UNPAIR 4;\n\
+          \       TICKET;\n\
+          \       ASSERT_SOME;\n\
+          \       PAIR;\n\
+          \       SWAP;\n\
+          \       CONTRACT %deposit (pair (ticket string) tx_rollup_l2_address);\n\
+          \       ASSERT_SOME;\n\
+          \       SWAP;\n\
+          \       PUSH mutez 0;\n\
+          \       SWAP;\n\
+          \       TRANSFER_TOKENS;\n\
+          \       UNIT;\n\
+          \       NIL operation;\n\
+          \       DIG 2;\n\
+          \       CONS;\n\
+          \       PAIR;\n\
+          \     }\n"
+      | _ ->
+          failwith
+            (sprintf
+               "Wrong protocol type for %s ticket deposit contract origination."
+               rollup_name)
+    in
     Tezos_client.successful_client_cmd state ~client
       [
         "originate";
@@ -104,26 +156,7 @@ module Deposit_contract = struct
         "from";
         acc;
         "running";
-        "parameter (pair string nat tx_rollup_l2_address address);\n\
-         storage unit;\n\
-         code {\n\
-        \       CAR;\n\
-        \       UNPAIR 4;\n\
-        \       TICKET;\n\
-        \       PAIR;\n\
-        \       SWAP;\n\
-        \       CONTRACT %deposit (pair (ticket string) tx_rollup_l2_address);\n\
-        \       ASSERT_SOME;\n\
-        \       SWAP;\n\
-        \       PUSH mutez 0;\n\
-        \       SWAP;\n\
-        \       TRANSFER_TOKENS;\n\
-        \       UNIT;\n\
-        \       NIL operation;\n\
-        \       DIG 2;\n\
-        \       CONS;\n\
-        \       PAIR;\n\
-        \     }\n";
+        michelson;
         "--burn-cap";
         "15";
       ]
@@ -352,9 +385,9 @@ let originate_and_confirm state ~name ~client ~acc ?confirmations () =
         ~operation_hash:acc.operation_hash ()
       >>= fun conf -> return (acc, conf#out)
 
-let publish_deposit_contract state rollup_name client acc =
+let publish_deposit_contract state protocol rollup_name client acc =
   let open Deposit_contract in
-  originate state ~rollup_name ~client ~acc () >>= fun res ->
+  originate state ~rollup_name ~protocol ~client ~acc () >>= fun res ->
   match parse_origination ~lines:res#out with
   | None ->
       System_error.fail_fatalf
