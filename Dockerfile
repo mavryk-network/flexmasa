@@ -31,12 +31,12 @@ COPY --from=0 /usr/bin/octez-node .
 COPY --from=0 /usr/bin/octez-validator .
 COPY --from=0 /usr/bin/flextesa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
-COPY --from=0 /usr/bin/tezos-tx-rollup-client-013-PtJakart .
-COPY --from=0 /usr/bin/tezos-tx-rollup-client-014-PtKathma .
-COPY --from=0 /usr/bin/tezos-tx-rollup-client-alpha .
-COPY --from=0 /usr/bin/tezos-tx-rollup-node-013-PtJakart .
-COPY --from=0 /usr/bin/tezos-tx-rollup-node-014-PtKathma .
-COPY --from=0 /usr/bin/tezos-tx-rollup-node-alpha .
+COPY --from=0 /usr/bin/octez-tx-rollup-client-PtKathma .
+COPY --from=0 /usr/bin/octez-tx-rollup-client-PtLimaPt .
+COPY --from=0 /usr/bin/octez-tx-rollup-client-alpha .
+COPY --from=0 /usr/bin/octez-tx-rollup-node-PtKathma .
+COPY --from=0 /usr/bin/octez-tx-rollup-node-PtLimaPt .
+COPY --from=0 /usr/bin/octez-tx-rollup-node-alpha .
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/kathmandubox
