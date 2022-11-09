@@ -129,8 +129,10 @@ initclient () {
 all_commands="$all_commands
 * toru_info : Show account and information about the trasanctional rollup sandbox."
 toru_info() {
-    jq . ${root_path}/tx-rollup-torubox/torubox-operator-node-000/data-dir/config.json
-    jq . ${root_path}/Client-base-C-N000/contracts | jq .
+    echo '{'
+    echo "  \"toru_node_config\":  $(jq . ${root_path}/tx-rollup-torubox/torubox-operator-node-000/data-dir/config.json),"
+    echo "  \"turo_ticket_deposit_contract\":  $(jq .[0] ${root_path}/Client-base-C-N000/contracts)"
+    echo '}'
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then

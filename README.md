@@ -163,7 +163,7 @@ $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
        "$image" "$script" start_toru
 ```
 
-After starting up the mini-network, Flextesa will originate a transaction optimistic rollup called `tourbox` at bock level `3` and start a transaction rollup operator node. Like the scripts above, the Alice and Bob account twill be included by default.
+After starting up the mini-network, Flextesa will originate a transaction optimistic rollup called `tourbox` at bock level `3` and start a transaction rollup operator node. Like the scripts above, the Alice and Bob account will be included by default.
 
 Before you can interact with the transaction rollup, you will need to retrieve some important information with the following command.
 
@@ -172,7 +172,7 @@ $ docker exec my-sandbox ${script} toru_info
 {
   "data_dir": "/tmp/mini-box/tx-rollup-torubox/torubox-operator-node-000/data-dir",
   "rollup_id": "txr1arPn95HNJ2JPxFL1q51LGgk4KeR4v36p8",
-  "rpc_addr": "0.0.0.0:20002",
+  "rpc_port": "0.0.0.0:20002",
   "mode": "operator",
   "signers": {
     "operator": "tz1db9qaMMNoQPAATe2D3kafKzWWNuMhnmbT",
@@ -196,7 +196,7 @@ For the next few examples we will record the `rollup_id`, `rpc_addr` and the `KT
 
 ``` default
 $ rollup_id=txr1arPn95HNJ2JPxFL1q51LGgk4KeR4v36p8
-$ rpc_addr=20002
+$ rpc_port=20002
 $ contract=KT1NjJEFRjAugzPwAkEccTAq3v2SYoScyGnL
 ```
 
@@ -204,7 +204,7 @@ Next create a `tz4` transaction rollup address and transfer tickets to that addr
 
 ``` default
 $ tcli bls gen keys rollup_bob
-$ tcli bls show address roll_bob
+$ tcli bls show address rollup_bob
 Hash: tz4EimhLzauGZjt6ebLDzbD9Dfuk9vwj7HUz
 Public Key: BLpk1x8Eu1D5DWnop7osZtDx8kkBgG83tFiNcyBKkFatUg1wKpVbmjY2QqJehfju1t7YydXidXhF
 
@@ -215,17 +215,17 @@ $ tcli transfer 0 from alice to "$contract" \
         --burn-cap 1
 ```
 
-A successful transfer will produces a long out put. For this example, we are interested in the ticket.
+The above argument passed to the contract's default entrypoint will send `100` tickets containing the string `"my_tickets"` to rollup_bob's address on the TORU. A successful transfer will produces a long out put. For this example, we are interested in the ticket.
 
 e.g. `Ticket hash: exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP`
 
 Use the ticket hash to check the balance of the roll_bob with the tx-rollup-client. As with the octez-client, you can use the rollup-client configured inside of the docker container. For example:
 
 ``` default
-$ my_tickts=exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP
-$ alias torucli='docker exec my-sandbox tezos-tx-rollup-client-014-PtKathma -E http://localhost:${rpc_addr}'
+$ ticket_hash=exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP
+$ alias torucli='docker exec my-sandbox tezos-tx-rollup-client-014-PtKathma -E http://localhost:${rpc_port}'
 
-$ torucli get balance for rollup_bob of "$my_tickets"
+$ torucli get balance for rollup_bob of "$ticket_hash"
 100
 ```
 

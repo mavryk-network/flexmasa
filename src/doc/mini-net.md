@@ -225,9 +225,8 @@ Stopping the sandbox with `quit`, and restarting with the same command some time
 later usually works.
 
 ### Transaction Optimistic Rollups (TORU)
-------------------
 
-Flextesa can start a transaction rollup in a sandbox with the `--tx-rollup [LEVEL:NAME]` option. As noted above, you'll need to add the Tezos binaries to your PATH prior to starting the mini-network. 
+Flextesa can start a TORU in a sandbox with the `--tx-rollup [LEVEL:NAME]` option. As noted above, you'll need to add the Tezos binaries to your PATH prior to starting the mini-network.
 
 When starting the sandbox Flextesa will import and fund several gas accounts to originate and perform various rollup node operations. In order to ensure that these transactions are included, the `LEVEL`
 shouldn't be set lower than 3.
@@ -243,9 +242,9 @@ flextesa mini \
 
 Following this command a transaction rollup called `NAME` will be originated at block `LEVEL` and a transaction rollup node will start. Flextesa will display some information including the `rollup name`, `address` and the node's `RPC port`. Flextesa will also display a `KT1` address for a smart contract which can deposit tickets on a transaction rollup. 
 
-The default `mode` for the node is `operator`. You can set the mode with the option `--tx-rollup-node-mode` option. 
+The default `mode` for the node is `operator`. You can set the mode with the option `--tx-rollup-node-mode` option. The `mode` dictates the set of actions the TORU node is expected to perform. For example you might set Flextesa's node to run passively with the `operserver` mode or to compute rejections in `accuser` mode. Then run a separate node in `operator` mode which enables all features (including progressing the TORU). For a complete description of `modes` and other TORU node configurations, see Tezos' transaction optimistic rollups [documentation here](https://tezos.gitlab.io/kathmandu/transaction_rollups.html).
 
-When using mini-network interactively, you can use the octet-client inside of Flextesa. For example the following command will check the state of the rollup:
+When using mini-network interactively, you can use the octet-client inside of Flextesa. For example the following command will check the state of the TORU:
 
 `c0 rpc get /chains/main/blocks/head/context/tx_rollup/${rollup_address)/state`
 
