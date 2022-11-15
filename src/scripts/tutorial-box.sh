@@ -102,7 +102,7 @@ start_toru() {
         --no-daemons-for=bob \
         --until-level 200_000_000 \
         --protocol-kind "$default_protocol" \
-        --tx-rollup 3:torubox
+        --tx-rollup 10:torubox
 }
 
 all_commands="$all_commands
