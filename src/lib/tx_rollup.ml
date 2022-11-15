@@ -30,15 +30,17 @@ module Account = struct
     in
     (acc, key)
 
-  let fund state ~client ~amount ~from ~dst =
+  let fund state ~client ~amount ~from ~destination =
     Tezos_client.successful_client_cmd state ~client
-      [ "transfer"; amount; "from"; from; "to"; dst; "--burn-cap"; "15" ]
+      [
+        "transfer"; amount; "from"; from; "to"; destination; "--burn-cap"; "15";
+      ]
 
-  let fund_multiple state ~client ~from ~(recipiants : (string * string) list) =
+  let fund_multiple state ~client ~from ~(recipients : (string * string) list) =
     let json =
       let open Ezjsonm in
       list dict
-        (List.fold recipiants ~init:[] ~f:(fun acc (dst, amt) ->
+        (List.fold recipients ~init:[] ~f:(fun acc (dst, amt) ->
              [ ("destination", string dst); ("amount", string amt) ] :: acc))
       |> to_string
     in
@@ -47,9 +49,9 @@ module Account = struct
         "multiple"; "transfers"; "from"; from; "using"; json; "--burn-cap"; "15";
       ]
 
-  let originate state ~name ~client ~acc =
+  let originate state ~name ~client ~account =
     Tezos_client.successful_client_cmd state ~client
-      [ "originate"; "tx"; "rollup"; name; "from"; acc; "--burn-cap"; "15" ]
+      [ "originate"; "tx"; "rollup"; name; "from"; account; "--burn-cap"; "15" ]
 
   let confirm state ~client ?(confirmations = 0) ~operation_hash () =
     Tezos_client.successful_client_cmd state ~client
@@ -94,7 +96,7 @@ module Deposit_contract = struct
   let make : string -> t = fun s -> s
 
   let originate state ?(rollup_name = "toru")
-      ~(protocol : Tezos_protocol.Protocol_kind.t) ~client ~acc () =
+      ~(protocol : Tezos_protocol.Protocol_kind.t) ~client ~account () =
     let michelson =
       match protocol with
       | `Kathmandu ->
@@ -154,7 +156,7 @@ module Deposit_contract = struct
         "transferring";
         "0";
         "from";
-        acc;
+        account;
         "running";
         michelson;
         "--burn-cap";
@@ -372,8 +374,8 @@ end
 let origination_account ~client name =
   Account.gas_account ~client (sprintf "%s-origination-account" name)
 
-let originate_and_confirm state ~name ~client ~acc ?confirmations () =
-  Account.originate state ~name ~client ~acc >>= fun res ->
+let originate_and_confirm state ~name ~client ~account ?confirmations () =
+  Account.originate state ~name ~client ~account >>= fun res ->
   return (Account.parse_origination ~lines:res#out) >>= fun rollup ->
   match rollup with
   | None ->
@@ -385,9 +387,9 @@ let originate_and_confirm state ~name ~client ~acc ?confirmations () =
         ~operation_hash:acc.operation_hash ()
       >>= fun conf -> return (acc, conf#out)
 
-let publish_deposit_contract state protocol rollup_name client acc =
+let publish_deposit_contract state protocol rollup_name client account =
   let open Deposit_contract in
-  originate state ~rollup_name ~protocol ~client ~acc () >>= fun res ->
+  originate state ~rollup_name ~protocol ~client ~account () >>= fun res ->
   match parse_origination ~lines:res#out with
   | None ->
       System_error.fail_fatalf

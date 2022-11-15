@@ -397,14 +397,14 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             let contract_orig = Tezos_protocol.Account.name contract_orig_acc in
             let funder = Tezos_protocol.Account.name boot_acc in
             Tx_rollup.Account.fund_multiple state ~client:cli ~from:funder
-              ~recipiants:[ (toru_orig, "1000"); (contract_orig, "10") ]
+              ~recipients:[ (toru_orig, "1000"); (contract_orig, "10") ]
             >>= fun _ ->
             (* With the accounts funded we wait for LEVEL and then originate the TORU and deposit-contract. *)
             Test_scenario.Queries.run_wait_level protocol state nodes
               (`At_least tx.level) tx.level
             >>= fun () ->
             Tx_rollup.originate_and_confirm state ~name:tx.name ~client:cli
-              ~acc:toru_orig ~confirmations:1 ()
+              ~account:toru_orig ~confirmations:1 ()
             >>= fun (account, _conf) ->
             Tx_rollup.publish_deposit_contract state protocol.kind tx.name cli
               contract_orig
@@ -433,7 +433,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                   (dst_key, "100") :: d)
             in
             Tx_rollup.Account.fund_multiple state ~client:cli ~from:toru_orig
-              ~recipiants:dstlist
+              ~recipients:dstlist
             >>= fun _ ->
             (* Start the TORU node. And print TORU information. *)
             Running_processes.start state

@@ -28,13 +28,13 @@ module Account : sig
     client:Tezos_client.t ->
     amount:string ->
     from:string ->
-    dst:string ->
+    destination:string ->
     ( < err : string list ; out : string list ; status : Unix.process_status >,
       [> `Process_error of Process_result.Error.error
       | `System_error of [ `Fatal ] * System_error.static ] )
     Asynchronous_result.t
-  (** [fund state client tez acc dst] is a octez-client call to send [amount] of
-      tez form from [acc] to [dist]. *)
+  (** [fund state client amount sender recipient] is an octez-client call to
+      transfer an [amount] form from [sender] to [recipient]. *)
 
   val fund_multiple :
     < application_name : string
@@ -45,13 +45,13 @@ module Account : sig
     ; .. > ->
     client:Tezos_client.t ->
     from:string ->
-    recipiants:(string * string) list ->
+    recipients:(string * string) list ->
     ( < err : string list ; out : string list ; status : Unix.process_status >,
       [> `Process_error of Process_result.Error.error
       | `System_error of [ `Fatal ] * System_error.static ] )
     Asynchronous_result.t
-  (** [fund_multiple state client from recipiants] is an octez-client call to
-      transfer tez form from [from] to a list of [recipants]. Recipients is a
+  (** [fund_multiple state client sender recipients] is an octez-client call to
+      transfer tez from [sender] to a list of [recipients]. Recipients is a
       (destination account, tezos amount) list. *)
 end
 
@@ -157,7 +157,7 @@ val originate_and_confirm :
   ; .. > ->
   name:string ->
   client:Tezos_client.t ->
-  acc:string ->
+  account:string ->
   ?confirmations:int ->
   unit ->
   ( Account.t * string list,
