@@ -17,7 +17,15 @@ module Unix_files_sink : sig
   val all_info : t
 end
 
-type kind = [ `Node | `Baker | `Endorser | `Accuser | `Client | `Admin ]
+type kind =
+  [ `Node
+  | `Baker
+  | `Endorser
+  | `Accuser
+  | `Client
+  | `Admin
+  | `Tx_rollup_node
+  | `Tx_rollup_client ]
 (** The type [kind] is used to distinguish ['a t] executables. *)
 
 type t = private {

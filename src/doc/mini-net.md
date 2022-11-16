@@ -81,7 +81,8 @@ By typing `help` we see we can use the command `bake` to make new blocks:
 ...
 ```
 
-One can also use `octez-client -P 4000 bake for ...` from outside the sandbox.
+One can also use `octez-client -E http://localhost:4000 bake for ...` from
+outside the sandbox.
 
 Luckily such a client has already been configured by Flextesa; type `help-env`
 on the prompt:
@@ -98,18 +99,18 @@ Flextesa:
     Example:
 
         . /tmp/mininet-test/shell.env
-        tc0 list known addresses
-        tc0 rpc get /chains/main/blocks/head/metadata
+        c0 list known addresses
+        c0 rpc get /chains/main/blocks/head/metadata
 ```
 
 And indeed we can use such a client to bake a new block:
 
 ```
- $ tc0 list known addresses
+ $ c0 list known addresses
 bootacc-0: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU (unencrypted sk known)
 dictator-default: tz1aYQcaXmowUu59gAgMGdiX6ARR7gdmikZk (unencrypted sk known)
 
- $ tc0 bake for bootacc-0
+ $ c0 bake for bootacc-0
 Feb 12 10:30:42 - alpha.baking.forge: found 0 valid operations (0 refused) for timestamp 2020-02-12T15:30:42-00:00 (fitness 01::0000000000000002)
 Injected block BLehBRAoyFAB
 ```
@@ -144,8 +145,8 @@ runs a 1-node sandbox with 1 bootstrap baker, running Babylon (the same as
 mainnet) but with a time-between-blocks of 5 seconds.
 
 Moreover, instead of becoming interactive, the sandbox will run for 2×10⁶ blocks
-and the node will be an `archive` node (see documentation on
-[history modes](https://tezos.gitlab.io/user/history_modes.html)).
+and the node will be an `archive` node (see documentation on [history
+modes](https://tezos.gitlab.io/user/history_modes.html)).
 
 ### Adding Custom Bootstrap Accounts
 
@@ -176,12 +177,12 @@ with this account.
 
 ### Choosing a (Vanity) Chain-id
 
-With the default values the chain id for the sandbox is
-`NetXKMbjQL2SBox` (cf. RPC `/chains/main/chain_id`), but one may want to use a
-different one.
+With the default values the chain id for the sandbox is `NetXKMbjQL2SBox` (cf.
+RPC `/chains/main/chain_id`), but one may want to use a different one.
 
 The chain-id is computed from the hash of the Genesis block, which can be forced
-with the `--genesis-block-hash`; and one can brute-force a block-hash to generate vanity chain-id with the `flextesa vanity-chain-id` command.
+with the `--genesis-block-hash`; and one can brute-force a block-hash to
+generate vanity chain-id with the `flextesa vanity-chain-id` command.
 
 ```
  $ flextesa vanity-chain-id Bob  \
@@ -206,12 +207,12 @@ And check interactively that `c0 rpc get /chains/main/chain_id` returns
 
 ### Root Path & Stopping/Restarting Sandboxes
 
-All the sandboxes keep all their data within a “root path” which can be set
-with the `--root-path` option.
+All the sandboxes keep all their data within a “root path” which can be set with
+the `--root-path` option.
 
 By default the `mini-net` erases that directory at startup but one can try to
-restart a sandbox from the state it was when it was shut down with
-the option `--keep-root`.
+restart a sandbox from the state it was when it was shut down with the option
+`--keep-root`.
 
 Restarting sandboxes is *not an exact science* because it is not how a
 blockchain is supposed to work, sometimes bakers and nodes fail while trying to
@@ -223,3 +224,92 @@ catch-up, it is better to use “small” networks:
 
 Stopping the sandbox with `quit`, and restarting with the same command some time
 later usually works.
+
+## Transaction Optimistic Rollups (TORU)
+
+Flextesa can start a TORU in a sandbox with the `--tx-rollup [LEVEL:NAME]`
+option. As noted above, you'll need to add the Tezos binaries to your PATH prior
+to starting the mini-network.
+
+When starting the sandbox Flextesa will import and fund several gas accounts to
+originate and perform various rollup node operations. In order to ensure that
+these transactions are included, the `LEVEL` shouldn't be set lower than 3.
+
+Example: 
+```
+flextesa mini \
+    --size 3 --time-between-blocks 4 \
+    --root-path=/tmp/mininet-test \
+    --protocol-kind Kathmandu \
+    --tx-rollup 5:mytoru
+```
+
+Following this command a transaction rollup called `NAME` will be originated at
+block `LEVEL` and a transaction rollup node will start. Flextesa will display
+some information including the `rollup name`, `address` and the node's `RPC
+port`. Flextesa will also display a `KT1` address for a smart contract which can
+deposit tickets on a transaction rollup.
+
+The default `mode` for the node is `operator`. You can set the mode with the
+option `--tx-rollup-node-mode` option. The `mode` dictates the set of actions
+the TORU node is expected to perform. For example you might set Flextesa's node
+to run passively with the `operserver` mode or to compute rejections in
+`accuser` mode. Then run a separate node in `operator` mode which enables all
+features (including progressing the TORU). For a complete description of `modes`
+and other TORU node configurations, see Tezos' transaction optimistic rollups
+[documentation
+here](https://tezos.gitlab.io/kathmandu/transaction_rollups.html).
+
+When using mini-network interactively, you can use the octet-client inside of
+Flextesa. For example the following command will check the state of the TORU:
+
+`c0 rpc get /chains/main/blocks/head/context/tx_rollup/${rollup_address)/state`
+
+#### Sending Tickets
+
+1. Before you can send any tickets to the rollup, you will want to create a
+   `tz4` address.
+
+`c0 bls gen keys rollup_bob`
+
+
+2. To print out the `tz4` address assign to rollup_bob use the command:
+
+`c0 bls show address rollup_bob`
+
+3. You can now transfer tickets to `rollup_bob` by using the smart contract
+   originated by Flextesa.
+
+```
+c0 transfer 0 from alice to CONTRACT_KT1_ADDRESS \
+    --arg "(Pair \"TICKET_NAME\" 100 \"ROLLUP_BOB_TZ4_ADDRESS\" \"TX_ROLLUP_ADDRESS\")" \
+    --burn-cap 1
+```
+
+This simple smart contract doesn't have any business logic. Transferring 0 tez
+to the contract will work. The caller must be a layer one address (e.g. alice in
+the example above). The arguments passed to the contract will be: the name of
+the ticket as a string (e.g. "tacos"), the number of tickets to mint, followed
+by a `tz4` address and the rollup `txr` address. The octez_client will print out
+the operation info, including the `ticket hash`.
+
+4. Finally, you can check the balance and send tickets to other rollup addresses
+   using the transaction rollup client.
+
+```
+$ tezos-tx-rollup-client-014-PtKathma -E http://localhost:${rpc_port} \
+    get balance for rollup_bob of "${TICKET_HASH}"
+```
+
+Note: You'll need the RPC port for the TORU node which flextesa displayed after
+originating the transaction rollup. The transaction rollup info is also stored
+node's data directory in the `ROOT-PATH`. If you followed the example above you
+can find it at.
+
+```
+$ cat /tmp/mininet-test/tx-rollup-mytoru/torubox-operator-node-000/data-dir/config.json
+```
+
+See the [transaction optimistic rollups
+documentation](https://tezos.gitlab.io/active/transaction_rollups.html) for more
+usage examples.

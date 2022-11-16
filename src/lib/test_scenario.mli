@@ -105,6 +105,14 @@ module Network : sig
         chain is [0]. *)
 end
 
+module Unix_port : sig
+  type t = int
+
+  val next_port : Tezos_node.t list -> t
+  (** [next_port c nl] is the next highest availble rpc_port after comparing the
+      current_port [c] and a list of nodes [nl]. *)
+end
+
 val network_with_protocol :
   ?do_activation:bool ->
   ?node_custom_network:[ `Json of Ezjsonm.value ] ->
