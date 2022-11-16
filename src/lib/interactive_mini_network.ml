@@ -412,9 +412,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             (* Next configure the TORU node. *)
             let tx_node =
               Tx_rollup.Tx_node.(
-                let port =
-                  Test_scenario.Rpc_port.(next_port current_port nodes)
-                in
+                let port = Test_scenario.Unix_port.(next_port nodes) in
                 make ~port ~endpoint:base_port ~mode:tx_node
                   ~protocol:protocol.kind ~exec:tx.node ~client:cli ~account
                   ~tx_rollup:tx ())
