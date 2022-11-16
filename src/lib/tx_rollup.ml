@@ -245,17 +245,6 @@ module Tx_node = struct
     | Operator -> "operator"
     | Custom -> "custom "
 
-  let rpc_port = ref 0
-
-  let next_port (port : int ref) (nodes : Tezos_node.t list) =
-    let last =
-      List.(
-        fold nodes ~init:[] ~f:(fun i n -> n.rpc_port :: i)
-        |> max_elt ~compare:Int.compare)
-    in
-    port := max !port (Option.value last ~default:20000) + 2;
-    port
-
   let make ?id ?port ?endpoint ~protocol ~exec ~client ~mode ?cors_origin
       ~account ?operation_signers ~tx_rollup () : node =
     let name =

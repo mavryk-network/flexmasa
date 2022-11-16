@@ -102,12 +102,6 @@ module Tx_node : sig
     'a
   (** [operation_signer_map f signer] applies [f] to [signer]*)
 
-  val rpc_port : int ref
-
-  val next_port : int ref -> Tezos_node.t list -> int ref
-  (** [next_port p nl] will find the highest assigned port in [nl] or [p]
-      (whichever is greater) and store the next port in p. *)
-
   val make :
     ?id:string ->
     ?port:int ->

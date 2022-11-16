@@ -413,7 +413,9 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             let tx_node =
               Tx_rollup.Tx_node.(
                 let mode = Option.value tx_node ~default:(Operator : mode) in
-                let port = !(next_port rpc_port nodes) in
+                let port =
+                  Test_scenario.Rpc_port.(next_port current_port nodes)
+                in
                 make ~port ~endpoint:base_port ~mode ~protocol:protocol.kind
                   ~exec:tx.node ~client:cli ~account ~tx_rollup:tx ())
             in
@@ -448,7 +450,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                     desc (af "Address:") (af "`%s`" account.address);
                     desc
                       (af "Tx-rollup Node RPC port:")
-                      (af "`%d`" !Tx_rollup.Tx_node.rpc_port);
+                      (af "`%d`" (Option.value tx_node.port ~default:9999));
                     desc
                       (af "Deposit-contract Address:")
                       (af "`%s`" deposit_contract);

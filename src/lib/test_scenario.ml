@@ -169,6 +169,21 @@ module Topology = struct
     make ~prefix:"" network
 end
 
+module Rpc_port = struct
+  type t = int
+
+  let current_port = ref 0
+
+  let next_port currnet_port (nodes : Tezos_node.t list) : t =
+    let last =
+      List.(
+        fold nodes ~init:[] ~f:(fun i n -> n.rpc_port :: i)
+        |> max_elt ~compare:Int.compare)
+    in
+    currnet_port := max !currnet_port (Option.value last ~default:15_001) + 2;
+    !currnet_port
+end
+
 module Queries = struct
   let all_levels ?(chain = "main") state ~nodes =
     List.fold nodes ~init:(return [])
