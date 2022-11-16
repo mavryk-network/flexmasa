@@ -238,7 +238,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     node_exec client_exec baker_exec endorser_exec accuser_exec test_kind ?tx
-    ?tx_node () =
+    ~tx_node () =
   (if clear_root then
    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
    >>= fun () -> Helpers.clear_root state
@@ -412,12 +412,12 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             (* Next configure the TORU node. *)
             let tx_node =
               Tx_rollup.Tx_node.(
-                let mode = Option.value tx_node ~default:(Operator : mode) in
                 let port =
                   Test_scenario.Rpc_port.(next_port current_port nodes)
                 in
-                make ~port ~endpoint:base_port ~mode ~protocol:protocol.kind
-                  ~exec:tx.node ~client:cli ~account ~tx_rollup:tx ())
+                make ~port ~endpoint:base_port ~mode:tx_node
+                  ~protocol:protocol.kind ~exec:tx.node ~client:cli ~account
+                  ~tx_rollup:tx ())
             in
             (* Init and fund the TORU node operation signers. *)
             List_sequential.iter tx_node.operation_signers ~f:(fun os ->
@@ -526,7 +526,7 @@ let cmd () =
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ?tx ?tx_node ~clear_root ~nodes_history_mode_edits
+            ?hard_fork ?tx ~tx_node ~clear_root ~nodes_history_mode_edits
             ~external_peer_ports ~no_daemons_for ~genesis_block_choice test_kind
         in
         Test_command_line.Run_command.or_hard_fail state ~pp_error

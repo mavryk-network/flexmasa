@@ -131,9 +131,7 @@ module Tx_node : sig
     Running_processes.Process.t
 
   val cmdliner_term :
-    < manpager : Manpage_builder.State.t ; .. > ->
-    unit ->
-    mode option Cmdliner.Term.t
+    < manpager : Manpage_builder.State.t ; .. > -> unit -> mode Cmdliner.Term.t
   (** A cmdliner term for the tx_rollup_node "mode" option. *)
 end
 

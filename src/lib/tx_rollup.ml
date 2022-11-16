@@ -334,30 +334,30 @@ module Tx_node = struct
     (* This was added in anticipation of possibly creating multiple nodes of different mode types. *)
     (* Maybe users what to run their own TORU node and would like Flextesa to run a passive observer node.*)
     let open Cmdliner in
-    let open Term in
     let extra_doc = " for transaction rollups (requires --tx-rollup)" in
     let docs =
       Manpage_builder.section state ~rank:2
         ~name:"TRANSACTION OPTIMISTIC ROLLUP NODE"
     in
-    const (fun mode ->
-        match mode with
-        | Some "observer" -> Some Observer
-        | Some "accuser" -> Some Accuser
-        | Some "batcher" -> Some Batcher
-        | Some "maintenance" -> Some Maintenance
-        | Some "custom " -> Some Custom
-        | Some "operator" -> Some Operator
-        | None | _ -> None)
-    $ Arg.(
-        value
-        & opt (some string) None
-        & info ~docs [ "tx-rollup-node-mode" ]
-            ~doc:
-              (sprintf
-                 "Set the transaction rollup node's `mode`%s. The default mode \
-                  is `Operator`."
-                 extra_doc))
+    Arg.(
+      value
+      & opt
+          (enum
+             [
+               ("observer", Observer);
+               ("accuser", Accuser);
+               ("batcher", Batcher);
+               ("maintenance", Maintenance);
+               ("custom ", Custom);
+               ("operator", Operator);
+             ])
+          Operator
+      & info ~docs [ "tx-rollup-node-mode" ]
+          ~doc:
+            (sprintf
+               "Set the transaction rollup node's `mode`%s. The default mode \
+                is `Operator`."
+               extra_doc))
 end
 
 let origination_account ~client name =
