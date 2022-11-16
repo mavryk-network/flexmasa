@@ -158,7 +158,7 @@ accounts by default.
 
 The `start_toru` command included in the scripts is and implementation of the
 `flextesa mini-network` with the addition of the option ` --tx-rollup
-3:torubox`.
+10:torubox`.
 
 ``` default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
