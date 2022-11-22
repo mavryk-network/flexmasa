@@ -7,12 +7,12 @@ module Inconsistency_error = struct
     | `Too_many_timestamp_delays of Tezos_protocol.t list ]
 
   let should_be_one_protocol = function
-    | [one] -> return one
+    | [ one ] -> return one
     | [] -> fail `Empty_protocol_list
     | more -> fail (`Too_many_protocols more)
 
   let should_be_one_timestamp_delay = function
-    | [_] -> return ()
+    | [ _ ] -> return ()
     | [] -> fail `Empty_protocol_list
     | more -> fail (`Too_many_timestamp_delays more)
 
@@ -33,29 +33,35 @@ module Topology = struct
   type node = Tezos_node.t
 
   type _ t =
-    | Mesh : {size: int} -> node list t
-    | Bottleneck :
-        {name: string; left: 'a network; right: 'b network}
+    | Mesh : { size : int } -> node list t
+    | Bottleneck : {
+        name : string;
+        left : 'a network;
+        right : 'b network;
+      }
         -> ('a * node * 'b) t
-    | Net_in_the_middle :
-        {middle: 'm network; left: 'a network; right: 'b network}
+    | Net_in_the_middle : {
+        middle : 'm network;
+        left : 'a network;
+        right : 'b network;
+      }
         -> ('a * 'm * 'b) t
 
-  and 'a network = {topology: 'a t; name: string}
+  and 'a network = { topology : 'a t; name : string }
 
-  let make name topology = {name; topology}
-  let mesh name size = Mesh {size} |> make name
+  let make name topology = { name; topology }
+  let mesh name size = Mesh { size } |> make name
   let sub = make
-  let bottleneck name left right = Bottleneck {name; left; right} |> make name
+  let bottleneck name left right = Bottleneck { name; left; right } |> make name
 
   let net_in_the_middle name middle left right =
-    Net_in_the_middle {middle; left; right} |> make name
+    Net_in_the_middle { middle; left; right } |> make name
 
   let rec node_count : type a. a t -> int = function
-    | Mesh {size} -> size
-    | Bottleneck {left; right; _} ->
+    | Mesh { size } -> size
+    | Bottleneck { left; right; _ } ->
         1 + node_count left.topology + node_count right.topology
-    | Net_in_the_middle {left; right; middle} ->
+    | Net_in_the_middle { left; right; middle } ->
         node_count middle.topology + node_count left.topology
         + node_count right.topology
 
@@ -63,22 +69,22 @@ module Topology = struct
    fun topo res ->
     match (topo, res) with
     | Mesh _, l -> List.map l ~f:(fun nod -> nod.Tezos_node.id)
-    | Bottleneck {left; right; _}, (l, i, r) ->
+    | Bottleneck { left; right; _ }, (l, i, r) ->
         (i.Tezos_node.id :: node_ids left.topology l)
         @ node_ids right.topology r
-    | Net_in_the_middle {left; right; middle}, (l, i, r) ->
+    | Net_in_the_middle { left; right; middle }, (l, i, r) ->
         node_ids middle.topology i @ node_ids left.topology l
         @ node_ids right.topology r
 
   let rec node_names : type a. ?prefix:string -> a network -> string list =
-   fun ?(prefix = "") {name; topology} ->
+   fun ?(prefix = "") { name; topology } ->
     let make_ith i = sprintf "%s%03d" prefix i in
     let continue a = node_names ~prefix:(prefix ^ name) a in
     match topology with
-    | Mesh {size} -> List.init size ~f:make_ith
-    | Bottleneck {name; left; right} ->
+    | Mesh { size } -> List.init size ~f:make_ith
+    | Bottleneck { name; left; right } ->
         (sprintf "%s%s" prefix name :: continue left) @ continue right
-    | Net_in_the_middle {left; right; middle} ->
+    | Net_in_the_middle { left; right; middle } ->
         continue middle @ continue left @ continue right
 
   let build ?(external_peer_ports = []) ?(base_port = 15_001) ~make_node network
@@ -90,25 +96,29 @@ module Topology = struct
       | Some (_, p) -> p
       | None ->
           let p = !next_port in
-          all_ports := (name, p) :: !all_ports ;
-          next_port := !next_port + 2 ;
-          p in
+          all_ports := (name, p) :: !all_ports;
+          next_port := !next_port + 2;
+          p
+    in
     let p2p n = rpc n + 1 in
     let node peers id =
       let rpc_port = rpc id in
       let p2p_port = p2p id in
       let expected_connections =
-        List.length peers + List.length external_peer_ports in
+        List.length peers + List.length external_peer_ports
+      in
       let peers =
         List.filter_map peers ~f:(fun p ->
-            if not (String.equal p id) then Some (p2p p) else None ) in
+            if not (String.equal p id) then Some (p2p p) else None)
+      in
       make_node id ~expected_connections ~rpc_port ~p2p_port
-        (external_peer_ports @ peers) in
+        (external_peer_ports @ peers)
+    in
     let dbgp prefx names =
       Dbg.f (fun pf ->
           pf "%s:\n  %s\n%!" prefx
             (String.concat ~sep:"\n  "
-               (List.map names ~f:(fun n -> sprintf "%s:%d" n (p2p n))) ) )
+               (List.map names ~f:(fun n -> sprintf "%s:%d" n (p2p n)))))
     in
     let rec make :
         type a. ?extra_peers:string list -> prefix:string -> a network -> a =
@@ -116,65 +126,88 @@ module Topology = struct
       let prefix = prefix ^ network.name in
       let make ?extra_peers n = make ?extra_peers ~prefix n in
       match network.topology with
-      | Bottleneck {name; left; right} ->
+      | Bottleneck { name; left; right } ->
           let intermediate = name in
-          let extra_peers = [intermediate] in
+          let extra_peers = [ intermediate ] in
           let left_nodes = make ~extra_peers left in
           let right_nodes = make ~extra_peers right in
           let intermediate_node =
             let peers =
               node_ids left.topology left_nodes
-              @ node_ids right.topology right_nodes in
-            node peers intermediate in
+              @ node_ids right.topology right_nodes
+            in
+            node peers intermediate
+          in
           (left_nodes, intermediate_node, right_nodes)
-      | Net_in_the_middle {middle; left; right} ->
+      | Net_in_the_middle { middle; left; right } ->
           let middle_names = node_names ~prefix:(prefix ^ middle.name) middle in
-          dbgp "Mid-name" middle_names ;
-          let left_nodes = make ~extra_peers:(extra_peers @ middle_names) left in
+          dbgp "Mid-name" middle_names;
+          let left_nodes =
+            make ~extra_peers:(extra_peers @ middle_names) left
+          in
           let right_nodes =
-            make ~extra_peers:(extra_peers @ middle_names) right in
+            make ~extra_peers:(extra_peers @ middle_names) right
+          in
           let intermediate_nodes =
             let peers =
               node_ids left.topology left_nodes
-              @ node_ids right.topology right_nodes in
-            dbgp "peers" peers ;
-            dbgp "extr-peers" extra_peers ;
-            dbgp "left-names" (node_names ~prefix:(prefix ^ left.name) left) ;
-            dbgp "right-names" (node_names ~prefix:(prefix ^ right.name) right) ;
-            make ~extra_peers:(peers @ extra_peers) middle in
+              @ node_ids right.topology right_nodes
+            in
+            dbgp "peers" peers;
+            dbgp "extr-peers" extra_peers;
+            dbgp "left-names" (node_names ~prefix:(prefix ^ left.name) left);
+            dbgp "right-names" (node_names ~prefix:(prefix ^ right.name) right);
+            make ~extra_peers:(peers @ extra_peers) middle
+          in
           (left_nodes, intermediate_nodes, right_nodes)
       | Mesh _ ->
           let all = node_names ~prefix network in
-          dbgp "mesh-names" all ;
+          dbgp "mesh-names" all;
           let nodes = List.map all ~f:(fun n -> node (all @ extra_peers) n) in
-          nodes in
+          nodes
+    in
     make ~prefix:"" network
+end
+
+module Unix_port = struct
+  type t = int
+
+  let current_port = ref 0
+
+  let next_port (nodes : Tezos_node.t list) : t =
+    let last =
+      List.(
+        fold nodes ~init:[] ~f:(fun i n -> n.rpc_port :: i)
+        |> max_elt ~compare:Int.compare)
+    in
+    current_port := max !current_port (Option.value last ~default:15_001) + 2;
+    !current_port
 end
 
 module Queries = struct
   let all_levels ?(chain = "main") state ~nodes =
     List.fold nodes ~init:(return [])
-      ~f:(fun prevm {Tezos_node.id; rpc_port; _} ->
-        prevm
-        >>= fun prev ->
+      ~f:(fun prevm { Tezos_node.id; rpc_port; _ } ->
+        prevm >>= fun prev ->
         Running_processes.run_cmdf state
           (* the header RPC is the most consistent across protocols: *)
           "curl http://localhost:%d/chains/%s/blocks/head/header" rpc_port chain
         >>= fun metadata ->
-        Console.display_errors_of_command state metadata ~should_output:true
-        >>= (function
-              | true -> (
-                try
-                  `Level
-                    ( Jqo.of_lines metadata#out |> Jqo.field ~k:"level"
-                    |> Jqo.get_int )
-                  |> return
-                with _ -> return `Failed )
-              | false -> return `Failed )
-        >>= fun res -> return ((id, res) :: prev) )
+        (Console.display_errors_of_command state metadata ~should_output:true
+         >>= function
+         | true -> (
+             try
+               `Level
+                 (Jqo.of_lines metadata#out |> Jqo.field ~k:"level"
+                |> Jqo.get_int)
+               |> return
+             with _ -> return `Failed)
+         | false -> return `Failed)
+        >>= fun res -> return ((id, res) :: prev))
     >>= fun results ->
     let sorted =
-      List.sort results ~compare:(fun (a, _) (b, _) -> String.compare a b) in
+      List.sort results ~compare:(fun (a, _) (b, _) -> String.compare a b)
+    in
     return sorted
 
   let wait_for_all_levels_to_be ?attempts_factor ?chain ?(silent = false) state
@@ -185,56 +218,61 @@ module Queries = struct
     let level_string =
       match level with
       | `Equal_to l -> sprintf "= %d" l
-      | `At_least l -> sprintf "≥ %d" l in
+      | `At_least l -> sprintf "≥ %d" l
+    in
     let msg ids =
       let show_node (id, res) =
         sprintf "%s (%s)" id
-          ( match res with
+          (match res with
           | `Failed -> "failed"
           | `Level l -> sprintf "%d" l
           | `Null -> "null"
-          | `Unknown s -> sprintf "¿¿ %S ??" s ) in
+          | `Unknown s -> sprintf "¿¿ %S ??" s)
+      in
       sprintf "Waiting for %s to reach level %s"
         (String.concat (List.map ~f:show_node ids) ~sep:", ")
-        level_string in
-    ( if not silent then
-      Console.say state
-        EF.(
-          wf "Checking for all levels to be %s (nodes: %s%s)" level_string
-            (String.concat ~sep:", "
-               (List.map nodes ~f:(fun n -> n.Tezos_node.id)) )
-            (Option.value_map chain ~default:"" ~f:(sprintf ", chain: %s")))
-    else return () )
+        level_string
+    in
+    (if not silent then
+     Console.say state
+       EF.(
+         wf "Checking for all levels to be %s (nodes: %s%s)" level_string
+           (String.concat ~sep:", "
+              (List.map nodes ~f:(fun n -> n.Tezos_node.id)))
+           (Option.value_map chain ~default:"" ~f:(sprintf ", chain: %s")))
+    else return ())
     >>= fun () ->
     Helpers.wait_for state ?attempts_factor ~silent ~attempts ~seconds
       (fun _nth ->
-        all_levels state ~nodes ?chain
-        >>= fun results ->
+        all_levels state ~nodes ?chain >>= fun results ->
         let not_readys =
           List.filter_map results ~f:(function
             | _, `Level n when check_level n -> None
-            | id, res -> Some (id, res) ) in
+            | id, res -> Some (id, res))
+        in
         match not_readys with
         | [] -> return (`Done ())
-        | ids -> return (`Not_done (msg ids)) )
+        | ids -> return (`Not_done (msg ids)))
 
   let run_wait_level protocol state nodes opt lvl =
     let port =
       let n = List.hd_exn nodes in
-      n.Tezos_node.rpc_port in
+      n.Tezos_node.rpc_port
+    in
     let seconds () =
-      Dbg.e EF.(wf "Figuring out TBB") ;
+      Dbg.e EF.(wf "Figuring out TBB");
       Asynchronous_result.bind_on_result
         (Helpers.curl_rpc_cmd state ~port
-           ~path:"/chains/main/blocks/head/context/constants" )
+           ~path:"/chains/main/blocks/head/context/constants")
         ~f:
           (let default () =
-             Dbg.e EF.(wf "Getting default TBB") ;
+             Dbg.e EF.(wf "Getting default TBB");
              protocol.Tezos_protocol.time_between_blocks |> List.hd
-             |> Option.value ~default:10 in
+             |> Option.value ~default:10
+           in
            function
            | Ok (Some json) ->
-               Dbg.e EF.(wf "Got JSON") ;
+               Dbg.e EF.(wf "Got JSON");
                return
                  Jqo.(
                    try
@@ -244,25 +282,27 @@ module Queries = struct
                      try
                        field json ~k:"time_between_blocks"
                        |> get_strings |> List.hd_exn |> Int.of_string
-                     with _ -> default () ))
-           | Ok None | Error _ -> return (default ()) )
+                     with _ -> default ()))
+           | Ok None | Error _ -> return (default ()))
       >>= fun tbb ->
       let seconds = Float.of_int tbb *. 1.5 in
-      Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds) ;
-      return seconds in
+      Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds);
+      return seconds
+    in
     let attempts = lvl in
     wait_for_all_levels_to_be state ~attempts ~seconds nodes opt
 
   let wait_for_bake state ~nodes =
-    all_levels state ~nodes
-    >>= fun results ->
+    all_levels state ~nodes >>= fun results ->
     let levels =
       List.map results ~f:(fun (_, result) ->
-          match result with `Level i -> i | _ -> 0 ) in
+          match result with `Level i -> i | _ -> 0)
+    in
     let max_level =
       match List.max_elt ~compare:Int.compare levels with
       | Some n -> n
-      | None -> 0 in
+      | None -> 0
+    in
     wait_for_all_levels_to_be state ~silent:true ~attempts:20
       ~seconds:(fun () -> return 1.0)
       ~attempts_factor:0.8 nodes
@@ -270,48 +310,46 @@ module Queries = struct
 end
 
 module Network = struct
-  type t = {nodes: Tezos_node.t list}
+  type t = { nodes : Tezos_node.t list }
 
-  let make nodes = {nodes}
+  let make nodes = { nodes }
 
   let start_up ?(do_activation = true) ?(check_ports = true) state ~client_exec
-      {nodes} =
-    ( if check_ports then
-      Helpers.Netstat.used_listening_ports state
-      >>= fun all_used ->
-      let taken port = List.find all_used ~f:(fun (p, _) -> Int.equal p port) in
-      List_sequential.iter nodes
-        ~f:(fun {Tezos_node.id; rpc_port; p2p_port; _} ->
-          let fail s (p, `Tcp (_, row)) =
-            System_error.fail_fatalf "Node: %S's %s port %d already in use {%s}"
-              id s p
-              (String.concat ~sep:"|" row) in
-          let time_wait (_, `Tcp (_, row)) =
-            Poly.equal (List.last row) (Some "TIME_WAIT") in
-          match (taken rpc_port, taken p2p_port) with
-          | None, None -> return ()
-          | Some p, _ -> if time_wait p then return () else fail "RPC" p
-          | _, Some p -> if time_wait p then return () else fail "P2P" p )
-    else return () )
+      { nodes } =
+    (if check_ports then
+     Helpers.Netstat.used_listening_ports state >>= fun all_used ->
+     let taken port = List.find all_used ~f:(fun (p, _) -> Int.equal p port) in
+     List_sequential.iter nodes
+       ~f:(fun { Tezos_node.id; rpc_port; p2p_port; _ } ->
+         let fail s (p, `Tcp (_, row)) =
+           System_error.fail_fatalf "Node: %S's %s port %d already in use {%s}"
+             id s p
+             (String.concat ~sep:"|" row)
+         in
+         let time_wait (_, `Tcp (_, row)) =
+           Poly.equal (List.last row) (Some "TIME_WAIT")
+         in
+         match (taken rpc_port, taken p2p_port) with
+         | None, None -> return ()
+         | Some p, _ -> if time_wait p then return () else fail "RPC" p
+         | _, Some p -> if time_wait p then return () else fail "P2P" p)
+    else return ())
     >>= fun () ->
     let protocols =
       List.map ~f:Tezos_node.protocol nodes
-      |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
-    Inconsistency_error.should_be_one_protocol protocols
-    >>= fun protocol ->
-    Inconsistency_error.should_be_one_timestamp_delay protocols
-    >>= fun () ->
-    Tezos_protocol.ensure state protocol
-    >>= fun () ->
+      |> List.dedup_and_sort ~compare:Tezos_protocol.compare
+    in
+    Inconsistency_error.should_be_one_protocol protocols >>= fun protocol ->
+    Inconsistency_error.should_be_one_timestamp_delay protocols >>= fun () ->
+    Tezos_protocol.ensure state protocol >>= fun () ->
     List.fold nodes ~init:(return ()) ~f:(fun prev_m node ->
-        prev_m
-        >>= fun () ->
+        prev_m >>= fun () ->
         Running_processes.start state (Tezos_node.process state node)
-        >>= fun _ -> return () )
+        >>= fun _ -> return ())
     >>= fun () ->
     let node_0 = List.hd_exn nodes in
     let client = Tezos_client.of_node node_0 ~exec:client_exec in
-    Dbg.e EF.(af "Trying to bootstrap client") ;
+    Dbg.e EF.(af "Trying to bootstrap client");
     Asynchronous_result.enrich
       (Tezos_client.wait_for_node_bootstrap state client) ~attach:(fun () ->
         (* Most node problems show up here so we augment the error
@@ -324,20 +362,22 @@ module Network = struct
           let content =
             match string with
             | "" -> `String_value "EMPTY"
-            | more -> `Verbatim (String.split ~on:'\n' more) in
-          return content in
+            | more -> `Verbatim (String.split ~on:'\n' more)
+          in
+          return content
+        in
         let logfile = Tezos_node.log_output state node_0 in
         let process = Tezos_node.process state node_0 in
         let stderr = Running_processes.output_path state process `Stderr in
-        file_or_empty logfile
-        >>= fun log_content ->
-        file_or_empty stderr
-        >>= fun err_content ->
+        file_or_empty logfile >>= fun log_content ->
+        file_or_empty stderr >>= fun err_content ->
         return
-          [ ("node-stderr-file", `String_value stderr)
-          ; ("node-stderr-content", err_content)
-          ; ("node-log-file", `String_value logfile)
-          ; ("log-content", log_content) ] )
+          [
+            ("node-stderr-file", `String_value stderr);
+            ("node-stderr-content", err_content);
+            ("node-log-file", `String_value logfile);
+            ("log-content", log_content);
+          ])
     >>= fun () ->
     Tezos_client.rpc state ~client `Get ~path:"/chains/main/blocks/head/header"
     >>= fun json ->
@@ -347,13 +387,13 @@ module Network = struct
       ||
       try Int.equal Jqo.(field ~k:"level" json |> get_int) 0 with _ -> false
     in
-    ( if do_activation then Tezos_client.activate_protocol state client protocol
-    else return () )
+    (if do_activation then Tezos_client.activate_protocol state client protocol
+    else return ())
     >>= fun () ->
-    Dbg.e EF.(af "Waiting for all nodes to be bootstrapped") ;
+    Dbg.e EF.(af "Waiting for all nodes to be bootstrapped");
     List_sequential.iter nodes ~f:(fun node ->
         let client = Tezos_client.of_node node ~exec:client_exec in
-        Tezos_client.wait_for_node_bootstrap state client )
+        Tezos_client.wait_for_node_bootstrap state client)
     >>= fun () ->
     (* We make sure all nodes got activation before trying to continue: *)
     Queries.wait_for_all_levels_to_be state ~attempts:20
@@ -368,16 +408,15 @@ let network_with_protocol ?do_activation ?node_custom_network
     Topology.build ?base_port ?external_peer_ports
       ~make_node:(fun id ~expected_connections ~rpc_port ~p2p_port peers ->
         Tezos_node.make ?protocol ~exec:node_exec id ~expected_connections
-          ?custom_network:node_custom_network ~rpc_port ~p2p_port peers )
-      (Topology.mesh "N" size) in
-  nodes_history_mode_edits pre_edit_nodes
-  >>= fun nodes ->
+          ?custom_network:node_custom_network ~rpc_port ~p2p_port peers)
+      (Topology.mesh "N" size)
+  in
+  nodes_history_mode_edits pre_edit_nodes >>= fun nodes ->
   let protocols =
     List.map ~f:Tezos_node.protocol nodes
-    |> List.dedup_and_sort ~compare:Tezos_protocol.compare in
-  Inconsistency_error.should_be_one_protocol protocols
-  >>= fun protocol ->
-  Inconsistency_error.should_be_one_timestamp_delay protocols
-  >>= fun () ->
+    |> List.dedup_and_sort ~compare:Tezos_protocol.compare
+  in
+  Inconsistency_error.should_be_one_protocol protocols >>= fun protocol ->
+  Inconsistency_error.should_be_one_timestamp_delay protocols >>= fun () ->
   Network.start_up ?do_activation state ~client_exec (Network.make nodes)
   >>= fun () -> return (nodes, protocol)

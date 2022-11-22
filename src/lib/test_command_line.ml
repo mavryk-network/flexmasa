@@ -2,9 +2,9 @@ open Internal_pervasives
 
 module Command_making_state = struct
   type specific =
-    < env_config: Environment_configuration.t
-    ; command_name: string
-    ; manpager: Manpage_builder.State.t >
+    < env_config : Environment_configuration.t
+    ; command_name : string
+    ; manpager : Manpage_builder.State.t >
 
   type 'a t = 'a Base_state.t constraint 'a = < specific ; .. >
 
@@ -14,8 +14,8 @@ module Command_making_state = struct
     Environment_configuration.init
       (object
          method manpager = manpager
-      end )
-      env_config ;
+      end)
+      env_config;
     object
       method application_name = application_name
       method command_name = command_name
@@ -35,7 +35,7 @@ module Common_errors = struct
     | `Scenario_error of string
     | System_error.t
     | Test_scenario.Inconsistency_error.t
-    | `Waiting_for of string * [`Time_out] ]
+    | `Waiting_for of string * [ `Time_out ] ]
 
   let pp ppf (e : t) =
     match e with
@@ -56,20 +56,20 @@ end
 module Run_command = struct
   let or_hard_fail ?lwt_run state main ~pp_error : unit =
     let open Asynchronous_result in
-    Dbg.e EF.(wf "Run_command.or_hard_fail") ;
+    Dbg.e EF.(wf "Run_command.or_hard_fail");
     run_application ?lwt_run (fun () ->
-        Dbg.e EF.(wf "Run_command.or_hard_fail bind_on_error") ;
+        Dbg.e EF.(wf "Run_command.or_hard_fail bind_on_error");
         bind_on_error (main ()) ~f:(fun ~result _ ->
-            Dbg.e EF.(wf "Run_command.or_hard_fail on result") ;
+            Dbg.e EF.(wf "Run_command.or_hard_fail on result");
             transform_error
               ~f:(fun _ -> `Die 3)
               (Console.say state
                  EF.(
-                   custom (fun ppf -> Attached_result.pp ppf result ~pp_error)) )
-            >>= fun () -> die 2 )
+                   custom (fun ppf -> Attached_result.pp ppf result ~pp_error)))
+            >>= fun () -> die 2)
         >>= fun () ->
-        Dbg.e EF.(wf "Run_command.or_hard_fail after bind_on_error") ;
-        return () )
+        Dbg.e EF.(wf "Run_command.or_hard_fail after bind_on_error");
+        return ())
 
   let term ~pp_error () =
     Cmdliner.Term.pure (fun (state, run) -> or_hard_fail state run ~pp_error)
@@ -98,24 +98,25 @@ module Full_default_state = struct
         method pauser = pauser
         method operations_log = ops
         method env_config = base_state#env_config
-      end in
+      end
+    in
     let open Cmdliner in
     let docs = Manpage_builder.section_test_scenario base_state in
     Term.(
       pure state $ Console.cli_term ()
       $ Paths.cli_term ~default_root ()
-      $ ( if disable_interactivity then pure `None
+      $ (if disable_interactivity then pure `None
         else
           Interactive_test.Interactivity.cli_term ?default:default_interactivity
-            () )
+            ())
       $ Arg.(
           pure (fun x -> `With_baking (not x))
           $ value
               (flag
-                 (info ["no-baking"] ~docs
+                 (info [ "no-baking" ] ~docs
                     ~doc:
                       "Completely disable baking/endorsing/accusing (you need \
-                       to bake manually to make the chain advance)." ) )))
+                       to bake manually to make the chain advance)."))))
     [@@warning "-3"]
 end
 
@@ -123,6 +124,7 @@ let cli_state ?default_interactivity ?disable_interactivity ~name () =
   let application_name = Fmt.str "Flextesa.%s" name in
   let command_name = name in
   let base_state =
-    Command_making_state.make ~application_name ~command_name () in
+    Command_making_state.make ~application_name ~command_name ()
+  in
   Full_default_state.cmdliner_term base_state ?default_interactivity
     ?disable_interactivity ()

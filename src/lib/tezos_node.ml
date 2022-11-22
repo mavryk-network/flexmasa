@@ -1,20 +1,21 @@
 open Internal_pervasives
 
-type custom_network = [`Json of Ezjsonm.value]
+type custom_network = [ `Json of Ezjsonm.value ]
 
-type t =
-  { id: string
-  ; expected_connections: int
-  ; rpc_port: int
-  ; p2p_port: int
-  ; (* Ports: *)
-    peers: int list
-  ; exec: Tezos_executable.t
-  ; protocol: Tezos_protocol.t
-  ; history_mode: [`Archive | `Full of int | `Rolling of int] option
-  ; single_process: bool
-  ; cors_origin: string option
-  ; custom_network: custom_network option }
+type t = {
+  id : string;
+  expected_connections : int;
+  rpc_port : int;
+  p2p_port : int;
+  (* Ports: *)
+  peers : int list;
+  exec : Tezos_executable.t;
+  protocol : Tezos_protocol.t;
+  history_mode : [ `Archive | `Full of int | `Rolling of int ] option;
+  single_process : bool;
+  cors_origin : string option;
+  custom_network : custom_network option;
+}
 
 let compare a b = Base.String.compare a.id b.id
 let equal a b = Base.String.equal a.id b.id
@@ -22,9 +23,11 @@ let equal a b = Base.String.equal a.id b.id
 let ef t =
   EF.(
     desc_list (af "Node:%S" t.id)
-      [ desc (af "rpc") (af ":%d" t.rpc_port)
-      ; desc (af "p2p") (af ":%d" t.p2p_port)
-      ; desc_list (af "peers") (List.map t.peers ~f:(af ":%d")) ])
+      [
+        desc (af "rpc") (af ":%d" t.rpc_port);
+        desc (af "p2p") (af ":%d" t.p2p_port);
+        desc_list (af "peers") (List.map t.peers ~f:(af ":%d"));
+      ])
 
 let pp fmt t = Easy_format.Pretty.to_formatter fmt (ef t)
 let id t = t.id
@@ -32,17 +35,19 @@ let id t = t.id
 let make ?cors_origin ~exec ?(protocol = Tezos_protocol.default ())
     ?custom_network ?(single_process = true) ?history_mode id
     ~expected_connections ~rpc_port ~p2p_port peers =
-  { id
-  ; expected_connections
-  ; rpc_port
-  ; p2p_port
-  ; peers
-  ; exec
-  ; protocol
-  ; history_mode
-  ; single_process
-  ; cors_origin
-  ; custom_network }
+  {
+    id;
+    expected_connections;
+    rpc_port;
+    p2p_port;
+    peers;
+    exec;
+    protocol;
+    history_mode;
+    single_process;
+    cors_origin;
+    custom_network;
+  }
 
 let make_path p ~config t = Paths.root config // sprintf "node-%s" t.id // p
 
@@ -74,16 +79,20 @@ module Config_file = struct
       ?(genesis_hash = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf") ()
       =
     let open Ezjsonm in
-    [ ( "genesis"
-      , dict
-          [ ("timestamp", string "2018-06-30T16:07:32Z")
-          ; ("block", string genesis_hash)
-          ; ( "protocol"
-            , string "Ps9mPmXaRzmzk35gbAYNCAw6UXdE2qoABTHbN2oEEc1qM7CwT9P" ) ]
-      ); ("chain_name", string "TEZOS_MAINNET")
-    ; ("old_chain_name", string "TEZOS_BETANET_2018-06-30T16:07:32Z")
-    ; ("incompatible_chain_name", string "INCOMPATIBLE")
-    ; ("sandboxed_chain_name", string "SANDBOXED_TEZOS_MAINNET") ]
+    [
+      ( "genesis",
+        dict
+          [
+            ("timestamp", string "2018-06-30T16:07:32Z");
+            ("block", string genesis_hash);
+            ( "protocol",
+              string "Ps9mPmXaRzmzk35gbAYNCAw6UXdE2qoABTHbN2oEEc1qM7CwT9P" );
+          ] );
+      ("chain_name", string "TEZOS_MAINNET");
+      ("old_chain_name", string "TEZOS_BETANET_2018-06-30T16:07:32Z");
+      ("incompatible_chain_name", string "INCOMPATIBLE");
+      ("sandboxed_chain_name", string "SANDBOXED_TEZOS_MAINNET");
+    ]
 
   let default_network = network ()
 
@@ -93,39 +102,61 @@ module Config_file = struct
       match t.history_mode with
       | None -> []
       | Some h ->
-          [ ( "shell"
-            , dict
-                [ ( "history_mode"
-                  , match h with
+          [
+            ( "shell",
+              dict
+                [
+                  ( "history_mode",
+                    match h with
                     | `Archive -> string "archive"
                     | `Full off ->
-                        dict [("full", dict [("additional_cycles", int off)])]
+                        dict
+                          [ ("full", dict [ ("additional_cycles", int off) ]) ]
                     | `Rolling off ->
-                        dict [("rolling", dict [("additional_cycles", int off)])]
-                  ) ] ) ] in
+                        dict
+                          [
+                            ("rolling", dict [ ("additional_cycles", int off) ]);
+                          ] );
+                ] );
+          ]
+    in
     let network =
       Option.value_map t.custom_network
-        ~default:[("network", `O default_network)]
-        ~f:(function `Json j -> [("network", j)]) in
+        ~default:[ ("network", `O default_network) ]
+        ~f:(function `Json j -> [ ("network", j) ])
+    in
     let rpc_listen_addr = sprintf "0.0.0.0:%d" t.rpc_port in
-    [ ("data-dir", data_dir state t |> string)
-    ; ( "rpc"
-      , dict
-          [ ("listen-addrs", strings [rpc_listen_addr])
-          ; ( "acl"
-            , list dict
-                [ [ ("address", string rpc_listen_addr)
-                  ; ("blacklist", strings []) ] ] ) ] )
-    ; ( "p2p"
-      , dict
-          [ ( "expected-proof-of-work"
-            , int (Tezos_protocol.expected_pow t.protocol) )
-          ; ("listen-addr", ksprintf string "0.0.0.0:%d" t.p2p_port)
-          ; ( "limits"
-            , dict
-                [ ("maintenance-idle-time", int 3); ("swap-linger", int 2)
-                ; ("connection-timeout", int 2) ] ) ] )
-    ; ("log", dict [("output", string (log_output state t))]) ]
+    [
+      ("data-dir", data_dir state t |> string);
+      ( "rpc",
+        dict
+          [
+            ("listen-addrs", strings [ rpc_listen_addr ]);
+            ( "acl",
+              list dict
+                [
+                  [
+                    ("address", string rpc_listen_addr);
+                    ("blacklist", strings []);
+                  ];
+                ] );
+          ] );
+      ( "p2p",
+        dict
+          [
+            ( "expected-proof-of-work",
+              int (Tezos_protocol.expected_pow t.protocol) );
+            ("listen-addr", ksprintf string "0.0.0.0:%d" t.p2p_port);
+            ( "limits",
+              dict
+                [
+                  ("maintenance-idle-time", int 3);
+                  ("swap-linger", int 2);
+                  ("connection-timeout", int 2);
+                ] );
+          ] );
+      ("log", dict [ ("output", string (log_output state t)) ]);
+    ]
     @ shell @ network
     |> dict |> to_string ~minify:false
 end
@@ -134,46 +165,56 @@ open Tezos_executable.Make_cli
 
 let node_command state t cmd options =
   Tezos_executable.call state t.exec ~path:(exec_path state t)
-    ( cmd
+    (cmd
     @ opt "config-file" (config_file state t)
     @ opt "data-dir" (data_dir state t)
-    @ options )
+    @ options)
 
 let run_command state t =
   let peers = List.concat_map t.peers ~f:(optf "peer" "127.0.0.1:%d") in
   let cors_origin =
     match t.cors_origin with
     | Some _ as s -> s
-    | None -> Environment_configuration.default_cors_origin state in
-  node_command state t ["run"]
-    ( flag "private-mode" @ flag "no-bootstrap-peers" @ peers
+    | None -> Environment_configuration.default_cors_origin state
+  in
+  node_command state t [ "run" ]
+    (flag "private-mode" @ flag "no-bootstrap-peers" @ peers
     @ optf "synchronisation-threshold" "0"
     @ optf "connections" "%d" t.expected_connections
     @ (if t.single_process then flag "singleprocess" else [])
     @ Option.value_map cors_origin
         ~f:(fun s ->
-          flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s )
+          flag "cors-header=content-type" @ Fmt.kstr flag "cors-origin=%s" s)
         ~default:[]
-    @ opt "sandbox" (Tezos_protocol.sandbox_path state t.protocol) )
+    @ opt "sandbox" (Tezos_protocol.sandbox_path state t.protocol))
 
 let start_script state t =
   let open Genspio.EDSL in
   let gen_id =
     node_command state t
-      [ "identity"; "generate"
-      ; sprintf "%d" (Tezos_protocol.expected_pow t.protocol) ]
-      [] in
+      [
+        "identity";
+        "generate";
+        sprintf "%d" (Tezos_protocol.expected_pow t.protocol);
+      ]
+      []
+  in
   let tmp_config = tmp_file (config_file state t) in
   check_sequence ~verbosity:`Output_all
-    [ ("reset-config", node_command state t ["config"; "reset"] [])
-    ; ( "write-config"
-      , seq
-          [ tmp_config#set (Config_file.of_node state t |> str)
-          ; call [str "mv"; tmp_config#path; str (config_file state t)] ] )
-    ; ( "ensure-identity"
-      , ensure "node-id"
+    [
+      ("reset-config", node_command state t [ "config"; "reset" ] []);
+      ( "write-config",
+        seq
+          [
+            tmp_config#set (Config_file.of_node state t |> str);
+            call [ str "mv"; tmp_config#path; str (config_file state t) ];
+          ] );
+      ( "ensure-identity",
+        ensure "node-id"
           ~condition:(file_exists (str (identity_file state t)))
-          ~how:[("gen-id", gen_id)] ); ("start", run_command state t) ]
+          ~how:[ ("gen-id", gen_id) ] );
+      ("start", run_command state t);
+    ]
 
 let process state t =
   Running_processes.Process.genspio t.id (start_script state t)
@@ -185,7 +226,9 @@ let connections node_list =
     type node = t
 
     type t =
-      [`Duplex of node * node | `From_to of node * node | `Missing of node * int]
+      [ `Duplex of node * node
+      | `From_to of node * node
+      | `Missing of node * int ]
 
     let compare a b =
       match (a, b) with
@@ -200,10 +243,11 @@ let connections node_list =
       let peer_nodes =
         List.map node.peers ~f:(fun p2p ->
             match
-              List.find node_list ~f:(fun {p2p_port; _} -> p2p_port = p2p)
+              List.find node_list ~f:(fun { p2p_port; _ } -> p2p_port = p2p)
             with
             | None -> `Unknown p2p
-            | Some n -> `Peer n ) in
+            | Some n -> `Peer n)
+      in
       List.iter peer_nodes ~f:(fun peer_opt ->
           let conn =
             match peer_opt with
@@ -211,8 +255,9 @@ let connections node_list =
             | `Peer peer ->
                 if List.mem peer.peers node.p2p_port ~equal:Int.equal then
                   `Duplex (node, peer)
-                else `From_to (node, peer) in
-          res := Connection_set.add conn !res ) ) ;
+                else `From_to (node, peer)
+          in
+          res := Connection_set.add conn !res));
   Connection_set.elements !res
 
 module History_modes = struct
@@ -223,12 +268,14 @@ module History_modes = struct
     let open Term in
     let history_mode_converter =
       Arg.enum
-        [("archive", `Archive); ("full", `Full 5); ("rolling", `Rolling 5)]
+        [ ("archive", `Archive); ("full", `Full 5); ("rolling", `Rolling 5) ]
     in
     let docs =
       Manpage_builder.section state ~rank:2 ~name:"NODE HISTORY MODES"
         ~man:
-          [`P "One can specify history modes for a given subset of the nodes."]
+          [
+            `P "One can specify history modes for a given subset of the nodes.";
+          ]
     in
     pure (fun edits node_list ->
         try
@@ -236,35 +283,35 @@ module History_modes = struct
             (List.map node_list ~f:(fun node ->
                  match
                    List.filter edits ~f:(fun (prefix, _) ->
-                       String.is_prefix node.id ~prefix )
+                       String.is_prefix node.id ~prefix)
                  with
                  | [] -> node
-                 | [one] -> (
-                   match
-                     List.filter node_list ~f:(fun n ->
-                         String.is_prefix n.id ~prefix:(fst one) )
-                   with
-                   | [_] -> {node with history_mode= Some (snd one)}
-                   | a_bunch_maybe_zero ->
-                       Fmt.kstr failwith
-                         "Prefix %S does not match exactly one node: [%s]"
-                         (fst one)
-                         (String.concat ~sep:", "
-                            (List.map a_bunch_maybe_zero ~f:id) ) )
+                 | [ one ] -> (
+                     match
+                       List.filter node_list ~f:(fun n ->
+                           String.is_prefix n.id ~prefix:(fst one))
+                     with
+                     | [ _ ] -> { node with history_mode = Some (snd one) }
+                     | a_bunch_maybe_zero ->
+                         Fmt.kstr failwith
+                           "Prefix %S does not match exactly one node: [%s]"
+                           (fst one)
+                           (String.concat ~sep:", "
+                              (List.map a_bunch_maybe_zero ~f:id)))
                  | more ->
                      Fmt.kstr failwith "Prefixes %s match the same node: %s"
                        (String.concat ~sep:", " (List.map more ~f:fst))
-                       node.id ) )
+                       node.id))
         with Failure s ->
-          System_error.fail_fatalf "Failed to compose history-modes: %s" s )
+          System_error.fail_fatalf "Failed to compose history-modes: %s" s)
     $ Arg.(
         value
           (opt_all
              (pair ~sep:':' string history_mode_converter)
              []
-             (info ["set-history-mode"] ~docs ~docv:"NODEPREFIX:MODE"
+             (info [ "set-history-mode" ] ~docs ~docv:"NODEPREFIX:MODE"
                 ~doc:
                   "Set the history mode for a given (named) node, e.g. \
-                   `N000:archive`." ) ))
+                   `N000:archive`.")))
     [@@warning "-3"]
 end

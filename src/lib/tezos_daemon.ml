@@ -5,16 +5,17 @@ type args =
   | Endorser : string -> args
   | Accuser : args
 
-type t =
-  { node: Tezos_node.t
-  ; client: Tezos_client.t
-  ; exec: Tezos_executable.t
-  ; protocol_kind: Tezos_protocol.Protocol_kind.t
-  ; args: args
-  ; name_tag: string option }
+type t = {
+  node : Tezos_node.t;
+  client : Tezos_client.t;
+  exec : Tezos_executable.t;
+  protocol_kind : Tezos_protocol.Protocol_kind.t;
+  args : args;
+  name_tag : string option;
+}
 
 let of_node ?name_tag node args ~protocol_kind ~exec ~client =
-  {node; exec; client; args; name_tag; protocol_kind}
+  { node; exec; client; args; name_tag; protocol_kind }
 
 let baker_of_node ?name_tag nod ~key = of_node nod ?name_tag (Baker key)
 let endorser_of_node ?name_tag nod ~key = of_node nod ?name_tag (Endorser key)
@@ -30,38 +31,61 @@ let to_script state (t : t) =
   let call t args =
     Tezos_executable.call state t.exec ~protocol_kind:t.protocol_kind
       ~path:
-        ( base_dir
+        (base_dir
         // sprintf "exec-%s-%d%s" (arg_to_string t.args)
              t.node.Tezos_node.rpc_port
-             (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")) )
-      args in
+             (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")))
+      args
+  in
   match t.args with
   | Baker key ->
       let node_path = Tezos_node.data_dir state t.node in
       let extra_options =
         match t.protocol_kind with
         | `Jakarta | `Kathmandu | `Lima | `Alpha ->
-            ["--liquidity-baking-toggle-vote"; "pass"]
+            [ "--liquidity-baking-toggle-vote"; "pass" ]
         | `Florence | `Carthage | `Delphi | `Ithaca | `Hangzhou | `Babylon
-         |`Edo | `Granada | `Athens ->
-            [] in
+        | `Edo | `Granada | `Athens ->
+            []
+      in
       call t
-        ( [ "--endpoint"
-          ; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
-          ; "--base-dir"; base_dir; "run"; "with"; "local"; "node"; node_path
-          ; key ]
-        @ extra_options )
+        ([
+           "--endpoint";
+           sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port;
+           "--base-dir";
+           base_dir;
+           "run";
+           "with";
+           "local";
+           "node";
+           node_path;
+           key;
+         ]
+        @ extra_options)
   | Endorser key ->
       call t
-        [ "--endpoint"; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
-        ; "--base-dir"; base_dir; "run"; key ]
+        [
+          "--endpoint";
+          sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port;
+          "--base-dir";
+          base_dir;
+          "run";
+          key;
+        ]
   | Accuser ->
       call t
-        [ "--endpoint"; sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port
-        ; "--base-dir"; base_dir; "run"; "--preserved-levels"; "10" ]
+        [
+          "--endpoint";
+          sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port;
+          "--base-dir";
+          base_dir;
+          "run";
+          "--preserved-levels";
+          "10";
+        ]
 
 let process state (t : t) =
   Running_processes.Process.genspio
     (sprintf "%s-for-%s%s" (arg_to_string t.args) t.node.Tezos_node.id
-       (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")) )
+       (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")))
     (to_script state t)
