@@ -139,17 +139,19 @@ $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e blocks_per_voting_period=12 \
          -e extra_dummy_proposals_batch_size=2 \
          -e extra_dummy_proposals_batch_level=2,4 \
+         -e number_of_bootstrap_accounts=2
          "$image" kathmandubox start_upgrade
 ```
 
 The above command will result in 5 total proposals and upgrade to the Alpha
-proposal.
+proposal. As of the `Lima` protocol, the `extra_dummy_proposals_batch_size` can't exceed the `number_of_bootstrap_accounts` or the operations will fail with too many `manager_operations_per_block`.
 
 The default values are:
 
 - `blocks_per_voting_period` = 16
 - `extra_dummy_proposals_batch_size` = 2
 - `extra_dummy_proposals_batch_level` = 3,5
+- `number_of_bootstrap_accounts` = 4
 
 Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
 accounts by default.

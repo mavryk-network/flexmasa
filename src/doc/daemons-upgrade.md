@@ -79,6 +79,10 @@ are five) will last 14 blocks. In addition, two batches of two dummy protocols
 will be proposed at levels 3 and 5 within the proposal voting (the first)
 period. Finally, a timestamp will be displayed with each message.
 
+As of the `Lima` protocol, the `extra_dummy_proposals_batch_size` can't exceed
+the `number_of_bootstrap_accounts` or the operations will fail with too many
+`manager_operations_per_block`.
+
 * The `daemons-upgrade` command shares many options with the `mini-network` command
 (see it's [documentation](./src/doc/mini-net.md)).
 
