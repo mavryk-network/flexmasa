@@ -72,8 +72,7 @@ lint:
      - sh -c "$SHOW_INFO"
      - opam install ocamlformat.0.24.1
      - opam exec -- ocamlformat --version
-     - opam exec -- make fmt
-     - git diff --exit-code
+     - opam exec -- dune build @fmt
 
 unit-tests:
   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
