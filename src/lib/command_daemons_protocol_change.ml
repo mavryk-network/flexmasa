@@ -244,7 +244,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
         (String.concat ~sep:", " (List.map extra_dummy_protocols ~f:snd)))
   >>= fun () ->
   List_sequential.iteri extra_dummy_protocols ~f:(fun nth (level, proto_hash) ->
-      match List.nth keys_and_daemons (nth / 19) with
+      match List.nth keys_and_daemons (nth % List.length keys_and_daemons) with
       | None ->
           failf "Too many dummy protocols Vs available voting power (%d)" nth
       | Some (acc, client, _) ->
@@ -445,7 +445,10 @@ let cmd () =
                (info ~docs
                   [ "extra-dummy-proposals-batch-size" ]
                   ~docv:"NUMBER"
-                  ~doc:"Submit $(docv) extra proposals per batch.")))
+                  ~doc:
+                    "Submit $(docv) extra proposals per batch. $(docv) \
+                     shouldn't exeed the nubmer of bootstrap-accounts. (See \
+                     Protocol Options: --number-of-boot-strap-accounts)")))
     $ Arg.(
         const (fun x -> `Extra_dummy_proposals_batch_levels x)
         $ value
