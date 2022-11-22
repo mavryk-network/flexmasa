@@ -22,7 +22,11 @@ module Secret_key = struct
 
   let of_seed = function
     | "" -> invalid_arg "Secret_key.of_seed: empty string"
-    | seed ->
+    | str ->
+        let seed =
+          if String.length str < 32 then str
+          else Tezai_base58_digest.Crypto_hash.String.sha256 str
+        in
         let alices =
           List.init ~len:32 ~f:(fun _ -> seed)
           |> String.concat ~sep:"" |> String.sub ~pos:0 ~len:32

@@ -14,7 +14,15 @@ module Unix_files_sink = struct
   let all_info = all_at_least "info"
 end
 
-type kind = [ `Node | `Baker | `Endorser | `Accuser | `Client | `Admin ]
+type kind =
+  [ `Node
+  | `Baker
+  | `Endorser
+  | `Accuser
+  | `Client
+  | `Admin
+  | `Tx_rollup_node
+  | `Tx_rollup_client ]
 
 type t = {
   kind : kind;
@@ -34,14 +42,18 @@ let kind_string (kind : [< kind ]) =
   | `Node -> "node"
   | `Client -> "client"
   | `Admin -> "admin-client"
+  | `Tx_rollup_node -> "tx-rollup-node"
+  | `Tx_rollup_client -> "tx-rollup-client"
 
 let default_binary ?protocol_kind t =
   let with_suffix s =
     match (t.kind, protocol_kind) with
-    | (`Accuser | `Baker | `Endorser), Some pk ->
+    | ( (`Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client),
+        Some pk ) ->
         Fmt.str "%s-%s" s (Tezos_protocol.Protocol_kind.daemon_suffix_exn pk)
     | (`Node | `Client | `Admin), _ -> s
-    | (`Accuser | `Baker | `Endorser), _ ->
+    | (`Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client), _
+      ->
         Fmt.failwith
           "Called default_binary with for octez-%s and protocol_kind = None"
           (kind_string t.kind)

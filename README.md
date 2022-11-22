@@ -35,8 +35,8 @@ baker advancing the blockchain):
 
 - `kathmandubox`: Kathmandu protocol.
 - `limabox`: Lima protocol.
-- `alphabox`: Alpha protocol, the development version
-  of the `M` protocol at the time the docker-build was last updated.
+- `alphabox`: Alpha protocol, the development version of the `M` protocol at the
+  time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
 
 The default `block_time` is 5 seconds.
@@ -73,8 +73,8 @@ $ tcli get balance for alice
 2000000 ꜩ
 ```
 
-You can always stop the sandbox, and clean-up your resources with:
-`docker kill my-sandbox`.
+You can always stop the sandbox, and clean-up your resources with: `docker kill
+my-sandbox`.
 
 ### User-Activated-Upgrades
 
@@ -107,8 +107,8 @@ Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `limabox` script can also switch to `Alpha` (e.g.
-  `--hard-fork 16:Alpha:`).
+- The `limabox` script can also switch to `Alpha` (e.g. `--hard-fork
+  16:Alpha:`).
 
 ### Full Governance Upgrade
 
@@ -155,6 +155,98 @@ The default values are:
 
 Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
 accounts by default.
+
+### Transaction Optimistic Rollups
+
+The `start_toru` command included in the scripts is and implementation of the
+`flextesa mini-network` with the addition of the option ` --tx-rollup
+10:torubox`.
+
+``` default
+$ docker run --rm --name my-sandbox --detach -p 20000:20000 \
+       "$image" "$script" start_toru
+```
+
+After starting up the mini-network, Flextesa will originate a transaction
+optimistic rollup called `tourbox` at bock level `10` and start a transaction
+rollup operator node. Like the scripts above, the Alice and Bob account will be
+included by default.
+
+Before you can interact with the transaction rollup, you will need to retrieve
+some important information with the following command.
+
+``` default
+$ docker exec my-sandbox ${script} toru_info
+{
+  "data_dir": "/tmp/mini-box/tx-rollup-torubox/torubox-operator-node-000/data-dir",
+  "rollup_id": "txr1arPn95HNJ2JPxFL1q51LGgk4KeR4v36p8",
+  "rpc_port": "0.0.0.0:20002",
+  "mode": "operator",
+  "signers": {
+    "operator": "tz1db9qaMMNoQPAATe2D3kafKzWWNuMhnmbT",
+    "submit_batch": "tz1YVgxuvoqc2DxLjMcmgcpgnWXn6wiJNf5E",
+    "finalize_commitment": "tz1WbzTV5WrHBbfbc8Bw55xaQWLjNvfcBKp4",
+    "remove_commitment": "tz1ihyGvQHQu1F6TVMqKJdPtw2BHqMcDotsT",
+    "rejection": "tz1gDMHL96KSohLp2H5RPFxAM7wATD7zffRV",
+    "dispatch_withdrawals": "tz1LuLiAjZs2sFgivjsuLiuB8nJA48pVfcQc"
+  },
+  "allow_deposit": true
+}
+[
+  {
+    "name": "torubox-deposit-contract",
+    "value": "KT1NjJEFRjAugzPwAkEccTAq3v2SYoScyGnL"
+  }
+]
+```
+
+For the next few examples we will record the `rollup_id`, `rpc_addr` and the
+`KT1` address for the `torubox-deposit-contract`. (We continue with `tcli` alias
+created above.)
+
+``` default
+$ rollup_id=txr1arPn95HNJ2JPxFL1q51LGgk4KeR4v36p8
+$ rpc_port=20002
+$ contract=KT1NjJEFRjAugzPwAkEccTAq3v2SYoScyGnL
+```
+
+Next create a `tz4` transaction rollup address and transfer tickets to that
+address on the rollup via the `torubox-deposit-contract`:
+
+``` default
+$ tcli bls gen keys rollup_bob
+$ tcli bls show address rollup_bob
+Hash: tz4EimhLzauGZjt6ebLDzbD9Dfuk9vwj7HUz
+Public Key: BLpk1x8Eu1D5DWnop7osZtDx8kkBgG83tFiNcyBKkFatUg1wKpVbmjY2QqJehfju1t7YydXidXhF
+
+$ bobs_tz4=tz4EimhLzauGZjt6ebLDzbD9Dfuk9vwj7HUz
+
+$ tcli transfer 0 from alice to "$contract" \
+        --arg "(Pair \"my_tickts\" 100 \"${bobs_tz4}\" \"${rollup_id}\")" \
+        --burn-cap 1
+```
+
+The above argument passed to the contract's default entrypoint will send `100`
+tickets containing the string `"my_tickets"` to rollup_bob's address on the
+TORU. A successful transfer will produces a long out put. For this example, we
+are interested in the ticket.
+
+e.g. `Ticket hash: exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP`
+
+Use the ticket hash to check the balance of the roll_bob with the
+tx-rollup-client. As with the octez-client, you can use the rollup-client
+configured inside of the docker container. For example:
+
+``` default
+$ ticket_hash=exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP
+$ alias torucli='docker exec my-sandbox tezos-tx-rollup-client-014-PtKathma -E http://localhost:${rpc_port}'
+
+$ torucli get balance for rollup_bob of "$ticket_hash"
+100
+```
+
+Note that the transaction rollup client should use the RPC address of the
+transaction rollup node.
 
 ## Build
 
@@ -209,14 +301,13 @@ docker build --target build_step -t flextesa-build .
 docker build --target run_image -t flextesa-run .
 ```
 
-Do not forget to test it:
-`docker run -it "$image" limabox start`
+Do not forget to test it: `docker run -it "$image" limabox start`
 
 ### Multi-Architecture Image
 
 To build the **released multi-architecture images**, we used to use
 [buildx](https://docs.docker.com/buildx/working-with-buildx/) but this does not
-work anymore (Qemu cannot handle the build on the foreign archtecture).  We use
+work anymore (Qemu cannot handle the build on the foreign archtecture). We use
 the “manifest method” cf.
 [docker.com](https://www.docker.com/blog/multi-arch-build-and-images-the-simple-way/).
 We need one host for each architecture (AMD64 and ARM64).
@@ -258,19 +349,19 @@ docker manifest push $base:$tag
 
 ## More Documentation
 
-The command `flextesa mini-net [...]` has a dedicated documentation
-page: [The `mini-net` Command](./src/doc/mini-net.md).
+The command `flextesa mini-net [...]` has a dedicated documentation page: [The
+`mini-net` Command](./src/doc/mini-net.md).
 
-Documentation regarding `flextesa daemons-upgrade [...]` can be found here:
-[The `daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
+Documentation regarding `flextesa daemons-upgrade [...]` can be found here: [The
+`daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
 
-The API documentation of the Flextesa OCaml library starts here:
-[Flextesa: API](https://tezos.gitlab.io/flextesa/lib-index.html).
+The API documentation of the Flextesa OCaml library starts here: [Flextesa:
+API](https://tezos.gitlab.io/flextesa/lib-index.html).
 
 Some documentation, including many examples, is part of the `tezos/tezos`
-repository:
-[Flexible Network Sandboxes](https://tezos.gitlab.io/developer/flextesa.html)
-(it uses the `tezos-sandbox` executable which is implemented there).
+repository: [Flexible Network
+Sandboxes](https://tezos.gitlab.io/developer/flextesa.html) (it uses the
+`tezos-sandbox` executable which is implemented there).
 
 Blog posts:
 
@@ -278,7 +369,7 @@ Blog posts:
 - [2021-10-14](https://medium.com/the-aleph/new-flextesa-docker-image-and-some-development-news-f0d5360f01bd)
 - [2021-11-29](https://medium.com/the-aleph/flextesa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
 
-TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com)
-documentation shows how to quickly set up a
-[docker sandbox](https://assets.tqtezos.com/setup/2-sandbox)
-(uses the docker images from this repository).
+TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com) documentation
+shows how to quickly set up a [docker
+sandbox](https://assets.tqtezos.com/setup/2-sandbox) (uses the docker images
+from this repository).
