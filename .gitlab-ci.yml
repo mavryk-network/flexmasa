@@ -10,10 +10,7 @@ variables:
   dind_service: "docker:20.10.7-dind"
   SHOW_INFO: >
     echo "=========== INFO: ============" &&
-    opam exec -- ocamlc -version &&
-    git config --global --add safe.directory /builds/tezos/flextesa &&
-    git status &&
-    git log --graph  --decorate --all --oneline -n 20
+    opam exec -- ocamlc -version
 
 docker:images:
   image: "$dind_image"
