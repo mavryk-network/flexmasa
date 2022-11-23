@@ -92,16 +92,16 @@ daem_c2n_nay () {
 
 daem_n2a () {
     runone "dameons-upgrade-n2a" flextesa daemons-upgrade \
-	   --protocol-kind "$before_alpha" \
-           --next-protocol-kind Alpha \
-	   --second-baker octez-baker-alpha \
-	   --extra-dummy-proposals-batch-size 1 \
-	   --extra-dummy-proposals-batch-levels 3 \
-	   --size 2 \
-	   --number-of-b 2 \
-	   --time-betw 3 \
-	   --with-timestamp \
-           --test-variant full-upgrade
+        --protocol-kind "$before_alpha" \
+        --next-protocol-kind Alpha \
+        --second-baker octez-baker-alpha \
+        --extra-dummy-proposals-batch-size 2 \
+        --extra-dummy-proposals-batch-levels 3,5 \
+        --size 2 \
+        --number-of-b 2 \
+        --time-betw 3 \
+        --with-timestamp \
+        --test-variant full-upgrade
 }
 
 toru() {
