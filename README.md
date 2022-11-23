@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20221026` (also available
+The current _released_ image is `oxheadalpha/flextesa:20221123` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -144,7 +144,9 @@ $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
 ```
 
 The above command will result in 5 total proposals and upgrade to the Alpha
-proposal. As of the `Lima` protocol, the `extra_dummy_proposals_batch_size` can't exceed the `number_of_bootstrap_accounts` or the operations will fail with too many `manager_operations_per_block`.
+proposal. As of the `Lima` protocol, the `extra_dummy_proposals_batch_size`
+can't exceed the `number_of_bootstrap_accounts` or the operations will fail with
+too many `manager_operations_per_block`.
 
 The default values are:
 
