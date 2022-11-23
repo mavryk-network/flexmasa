@@ -347,7 +347,19 @@ docker manifest create $base:$tag \
 docker manifest push $base:$tag
 ```
 
+When ready for the release, repeat the theses steps swapping the manifest "$tag" each time. Once sans "-rc" and again for "latest".
 
+``` sh
+newtag=20221024
+docker manifest create $base:$newtag \
+      --amend $base:$tag-aarch64 \
+      --amend $base:$tag-x86_64
+docker manifest push $base:$newtag
+docker manifest create $base:latest \
+      --amend $base:$tag-aarch64 \
+      --amend $base:$tag-x86_64
+docker manifest push $base:latest
+```
 
 ## More Documentation
 
