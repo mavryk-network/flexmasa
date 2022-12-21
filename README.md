@@ -76,6 +76,53 @@ $ tcli get balance for alice
 You can always stop the sandbox, and clean-up your resources with: `docker kill
 my-sandbox`.
 
+
+### Baking Manually
+
+One can run so-called “manual” sandboxes, i.e. sandboxes with no baking, with
+the `start_manual` command.
+
+```default
+$ docker run --rm --name my-sandbox --detach -p 20000:20000 \
+         "$image" "$script" start_manual
+```
+
+Then every time one needs a block to be baked:
+
+```default
+$ docker exec my-sandbox "$script" bake
+```
+
+Example (using the `tcli` alias above):
+
+
+```default
+$ tcli get balance for alice
+1800000 ꜩ
+$ tcli --wait none transfer 10 from alice to bob   # Option `--wait` is IMPORTANT!
+...
+$ tcli get balance for alice   # Alice's balance has not changed yet:
+1800000 ꜩ
+$ docker exec my-sandbox "$script" bake
+...
+$ tcli get balance for alice   # The operation is now included:
+1799989.999648 ꜩ
+$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
+2
+$ docker exec my-sandbox "$script" bake
+...
+$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
+3
+```
+
+Notes:
+
+- If you forget `--wait none`, `octez-client` waits for the operation to be
+  included, so you will need to `bake` from another terminal.
+- `"$script" bake` is just equivalent to
+  `tcli bake for baker0 --minimal-timestamp`.
+
+
 ### User-Activated-Upgrades
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
