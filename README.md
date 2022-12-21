@@ -79,6 +79,11 @@ my-sandbox`.
 
 ### Baking Manually
 
+> **⚠ Warning:** This section describes functionality that is not yet in the
+> released image, one can try the feature with
+> `registry.gitlab.com/tezos/flextesa:1118da7b-run`.
+
+
 One can run so-called “manual” sandboxes, i.e. sandboxes with no baking, with
 the `start_manual` command.
 
