@@ -372,18 +372,16 @@ Documentation regarding `flextesa daemons-upgrade [...]` can be found here: [The
 The API documentation of the Flextesa OCaml library starts here: [Flextesa:
 API](https://tezos.gitlab.io/flextesa/lib-index.html).
 
-Some documentation, including many examples, is part of the `tezos/tezos`
-repository: [Flexible Network
-Sandboxes](https://tezos.gitlab.io/developer/flextesa.html) (it uses the
-`tezos-sandbox` executable which is implemented there).
-
 Blog posts:
 
 - [2019-06-14](https://obsidian.systems/blog/introducing-flextesa-robust-testing-tools-for-tezos-and-its-applications)
 - [2021-10-14](https://medium.com/the-aleph/new-flextesa-docker-image-and-some-development-news-f0d5360f01bd)
 - [2021-11-29](https://medium.com/the-aleph/flextesa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
+- [2022-03-22](https://medium.com/the-aleph/flextesa-protocol-upgrades-3fdf2fae11e1):
+  Flextesa: Protocol Upgrades
+- [2022-11-30](https://medium.com/the-aleph/flextesa-toru-sandbox-78d7b166e06):
+  Flextesa TORU Sandbox
 
-TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com) documentation
-shows how to quickly set up a [docker
-sandbox](https://assets.tqtezos.com/setup/2-sandbox) (uses the docker images
-from this repository).
+
+
+
