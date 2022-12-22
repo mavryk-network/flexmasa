@@ -39,6 +39,7 @@ time_bb=${block_time:-5}
 
 export alice="$(flextesa key alice)"
 export bob="$(flextesa key bob)"
+export b0="$(flextesa key bootacc-0)"
 all_commands="$all_commands
 * start : Start a sandbox with the $default_protocol protocol."
 root_path=/tmp/mini-box
@@ -57,12 +58,24 @@ start () {
              --protocol-kind "$default_protocol"
 }
 
+all_commands="$all_commands
+* start_manual : Start a sandbox with the $default_protocol protocol and NO BAKING."
+start_manual () {
+    start --no-baking --timestamp-delay=-3600 "$@"
+}
+
+all_commands="$all_commands
+* bake : Try to bake a block (to be used with 'start_manual' sandboxes)."
+bake () {
+    octez-client bake for baker0 --minimal-timestamp
+}
+
 vote_period=${blocks_per_voting_period:-16}
 dummy_props=${extra_dummy_proposals_batch_size:-2}
 dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
 
 all_commands="$all_commands
-* start-upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
+* start_upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
 daemons_root=/tmp/daemons-upgrade-box
 start_upgrade () {
     flextesa daemons-upgrade \
@@ -87,7 +100,7 @@ start_upgrade () {
 }
 
 all_commands="$all_commands
-* start : Start a transactional rollup sandbox with the $default_protocol protocol."
+* start_toru : Start a transactional rollup sandbox with the $default_protocol protocol."
 root_path=/tmp/mini-box
 start_toru() {
     flextesa mini-net \
@@ -124,6 +137,7 @@ initclient () {
     octez-client --endpoint http://localhost:20000 config update
     octez-client --protocol Psithaca2MLR import secret key alice "$(echo $alice | cut -d, -f 4)" --force
     octez-client --protocol Psithaca2MLR import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    octez-client --protocol Psithaca2MLR import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
 }
 
 all_commands="$all_commands

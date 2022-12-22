@@ -76,6 +76,58 @@ $ tcli get balance for alice
 You can always stop the sandbox, and clean-up your resources with: `docker kill
 my-sandbox`.
 
+
+### Baking Manually
+
+> **⚠ Warning:** This section describes functionality that is not yet in the
+> released image, one can try the feature with
+> `registry.gitlab.com/tezos/flextesa:1118da7b-run`.
+
+
+One can run so-called “manual” sandboxes, i.e. sandboxes with no baking, with
+the `start_manual` command.
+
+```default
+$ docker run --rm --name my-sandbox --detach -p 20000:20000 \
+         "$image" "$script" start_manual
+```
+
+Then every time one needs a block to be baked:
+
+```default
+$ docker exec my-sandbox "$script" bake
+```
+
+Example (using the `tcli` alias above):
+
+
+```default
+$ tcli get balance for alice
+1800000 ꜩ
+$ tcli --wait none transfer 10 from alice to bob   # Option `--wait` is IMPORTANT!
+...
+$ tcli get balance for alice   # Alice's balance has not changed yet:
+1800000 ꜩ
+$ docker exec my-sandbox "$script" bake
+...
+$ tcli get balance for alice   # The operation is now included:
+1799989.999648 ꜩ
+$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
+2
+$ docker exec my-sandbox "$script" bake
+...
+$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
+3
+```
+
+Notes:
+
+- If you forget `--wait none`, `octez-client` waits for the operation to be
+  included, so you will need to `bake` from another terminal.
+- `"$script" bake` is just equivalent to
+  `tcli bake for baker0 --minimal-timestamp`.
+
+
 ### User-Activated-Upgrades
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
@@ -372,18 +424,16 @@ Documentation regarding `flextesa daemons-upgrade [...]` can be found here: [The
 The API documentation of the Flextesa OCaml library starts here: [Flextesa:
 API](https://tezos.gitlab.io/flextesa/lib-index.html).
 
-Some documentation, including many examples, is part of the `tezos/tezos`
-repository: [Flexible Network
-Sandboxes](https://tezos.gitlab.io/developer/flextesa.html) (it uses the
-`tezos-sandbox` executable which is implemented there).
-
 Blog posts:
 
 - [2019-06-14](https://obsidian.systems/blog/introducing-flextesa-robust-testing-tools-for-tezos-and-its-applications)
 - [2021-10-14](https://medium.com/the-aleph/new-flextesa-docker-image-and-some-development-news-f0d5360f01bd)
 - [2021-11-29](https://medium.com/the-aleph/flextesa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
+- [2022-03-22](https://medium.com/the-aleph/flextesa-protocol-upgrades-3fdf2fae11e1):
+  Flextesa: Protocol Upgrades
+- [2022-11-30](https://medium.com/the-aleph/flextesa-toru-sandbox-78d7b166e06):
+  Flextesa TORU Sandbox
 
-TQ Tezos' [Digital Assets on Tezos](https://assets.tqtezos.com) documentation
-shows how to quickly set up a [docker
-sandbox](https://assets.tqtezos.com/setup/2-sandbox) (uses the docker images
-from this repository).
+
+
+
