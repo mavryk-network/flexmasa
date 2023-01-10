@@ -5,7 +5,7 @@ module Key = struct
 
   module Of_name = struct
     type t = {
-      name : string;
+      (* name : string; *)
       pkh : Crypto.Public_key_hash.t;
       pk : Crypto.Public_key.t;
       sk : Crypto.Secret_key.t;
@@ -16,7 +16,7 @@ module Key = struct
       let pk = Crypto.Public_key.of_secret_key sk in
       let pkh = Crypto.Public_key_hash.of_public_key pk in
       (* let pkh, pk, sk = Tezos_crypto.Ed25519.generate_key ~seed () in *)
-      { name; pkh; pk; sk }
+      { (* name;  *) pkh; pk; sk }
 
     let pubkey n = Crypto.Public_key.to_base58 (make n).pk
     let pubkey_hash n = Crypto.Public_key_hash.to_base58 (make n).pkh
