@@ -3,7 +3,7 @@
 set -e
 
 dest_dir="$1"
-if ! [ -d "$dest_dir" ] ; then
+if ! [ -d "$dest_dir" ]; then
     echo "usage: $0 <destination-path>" >&2
     echo "       <destination-path> should be an existing directory." >&2
     exit 3
@@ -15,18 +15,24 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/673570097
-# (from 2022-10-21)
-# 
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/755146580
+# (from 2023-01-23)
+#
+
 directory_name=
 case $(uname -m) in
-    x86_64 ) 
-        download_uri="https://www.dropbox.com/s/ueed8of0d2qmgyx/octez-static-x86_64-20221021-7f29704d21.zip?raw=1"
-        directory_name=x86_64 ;;
-    aarch64 )
-        download_uri="https://www.dropbox.com/s/begoarxuhcfrk7o/octez-static-arm64-20221021-7f29704d21.zip?raw=1"
-        directory_name=arm64 ;;
-    * ) echo "Unknown architecture: $(uname -a)" >&2 ; exit 4 ;;
+    x86_64)
+        download_uri="https://www.dropbox.com/s/gpbrlhm45eutgfc/octez-static-binaries-x86_64-20230123-561025b074.zip?raw=1"
+        directory_name=x86_64
+        ;;
+    aarch64)
+        download_uri="https://www.dropbox.com/s/vzrrvt0s9czyice/octez-static-binaries-arm64-20230123-561025b074.zip?raw=1"
+        directory_name=arm64
+        ;;
+    *)
+        echo "Unknown architecture: $(uname -a)" >&2
+        exit 4
+        ;;
 esac
 
 (
