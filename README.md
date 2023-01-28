@@ -357,7 +357,7 @@ docker build --target build_step -t flextesa-build .
 docker build --target run_image -t flextesa-run .
 ```
 
-Do not forget to test it: `docker run -it "$image" limabox start`
+Do not forget to test it: `docker run -it "$image" mumbaibox start`
 
 ### Multi-Architecture Image
 
