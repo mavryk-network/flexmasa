@@ -39,7 +39,7 @@ baker advancing the blockchain):
   time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
 
-The default `block_time` is 5 seconds.
+The default `block_time` is 5 seconds. <!-- TODO is this still right? -->
 
 See also the accounts available by default:
 
