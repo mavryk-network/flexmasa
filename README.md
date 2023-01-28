@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20221123` (also available
+The current _released_ image is `oxheadalpha/flextesa:2023xxxx` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -24,7 +24,7 @@ parameters. For instance:
 
 ```sh
 image=oxheadalpha/flextesa:latest
-script=kathmandubox
+script=limabox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -33,9 +33,9 @@ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
-- `kathmandubox`: Kathmandu protocol.
 - `limabox`: Lima protocol.
-- `alphabox`: Alpha protocol, the development version of the `M` protocol at the
+- `mumbaibox`: Mumbai protocol
+- `alphabox`: Alpha protocol, the development version of the `N` protocol at the
   time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
 
@@ -124,20 +124,19 @@ Notes:
 
 - If you forget `--wait none`, `octez-client` waits for the operation to be
   included, so you will need to `bake` from another terminal.
-- `"$script" bake` is just equivalent to
-  `tcli bake for baker0 --minimal-timestamp`.
+- `"$script" bake` is equivalent to `tcli bake for baker0 --minimal-timestamp`.
 
 
 ### User-Activated-Upgrades
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
-a Kathmandu sandbox which switches to Lima at level 20:
+a Lima sandbox which switches to Mumbai at level 20:
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
          -e block_time=2 \
-         "$image" kathmandubox start --hard-fork 20:Lima:
+         "$image" limabox start --hard-fork 20:Mumbai:
 ```
 
 With `tcli` above and `jq` you can keep checking the following to observe the
@@ -152,14 +151,14 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW"
+"PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc"
 ```
 
 Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `limabox` script can also switch to `Alpha` (e.g. `--hard-fork
+- The `Mumbaibox` script can also switch to `Alpha` (e.g. `--hard-fork
   16:Alpha:`).
 
 ### Full Governance Upgrade
@@ -173,12 +172,12 @@ daemons-upgrade` (see its general
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e block_time=2 \
-         "$image" kathmandubox start_upgrade
+         "$image" limabox start_upgrade
 ```
 
 With `start_upgrade` the sandbox network will do a full voting round followed by
-a protocol change. The `kathmandubox` script will start with the `Kathmandu`
-protocol and upgrade to `Lima`; the `limabox` upgrades to to `Alpha`.
+a protocol change. The `Limabox` script will start with the `Lima` protocol and
+upgrade to `Mumbai`; the `mumbaibox` upgrades to to `Alpha`.
 
 Voting occurs over five periods. You can adjust the length of the voting periods
 with the variable `blocks_per_voting_period`. Batches of dummy proposals will be
@@ -192,7 +191,7 @@ $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e extra_dummy_proposals_batch_size=2 \
          -e extra_dummy_proposals_batch_level=2,4 \
          -e number_of_bootstrap_accounts=2
-         "$image" kathmandubox start_upgrade
+         "$image" limabox start_upgrade
 ```
 
 The above command will result in 5 total proposals and upgrade to the Alpha
@@ -211,6 +210,9 @@ Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
 accounts by default.
 
 ### Transaction Optimistic Rollups
+
+> **⚠ Warning:** TORU is disabled in protocols Mumbai and Alpha. To test this
+> feature, use the limabox box script.
 
 The `start_toru` command included in the scripts is and implementation of the
 `flextesa mini-network` with the addition of the option ` --tx-rollup
@@ -293,7 +295,7 @@ configured inside of the docker container. For example:
 
 ``` default
 $ ticket_hash=exprtp67k3xjvBWX4jBV4skJFNDYVp4XKJKujG5vs7SvkF9h9FSxtP
-$ alias torucli='docker exec my-sandbox tezos-tx-rollup-client-014-PtKathma -E http://localhost:${rpc_port}'
+$ alias torucli='docker exec my-sandbox tezos-tx-rollup-client-014-PtLimaPt -E http://localhost:${rpc_port}'
 
 $ torucli get balance for rollup_bob of "$ticket_hash"
 100
@@ -399,7 +401,8 @@ docker manifest create $base:$tag \
 docker manifest push $base:$tag
 ```
 
-When ready for the release, repeat the theses steps swapping the manifest "$tag" each time. Once sans "-rc" and again for "latest".
+When ready for the release, repeat the theses steps swapping the manifest "$tag"
+each time. Once sans "-rc" and again for "latest".
 
 ``` sh
 newtag=20221024
