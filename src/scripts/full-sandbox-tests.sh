@@ -42,7 +42,7 @@ before_alpha=$next
 quickmini () {
     proto="$1"
     runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
-           --time-between-blocks 1 $until_8 \
+           --time-between-blocks 1 $until_4 \
            --number-of-boot 1 --size 1
 }
 
@@ -105,7 +105,7 @@ daem_n2a () {
 }
 
 toru() {
-    proto="$1"
+    proto="$current"
     runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
         --time-between-blocks 2 $until_8 \
         --number-of-boot 1 --size 1 \
