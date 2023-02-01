@@ -53,6 +53,7 @@ module Protocol_kind : sig
     | `Jakarta
     | `Kathmandu
     | `Lima
+    | `Mumbai
     | `Alpha ]
 
   val default : t

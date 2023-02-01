@@ -32,17 +32,17 @@ runone () {
     $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/  ||/'
 }
 
-current=Kathmandu
-next=Lima
-next_suffix=PtLimaPt
-# Alpha is upgrading from Lima:
+current=Lima
+next=Mumbai
+next_suffix=PtMumbai
+# Alpha is upgrading from Mumbai:
 before_alpha=$next
 
 
 quickmini () {
     proto="$1"
     runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
-           --time-between-blocks 1 $until_4 \
+           --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1
 }
 
@@ -105,7 +105,7 @@ daem_n2a () {
 }
 
 toru() {
-    proto="$1"
+    proto="$current"
     runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
         --time-between-blocks 2 $until_8 \
         --number-of-boot 1 --size 1 \
