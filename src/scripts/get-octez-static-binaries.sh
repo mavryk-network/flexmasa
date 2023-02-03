@@ -15,18 +15,19 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/755146580
-# (from 2023-01-23)
-#
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/764255758
+# (from 2023-02-01)
+# corresponding to
+# https://gitlab.com/tezos/tezos/-/commit/739cc356c952307cf37fdb82a962f66e7dc9c307
 
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/s/u1jrp7dgmtodx4k/octez-static-binaries-x86_64-20230131-0bb77626bc.zip?raw=1"
+        download_uri="https://www.dropbox.com/s/9lwcwcz3c2rr1va/octez-static-x86_64-20230201-739cc356c9.zip?raw=1"
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/s/begoarxuhcfrk7o/octez-static-arm64-20221021-7f29704d21.zip?raw=1"
+        download_uri="https://www.dropbox.com/s/ykgamh6ogjow76k/octez-static-arm64-20230201-739cc356c9.zip?raw=1"
         directory_name=arm64
         ;;
     *)
