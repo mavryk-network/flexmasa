@@ -22,7 +22,9 @@ type kind =
   | `Client
   | `Admin
   | `Tx_rollup_node
-  | `Tx_rollup_client ]
+  | `Tx_rollup_client
+  | `Smart_rollup_node
+  | `Smart_rollup_client ]
 
 type t = {
   kind : kind;
@@ -44,16 +46,20 @@ let kind_string (kind : [< kind ]) =
   | `Admin -> "admin-client"
   | `Tx_rollup_node -> "tx-rollup-node"
   | `Tx_rollup_client -> "tx-rollup-client"
+  | `Smart_rollup_node -> "smart-rollup-node"
+  | `Smart_rollup_client -> "smart-rollup-client"
 
 let default_binary ?protocol_kind t =
   let with_suffix s =
     match (t.kind, protocol_kind) with
-    | ( (`Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client),
+    | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
+        | `Smart_rollup_node | `Smart_rollup_client ),
         Some pk ) ->
         Fmt.str "%s-%s" s (Tezos_protocol.Protocol_kind.daemon_suffix_exn pk)
     | (`Node | `Client | `Admin), _ -> s
-    | (`Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client), _
-      ->
+    | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
+        | `Smart_rollup_node | `Smart_rollup_client ),
+        _ ) ->
         Fmt.failwith
           "Called default_binary with for octez-%s and protocol_kind = None"
           (kind_string t.kind)

@@ -25,7 +25,9 @@ type kind =
   | `Client
   | `Admin
   | `Tx_rollup_node
-  | `Tx_rollup_client ]
+  | `Tx_rollup_client
+  | `Smart_rollup_node
+  | `Smart_rollup_client ]
 (** The type [kind] is used to distinguish ['a t] executables. *)
 
 type t = private {
