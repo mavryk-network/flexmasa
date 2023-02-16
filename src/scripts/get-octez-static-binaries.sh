@@ -30,7 +30,7 @@ case $(uname -m) in
 esac
 
 (
-    curl -L "$download_uri" -o "$dest_dir/bins.zip"
+    curl -L "$download_uri" -o "$dest_dir/bins.zip" --http1.1
     cd "$dest_dir"
     unzip bins.zip
     mv octez-binaries/$directory_name/* .
