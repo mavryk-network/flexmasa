@@ -44,7 +44,9 @@ module Secret_key = struct
         Bytes alices
 
   let%test _ =
-    let () = Mirage_crypto_rng_unix.initialize () in
+    let () =
+      Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna)
+    in
     let should_be_id s =
       Mirage_crypto_ec.Ed25519.(
         match priv_of_cstruct (Cstruct.of_string s) with
@@ -83,7 +85,9 @@ module Public_key_hash = struct
 end
 
 let%expect_test _ =
-  let () = Mirage_crypto_rng_unix.initialize () in
+  let () =
+    Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna)
+  in
   let show_of_seed seed =
     let sk = Secret_key.of_seed seed in
     let pk = Public_key.of_secret_key sk in
