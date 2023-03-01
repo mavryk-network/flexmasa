@@ -95,20 +95,20 @@ module Node = struct
          ])
 end
 
-(* The hexadecimal encoded content of the custom kernel at path. *)
+(* The hexadecimal encoded content of the file at path. *)
 let kernel_of_path path =
   let ic = Stdlib.open_in path in
-  let buf = Bytes.create 16 in
-  let rec to_hex acc =
-    (* Read 1 byte from the file. *)
-    let b = Stdlib.input ic buf 0 1 in
-    if b = 0 then acc
-    else
-      (* convert the byte to hex and add it to acc.*)
-      let hex = Hex.(of_bytes buf |> show) in
-      to_hex (acc ^ hex)
+  let bytes = Bytes.create 16 in
+  (* Get bytes form file. *)
+  let content =
+    let rec get b =
+      let next = Stdlib.input ic b 0 1 in
+      if next = 0 then b else get b
+    in
+    get bytes
   in
-  to_hex ""
+  (* Convert to a hexidecimal encoded string. *)
+  Hex.(of_bytes content |> show)
 
 (* Flextesa's default SORU kernel. *)
 let default_kernel =
