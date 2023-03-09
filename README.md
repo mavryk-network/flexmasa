@@ -219,7 +219,7 @@ $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 ```
 
 After starting up the mini-network, Flextesa will originate a transaction
-optimistic rollup called `tourbox` at bock level `10` and start a transaction
+optimistic rollup called `torubox` at block level `10` and start a transaction
 rollup operator node. Like the scripts above, the Alice and Bob account will be
 included by default.
 
