@@ -2,12 +2,12 @@
 
 default_protocol=Lima
 next_protocol_name=Mumbai
-next_protocol=PtMumbai
+next_protocol=PtMumbai2
 case "$(basename $0)" in
     "limabox" )
         default_protocol=Lima
         next_protocol_name=Mumbai
-        next_protocol=PtMumbai ;;
+        next_protocol=PtMumbai2 ;;
     "mumbaibox" )
         default_protocol=Mumbai
         next_protocol_name=Aplha
