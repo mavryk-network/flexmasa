@@ -119,7 +119,8 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
-    | `Mumbai -> "PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc"
+    | `Mumbai -> "PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
+    (* Version 1: "PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc" *)
     | `Lima -> "PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW"
     | `Kathmandu -> "PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg"
     | `Jakarta -> "PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY"
@@ -137,7 +138,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
-    | `Mumbai -> "PtMumbai"
+    | `Mumbai -> "PtMumbai2"
     | `Lima -> "PtLimaPt"
     | `Kathmandu -> "PtKathma"
     | `Jakarta -> "013-PtJakart"
