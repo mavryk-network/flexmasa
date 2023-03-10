@@ -146,7 +146,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc"
+"PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
 ```
 
 Notes:
