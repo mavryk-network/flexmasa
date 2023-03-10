@@ -138,7 +138,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
-    | `Mumbai -> "PtMumbai2"
+    | `Mumbai -> "PtMumbai"
     | `Lima -> "PtLimaPt"
     | `Kathmandu -> "PtKathma"
     | `Jakarta -> "013-PtJakart"
