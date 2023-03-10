@@ -27,7 +27,7 @@ case $(uname -m) in
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/s/ykgamh6ogjow76k/octez-static-arm64-20230201-739cc356c9.zip?raw=1"
+        download_uri="https://www.dropbox.com/s/qus6vz1dwn9rx3h/octez-static-binaries-arm64-20230309-3e9dad7af4.zip?raw=1"
         directory_name=arm64
         ;;
     *)
