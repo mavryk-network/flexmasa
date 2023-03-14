@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20230203` (also available
+The current _released_ image is `oxheadalpha/flextesa:20230313` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -24,7 +24,7 @@ parameters. For instance:
 
 ```sh
 image=oxheadalpha/flextesa:latest
-script=limabox
+script=mumbaibox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -146,7 +146,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc"
+"PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
 ```
 
 Notes:
