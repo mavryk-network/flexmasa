@@ -509,7 +509,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                            ~default:9999 (*  TODO double check default *)));
                    desc
                      (af "Node Operator address")
-                     (af "`%s`" (Tezos_protocol.Account.pubkey op_acc));
+                     (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
                  ]))
       >>= fun () ->
       let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
