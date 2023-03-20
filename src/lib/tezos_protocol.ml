@@ -337,7 +337,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           [
             ("enable", bool false);
             ("origination_size", int 6_314);
-            ("challenge_window_in_blocks", int 20_160);
+            ("challenge_window_in_blocks", int 30);
             ("max_number_of_messages_per_commitment_period", int 32_765);
             ("stake_amount", string "10000000000");
             ("commitment_period_in_blocks", int 30);
