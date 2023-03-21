@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20230203` (also available
+The current _released_ image is `oxheadalpha/flextesa:20230313` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -24,7 +24,7 @@ parameters. For instance:
 
 ```sh
 image=oxheadalpha/flextesa:latest
-script=limabox
+script=mumbaibox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -146,7 +146,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc"
+"PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
 ```
 
 Notes:
@@ -219,7 +219,7 @@ $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 ```
 
 After starting up the mini-network, Flextesa will originate a transaction
-optimistic rollup called `tourbox` at bock level `10` and start a transaction
+optimistic rollup called `torubox` at block level `10` and start a transaction
 rollup operator node. Like the scripts above, the Alice and Bob account will be
 included by default.
 
