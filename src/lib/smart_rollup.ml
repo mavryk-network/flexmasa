@@ -93,6 +93,55 @@ module Node = struct
            ("init SORU node", init state config);
            ("run SORU node", call state ~config [ "run" ]);
          ])
+
+  (*  TODO Maybe add a node with --loser-mode for testing. *)
+end
+
+module Echo_contract = struct
+  type t = string
+
+  let make : string -> t = fun s -> s
+
+  let originate state ~client ~account () =
+    let michelson =
+      "parameter string; storage string; code {CAR; NIL operation; PAIR};"
+    in
+    Tezos_client.successful_client_cmd state ~client
+      [
+        "originate";
+        "contract";
+        "smart-rollup-echo-contract";
+        "transferring";
+        "0";
+        "from";
+        account;
+        "running";
+        michelson;
+        "--init";
+        "\"\"";
+        "--burn-cap";
+        "1";
+      ]
+
+  let parse_origination ~lines =
+    let rec prefix_from_list ~prefix = function
+      | [] -> None
+      | x :: xs ->
+          if not (String.is_prefix x ~prefix) then prefix_from_list ~prefix xs
+          else Some x
+    in
+    let l = List.map lines ~f:String.lstrip in
+    Option.(
+      prefix_from_list ~prefix:"KT1" l >>= fun address -> return (make address))
+
+  let publish state ~client ~account =
+    originate state ~client ~account () >>= fun res ->
+    match parse_origination ~lines:res#out with
+    | None ->
+        System_error.fail_fatalf
+          "Smart_rollup.Echo_contract.publish - failed to parse smart contract \
+           origination."
+    | Some address -> return address
 end
 
 (* The hexadecimal encoded content of the file at path. *)

@@ -495,6 +495,10 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
            Running_processes.start state
              Smart_rollup.Node.(start state soru_node)
            >>= fun _ ->
+           (* Originate echo smart contract for default echo kernel. *)
+           Smart_rollup.Echo_contract.publish state ~client
+             ~account:op_keys.key_name
+           >>= fun echo_contract ->
            (* Print SORU info. *)
            Console.say state
              EF.(
@@ -510,6 +514,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                    desc
                      (af "Node Operator address")
                      (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
+                   desc (af "Echo contract address") (af "`%s`" echo_contract);
                  ]))
       >>= fun () ->
       let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
