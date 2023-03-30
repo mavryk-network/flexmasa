@@ -252,6 +252,7 @@ type t = {
   node_mode : Node.mode;
   node : Tezos_executable.t;
   client : Tezos_executable.t;
+  installer_kernel : Tezos_executable.t;
 }
 
 (* A list of smart rollup executables. *)
@@ -266,9 +267,10 @@ let cmdliner_term state () =
   let extra_doc =
     Fmt.str " for the smart optimistic rollup (requires --smart-rollup)."
   in
-  const (fun soru level kernel node_mode node client ->
+  const (fun soru level kernel node_mode node client installer_kernel ->
       match soru with
-      | true -> Some { level; kernel; node_mode; node; client }
+      | true ->
+          Some { level; kernel; node_mode; node; client; installer_kernel }
       | false -> None)
   $ Arg.(
       value
@@ -311,3 +313,4 @@ let cmdliner_term state () =
           ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node "octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client "octez"
+  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer "octez"
