@@ -24,7 +24,8 @@ type kind =
   | `Tx_rollup_node
   | `Tx_rollup_client
   | `Smart_rollup_node
-  | `Smart_rollup_client ]
+  | `Smart_rollup_client
+  | `Smart_rollup_installer ]
 
 type t = {
   kind : kind;
@@ -48,6 +49,7 @@ let kind_string (kind : [< kind ]) =
   | `Tx_rollup_client -> "tx-rollup-client"
   | `Smart_rollup_node -> "smart-rollup-node"
   | `Smart_rollup_client -> "smart-rollup-client"
+  | `Smart_rollup_installer -> "smart-rollup-installer"
 
 let default_binary ?protocol_kind t =
   let with_suffix s =
@@ -56,7 +58,7 @@ let default_binary ?protocol_kind t =
         | `Smart_rollup_node | `Smart_rollup_client ),
         Some pk ) ->
         Fmt.str "%s-%s" s (Tezos_protocol.Protocol_kind.daemon_suffix_exn pk)
-    | (`Node | `Client | `Admin), _ -> s
+    | (`Node | `Client | `Admin | `Smart_rollup_installer ), _ -> s
     | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
         | `Smart_rollup_node | `Smart_rollup_client ),
         _ ) ->
