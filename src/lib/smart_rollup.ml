@@ -97,6 +97,30 @@ module Node = struct
   (*  TODO Maybe add a node with --loser-mode for testing. *)
 end
 
+module Kernel = struct
+  (* The SORU kernel. *)
+  type t = string
+
+  (* The hexadecimal encoded content of the file at path. *)
+  let of_path path : t =
+    let ic = Stdlib.open_in path in
+    let bytes = Bytes.create 16 in
+    (* Get bytes form file. *)
+    let content =
+      let rec get b =
+        let next = Stdlib.input ic b 0 1 in
+        if next = 0 then b else get b
+      in
+      get bytes
+    in
+    (* Convert to a hexidecimal encoded string. *)
+    Hex.(of_bytes content |> show)
+
+  (* The default SORU kernel. *)
+  let default =
+    "0061736d0100000001280760037f7f7f017f60027f7f017f60057f7f7f7f7f017f60017f0060017f017f60027f7f0060000002610311736d6172745f726f6c6c75705f636f72650a726561645f696e707574000011736d6172745f726f6c6c75705f636f72650c77726974655f6f7574707574000111736d6172745f726f6c6c75705f636f72650b73746f72655f77726974650002030504030405060503010001071402036d656d02000a6b65726e656c5f72756e00060aa401042a01027f41fa002f0100210120002f010021022001200247044041e4004112410041e400410010021a0b0b0800200041c4006b0b5001057f41fe002d0000210341fc002f0100210220002d0000210420002f0100210520011004210620042003460440200041016a200141016b10011a0520052002460440200041076a200610011a0b0b0b1d01017f41dc0141840241901c100021004184022000100541840210030b0b38050041e4000b122f6b65726e656c2f656e762f7265626f6f740041f8000b0200010041fa000b0200020041fc000b0200000041fe000b0101"
+end
+
 module Echo_contract = struct
   type t = string
 
@@ -144,31 +168,13 @@ module Echo_contract = struct
     | Some address -> return address
 end
 
-(* The hexadecimal encoded content of the file at path. *)
-let kernel_of_path path =
-  let ic = Stdlib.open_in path in
-  let bytes = Bytes.create 16 in
-  (* Get bytes form file. *)
-  let content =
-    let rec get b =
-      let next = Stdlib.input ic b 0 1 in
-      if next = 0 then b else get b
-    in
-    get bytes
-  in
-  (* Convert to a hexidecimal encoded string. *)
-  Hex.(of_bytes content |> show)
-
-(* Flextesa's default SORU kernel. *)
-let default_kernel =
-  "0061736d0100000001280760037f7f7f017f60027f7f017f60057f7f7f7f7f017f60017f0060017f017f60027f7f0060000002610311736d6172745f726f6c6c75705f636f72650a726561645f696e707574000011736d6172745f726f6c6c75705f636f72650c77726974655f6f7574707574000111736d6172745f726f6c6c75705f636f72650b73746f72655f77726974650002030504030405060503010001071402036d656d02000a6b65726e656c5f72756e00060aa401042a01027f41fa002f0100210120002f010021022001200247044041e4004112410041e400410010021a0b0b0800200041c4006b0b5001057f41fe002d0000210341fc002f0100210220002d0000210420002f0100210520011004210620042003460440200041016a200141016b10011a0520052002460440200041076a200610011a0b0b0b1d01017f41dc0141840241901c100021004184022000100541840210030b0b38050041e4000b122f6b65726e656c2f656e762f7265626f6f740041f8000b0200010041fa000b0200020041fc000b0200000041fe000b0101"
-
 (* octez-client call to originate a SORU. *)
 let originate state ~client ~account ~kernel () =
   let kind, michelson_type, kernel =
     match kernel with
-    | None -> ("wasm_2_0_0", "bytes", default_kernel)
-    | Some (k, t, p) -> (k, t, kernel_of_path p)
+    | None -> ("wasm_2_0_0", "bytes", Kernel.default)
+    | Some (k, t, p) -> (k, t, Kernel.of_path p)
+    (*  TODO this will need to become the installer kernel *)
   in
   Tezos_client.successful_client_cmd state ~client
     [
