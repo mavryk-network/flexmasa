@@ -1,19 +1,34 @@
 open Internal_pervasives
 
+(* A type for SORU cmdliner options. *)
+type t = {
+  id : string;
+  level : int;
+  kernel : (string * string * string) option;
+  node_mode : [ `Operator | `Batcher | `Observer | `Maintenance | `Accuser ];
+  node : Tezos_executable.t;
+  client : Tezos_executable.t;
+  installer_kernel : Tezos_executable.t;
+}
+
+(* Make a SORU directory *)
+let make_path ~state t p =
+  Paths.root state // sprintf "%s-smart-rollup" t.id // p
+
 module Node = struct
   (* The mode of the SORU node. *)
-  type mode = Operator | Batcher | Observer | Maintenance | Accuser
+  type mode = [ `Operator | `Batcher | `Observer | `Maintenance | `Accuser ]
 
   let mode_string = function
-    | Operator -> "operator"
-    | Batcher -> "batcher"
-    | Observer -> "observer"
-    | Maintenance -> "maintenance"
-    | Accuser -> "accuser"
+    | `Operator -> "operator"
+    | `Batcher -> "batcher"
+    | `Observer -> "observer"
+    | `Maintenance -> "maintenance"
+    | `Accuser -> "accuser"
 
   (* A type for the SORU node config. *)
   type config = {
-    id : string;
+    node_id : string;
     mode : mode;
     soru_addr : string;
     operator_addr : string;
@@ -23,18 +38,19 @@ module Node = struct
     protocol : Tezos_protocol.Protocol_kind.t;
     exec : Tezos_executable.t;
     client : Tezos_client.t;
+    smart_rollup : t;
   }
 
   type t = config
 
-  let make_config ?id ~mode ~soru_addr ~operator_addr ?rpc_addr ?rpc_port
-      ?endpoint ~protocol ~exec ~client () : config =
+  let make_config ~smart_rollup ?node_id ~mode ~soru_addr ~operator_addr
+      ?rpc_addr ?rpc_port ?endpoint ~protocol ~exec ~client () : config =
     let name =
-      sprintf "smart-rollup-%s-node-%s" (mode_string mode)
-        (Option.value id ~default:"000")
+      sprintf "%s-smart-rollup-%s-node-%s" smart_rollup.id (mode_string mode)
+        (Option.value node_id ~default:"000")
     in
     {
-      id = name;
+      node_id = name;
       mode;
       soru_addr;
       operator_addr;
@@ -44,25 +60,29 @@ module Node = struct
       protocol;
       exec;
       client;
+      smart_rollup;
     }
 
   (* SORU node directory. *)
-  let node_dir p state node =
-    Paths.root state // sprintf "smart-rollup" // (sprintf "%s" node.id // p)
+  let node_dir state node p =
+    make_path ~state node.smart_rollup (sprintf "%s" node.node_id // p)
+
+  let data_dir state node = node_dir state node "data-dir"
+  let reveal_data_dir state node = data_dir state node // "wasm_2_0_0"
 
   (* octez-smart-rollup node command.*)
   let call state ~config command =
     let open Tezos_executable.Make_cli in
     let client_dir = Tezos_client.base_dir ~state config.client in
     Tezos_executable.call state config.exec ~protocol_kind:config.protocol
-      ~path:(node_dir "exec" state config)
+      ~path:(node_dir state config "exec")
       (Option.value_map config.endpoint ~default:[] ~f:(fun e ->
            opt "endpoint" (sprintf "http://localhost:%d" e))
       (* The base-dir is the octez_client directory. *)
       @ opt "base-dir" client_dir
       @ command
       (* The directory where the node config is stored. *)
-      @ opt "data-dir" (node_dir "data-dir" state config)
+      @ opt "data-dir" (data_dir state config)
       @ Option.value_map config.rpc_addr
           ~f:(fun a -> opt "rpc-addr" (sprintf "%d" a))
           ~default:[]
@@ -98,8 +118,38 @@ module Node = struct
 end
 
 module Kernel = struct
-  (* The SORU kernel. *)
-  type t = string
+  (* The path to the SORU kernel. *)
+  type kernel_paths = {
+    kernel_path : string;
+    installer_dir : string;
+    reveal_data_dir : string;
+  }
+
+  (* SORU kernel dirctory *)
+  let kernel_dir ~state smart_rollup p =
+    make_path ~state smart_rollup (sprintf "installer_kernel" // p)
+
+  let make_paths state smart_rollup node =
+    let kernel_path =
+      match smart_rollup.kernel with None -> "" | Some (_, _, p) -> p
+    in
+    let installer_dir = kernel_dir ~state smart_rollup "installer" in
+    let reveal_data_dir = Node.reveal_data_dir state node in
+    { kernel_path; installer_dir; reveal_data_dir }
+
+  (* A type for Kernel *)
+  type t = { name : string; hex : string }
+
+  (* The default kernel. *)
+  let default : t =
+    {
+      name = "echo";
+      hex =
+        "0061736d0100000001280760037f7f7f017f60027f7f017f60057f7f7f7f7f017f60017f0060017f017f60027f7f0060000002610311736d6172745f726f6c6c75705f636f72650a726561645f696e707574000011736d6172745f726f6c6c75705f636f72650c77726974655f6f7574707574000111736d6172745f726f6c6c75705f636f72650b73746f72655f77726974650002030504030405060503010001071402036d656d02000a6b65726e656c5f72756e00060aa401042a01027f41fa002f0100210120002f010021022001200247044041e4004112410041e400410010021a0b0b0800200041c4006b0b5001057f41fe002d0000210341fc002f0100210220002d0000210420002f0100210520011004210620042003460440200041016a200141016b10011a0520052002460440200041076a200610011a0b0b0b1d01017f41dc0141840241901c100021004184022000100541840210030b0b38050041e4000b122f6b65726e656c2f656e762f7265626f6f740041f8000b0200010041fa000b0200020041fc000b0200000041fe000b0101";
+    }
+
+  (* Name of the kernel installer from path. *)
+  let name path = Caml.Filename.basename path |> Caml.Filename.chop_extension
 
   (* The hexadecimal encoded content of the file at path. *)
   let of_path path : t =
@@ -113,12 +163,7 @@ module Kernel = struct
       in
       get bytes
     in
-    (* Convert to a hexidecimal encoded string. *)
-    Hex.(of_bytes content |> show)
-
-  (* The default SORU kernel. *)
-  let default =
-    "0061736d0100000001280760037f7f7f017f60027f7f017f60057f7f7f7f7f017f60017f0060017f017f60027f7f0060000002610311736d6172745f726f6c6c75705f636f72650a726561645f696e707574000011736d6172745f726f6c6c75705f636f72650c77726974655f6f7574707574000111736d6172745f726f6c6c75705f636f72650b73746f72655f77726974650002030504030405060503010001071402036d656d02000a6b65726e656c5f72756e00060aa401042a01027f41fa002f0100210120002f010021022001200247044041e4004112410041e400410010021a0b0b0800200041c4006b0b5001057f41fe002d0000210341fc002f0100210220002d0000210420002f0100210520011004210620042003460440200041016a200141016b10011a0520052002460440200041076a200610011a0b0b0b1d01017f41dc0141840241901c100021004184022000100541840210030b0b38050041e4000b122f6b65726e656c2f656e762f7265626f6f740041f8000b0200010041fa000b0200020041fc000b0200000041fe000b0101"
+    { name = name path; hex = Hex.(of_bytes content |> show) }
 end
 
 module Echo_contract = struct
@@ -191,7 +236,7 @@ let originate state ~client ~account ~kernel () =
       michelson_type;
       "with";
       "kernel";
-      kernel;
+      kernel.hex;
       "--burn-cap";
       "999";
     ]
@@ -251,18 +296,9 @@ let originate_and_confirm state ~client ~account ~kernel ~confirmations () =
         ~operation_hash:origination_result.operation_hash ()
       >>= fun conf -> return (origination_result, conf)
 
-(* A type for SORU cmdliner options. *)
-type t = {
-  level : int;
-  kernel : (string * string * string) option;
-  node_mode : Node.mode;
-  node : Tezos_executable.t;
-  client : Tezos_executable.t;
-  installer_kernel : Tezos_executable.t;
-}
-
 (* A list of smart rollup executables. *)
-let executables ({ client; node; _ } : t) = [ client; node ]
+let executables ({ client; node; installer_kernel; _ } : t) =
+  [ client; node; installer_kernel ]
 
 let cmdliner_term state () =
   let open Cmdliner in
@@ -276,7 +312,13 @@ let cmdliner_term state () =
   const (fun soru level kernel node_mode node client installer_kernel ->
       match soru with
       | true ->
-          Some { level; kernel; node_mode; node; client; installer_kernel }
+          let id =
+            match kernel with
+            | None -> Kernel.default.name
+            | Some (_, _, p) -> Kernel.name p
+          in
+
+          Some { id; level; kernel; node_mode; node; client; installer_kernel }
       | false -> None)
   $ Arg.(
       value
@@ -305,16 +347,15 @@ let cmdliner_term state () =
   $ Arg.(
       value
       & opt
-          Node.(
-            enum
-              [
-                ("operator", Operator);
-                ("batcher", Batcher);
-                ("observer", Observer);
-                ("maintenance", Maintenance);
-                ("accuser", Accuser);
-              ])
-          Operator
+          (enum
+             [
+               ("operator", `Operator);
+               ("batcher", `Batcher);
+               ("observer", `Observer);
+               ("maintenance", `Maintenance);
+               ("accuser", `Accuser);
+             ])
+          `Operator
       & info ~docs [ "soru-node-mode" ]
           ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node "octez"
