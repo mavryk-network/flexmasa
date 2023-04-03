@@ -486,8 +486,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             (* Configure SORU node. *)
             let soru_node =
               let port = Test_scenario.Unix_port.(next_port nodes) in
-              Smart_rollup.Node.make_config ~mode:soru.node_mode
-                ~soru_addr:origination_res.address
+              Smart_rollup.Node.make_config ~smart_rollup:soru
+                ~mode:soru.node_mode ~soru_addr:origination_res.address
                 ~operator_addr:op_keys.key_name ~rpc_port:port
                 ~endpoint:base_port ~protocol:protocol.kind ~exec:soru.node
                 ~client ()
