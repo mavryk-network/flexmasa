@@ -4,7 +4,7 @@ open Internal_pervasives
 type t = {
   id : string;
   level : int;
-  kernel : (string * string * string) option;
+  custom_kernel : (string * string * string) option;
   node_mode : [ `Operator | `Batcher | `Observer | `Maintenance | `Accuser ];
   node : Tezos_executable.t;
   client : Tezos_executable.t;
@@ -119,22 +119,30 @@ module Node = struct
 end
 
 module Kernel = struct
-  (* The path to the SORU kernel. *)
   type config = {
     kernel_path : string;
-    installer_dir : string;
+    installer_kernel : string;
     reveal_data_dir : string;
     exec : Tezos_executable.t;
     smart_rollup : t;
+    node : Node.t;
   }
 
-  (* A type for the kernel hex passed othe octez client origination command. *)
-  type hex = { name : string; hex : string }
+  type kernel = {
+    name : string;
+    kind : string;
+    michelson_type : string;
+    hex : string;
+  }
+
+  type t = kernel
 
   (* The default kernel. *)
-  let default : hex =
+  let default : t =
     {
       name = "echo";
+      kind = "wasm_2_0_0";
+      michelson_type = "bytes";
       hex =
         "0061736d0100000001280760037f7f7f017f60027f7f017f60057f7f7f7f7f017f60017f0060017f017f60027f7f0060000002610311736d6172745f726f6c6c75705f636f72650a726561645f696e707574000011736d6172745f726f6c6c75705f636f72650c77726974655f6f7574707574000111736d6172745f726f6c6c75705f636f72650b73746f72655f77726974650002030504030405060503010001071402036d656d02000a6b65726e656c5f72756e00060aa401042a01027f41fa002f0100210120002f010021022001200247044041e4004112410041e400410010021a0b0b0800200041c4006b0b5001057f41fe002d0000210341fc002f0100210220002d0000210420002f0100210520011004210620042003460440200041016a200141016b10011a0520052002460440200041076a200610011a0b0b0b1d01017f41dc0141840241901c100021004184022000100541840210030b0b38050041e4000b122f6b65726e656c2f656e762f7265626f6f740041f8000b0200010041fa000b0200020041fc000b0200000041fe000b0101";
     }
@@ -143,34 +151,86 @@ module Kernel = struct
   let kernel_dir ~state smart_rollup p =
     make_path ~state smart_rollup (sprintf "%s-kernel" smart_rollup.id // p)
 
-  let make_config state smart_rollup node =
-    (*  TODO these paths need to lead to the actual files not just the directory. *)
+  let make_config ~state smart_rollup node : config =
     let kernel_path =
-      match smart_rollup.kernel with
-      | None -> "" (*  TODO default? *)
-      | Some (_, _, p) -> p
+      Option.value_exn smart_rollup.custom_kernel
+        ~message:"Was expecting `--custom-kerenel [ARG]`."
+      |> fun (_, _, p) -> p
     in
-    let installer_dir = kernel_dir ~state smart_rollup "installer" in
+    let installer_kernel =
+      kernel_dir ~state smart_rollup
+        (sprintf "%s-installer.hex" smart_rollup.id)
+    in
     let reveal_data_dir = Node.reveal_data_dir state node in
     let exec = smart_rollup.installer in
-    { kernel_path; installer_dir; reveal_data_dir; exec; smart_rollup }
+    { kernel_path; installer_kernel; reveal_data_dir; exec; smart_rollup; node }
 
   (* Name of the kernel installer from path. *)
-  let name path = Caml.Filename.basename path |> Caml.Filename.chop_extension
+  let name path = Caml.Filename.(basename path |> chop_extension)
 
-  (* The hexadecimal encoded content of the file at path. *)
-  let of_path path : hex =
-    let ic = Stdlib.open_in path in
-    let bytes = Bytes.create 16 in
-    (* Get bytes form file. *)
-    let content =
-      let rec get b =
-        let next = Stdlib.input ic b 0 1 in
-        if next = 0 then b else get b
-      in
-      get bytes
-    in
-    { name = name path; hex = Hex.(of_bytes content |> show) }
+  let make ~name ~kind ~michelson_type ~hex =
+    { name; kind; michelson_type; hex }
+
+  (* Check the extension of user provided kernel. *)
+  let check_extension path =
+    let open Caml.Filename in
+    let ext = extension path in
+    match ext with
+    | ".hex" -> `Hex
+    | ".wasm" -> `Wasm
+    | _ ->
+        raise
+          (Invalid_argument (sprintf "Wrong file type: %s\n" (basename path)))
+
+  (* The size of the file at path in bytes.*)
+  let size p =
+    let open Unix in
+    let stats = stat p in
+    stats.st_size
+
+  (* Build the installer_kernel and preimage with the smart_rollup_installer executable. *)
+  let insaller_create state ~config =
+    let open Tezos_executable.Make_cli in
+    Tezos_executable.call state config.exec
+      ~path:(kernel_dir ~state config.smart_rollup "exec")
+      ([ "get-reveal-installer" ]
+      @ opt "upgrade-to" config.kernel_path
+      @ opt "output" config.installer_kernel
+      @ opt "preimage-dir" config.reveal_data_dir)
+
+  (* [of_custom state ~config : string -> hex] is a t from
+      [config.kernel_path]. *)
+  let build state ~smart_rollup ~node : t =
+    match smart_rollup.custom_kernel with
+    | None -> default
+    | Some (kind, michelson_type, kernel_path) -> (
+        let config = make_config ~state smart_rollup node in
+        let name = name kernel_path in
+        let kernel hex = make ~name ~kind ~michelson_type ~hex in
+        let size = size config.kernel_path in
+        let content path =
+          let open Stdlib in
+          let ic = open_in path in
+          let cont_str = really_input_string ic size in
+          close_in ic;
+          cont_str
+        in
+        if size > 24 * 1048 then
+          (* wasm files larger that 24kB are passed to isntaller_crate. We can't do anything with large .hex files *)
+          match check_extension config.kernel_path with
+          | `Hex ->
+              raise
+                (Invalid_argument
+                   "Installer kernel is .hex. Was expecting .wasm.")
+          | `Wasm ->
+              let _ = insaller_create state ~config in
+              kernel (content config.installer_kernel)
+        else
+          (* For smaller kerneles *)
+          match check_extension config.kernel_path with
+          | `Hex -> kernel (content config.kernel_path)
+          | `Wasm ->
+              kernel Hex.(content config.kernel_path |> of_string |> show))
 end
 
 module Echo_contract = struct
@@ -222,12 +282,7 @@ end
 
 (* octez-client call to originate a SORU. *)
 let originate state ~client ~account ~kernel () =
-  let kind, michelson_type, kernel =
-    match kernel with
-    | None -> ("wasm_2_0_0", "bytes", Kernel.default)
-    | Some (k, t, p) -> (k, t, Kernel.of_path p)
-    (*  TODO this will need to become the installer kernel *)
-  in
+  let open Kernel in
   Tezos_client.successful_client_cmd state ~client
     [
       "originate";
@@ -237,10 +292,10 @@ let originate state ~client ~account ~kernel () =
       account;
       "of";
       "kind";
-      kind;
+      kernel.kind;
       "of";
       "type";
-      michelson_type;
+      kernel.michelson_type;
       "with";
       "kernel";
       kernel.hex;
@@ -316,16 +371,16 @@ let cmdliner_term state () =
   let extra_doc =
     Fmt.str " for the smart optimistic rollup (requires --smart-rollup)."
   in
-  const (fun soru level kernel node_mode node client installer ->
+  const (fun soru level custom_kernel node_mode node client installer ->
       match soru with
       | true ->
           let id =
-            match kernel with
+            match custom_kernel with
             | None -> Kernel.default.name
             | Some (_, _, p) -> Kernel.name p
           in
 
-          Some { id; level; kernel; node_mode; node; client; installer }
+          Some { id; level; custom_kernel; node_mode; node; client; installer }
       | false -> None)
   $ Arg.(
       value
