@@ -479,24 +479,23 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
               Tezos_client.Keyed.make client ~key_name:name ~secret_key:priv
             in
             Tezos_client.Keyed.initialize state op_keys >>= fun _ ->
+            (* Configure SORU node. *)
+            let port = Test_scenario.Unix_port.(next_port nodes) in
+            Smart_rollup.Node.make_config ~smart_rollup:soru
+              ~mode:soru.node_mode ~operator_addr:op_keys.key_name
+              ~rpc_port:port ~endpoint:base_port ~protocol:protocol.kind
+              ~exec:soru.node ~client ()
+            |> return
+            >>= fun soru_node ->
+            (* Configure custom Kernel or use defufalut if none. *)
+            Smart_rollup.Kernel.build state ~smart_rollup:soru ~node:soru_node
+            |> return
+            >>= fun kernel ->
             (* Originate SORU.*)
-            Smart_rollup.originate_and_confirm state ~client ~kernel:soru.kernel
+            Smart_rollup.originate_and_confirm state ~client ~kernel
               ~account:op_keys.key_name ~confirmations:1 ()
             >>= fun (origination_res, _confirmation_res) ->
-            (* Configure SORU node. *)
-            let soru_node =
-              let port = Test_scenario.Unix_port.(next_port nodes) in
-              Smart_rollup.Node.make_config ~smart_rollup:soru
-                ~mode:soru.node_mode ~soru_addr:origination_res.address
-                ~operator_addr:op_keys.key_name ~rpc_port:port
-                ~endpoint:base_port ~protocol:protocol.kind ~exec:soru.node
-                ~client ()
-            in
-            (* Start SORU node. *)
-            Running_processes.start state
-              Smart_rollup.Node.(start state soru_node)
-            >>= fun _ ->
-            (match soru.kernel with
+            (match soru.custom_kernel with
             | None ->
                 (* Originate echo smart contract for default soru kernel. *)
                 Smart_rollup.Echo_contract.publish state ~client
@@ -511,6 +510,10 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                     ])
             | Some _ -> return [])
             >>= fun echo_contract_addr ->
+            (* Start SORU node. *)
+            Running_processes.start state
+              Smart_rollup.Node.(start state soru_node origination_res.address)
+            >>= fun _ ->
             (* Print SORU info. *)
             Console.say state
               EF.(

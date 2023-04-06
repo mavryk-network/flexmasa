@@ -30,7 +30,6 @@ module Node = struct
   type config = {
     node_id : string;
     mode : mode;
-    soru_addr : string;
     operator_addr : string;
     rpc_addr : int option;
     rpc_port : int option;
@@ -43,8 +42,8 @@ module Node = struct
 
   type t = config
 
-  let make_config ~smart_rollup ?node_id ~mode ~soru_addr ~operator_addr
-      ?rpc_addr ?rpc_port ?endpoint ~protocol ~exec ~client () : config =
+  let make_config ~smart_rollup ?node_id ~mode ~operator_addr ?rpc_addr
+      ?rpc_port ?endpoint ~protocol ~exec ~client () : config =
     let name =
       sprintf "%s-smart-rollup-%s-node-%s" smart_rollup.id (mode_string mode)
         (Option.value node_id ~default:"000")
@@ -52,7 +51,6 @@ module Node = struct
     {
       node_id = name;
       mode;
-      soru_addr;
       operator_addr;
       rpc_addr;
       rpc_port;
@@ -91,27 +89,28 @@ module Node = struct
           ~default:[])
 
   (* Command to initiate a SORU node [config] *)
-  let init state config =
+  let init state config soru_addr =
     call state ~config
       [
         "init";
         mode_string config.mode;
         "config";
         "for";
-        config.soru_addr;
+        soru_addr;
         "with";
         "operators";
         config.operator_addr;
       ]
 
   (* Start a running SORU node. *)
-  let start state config =
+  let start state config soru_addr =
     Running_processes.Process.genspio
       (sprintf "%s-node-for-%s-smart-rollup" (mode_string config.mode)
          config.node_id)
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
-           ("init SORU node", init state config);
+           ("init SORU node", init state config soru_addr);
+           ("start SORU node", call state ~config [ "start" ]);
            ("run SORU node", call state ~config [ "run" ]);
          ])
 
@@ -119,7 +118,7 @@ module Node = struct
 end
 
 module Kernel = struct
-  type config = {
+  type custom_config = {
     kernel_path : string;
     installer_kernel : string;
     reveal_data_dir : string;
@@ -151,7 +150,7 @@ module Kernel = struct
   let kernel_dir ~state smart_rollup p =
     make_path ~state smart_rollup (sprintf "%s-kernel" smart_rollup.id // p)
 
-  let make_config ~state smart_rollup node : config =
+  let make_config ~state smart_rollup node : custom_config =
     let kernel_path =
       Option.value_exn smart_rollup.custom_kernel
         ~message:"Was expecting `--custom-kerenel [ARG]`."
@@ -189,25 +188,25 @@ module Kernel = struct
     stats.st_size
 
   (* Build the installer_kernel and preimage with the smart_rollup_installer executable. *)
-  let insaller_create state ~config =
+  let insaller_create state ~custom_config =
     let open Tezos_executable.Make_cli in
-    Tezos_executable.call state config.exec
-      ~path:(kernel_dir ~state config.smart_rollup "exec")
+    Tezos_executable.call state custom_config.exec
+      ~path:(kernel_dir ~state custom_config.smart_rollup "exec")
       ([ "get-reveal-installer" ]
-      @ opt "upgrade-to" config.kernel_path
-      @ opt "output" config.installer_kernel
-      @ opt "preimage-dir" config.reveal_data_dir)
+      @ opt "upgrade-to" custom_config.kernel_path
+      @ opt "output" custom_config.installer_kernel
+      @ opt "preimage-dir" custom_config.reveal_data_dir)
 
-  (* [of_custom state ~config : string -> hex] is a t from
-      [config.kernel_path]. *)
+  (* [of_custom state ~custom_config : string -> hex] is a t from
+      [custom_config.kernel_path]. *)
   let build state ~smart_rollup ~node : t =
     match smart_rollup.custom_kernel with
     | None -> default
     | Some (kind, michelson_type, kernel_path) -> (
-        let config = make_config ~state smart_rollup node in
+        let custom_config = make_config ~state smart_rollup node in
         let name = name kernel_path in
         let kernel hex = make ~name ~kind ~michelson_type ~hex in
-        let size = size config.kernel_path in
+        let size = size custom_config.kernel_path in
         let content path =
           let open Stdlib in
           let ic = open_in path in
@@ -217,20 +216,21 @@ module Kernel = struct
         in
         if size > 24 * 1048 then
           (* wasm files larger that 24kB are passed to isntaller_crate. We can't do anything with large .hex files *)
-          match check_extension config.kernel_path with
+          match check_extension custom_config.kernel_path with
           | `Hex ->
               raise
                 (Invalid_argument
                    "Installer kernel is .hex. Was expecting .wasm.")
           | `Wasm ->
-              let _ = insaller_create state ~config in
-              kernel (content config.installer_kernel)
+              let _ = insaller_create state ~custom_config in
+              kernel (content custom_config.installer_kernel)
         else
           (* For smaller kerneles *)
-          match check_extension config.kernel_path with
-          | `Hex -> kernel (content config.kernel_path)
+          match check_extension custom_config.kernel_path with
+          | `Hex -> kernel (content custom_config.kernel_path)
           | `Wasm ->
-              kernel Hex.(content config.kernel_path |> of_string |> show))
+              kernel
+                Hex.(content custom_config.kernel_path |> of_string |> show))
 end
 
 module Echo_contract = struct
