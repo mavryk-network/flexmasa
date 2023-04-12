@@ -489,7 +489,6 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             >>= fun soru_node ->
             (* Configure custom Kernel or use defufalut if none. *)
             Smart_rollup.Kernel.build state ~smart_rollup:soru ~node:soru_node
-            |> return
             >>= fun kernel ->
             (* Originate SORU.*)
             Smart_rollup.originate_and_confirm state ~client ~kernel

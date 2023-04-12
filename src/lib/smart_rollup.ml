@@ -176,56 +176,57 @@ module Kernel = struct
     | ".wasm" -> `Wasm path
     | _ -> raise (Invalid_argument (sprintf "Wrong file type at: %S" path))
 
-  (* The size of the file at path in bytes.*)
-  let size p =
-    let open Unix in
-    let stats = stat p in
-    stats.st_size
-
   (* Build the installer_kernel and preimage with the smart_rollup_installer executable. *)
-  let insaller_create state ~custom_config =
-    let open Tezos_executable.Make_cli in
-    Tezos_executable.call state custom_config.exec
-      ~path:(kernel_dir ~state custom_config.smart_rollup "exec")
-      ([ "get-reveal-installer" ]
-      @ opt "upgrade-to" custom_config.kernel_path
-      @ opt "output" custom_config.installer_kernel
-      @ opt "preimage-dir" custom_config.reveal_data_dir)
+  let installer_create state ~exec ~path ~output ~preimages_dir =
+    Running_processes.run_successful_cmdf state
+      "%s get-reveal-installer --upgrade-to %s --output %s --preimages-dir %s"
+      (Tezos_executable.kind_string exec)
+      path output preimages_dir
 
-  (* [of_custom state ~custom_config : string -> hex] is a t from
-      [custom_config.kernel_path]. *)
-  let build state ~smart_rollup ~node : t =
+  (* Build the kernel with the smart_rollup_installer executable. *)
+  let build state ~smart_rollup ~node =
     match smart_rollup.custom_kernel with
-    | None -> default
+    | None -> return default
     | Some (kind, michelson_type, kernel_path) -> (
-        let custom_config = make_config ~state smart_rollup node in
+        let conf = make_config ~state smart_rollup node in
         let name = name kernel_path in
         let kernel hex = make ~name ~kind ~michelson_type ~hex in
-        let size = size custom_config.kernel_path in
-        let content path =
+        let size p =
+          let open Unix in
+          let stats = stat p in
+          stats.st_size
+        in
+        let content path size =
           let open Stdlib in
           let ic = open_in path in
           let cont_str = really_input_string ic size in
           close_in ic;
           cont_str
         in
-        if size > 24 * 1048 then
+        make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
+        make_dir state conf.reveal_data_dir >>= fun _ ->
+        if size conf.kernel_path > 24 * 1048 then
           (* wasm files larger that 24kB are passed to isntaller_crate. We can't do anything with large .hex files *)
-          match check_extension custom_config.kernel_path with
-          | `Hex ->
+          match check_extension conf.kernel_path with
+          | `Hex p ->
               raise
                 (Invalid_argument
-                   "Installer kernel is .hex. Was expecting .wasm.")
-          | `Wasm ->
-              let _ = insaller_create state ~custom_config in
-              kernel (content custom_config.installer_kernel)
+                   (sprintf
+                      "Installer kernel is .hex. Was expecting .wasm at %s.\n" p))
+          | `Wasm _ ->
+              installer_create state ~exec:conf.exec.kind ~path:conf.kernel_path
+                ~output:conf.installer_kernel
+                ~preimages_dir:conf.reveal_data_dir
+              >>= fun _ ->
+              return
+                (kernel
+                   (content conf.installer_kernel (size conf.installer_kernel)))
         else
-          (* For smaller kerneles *)
-          match check_extension custom_config.kernel_path with
-          | `Hex -> kernel (content custom_config.kernel_path)
-          | `Wasm ->
-              kernel
-                Hex.(content custom_config.kernel_path |> of_string |> show))
+          (* For smaller kernels *)
+          match check_extension conf.kernel_path with
+          | `Hex p -> return (kernel (content p (size p)))
+          | `Wasm p ->
+              return (kernel Hex.(content p (size p) |> of_string |> show)))
 end
 
 module Echo_contract = struct
@@ -372,7 +373,9 @@ let cmdliner_term state () =
           let id =
             match custom_kernel with
             | None -> Kernel.default.name
-            | Some (_, _, p) -> Kernel.name p
+            | Some (_, _, p) -> (
+                Kernel.(
+                  match check_extension p with `Hex p | `Wasm p -> name p))
           in
 
           Some { id; level; custom_kernel; node_mode; node; client; installer }
