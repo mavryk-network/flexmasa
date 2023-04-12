@@ -109,7 +109,6 @@ module Node = struct
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
            ("init SORU node", init state config soru_addr);
-           ("start SORU node", call state ~config [ "start" ]);
            ("run SORU node", call state ~config [ "run" ]);
          ])
 end
