@@ -405,5 +405,7 @@ let cmdliner_term base_state ~docs () =
            (info [ "tx-rollup" ]
               ~doc:"Originate a transaction rollup `name` at `level`." ~docs
               ~docv:"LEVEL:TX-ROLLUP-NAME")))
-  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_node "tezos"
-  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_client "tezos"
+  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_node
+      ~prefix:"octez" ()
+  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_client
+      ~prefix:"octez" ()

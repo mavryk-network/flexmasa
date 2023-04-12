@@ -11,9 +11,10 @@ type t = {
   installer : Tezos_executable.t;
 }
 
-(* Make a SORU directory *)
-let make_path ~state t p =
-  Paths.root state // sprintf "%s-smart-rollup" t.id // p
+let make_path ~state p = Paths.root state // sprintf "smart-rollup" // p
+
+let make_dir state p =
+  Running_processes.run_successful_cmdf state "mkdir -p %s" p
 
 module Node = struct
   (* The mode of the SORU node. *)
@@ -62,9 +63,7 @@ module Node = struct
     }
 
   (* SORU node directory. *)
-  let node_dir state node p =
-    make_path ~state node.smart_rollup (sprintf "%s" node.node_id // p)
-
+  let node_dir state node p = make_path ~state (sprintf "%s" node.node_id // p)
   let data_dir state node = node_dir state node "data-dir"
   let reveal_data_dir state node = data_dir state node // "wasm_2_0_0"
 
@@ -113,8 +112,6 @@ module Node = struct
            ("start SORU node", call state ~config [ "start" ]);
            ("run SORU node", call state ~config [ "run" ]);
          ])
-
-  (*  TODO Maybe add a node with --loser-mode for testing. *)
 end
 
 module Kernel = struct
@@ -148,7 +145,7 @@ module Kernel = struct
 
   (* SORU kernel dirctory *)
   let kernel_dir ~state smart_rollup p =
-    make_path ~state smart_rollup (sprintf "%s-kernel" smart_rollup.id // p)
+    make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
   let make_config ~state smart_rollup node : custom_config =
     let kernel_path =
@@ -175,11 +172,9 @@ module Kernel = struct
     let open Caml.Filename in
     let ext = extension path in
     match ext with
-    | ".hex" -> `Hex
-    | ".wasm" -> `Wasm
-    | _ ->
-        raise
-          (Invalid_argument (sprintf "Wrong file type: %s\n" (basename path)))
+    | ".hex" -> `Hex path
+    | ".wasm" -> `Wasm path
+    | _ -> raise (Invalid_argument (sprintf "Wrong file type at: %S" path))
 
   (* The size of the file at path in bytes.*)
   let size p =
@@ -420,6 +415,9 @@ let cmdliner_term state () =
           `Operator
       & info ~docs [ "soru-node-mode" ]
           ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))
-  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node "octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client "octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer "octez"
+  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
+      ~prefix:"octez" ()
+  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client
+      ~prefix:"octez" ()
+  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
+      ~prefix:"Octez" ()

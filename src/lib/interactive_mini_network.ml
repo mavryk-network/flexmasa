@@ -688,11 +688,11 @@ let cmd () =
                (info [ "no-daemons-for" ] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
     $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node "tezos"
-    $ Tezos_executable.cli_term base_state `Client "tezos"
-    $ Tezos_executable.cli_term base_state `Baker "tezos"
-    $ Tezos_executable.cli_term base_state `Endorser "tezos"
-    $ Tezos_executable.cli_term base_state `Accuser "tezos"
+    $ Tezos_executable.cli_term base_state `Node ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Client ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Baker ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"tezos" ()
     $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Genesis_block_hash.Choice.cmdliner_term ()
     $ Tezos_node.History_modes.cmdliner_term base_state
