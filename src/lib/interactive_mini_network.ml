@@ -696,7 +696,7 @@ let cmd () =
     $ Genesis_block_hash.Choice.cmdliner_term ()
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
-    $ Tx_rollup.cmdliner_term ~docs base_state ()
+    $ Tx_rollup.cmdliner_term base_state ()
     $ Tx_rollup.Tx_node.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
   in

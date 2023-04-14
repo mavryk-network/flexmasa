@@ -422,4 +422,4 @@ let cmdliner_term state () =
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client
       ~prefix:"octez" ()
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
-      ~prefix:"Octez" ()
+      ~prefix:"octez" ()

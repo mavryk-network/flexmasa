@@ -179,7 +179,6 @@ val executables : t -> Tezos_executable.t list
 
 val cmdliner_term :
   < manpager : Manpage_builder.State.t ; .. > ->
-  docs:string ->
   unit ->
   t option Cmdliner.Term.t
 (** A cmdliner term for the tx_rollup option. *)

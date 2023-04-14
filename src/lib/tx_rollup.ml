@@ -387,10 +387,14 @@ let publish_deposit_contract state protocol rollup_name client account =
 
 let executables ({ client; node; _ } : t) = [ client; node ]
 
-let cmdliner_term base_state ~docs () =
+let cmdliner_term state () =
   let open Cmdliner in
   let open Term in
   let extra_doc = Fmt.str " for transaction rollups (requires --tx-rollup)" in
+  let docs =
+    Manpage_builder.section state ~rank:2
+      ~name:"TRANSACTION OPTIMISTIC ROLLUP NODE"
+  in
   const (fun tx_rollup node client ->
       Option.map tx_rollup ~f:(fun (level, name) ->
           let txr_name =
@@ -405,7 +409,7 @@ let cmdliner_term base_state ~docs () =
            (info [ "tx-rollup" ]
               ~doc:"Originate a transaction rollup `name` at `level`." ~docs
               ~docv:"LEVEL:TX-ROLLUP-NAME")))
-  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_node
-      ~prefix:"octez" ()
-  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_client
-      ~prefix:"octez" ()
+  $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_node ~prefix:"tezos"
+      ()
+  $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_client ~prefix:"tezos"
+      ()
