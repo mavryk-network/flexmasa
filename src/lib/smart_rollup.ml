@@ -112,8 +112,8 @@ module Node = struct
 end
 
 module Kernel = struct
-  type custom_config = {
-    kernel_path : string;
+  type config = {
+    name : string;
     installer_kernel : string;
     reveal_data_dir : string;
     exec : Tezos_executable.t;
@@ -121,48 +121,39 @@ module Kernel = struct
     node : Node.t;
   }
 
-  type kernel = {
-    name : string;
-    kind : string;
-    michelson_type : string;
-    hex : string;
-  }
-
-  type t = kernel
-
-  (* The default kernel. *)
-  let default : t =
-    {
-      name = "echo";
-      kind = "wasm_2_0_0";
-      michelson_type = "bytes";
-      hex =
-        "0061736d0100000001280760037f7f7f017f60027f7f017f60057f7f7f7f7f017f60017f0060017f017f60027f7f0060000002610311736d6172745f726f6c6c75705f636f72650a726561645f696e707574000011736d6172745f726f6c6c75705f636f72650c77726974655f6f7574707574000111736d6172745f726f6c6c75705f636f72650b73746f72655f77726974650002030504030405060503010001071402036d656d02000a6b65726e656c5f72756e00060aa401042a01027f41fa002f0100210120002f010021022001200247044041e4004112410041e400410010021a0b0b0800200041c4006b0b5001057f41fe002d0000210341fc002f0100210220002d0000210420002f0100210520011004210620042003460440200041016a200141016b10011a0520052002460440200041076a200610011a0b0b0b1d01017f41dc0141840241901c100021004184022000100541840210030b0b38050041e4000b122f6b65726e656c2f656e762f7265626f6f740041f8000b0200010041fa000b0200020041fc000b0200000041fe000b0101";
-    }
-
   (* SORU kernel dirctory *)
   let kernel_dir ~state smart_rollup p =
     make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
-  let make_config ~state smart_rollup node : custom_config =
-    let kernel_path =
-      Option.value_exn smart_rollup.custom_kernel
-        ~message:"Was expecting `--custom-kerenel [ARG]`."
-      |> fun (_, _, p) -> p
-    in
+  let make_config ~state smart_rollup node : config =
+    let name = smart_rollup.id in
     let installer_kernel =
-      kernel_dir ~state smart_rollup
-        (sprintf "%s-installer.hex" smart_rollup.id)
+      kernel_dir ~state smart_rollup (sprintf "%s-installer.hex" name)
     in
     let reveal_data_dir = Node.reveal_data_dir state node in
     let exec = smart_rollup.installer in
-    { kernel_path; installer_kernel; reveal_data_dir; exec; smart_rollup; node }
+    { name; installer_kernel; reveal_data_dir; exec; smart_rollup; node }
 
-  (* Name of the kernel installer from path. *)
-  let name path = Caml.Filename.(basename path |> chop_extension)
+  (* The cli arguments for the octez_client smart rollup originatation. *)
+  type cli_args = { kind : string; michelson_type : string; hex : string }
 
-  let make ~name ~kind ~michelson_type ~hex =
-    { name; kind; michelson_type; hex }
+  let make_args ~kind ~michelson_type ~hex : cli_args =
+    { kind; michelson_type; hex }
+
+  let default_args =
+    make_args ~kind:Tx_installer.kind
+      ~michelson_type:Tx_installer.michelson_type ~hex:Tx_installer.hex
+
+  let load_default_preimages reveal_data_dir preimages =
+    let write_file path content =
+      let open Stdlib in
+      let oc = open_out_bin path in
+      output_bytes oc content;
+      close_out oc
+    in
+    List.iter preimages ~f:(fun (p, contents) ->
+        let filename = Caml.Filename.basename p in
+        write_file (reveal_data_dir // filename) contents)
 
   (* Check the extension of user provided kernel. *)
   let check_extension path =
@@ -181,16 +172,19 @@ module Kernel = struct
       path output preimages_dir
 
   (* Build the kernel with the smart_rollup_installer executable. *)
-  let build state ~smart_rollup ~node =
+  let build state ~smart_rollup ~node : (cli_args, _) Asynchronous_result.t =
+    let config = make_config ~state smart_rollup node in
+    make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
+    make_dir state config.reveal_data_dir >>= fun _ ->
     match smart_rollup.custom_kernel with
-    | None -> return default
+    | None ->
+        return
+          (load_default_preimages config.reveal_data_dir Preimages.tx_kernel)
+        >>= fun _ -> return default_args
     | Some (kind, michelson_type, kernel_path) -> (
-        let conf = make_config ~state smart_rollup node in
-        let name = name kernel_path in
-        let kernel hex = make ~name ~kind ~michelson_type ~hex in
+        let cli_args hex = make_args ~kind ~michelson_type ~hex in
         let size p =
-          let open Unix in
-          let stats = stat p in
+          let stats = Unix.stat p in
           stats.st_size
         in
         let content path size =
@@ -200,28 +194,27 @@ module Kernel = struct
           close_in ic;
           cont_str
         in
-        make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
-        make_dir state conf.reveal_data_dir >>= fun _ ->
-        if size conf.kernel_path > 24 * 1048 then
+        if size kernel_path > 24 * 1048 then
           (* wasm files larger that 24kB are passed to isntaller_crate. We can't do anything with large .hex files *)
-          match check_extension conf.kernel_path with
+          match check_extension kernel_path with
           | `Hex p ->
               raise
                 (Invalid_argument
                    (sprintf
-                      "Installer kernel is .hex. Was expecting .wasm at %s.\n" p))
+                      "Installer cli_args is .hex. Was expecting .wasm at %s.\n"
+                      p))
           | `Wasm _ ->
-              installer_create state ~exec:conf.exec.kind ~path:conf.kernel_path
-                ~output:conf.installer_kernel
-                ~preimages_dir:conf.reveal_data_dir
+              installer_create state ~exec:config.exec.kind ~path:kernel_path
+                ~output:config.installer_kernel
+                ~preimages_dir:config.reveal_data_dir
               >>= fun _ ->
               return
-                (kernel
-                   (content conf.installer_kernel (size conf.installer_kernel)))
+                (cli_args
+                   (content config.installer_kernel
+                      (size config.installer_kernel)))
         else
-          (* For smaller kernels *)
-          match check_extension conf.kernel_path with
-          | `Hex p -> return (kernel (content p (size p)))
+          match check_extension kernel_path with
+          | `Hex p -> return (cli_args (content p (size p)))
           | `Wasm p ->
               return (cli_args Hex.(content p (size p) |> of_string |> show)))
 end
@@ -322,12 +315,12 @@ let cmdliner_term state () =
       | true ->
           let id =
             match custom_kernel with
-            | None -> Kernel.default.name
+            | None -> Tx_installer.name
             | Some (_, _, p) -> (
-                Kernel.(
-                  match check_extension p with `Hex p | `Wasm p -> name p))
+                match Kernel.check_extension p with
+                | `Hex p | `Wasm p ->
+                    Caml.Filename.(basename p |> chop_extension))
           in
-
           Some { id; level; custom_kernel; node_mode; node; client; installer }
       | false -> None)
   $ Arg.(

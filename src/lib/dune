@@ -18,3 +18,27 @@
   ptime.clock.os
   tezai-base58-digest
   tezai-tz1-crypto))
+
+(rule
+ (target tx_installer.ml)
+ (deps (:installer ../smart-rollup-kernels/tx-kernel/tx-installer.hex))
+ (action
+  (with-stdout-to %{target}
+   (progn
+    (echo "let name = \"tx\"")
+    (echo "let kind = \"wasm_2_0_0\"")
+    (echo "let michelson_type = \"bytes\"")
+    (echo "let hex = \"")
+    (run cat %{installer})
+    (echo "\"")))))
+
+(rule
+ (target preimages.ml)
+ (deps (source_tree ../smart-rollup-kernels/tx-kernel/wasm_2_0_0))
+ (action
+  (with-stdout-to %{target}
+   (progn
+    (echo "open Base\n")
+    (echo "let tx_kernel = List.map ~f:(fun (file, bytes) -> (file, Bytes.of_string bytes)) [")
+    (bash "for file in %{deps}; do echo -n '(\"'; basename \"${file}\" | tr -d '\\n'; echo -n '\", '; echo -n '{notwasmbyte|'; cat \"$file\"; echo -n '|notwasmbyte}); '; done")
+    (echo "]")))))
