@@ -470,7 +470,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         List.hd keys_and_daemons |> function
         | None -> return ()
         | Some (_, _, client, _, _) ->
-            (* Inicialze operator keys. *)
+            (* Initialize operator keys. *)
             let op_acc = Tezos_protocol.soru_node_operator protocol in
             let op_keys =
               let name, priv =
@@ -487,28 +487,13 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
               ~exec:soru.node ~client ()
             |> return
             >>= fun soru_node ->
-            (* Configure custom Kernel or use defufalut if none. *)
+            (* Configure custom Kernel or use default if none. *)
             Smart_rollup.Kernel.build state ~smart_rollup:soru ~node:soru_node
             >>= fun kernel ->
             (* Originate SORU.*)
             Smart_rollup.originate_and_confirm state ~client ~kernel
               ~account:op_keys.key_name ~confirmations:1 ()
             >>= fun (origination_res, _confirmation_res) ->
-            (match soru.custom_kernel with
-            | None ->
-                (* Originate echo smart contract for default soru kernel. *)
-                Smart_rollup.Echo_contract.publish state ~client
-                  ~account:op_keys.key_name
-                >>= fun echo_contract ->
-                EF.(
-                  return
-                    [
-                      desc
-                        (af "Echo contract address")
-                        (af "`%s`" echo_contract);
-                    ])
-            | Some _ -> return [])
-            >>= fun echo_contract_addr ->
             (* Start SORU node. *)
             Running_processes.start state
               Smart_rollup.Node.(start state soru_node origination_res.address)
@@ -518,21 +503,20 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
               EF.(
                 desc_list
                   (haf "Smart Optimistic Rollup (soru) is ready:")
-                  ([
-                     desc (af "Address:") (af "`%s`" origination_res.address);
-                     desc
-                       (af "Smart Rollup Node RPC port:")
-                       (af "`%d`"
-                          (Option.value_exn
-                             ?message:
-                               (Some
-                                  "Failed to get rpc port for Smart rollup \
-                                   node.") soru_node.rpc_port));
-                     desc
-                       (af "Node Operator address")
-                       (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
-                   ]
-                  @ echo_contract_addr))
+                  [
+                    desc (af "Address:") (af "`%s`" origination_res.address);
+                    desc
+                      (af "Smart Rollup Node RPC port:")
+                      (af "`%d`"
+                         (Option.value_exn
+                            ?message:
+                              (Some
+                                 "Failed to get rpc port for Smart rollup node.")
+                            soru_node.rpc_port));
+                    desc
+                      (af "Node Operator address")
+                      (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
+                  ])
       end
       >>= fun () ->
       let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
