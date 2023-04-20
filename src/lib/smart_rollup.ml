@@ -103,9 +103,7 @@ module Node = struct
 
   (* Start a running SORU node. *)
   let start state config soru_addr =
-    Running_processes.Process.genspio
-      (sprintf "%s-node-for-%s-smart-rollup" (mode_string config.mode)
-         config.node_id)
+    Running_processes.Process.genspio config.node_id
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
            ("init SORU node", init state config soru_addr);
