@@ -176,6 +176,26 @@ val publish_deposit_contract :
 
 val executables : t -> Tezos_executable.t list
 
+val run :
+  < application_name : string
+  ; console : Console.t
+  ; env_config : Environment_configuration.t
+  ; paths : Paths.t
+  ; runner : Running_processes.State.t
+  ; .. > ->
+  protocol:Tezos_protocol.t ->
+  tx_rollup:t option ->
+  client:Tezos_client.t ->
+  nodes:Tezos_node.t list ->
+  bootstrap_account:Tezos_protocol.Account.t ->
+  base_port:int ->
+  ( unit,
+    [> `Process_error of Process_result.Error.error
+    | `System_error of [ `Fatal ] * System_error.static
+    | `Waiting_for of string * [ `Time_out ] ] )
+  Attached_result.t
+  Lwt.t
+
 val cmdliner_term :
   < manpager : Manpage_builder.State.t ; .. > ->
   unit ->
