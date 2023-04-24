@@ -301,55 +301,60 @@ let originate_and_confirm state ~client ~account ~kernel ~confirmations () =
 let executables ({ client; node; installer; _ } : t) =
   [ client; node; installer ]
 
-let run state ~(smart_rollup : t option) ~(protocol : Tezos_protocol.t)
-    ~(client : Tezos_client.t) ~(nodes : Tezos_node.t list) ~(base_port : int) =
+let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   match smart_rollup with
   | None -> return ()
-  | Some soru ->
-      (* Initialize operator keys. *)
-      let op_acc = Tezos_protocol.soru_node_operator protocol in
-      let op_keys =
-        let name, priv =
-          Tezos_protocol.Account.(name op_acc, private_key op_acc)
-        in
-        Tezos_client.Keyed.make client ~key_name:name ~secret_key:priv
-      in
-      Tezos_client.Keyed.initialize state op_keys >>= fun _ ->
-      (* Configure SORU node. *)
-      let port = Test_scenario.Unix_port.(next_port nodes) in
-      Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
-        ~operator_addr:op_keys.key_name ~rpc_port:port ~endpoint:base_port
-        ~protocol:protocol.kind ~exec:soru.node ~client ()
-      |> return
-      >>= fun soru_node ->
-      (* Configure custom Kernel or use default if none. *)
-      Kernel.build state ~smart_rollup:soru ~node:soru_node >>= fun kernel ->
-      (* Originate SORU.*)
-      originate_and_confirm state ~client ~kernel ~account:op_keys.key_name
-        ~confirmations:1 ()
-      >>= fun (origination_res, _confirmation_res) ->
-      (* Start SORU node. *)
-      Running_processes.start state
-        Node.(start state soru_node origination_res.address)
-      >>= fun _ ->
-      (* Print SORU info. *)
-      Console.say state
-        EF.(
-          desc_list
-            (haf "Smart Optimistic Rollup (soru) is ready:")
-            [
-              desc (af "Address:") (af "`%s`" origination_res.address);
-              desc
-                (af "Smart Rollup Node RPC port:")
-                (af "`%d`"
-                   (Option.value_exn
-                      ?message:
-                        (Some "Failed to get rpc port for Smart rollup node.")
-                      soru_node.rpc_port));
-              desc
-                (af "Node Operator address")
-                (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
-            ])
+  | Some soru -> (
+      List.hd keys_and_daemons |> function
+      | None -> return ()
+      | Some (_, _, client, _, _) ->
+          (* Initialize operator keys. *)
+          let op_acc = Tezos_protocol.soru_node_operator protocol in
+          let op_keys =
+            let name, priv =
+              Tezos_protocol.Account.(name op_acc, private_key op_acc)
+            in
+            Tezos_client.Keyed.make client ~key_name:name ~secret_key:priv
+          in
+          Tezos_client.Keyed.initialize state op_keys >>= fun _ ->
+          (* Configure SORU node. *)
+          let port = Test_scenario.Unix_port.(next_port nodes) in
+          Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
+            ~operator_addr:op_keys.key_name ~rpc_port:port ~endpoint:base_port
+            ~protocol:protocol.kind ~exec:soru.node ~client ()
+          |> return
+          >>= fun soru_node ->
+          (* Configure custom Kernel or use default if none. *)
+          Kernel.build state ~smart_rollup:soru ~node:soru_node
+          >>= fun kernel ->
+          (* Originate SORU.*)
+          originate_and_confirm state ~client ~kernel ~account:op_keys.key_name
+            ~confirmations:1 ()
+          >>= fun (origination_res, _confirmation_res) ->
+          (* Start SORU node. *)
+          Running_processes.start state
+            Node.(start state soru_node origination_res.address)
+          >>= fun _ ->
+          (* Print SORU info. *)
+          Console.say state
+            EF.(
+              desc_list
+                (haf "%S Smart Optimistic Rollup is ready:" soru.id)
+                [
+                  desc (af "Rollup ddress:") (af "`%s`" origination_res.address);
+                  desc
+                    (af "The  %s node is listening on port:"
+                       (Node.mode_string soru_node.mode))
+                    (af "`%d`"
+                       (Option.value_exn
+                          ?message:
+                            (Some
+                               "Failed to get rpc port for Smart rollup node.")
+                          soru_node.rpc_port));
+                  desc
+                    (af "Node Operator address:")
+                    (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
+                ]))
 
 let cmdliner_term state () =
   let open Cmdliner in

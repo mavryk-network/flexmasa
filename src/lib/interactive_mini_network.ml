@@ -387,11 +387,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Tx_rollup.run state ~protocol ~tx_rollup:tx ~keys_and_daemons ~nodes
     ~base_port
   >>= fun () ->
-  let sr_client =
-    List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c)
-    |> List.hd |> Option.value_exn
-  in
-  Smart_rollup.run state ~smart_rollup:soru ~protocol ~client:sr_client ~nodes
+  Smart_rollup.run state ~smart_rollup:soru ~protocol ~keys_and_daemons ~nodes
     ~base_port
   >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
