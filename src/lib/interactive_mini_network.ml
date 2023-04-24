@@ -388,100 +388,52 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     List.map keys_and_daemons ~f:(fun (_, b, c, _, _) -> (b, c))
     |> List.hd |> Option.value_exn
   in
-  (* let bootstrap_account = Tezos_protocol.toru_boot_acc protocol in *)
   Tx_rollup.run state ~protocol ~tx_rollup:tx ~client:tx_client ~nodes
     ~bootstrap_account:boot ~base_port
   >>= fun () ->
-  match soru with
-  | None -> return ()
-  | Some soru -> (
-      (List.hd keys_and_daemons |> function
-       | None -> return ()
-       | Some (_, _, client, _, _) ->
-           (* Initialize operator keys. *)
-           let op_acc = Tezos_protocol.soru_node_operator protocol in
-           let op_keys =
-             let name, priv =
-               Tezos_protocol.Account.(name op_acc, private_key op_acc)
-             in
-             Tezos_client.Keyed.make client ~key_name:name ~secret_key:priv
-           in
-           Tezos_client.Keyed.initialize state op_keys >>= fun _ ->
-           (* Configure SORU node. *)
-           let port = Test_scenario.Unix_port.(next_port nodes) in
-           Smart_rollup.Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
-             ~operator_addr:op_keys.key_name ~rpc_port:port ~endpoint:base_port
-             ~protocol:protocol.kind ~exec:soru.node ~client ()
-           |> return
-           >>= fun soru_node ->
-           (* Configure custom Kernel or use default if none. *)
-           Smart_rollup.Kernel.build state ~smart_rollup:soru ~node:soru_node
-           >>= fun kernel ->
-           (* Originate SORU.*)
-           Smart_rollup.originate_and_confirm state ~client ~kernel
-             ~account:op_keys.key_name ~confirmations:1 ()
-           >>= fun (origination_res, _confirmation_res) ->
-           (* Start SORU node. *)
-           Running_processes.start state
-             Smart_rollup.Node.(start state soru_node origination_res.address)
-           >>= fun _ ->
-           (* Print SORU info. *)
-           Console.say state
-             EF.(
-               desc_list
-                 (haf "Smart Optimistic Rollup (soru) is ready:")
-                 [
-                   desc (af "Address:") (af "`%s`" origination_res.address);
-                   desc
-                     (af "Smart Rollup Node RPC port:")
-                     (af "`%d`"
-                        (Option.value_exn
-                           ?message:
-                             (Some
-                                "Failed to get rpc port for Smart rollup node.")
-                           soru_node.rpc_port));
-                   desc
-                     (af "Node Operator address")
-                     (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
-                 ]))
-      >>= fun () ->
-      let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
-      Helpers.Shell_environement.(
-        let path = Paths.root state // "shell.env" in
-        let env = build state ~protocol ~clients in
-        write state env ~path >>= fun () ->
-        return (help_command state env ~path))
-      >>= fun shell_env_help ->
-      let keyed_clients =
-        List.map keys_and_daemons ~f:(fun (_, _, _, kc, _) -> kc)
-      in
-      Interactive_test.Pauser.add_commands state
-        Interactive_test.Commands.(
-          (shell_env_help :: all_defaults state ~nodes)
-          @ [
-              secret_keys state ~protocol;
-              forge_and_inject_piece_of_json state ~clients:keyed_clients;
-            ]
-          @ arbitrary_commands_for_each_and_all_clients state ~clients);
-      Test_scenario.Queries.(
-        match test_kind with
-        | `Interactive ->
-            Interactive_test.Pauser.generic state ~force:true
-              EF.[ haf "Sandbox is READY \\o/" ]
-        | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
-            run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
-            Interactive_test.Pauser.generic state ~force:true
-              EF.[ haf "Sandbox is READY \\o/" ]
-        | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
-            run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
-            let opt = `At_least lvl in
-            run_wait_level protocol state nodes opt lvl
-        | `Random_traffic (`Any, `Until level) ->
-            System.sleep 10. >>= fun () ->
-            Traffic_generation.Random.run state ~protocol ~nodes
-              ~clients:keyed_clients ~until_level:level `Any
-        | `Wait_level (`At_least lvl as opt) ->
-            run_wait_level protocol state nodes opt lvl))
+  let sr_client =
+    List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c)
+    |> List.hd |> Option.value_exn
+  in
+  Smart_rollup.run state ~smart_rollup:soru ~protocol ~client:sr_client ~nodes
+    ~base_port
+  >>= fun () ->
+  let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
+  Helpers.Shell_environement.(
+    let path = Paths.root state // "shell.env" in
+    let env = build state ~protocol ~clients in
+    write state env ~path >>= fun () -> return (help_command state env ~path))
+  >>= fun shell_env_help ->
+  let keyed_clients =
+    List.map keys_and_daemons ~f:(fun (_, _, _, kc, _) -> kc)
+  in
+  Interactive_test.Pauser.add_commands state
+    Interactive_test.Commands.(
+      (shell_env_help :: all_defaults state ~nodes)
+      @ [
+          secret_keys state ~protocol;
+          forge_and_inject_piece_of_json state ~clients:keyed_clients;
+        ]
+      @ arbitrary_commands_for_each_and_all_clients state ~clients);
+  Test_scenario.Queries.(
+    match test_kind with
+    | `Interactive ->
+        Interactive_test.Pauser.generic state ~force:true
+          EF.[ haf "Sandbox is READY \\o/" ]
+    | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
+        run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
+        Interactive_test.Pauser.generic state ~force:true
+          EF.[ haf "Sandbox is READY \\o/" ]
+    | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
+        run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
+        let opt = `At_least lvl in
+        run_wait_level protocol state nodes opt lvl
+    | `Random_traffic (`Any, `Until level) ->
+        System.sleep 10. >>= fun () ->
+        Traffic_generation.Random.run state ~protocol ~nodes
+          ~clients:keyed_clients ~until_level:level `Any
+    | `Wait_level (`At_least lvl as opt) ->
+        run_wait_level protocol state nodes opt lvl)
 
 let cmd () =
   let open Cmdliner in
