@@ -3,6 +3,8 @@ open Internal_pervasives
 type t = {
   level : int;
   name : string;
+  node_mode :
+    [ `Observer | `Accuser | `Batcher | `Maintenance | `Operator | `Custom ];
   node : Tezos_executable.t;
   client : Tezos_executable.t;
 }
@@ -176,7 +178,8 @@ module Deposit_contract = struct
 end
 
 module Tx_node = struct
-  type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
+  type mode =
+    [ `Observer | `Accuser | `Batcher | `Maintenance | `Operator | `Custom ]
 
   type operation_signer =
     | Operator_signer of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
@@ -238,12 +241,12 @@ module Tx_node = struct
   let exec_path config node = node_dir "exec" config node
 
   let mode_string = function
-    | Observer -> "observer"
-    | Accuser -> "accuser"
-    | Batcher -> "batcher"
-    | Maintenance -> "maintenance"
-    | Operator -> "operator"
-    | Custom -> "custom "
+    | `Observer -> "observer"
+    | `Accuser -> "accuser"
+    | `Batcher -> "batcher"
+    | `Maintenance -> "maintenance"
+    | `Operator -> "operator"
+    | `Custom -> "custom "
 
   let make ?id ?port ?endpoint ~protocol ~exec ~client ~mode ?cors_origin
       ~account ?operation_signers ~tx_rollup () : node =
@@ -329,35 +332,6 @@ module Tx_node = struct
     Running_processes.Process.genspio
       (sprintf "%s-node-for-tx-rollup-%s" (mode_string t.mode) t.account.name)
       (script state t)
-
-  let cmdliner_term state () =
-    (* This was added in anticipation of possibly creating multiple nodes of different mode types. *)
-    (* Maybe users what to run their own TORU node and would like Flextesa to run a passive observer node.*)
-    let open Cmdliner in
-    let extra_doc = " for transaction rollups (requires --tx-rollup)" in
-    let docs =
-      Manpage_builder.section state ~rank:2
-        ~name:"TRANSACTION OPTIMISTIC ROLLUP NODE"
-    in
-    Arg.(
-      value
-      & opt
-          (enum
-             [
-               ("observer", Observer);
-               ("accuser", Accuser);
-               ("batcher", Batcher);
-               ("maintenance", Maintenance);
-               ("custom ", Custom);
-               ("operator", Operator);
-             ])
-          Operator
-      & info ~docs [ "tx-rollup-node-mode" ]
-          ~doc:
-            (sprintf
-               "Set the transaction rollup node's `mode`%s. The default mode \
-                is `Operator`."
-               extra_doc))
 end
 
 let origination_account ~client name =
@@ -395,12 +369,12 @@ let cmdliner_term state () =
     Manpage_builder.section state ~rank:2
       ~name:"TRANSACTION OPTIMISTIC ROLLUP NODE"
   in
-  const (fun tx_rollup node client ->
+  const (fun tx_rollup node_mode node client ->
       Option.map tx_rollup ~f:(fun (level, name) ->
           let txr_name =
             match name with None -> "flextesa-tx-rollup" | Some n -> n
           in
-          { level; name = txr_name; node; client }))
+          { level; name = txr_name; node_mode; node; client }))
   $ Arg.(
       value
         (opt
@@ -409,6 +383,25 @@ let cmdliner_term state () =
            (info [ "tx-rollup" ]
               ~doc:"Originate a transaction rollup `name` at `level`." ~docs
               ~docv:"LEVEL:TX-ROLLUP-NAME")))
+  $ Arg.(
+      value
+      & opt
+          (enum
+             [
+               ("observer", `Observer);
+               ("accuser", `Accuser);
+               ("batcher", `Batcher);
+               ("maintenance", `Maintenance);
+               ("custom", `Custom);
+               ("operator", `Operator);
+             ])
+          `Operator
+      & info ~docs [ "tx-rollup-node-mode" ]
+          ~doc:
+            (sprintf
+               "Set the transaction rollup node's `mode`%s. The default mode \
+                is `Operator`."
+               extra_doc))
   $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_node ~prefix:"tezos"
       ()
   $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_client ~prefix:"tezos"

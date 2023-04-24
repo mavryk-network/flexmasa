@@ -246,7 +246,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     node_exec client_exec baker_exec endorser_exec accuser_exec test_kind ?tx
-    ~tx_node ?soru () =
+    ?soru () =
   (if clear_root then
    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
    >>= fun () -> Helpers.clear_root state
@@ -422,7 +422,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
             let tx_node =
               Tx_rollup.Tx_node.(
                 let port = Test_scenario.Unix_port.(next_port nodes) in
-                make ~port ~endpoint:base_port ~mode:tx_node
+                make ~port ~endpoint:base_port ~mode:tx.node_mode
                   ~protocol:protocol.kind ~exec:tx.node ~client:cli ~account
                   ~tx_rollup:tx ())
             in
@@ -586,12 +586,11 @@ let cmd () =
         nodes_history_mode_edits
         state
         tx
-        tx_node
         soru
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ?tx ~tx_node ?soru ~clear_root ~nodes_history_mode_edits
+            ?hard_fork ?tx ?soru ~clear_root ~nodes_history_mode_edits
             ~external_peer_ports ~no_daemons_for ~genesis_block_choice test_kind
         in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
@@ -681,7 +680,6 @@ let cmd () =
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
     $ Tx_rollup.cmdliner_term base_state ()
-    $ Tx_rollup.Tx_node.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
   in
   let info =

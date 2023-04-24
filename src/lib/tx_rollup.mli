@@ -3,6 +3,8 @@ open Internal_pervasives
 type t = {
   level : int;
   name : string;
+  node_mode :
+    [ `Observer | `Accuser | `Batcher | `Maintenance | `Operator | `Custom ];
   node : Tezos_executable.t;
   client : Tezos_executable.t;
 }
@@ -56,8 +58,9 @@ module Account : sig
 end
 
 module Tx_node : sig
-  (** A type for the tx_rollup node mode.*)
-  type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
+  (* (\** A type for the tx_rollup node mode.*\) *)
+  type mode =
+    [ `Observer | `Accuser | `Batcher | `Maintenance | `Operator | `Custom ]
 
   (** A type for tx_rollup_node operation signers.*)
   type operation_signer =
@@ -109,7 +112,7 @@ module Tx_node : sig
     protocol:Tezos_protocol.Protocol_kind.t ->
     exec:Tezos_executable.t ->
     client:Tezos_client.t ->
-    mode:mode ->
+    mode:[ `Observer | `Accuser | `Batcher | `Maintenance | `Operator | `Custom ] ->
     ?cors_origin:string ->
     account:Account.t ->
     ?operation_signers:operation_signer list ->
@@ -129,10 +132,6 @@ module Tx_node : sig
     node ->
     ('a -> node -> 'b Genspio.Language.t) ->
     Running_processes.Process.t
-
-  val cmdliner_term :
-    < manpager : Manpage_builder.State.t ; .. > -> unit -> mode Cmdliner.Term.t
-  (** A cmdliner term for the tx_rollup_node "mode" option. *)
 end
 
 val origination_account :
