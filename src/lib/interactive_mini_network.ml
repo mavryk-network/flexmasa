@@ -384,12 +384,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Traffic_generation.Commands.init_cmd_history state
   (* clear the command history file *)
   >>= fun () ->
-  let boot, tx_client =
-    List.map keys_and_daemons ~f:(fun (_, b, c, _, _) -> (b, c))
-    |> List.hd |> Option.value_exn
-  in
-  Tx_rollup.run state ~protocol ~tx_rollup:tx ~client:tx_client ~nodes
-    ~bootstrap_account:boot ~base_port
+  Tx_rollup.run state ~protocol ~tx_rollup:tx ~keys_and_daemons ~nodes
+    ~base_port
   >>= fun () ->
   let sr_client =
     List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c)

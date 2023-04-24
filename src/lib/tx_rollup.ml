@@ -32,12 +32,6 @@ module Account = struct
     in
     (acc, key)
 
-  let fund state ~client ~amount ~from ~destination =
-    Tezos_client.successful_client_cmd state ~client
-      [
-        "transfer"; amount; "from"; from; "to"; destination; "--burn-cap"; "15";
-      ]
-
   let fund_multiple state ~client ~from ~(recipients : (string * string) list) =
     let json =
       let open Ezjsonm in
@@ -361,71 +355,82 @@ let publish_deposit_contract state protocol rollup_name client account =
 
 let executables ({ client; node; _ } : t) = [ client; node ]
 
-let run state ~(protocol : Tezos_protocol.t) ~(tx_rollup : t option)
-    ~(client : Tezos_client.t) ~(nodes : Tezos_node.t list)
-    ~(bootstrap_account : Tezos_protocol.Account.t) ~(base_port : int) =
+let run state ~protocol ~tx_rollup ~keys_and_daemons ~nodes ~base_port =
   match tx_rollup with
   | None -> return ()
-  | Some tx ->
-      let toru_orig_acc, toru_orig_key = origination_account ~client tx.name in
-      Tezos_client.Keyed.initialize state toru_orig_key >>= fun _ ->
-      let contract_orig_acc, contract_orig_key =
-        origination_account ~client (sprintf "%s-deposit-contract" tx.name)
-      in
-      Tezos_client.Keyed.initialize state contract_orig_key >>= fun _ ->
-      let toru_orig = Tezos_protocol.Account.name toru_orig_acc in
-      let contract_orig = Tezos_protocol.Account.name contract_orig_acc in
-      let funder = Tezos_protocol.Account.name bootstrap_account in
-      Account.fund_multiple state ~client ~from:funder
-        ~recipients:[ (toru_orig, "1000"); (contract_orig, "10") ]
-      >>= fun _ ->
-      (* With the accounts funded we wait for LEVEL and then originate the TORU and deposit-contract. *)
-      Test_scenario.Queries.run_wait_level protocol state nodes
-        (`At_least tx.level) tx.level
-      >>= fun () ->
-      originate_and_confirm state ~name:tx.name ~client ~account:toru_orig
-        ~confirmations:1 ()
-      >>= fun (account, _conf) ->
-      publish_deposit_contract state protocol.kind tx.name client contract_orig
-      >>= fun deposit_contract ->
-      (* Next configure the TORU node. *)
-      let tx_node =
-        let port = Test_scenario.Unix_port.(next_port nodes) in
-        Tx_node.make ~port ~endpoint:base_port ~mode:tx.node_mode
-          ~protocol:protocol.kind ~exec:tx.node ~client ~account ~tx_rollup:tx
-          ()
-      in
-      (* Init and fund the TORU node operation signers. *)
-      List_sequential.iter tx_node.operation_signers ~f:(fun os ->
-          Tx_node.operation_signer_map os ~f:(fun (_op_acc, op_key) ->
-              Tezos_client.Keyed.initialize state op_key)
-          >>= fun _ -> return ())
-      >>= fun () ->
-      let dstlist =
-        List.fold tx_node.operation_signers ~init:[] ~f:(fun d os ->
-            let dst_key =
-              Tx_node.operation_signer_map os ~f:(fun (_, os_key) ->
-                  os_key.key_name)
-            in
-            (dst_key, "100") :: d)
-      in
-      Account.fund_multiple state ~client ~from:toru_orig ~recipients:dstlist
-      >>= fun _ ->
-      (* Start the TORU node. And print TORU information. *)
-      Running_processes.start state Tx_node.(process state tx_node start_script)
-      >>= fun _ ->
-      Console.say state
-        EF.(
-          desc_list
-            (haf "Transaction Rollup Sandbox is ready:")
-            [
-              desc (af "Name:") (af "%S" account.name);
-              desc (af "Address:") (af "`%s`" account.address);
-              desc
-                (af "Tx-rollup Node RPC port:")
-                (af "`%d`" (Option.value tx_node.port ~default:9999));
-              desc (af "Deposit-contract Address:") (af "`%s`" deposit_contract);
-            ])
+  | Some tx -> (
+      List.hd keys_and_daemons
+      (* The boot account at head is used to fund the two accounts which originate the TORU and the ticket-deposite-contract. *)
+      |>
+      function
+      | None -> return ()
+      | Some (_, boot_acc, client, _, _) ->
+          let toru_orig_acc, toru_orig_key =
+            origination_account ~client tx.name
+          in
+          Tezos_client.Keyed.initialize state toru_orig_key >>= fun _ ->
+          let contract_orig_acc, contract_orig_key =
+            origination_account ~client (sprintf "%s-deposit-contract" tx.name)
+          in
+          Tezos_client.Keyed.initialize state contract_orig_key >>= fun _ ->
+          let toru_orig = Tezos_protocol.Account.name toru_orig_acc in
+          let contract_orig = Tezos_protocol.Account.name contract_orig_acc in
+          let funder = Tezos_protocol.Account.name boot_acc in
+          Account.fund_multiple state ~client ~from:funder
+            ~recipients:[ (toru_orig, "1000"); (contract_orig, "10") ]
+          >>= fun _ ->
+          (* With the accounts funded we wait for LEVEL and then originate the TORU and deposit-contract. *)
+          Test_scenario.Queries.run_wait_level protocol state nodes
+            (`At_least tx.level) tx.level
+          >>= fun () ->
+          originate_and_confirm state ~name:tx.name ~client ~account:toru_orig
+            ~confirmations:1 ()
+          >>= fun (account, _conf) ->
+          publish_deposit_contract state protocol.kind tx.name client
+            contract_orig
+          >>= fun deposit_contract ->
+          (* Next configure the TORU node. *)
+          let tx_node =
+            let port = Test_scenario.Unix_port.(next_port nodes) in
+            Tx_node.make ~port ~endpoint:base_port ~mode:tx.node_mode
+              ~protocol:protocol.kind ~exec:tx.node ~client ~account
+              ~tx_rollup:tx ()
+          in
+          (* Init and fund the TORU node operation signers. *)
+          List_sequential.iter tx_node.operation_signers ~f:(fun os ->
+              Tx_node.operation_signer_map os ~f:(fun (_op_acc, op_key) ->
+                  Tezos_client.Keyed.initialize state op_key)
+              >>= fun _ -> return ())
+          >>= fun () ->
+          let dstlist =
+            List.fold tx_node.operation_signers ~init:[] ~f:(fun d os ->
+                let dst_key =
+                  Tx_node.operation_signer_map os ~f:(fun (_, os_key) ->
+                      os_key.key_name)
+                in
+                (dst_key, "100") :: d)
+          in
+          Account.fund_multiple state ~client ~from:toru_orig
+            ~recipients:dstlist
+          >>= fun _ ->
+          (* Start the TORU node. And print TORU information. *)
+          Running_processes.start state
+            Tx_node.(process state tx_node start_script)
+          >>= fun _ ->
+          Console.say state
+            EF.(
+              desc_list
+                (haf "Transaction Rollup Sandbox is ready:")
+                [
+                  desc (af "Name:") (af "%S" account.name);
+                  desc (af "Address:") (af "`%s`" account.address);
+                  desc
+                    (af "Tx-rollup Node RPC port:")
+                    (af "`%d`" (Option.value tx_node.port ~default:9999));
+                  desc
+                    (af "Deposit-contract Address:")
+                    (af "`%s`" deposit_contract);
+                ]))
 
 let cmdliner_term state () =
   let open Cmdliner in
