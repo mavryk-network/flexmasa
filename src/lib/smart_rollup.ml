@@ -389,7 +389,8 @@ let cmdliner_term state () =
   $ Arg.(
       value
       & opt int 5
-          (info [ "soru-start-level" ]
+          (info
+             [ "smart-rollup-start-level" ]
              ~doc:(sprintf "Origination `level` %s" extra_doc)
              ~docs ~docv:"LEVEL"))
   $ Arg.(
@@ -414,7 +415,8 @@ let cmdliner_term state () =
                ("accuser", `Accuser);
              ])
           `Operator
-      & info ~docs [ "soru-node-mode" ]
+      & info ~docs
+          [ "smart-rollup-node-mode" ]
           ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
       ~prefix:"octez" ()
