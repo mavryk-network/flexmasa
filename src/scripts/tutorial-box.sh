@@ -4,24 +4,27 @@ default_protocol=Lima
 next_protocol_name=Mumbai
 next_protocol=PtMumbai2
 case "$(basename $0)" in
-    "limabox" )
+    "limabox")
         default_protocol=Lima
         next_protocol_name=Mumbai
-        next_protocol=PtMumbai2 ;;
-    "mumbaibox" )
+        next_protocol=PtMumbai2
+        ;;
+    "mumbaibox")
         default_protocol=Mumbai
         next_protocol_name=Aplha
-        next_protocol=alpha ;;
-    "alphabox" )
+        next_protocol=alpha
+        ;;
+    "alphabox")
         default_protocol=Alpha
         next_protocol_name=Failure
-        next_protocol=alpha ;;
-    * ) ;;
+        next_protocol=alpha
+        ;;
+    *) ;;
 esac
 
 all_commands="
 * usage | help | --help | -h: Display this help message."
-usage () {
+usage() {
     cat >&2 <<EOF
 This script provides a Flextesa “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
@@ -43,30 +46,30 @@ export b0="$(flextesa key bootacc-0)"
 all_commands="$all_commands
 * start : Start a sandbox with the $default_protocol protocol."
 root_path=/tmp/mini-box
-start () {
+start() {
     flextesa mini-net \
-             --root "$root_path" --size 1 "$@" \
-             --set-history-mode N000:archive \
-             --number-of-b 1 \
-             --balance-of-bootstrap-accounts tez:100_000_000 \
-             --time-b "$time_bb" \
-             --add-bootstrap-account="$alice@2_000_000_000_000" \
-             --add-bootstrap-account="$bob@2_000_000_000_000" \
-             --no-daemons-for=alice \
-             --no-daemons-for=bob \
-             --until-level 200_000_000 \
-             --protocol-kind "$default_protocol"
+        --root "$root_path" --size 1 "$@" \
+        --set-history-mode N000:archive \
+        --number-of-b 1 \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --time-b "$time_bb" \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --no-daemons-for=alice \
+        --no-daemons-for=bob \
+        --until-level 200_000_000 \
+        --protocol-kind "$default_protocol"
 }
 
 all_commands="$all_commands
 * start_manual : Start a sandbox with the $default_protocol protocol and NO BAKING."
-start_manual () {
+start_manual() {
     start --no-baking --timestamp-delay=-3600 "$@"
 }
 
 all_commands="$all_commands
 * bake : Try to bake a block (to be used with 'start_manual' sandboxes)."
-bake () {
+bake() {
     octez-client bake for baker0 --minimal-timestamp
 }
 
@@ -77,7 +80,7 @@ dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
 all_commands="$all_commands
 * start_upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
 daemons_root=/tmp/daemons-upgrade-box
-start_upgrade () {
+start_upgrade() {
     flextesa daemons-upgrade \
         --next-protocol-kind "$next_protocol_name" \
         --root-path "$daemons_root" \
@@ -119,8 +122,27 @@ start_toru() {
 }
 
 all_commands="$all_commands
+* start_smart_rollup : Start a smart rollup sandbox with the $default_protocol protocol."
+root_path=/tmp/mini-smart-rollup-box
+start_smart_rollup() {
+    flextesa mini-network \
+        --root-path "$root_path" \
+        --set-history-mode=N000:archive \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --number-of-boot 2 \
+        --time-between-blocks "$time_bb" \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --no-daemons-for=alice \
+        --no-daemons-for=bob \
+        --until-level 200_000_000 \
+        --protocol-kind "$default_protocol" \
+        --smart-rollup
+}
+
+all_commands="$all_commands
 * info : Show accounts and information about the sandbox."
-info () {
+info() {
     cat >&2 <<EOF
 Usable accounts:
 
@@ -133,7 +155,7 @@ EOF
 
 all_commands="$all_commands
 * initclient : Setup the local octez-client."
-initclient () {
+initclient() {
     octez-client --endpoint http://localhost:20000 config update
     octez-client --protocol Psithaca2MLR import secret key alice "$(echo $alice | cut -d, -f 4)" --force
     octez-client --protocol Psithaca2MLR import secret key bob "$(echo $bob | cut -d, -f 4)" --force
@@ -146,6 +168,14 @@ toru_info() {
     echo '{'
     echo "  \"toru_node_config\":  $(jq . ${root_path}/tx-rollup-torubox/torubox-operator-node-000/data-dir/config.json),"
     echo "  \"turo_ticket_deposit_contract\":  $(jq .[0] ${root_path}/Client-base-C-N000/contracts)"
+    echo '}'
+}
+
+all_commands="$all_commands
+* smart_rollup_info : Show information about the running smpart optimistic rollup sandbox."
+smart_rollup_info() {
+    echo '{'
+    echo "  \"smart_rollup_node_config\":  $(jq . ${root_path}/smart-rollup/tx-smart-rollup-operator-node-000/data-dir/config.json),"
     echo '}'
 }
 
