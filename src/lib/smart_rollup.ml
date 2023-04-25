@@ -32,7 +32,7 @@ module Node = struct
     node_id : string;
     mode : mode;
     operator_addr : string;
-    rpc_addr : int option;
+    rpc_addr : string option;
     rpc_port : int option;
     endpoint : int option;
     protocol : Tezos_protocol.Protocol_kind.t;
@@ -81,7 +81,7 @@ module Node = struct
       (* The directory where the node config is stored. *)
       @ opt "data-dir" (data_dir state config)
       @ Option.value_map config.rpc_addr
-          ~f:(fun a -> opt "rpc-addr" (sprintf "%d" a))
+          ~f:(fun a -> opt "rpc-addr" (sprintf "%s" a))
           ~default:[]
       @ Option.value_map config.rpc_port
           ~f:(fun p -> opt "rpc-port" (sprintf "%d" p))
@@ -320,8 +320,9 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           (* Configure SORU node. *)
           let port = Test_scenario.Unix_port.(next_port nodes) in
           Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
-            ~operator_addr:op_keys.key_name ~rpc_port:port ~endpoint:base_port
-            ~protocol:protocol.kind ~exec:soru.node ~client ()
+            ~operator_addr:op_keys.key_name ~rpc_addr:"0.0.0.0" ~rpc_port:port
+            ~endpoint:base_port ~protocol:protocol.kind ~exec:soru.node ~client
+            ()
           |> return
           >>= fun soru_node ->
           (* Configure custom Kernel or use default if none. *)
