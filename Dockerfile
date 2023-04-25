@@ -10,6 +10,10 @@ RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
 RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin/
 #WORKDIR /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV CARGO_HOME=/home/opam/.cargo
+ENV PATH=$CARGO_HOME/bin:$PATH
+RUN sudo sh src/scripts/get-octez-kernel-build.sh /usr/bin
 FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap jq
@@ -37,6 +41,7 @@ COPY --from=0 /usr/bin/octez-tx-rollup-client-PtLimaPt .
 COPY --from=0 /usr/bin/octez-tx-rollup-node-PtLimaPt .
 COPY --from=0 /usr/bin/flextesa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
+COPY --from=0 /usr/bin/smart-rollup-installer .
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/limabox
