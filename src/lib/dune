@@ -42,3 +42,14 @@
     (echo "let tx_kernel = List.map ~f:(fun (file, bytes) -> (file, Bytes.of_string bytes)) [")
     (bash "for file in %{deps}; do echo -n '(\"'; basename \"${file}\" | tr -d '\\n'; echo -n '\", '; echo -n '{notwasmbyte|'; cat \"$file\"; echo -n '|notwasmbyte}); '; done")
     (echo "]")))))
+
+
+(rule
+ (target default_contracts.ml)
+ (deps (:tz %{project_root}/src/smart-rollup-kernels/tx-kernel/mint_and_deposit_to_rollup.tz))
+ (action
+  (with-stdout-to %{target}
+   (progn
+    (echo "let mint_and_deposit_to_rollup = {|")
+    (run cat %{tz})
+    (echo "|}")))))

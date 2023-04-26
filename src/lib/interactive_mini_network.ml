@@ -246,7 +246,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     node_exec client_exec baker_exec endorser_exec accuser_exec test_kind ?tx
-    ?soru () =
+    ?soru ~smart_contracts () =
   (if clear_root then
    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
    >>= fun () -> Helpers.clear_root state
@@ -390,6 +390,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Smart_rollup.run state ~smart_rollup:soru ~protocol ~keys_and_daemons ~nodes
     ~base_port
   >>= fun () ->
+  Smart_contract.run state ~smart_contracts ~keys_and_daemons >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in
@@ -457,11 +458,13 @@ let cmd () =
         state
         tx
         soru
+        smart_contracts
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
             ?hard_fork ?tx ?soru ~clear_root ~nodes_history_mode_edits
-            ~external_peer_ports ~no_daemons_for ~genesis_block_choice test_kind
+            ~external_peer_ports ~no_daemons_for ~genesis_block_choice
+            ~smart_contracts test_kind
         in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test))
@@ -551,6 +554,7 @@ let cmd () =
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
     $ Tx_rollup.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
+    $ Smart_contract.cmdliner_term base_state ()
   in
   let info =
     let doc = "Small network sandbox with bakers, endorsers, and accusers." in
