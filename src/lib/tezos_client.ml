@@ -522,11 +522,7 @@ module Keyed = struct
     >>= fun res ->
     Log_recorder.Operations.bake state ~client:baker.client.id ~output:res#out
       msg;
-    say state
-      EF.(
-        desc
-          (af "Successful bake (%s: %s):" baker.client.id msg)
-          (ocaml_string_list res#out))
+    return ()
 
   let endorse state baker msg =
     successful_client_cmd state ~client:baker.client
@@ -534,11 +530,7 @@ module Keyed = struct
     >>= fun res ->
     Log_recorder.Operations.endorse state ~client:baker.client.id
       ~output:res#out msg;
-    say state
-      EF.(
-        desc
-          (af "Successful bake (%s: %s):" baker.client.id msg)
-          (ocaml_string_list res#out))
+    return ()
 
   let generate_nonce state { client; key_name; _ } data =
     successful_client_cmd state ~client
