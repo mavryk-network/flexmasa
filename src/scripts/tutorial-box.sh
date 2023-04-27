@@ -1,15 +1,15 @@
 #! /bin/sh
 
-default_protocol=Lima
-next_protocol_name=Mumbai
-next_protocol=PtMumbai2
+default_protocol=Mumbai
+next_protocol_name=Nairobi
+next_protocol=PtNairobi
 case "$(basename $0)" in
-    "limabox" )
-        default_protocol=Lima
-        next_protocol_name=Mumbai
-        next_protocol=PtMumbai2 ;;
     "mumbaibox" )
         default_protocol=Mumbai
+        next_protocol_name=Nairobi
+        next_protocol=PtNairobi;;
+    "nairobibox" )
+        default_protocol=Nairobi
         next_protocol_name=Aplha
         next_protocol=alpha ;;
     "alphabox" )
