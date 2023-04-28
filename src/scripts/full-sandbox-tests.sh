@@ -34,7 +34,7 @@ runone () {
 
 current=Mumbai
 next=Nairobi
-next_suffix=PtNairobi
+next_suffix=PtNairob
 # Alpha is upgrading from Mumbai:
 before_alpha=$next
 

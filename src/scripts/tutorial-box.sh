@@ -2,12 +2,12 @@
 
 default_protocol=Mumbai
 next_protocol_name=Nairobi
-next_protocol=PtNairobi
+next_protocol=PtNairob
 case "$(basename $0)" in
     "mumbaibox" )
         default_protocol=Mumbai
         next_protocol_name=Nairobi
-        next_protocol=PtNairobi;;
+        next_protocol=PtNairob;;
     "nairobibox" )
         default_protocol=Nairobi
         next_protocol_name=Aplha

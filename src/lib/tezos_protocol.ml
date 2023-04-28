@@ -141,7 +141,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
-    | `Nairobi -> "PtNairobi"
+    | `Nairobi -> "PtNairob"
     | `Mumbai -> "PtMumbai"
     | `Lima -> "PtLimaPt"
     | `Kathmandu -> "PtKathma"
