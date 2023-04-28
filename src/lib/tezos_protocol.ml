@@ -266,7 +266,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           ("minimal_stake", string (Int.to_string 6_000_000_000));
           ("vdf_difficulty", string "50000");
           ("seed_nonce_revelation_tip", string (Int.to_string 125_000));
-          ("igination_size", int 257);
+          ("origination_size", int 257);
           ("hard_storage_limit_per_operation", string (Int.to_string 60_000));
           ("cost_per_byte", string (Int.to_string 250));
           ("quorum_min", int 2_000);
