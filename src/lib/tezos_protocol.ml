@@ -197,6 +197,7 @@ let make_bootstrap_accounts ~balance n =
 
 let default () =
   let dictator = Account.of_name "dictator-default" in
+
   {
     id = "default-bootstrap";
     kind = Protocol_kind.default;
@@ -211,9 +212,7 @@ let default () =
     endorsement_reward = [ 78_125; 52_083 ];
     blocks_per_roll_snapshot = 4;
     blocks_per_voting_period = 16;
-    (*  TODO blocks_per_cycle 16384l *)
     blocks_per_cycle = 8;
-    (*  TODO  preserved_cycles 5*)
     preserved_cycles = 2;
     proof_of_work_threshold = -1;
     timestamp_delay = None;
@@ -328,7 +327,8 @@ let protocol_parameters_json t : Ezjsonm.t =
               |> add_replace ("number_of_slots", int 256)
               |> remove ("availability_threshold", int 50)
               |> add_replace ("attestation_threshold", int 50)
-              |> add_replace ("blocks_per_epoch", int 321)
+              (* blocks_per_epoch needs to be > 1 and a divisor of blocks_per_cycle. *)
+              |> add_replace ("blocks_per_epoch", int 2)
           | _ -> []
         in
         [ ("dal_parametric", `O dal) ]
@@ -356,9 +356,10 @@ let protocol_parameters_json t : Ezjsonm.t =
         match t.kind with
         | `Mumbai -> prefix_keys "smart_rollup" base
         | `Nairobi | `Alpha ->
-            prefix_keys "smart_rollup" base
-            (* max_number_of_stored_cemented_commitments is increased so the sandbox will store commitments longer. *)
-            |> add_replace ("max_number_of_stored_cemented_commitments", int 30)
+            prefix_keys "smart_rollup"
+              (base
+              (* max_number_of_stored_cempented_commitments is increased so the sandbox will store commitments longer. *)
+              |> add_replace ("max_number_of_cemented_commitments", int 30))
         | _ -> []
       in
       let zk_rollup_specific_parameters =
