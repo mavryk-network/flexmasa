@@ -226,7 +226,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       let open Ezjsonm in
       (match t.kind with
-      | `Lima | `Mumbai | `Alpha -> ()
+      | `Mumbai | `Nairobi | `Alpha -> ()
       | other ->
           Fmt.failwith
             "Flextesa cannot generate parameters for old protocols like %a, \
@@ -370,7 +370,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           ]
         in
         match t.kind with
-        | `Lima | `Mumbai | `Alpha -> prefix_keys "zk_rollup" base
+        | `Mumbai | `Nairobi | `Alpha -> prefix_keys "zk_rollup" base
         | _ -> []
       in
       let tenderbake_specific_parameters =
@@ -411,8 +411,7 @@ let protocol_parameters_json t : Ezjsonm.t =
       (* let list_of_zs = list (fun i -> string (Int.to_string i)) in *)
       dict
         (common @ tx_rollup_specific_parameters @ dal_specific_parameters
-       @ smart_rollup_specific_parameters
-       @ zk_rollup_specific_parameters (* @ since_lima *)
+       @ smart_rollup_specific_parameters @ zk_rollup_specific_parameters
        @ tenderbake_specific_parameters)
 
 let voting_period_to_string t (p : Voting_period.t) =
