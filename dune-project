@@ -15,7 +15,7 @@
  (version 0.2)
  (depends
    "tezai-base58-digest"
-  (mirage-crypto (>= "0.11.1"))
+  (mirage-crypto (>= "0.11.0"))
   (dune (>= "2.9"))
   (ppx_inline_test ( >= "0.14.0"))
   (ppx_expect (>= "0.14.0"))
