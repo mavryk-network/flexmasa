@@ -1,9 +1,10 @@
-FROM ocaml/opam:alpine-3.15-ocaml-4.12 as build_step
+FROM ocaml/opam:alpine-3.16-ocaml-4.14 as build_step
 #ENV DEBIAN_FRONTEND=noninteractive
 RUN sudo cp /usr/bin/opam-2.1 /usr/bin/opam
 RUN sudo apk update
 ADD  --chown=opam:opam . ./
 RUN opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-digest.git
+RUN opam update
 RUN opam install --with-test --deps-only ./tezai-tz1-crypto.opam ./flextesa.opam
 RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
