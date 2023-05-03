@@ -32,9 +32,9 @@ runone () {
     $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/  ||/'
 }
 
-current=Lima
-next=Mumbai
-next_suffix=PtMumbai
+current=Mumbai
+next=Nairobi
+next_suffix=PtNairob
 # Alpha is upgrading from Mumbai:
 before_alpha=$next
 
@@ -102,14 +102,6 @@ daem_n2a () {
         --time-betw 3 \
         --with-timestamp \
         --test-variant full-upgrade
-}
-
-toru() {
-    proto="$current"
-    runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
-        --time-between-blocks 2 $until_8 \
-        --number-of-boot 1 --size 1 \
-        --tx-rollup 3:mini-tx-rollup
 }
 
 all() {
