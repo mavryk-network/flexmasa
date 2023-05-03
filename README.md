@@ -153,7 +153,7 @@ Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `Nairobibox` script can also switch to `Alpha` (e.g. `--hard-fork
+- The `nairobibox` script can also switch to `Alpha` (e.g. `--hard-fork
   16:Alpha:`).
 
 ### Full Governance Upgrade
@@ -189,7 +189,7 @@ $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          "$image" "$script" start_upgrade
 ```
 
-The above command will result in 5 total proposals followed by an successful
+The above command will result in 5 total proposals followed by a successful
 upgrade. The `extra_dummy_proposals_batch_size`can't exceed the
 `number_of_bootstrap_accounts` or the operations will fail with too many
 `manager_operations_per_block`.
