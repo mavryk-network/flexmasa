@@ -35,7 +35,12 @@ let originate_smart_contract state ~client ~account t =
 
 let default_contracts =
   let open Default_contracts in
-  [ { name = "mint_and_deposit"; michelson = mint_and_deposit_to_rollup } ]
+  [
+    {
+      name = "mint_and_deposit_to_rollup";
+      michelson = mint_and_deposit_to_rollup;
+    };
+  ]
 
 let run state ~keys_and_daemons ~smart_contracts =
   let all_contracts = smart_contracts @ default_contracts in

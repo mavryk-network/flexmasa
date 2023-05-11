@@ -125,7 +125,7 @@ module Kernel = struct
   let kernel_dir ~state smart_rollup p =
     make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
-  let make_config ~state smart_rollup node : config =
+  let make_config state ~smart_rollup ~node : config =
     let name = smart_rollup.id in
     let installer_kernel =
       kernel_dir ~state smart_rollup (sprintf "%s-installer.hex" name)
@@ -173,7 +173,7 @@ module Kernel = struct
 
   (* Build the kernel with the smart_rollup_installer executable. *)
   let build state ~smart_rollup ~node : (cli_args, _) Asynchronous_result.t =
-    let config = make_config ~state smart_rollup node in
+    let config = make_config state ~smart_rollup ~node in
     make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
     make_dir state config.reveal_data_dir >>= fun _ ->
     match smart_rollup.custom_kernel with

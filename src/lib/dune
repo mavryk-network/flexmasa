@@ -27,7 +27,7 @@
    (progn
     (echo "let name = \"tx\"")
     (echo "let kind = \"wasm_2_0_0\"")
-    (echo "let michelson_type = \"bytes\"")
+    (echo "let michelson_type = \"pair string (ticket string)\"")
     (echo "let hex = \"")
     (run cat %{installer})
     (echo "\"")))))
