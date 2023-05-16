@@ -44,19 +44,23 @@ let default_contracts =
 
 let run state ~keys_and_daemons ~smart_contracts =
   let all_contracts = smart_contracts @ default_contracts in
-  List.hd keys_and_daemons |> function
-  | None -> return ()
-  | Some (_, account, client, _, _) ->
-      List_sequential.iter all_contracts ~f:(fun t ->
-          originate_smart_contract state ~client
-            ~account:(Tezos_protocol.Account.name account)
-            t
-          >>= fun address ->
-          Console.say state
-            EF.(
-              desc_list
-                (haf "Originated Smart Contract %S" t.name)
-                [ desc (af "Address:") (af "%s" address) ]))
+  let accounts_and_clients =
+    List.map keys_and_daemons ~f:(fun (_, a, c, _, _) -> (a, c))
+  in
+  List_sequential.iteri all_contracts ~f:(fun ith t ->
+      let account, client =
+        List.nth_exn accounts_and_clients
+          (ith % List.length accounts_and_clients)
+      in
+      originate_smart_contract state ~client
+        ~account:(Tezos_protocol.Account.name account)
+        t
+      >>= fun address ->
+      Console.say state
+        EF.(
+          desc_list
+            (haf "Originated Smart Contract %S" t.name)
+            [ desc (af "Address:") (af "%s" address) ]))
 
 let cmdliner_term base_state () =
   let open Cmdliner in
