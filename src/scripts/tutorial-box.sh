@@ -6,16 +6,19 @@ next_protocol=PtMumbai2
 case "$(basename $0)" in
     "limabox")
         default_protocol=Lima
+        binary_suffix=PtLimaPt
         next_protocol_name=Mumbai
         next_protocol=PtMumbai2
         ;;
     "mumbaibox")
         default_protocol=Mumbai
+        binary_suffix=PtMumbai
         next_protocol_name=Aplha
         next_protocol=alpha
         ;;
     "alphabox")
         default_protocol=Alpha
+        binary_suffix=alpha
         next_protocol_name=Failure
         next_protocol=alpha
         ;;
@@ -122,22 +125,67 @@ start_toru() {
 }
 
 all_commands="$all_commands
-* start_smart_rollup : Start a smart rollup sandbox with the $default_protocol protocol."
-root_path=/tmp/mini-smart-rollup-box
-start_smart_rollup() {
+* start_tx_smart_rollup : Start a smart rollup sandbox with the $default_protocol protocol.
+* tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup).
+* tx_client_init : Initialize the tx-client for interacting with the tx-smart-rollup kernel (Requires start_tx_smart_rollup)."
+root_path="/tmp/mini-smart-rollup-box"
+tx_client_dir="${root_path}/tx-client"
+tx_client_config="${tx_client_dir}/config.json"
+
+start_tx_smart_rollup() {
     flextesa mini-network \
+        --base-port 20000 \
         --root-path "$root_path" \
         --set-history-mode=N000:archive \
+        --size 1 \
+        --time-between-blocks "$time_bb" \
         --balance-of-bootstrap-accounts tez:100_000_000 \
         --number-of-boot 2 \
-        --time-between-blocks "$time_bb" \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
-        --add-bootstrap-account="$bob@2_000_000_000_000" \
-        --no-daemons-for=alice \
-        --no-daemons-for=bob \
         --until-level 200_000_000 \
         --protocol-kind "$default_protocol" \
         --smart-rollup
+}
+
+# Print tx-client config file
+tx_client_show_config() {
+    if [ -f "$tx_client_config" ]; then
+        jq . "$tx_client_config"
+    else
+        echo "Error: Config file not found at $tx_client_config"
+        return 1
+    fi
+}
+
+# Initialize the tx-client for interacting with the tx-smart-rollup kernel
+tx_client_init() {
+    set -e
+
+    mkdir -p "$tx_client_dir"
+    base_dir="${root_path}/Client-base-C-N000"
+    rollup_client_dir="${root_path}/smart-rollup/smart-rollup-client-${binary_suffix}"
+    mkdir -p "$rollup_client_dir"
+
+    # The tx-client config-init command takes as arguments the absolute paths to
+    # the tezos binaries with no optional arguments. So we create scrips for the
+    # binaries.
+    # Create octez-client script
+    echo '#! /bin/sh' >'/usr/bin/tz-client-for-tx-client.sh'
+    echo 'octez-client -E http://localhost:20000 "$@"' >>'/usr/bin/tz-client-for-tx-client.sh'
+    chmod +x '/usr/bin/tz-client-for-tx-client.sh'
+    # Create octez-smart-rollup-client script
+    echo '#! /bin/sh' >'/usr/bin/tz-rollup-client-for-tx-client.sh'
+    echo "octez-smart-rollup-client-${binary_suffix} -E http://localhost:20002 -d \"${rollup_client_dir}\" \"\$@\"" >>'/usr/bin/tz-rollup-client-for-tx-client.sh'
+    chmod +x '/usr/bin/tz-rollup-client-for-tx-client.sh'
+
+    tx-client --config-file "$tx_client_config" config-init \
+        --tz-client "/usr/bin/tz-client-for-tx-client.sh" \
+        --tz-client-base-dir "$base_dir" \
+        --tz-rollup-client "/usr/bin/tz-rollup-client-for-tx-client.sh" \
+        --forwarding-account alice
+
+    tx_client_show_config
+
 }
 
 all_commands="$all_commands
