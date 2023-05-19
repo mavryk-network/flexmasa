@@ -6,18 +6,21 @@ next_protocol=PtMumbai2
 case "$(basename $0)" in
     "limabox")
         default_protocol=Lima
+        protocol_hash=PtLimaPt
         binary_suffix=PtLimaPt
         next_protocol_name=Mumbai
         next_protocol=PtMumbai2
         ;;
     "mumbaibox")
         default_protocol=Mumbai
+        protocol_hash=PtMumbai
         binary_suffix=PtMumbai
         next_protocol_name=Aplha
         next_protocol=alpha
         ;;
     "alphabox")
         default_protocol=Alpha
+        protocol_hash=ProtoA
         binary_suffix=alpha
         next_protocol_name=Failure
         next_protocol=alpha
@@ -124,6 +127,7 @@ start_toru() {
         --tx-rollup 10:torubox
 }
 
+# Below are a few commands for the smart rollup box.
 all_commands="$all_commands
 * start_tx_smart_rollup : Start a smart rollup sandbox with the $default_protocol protocol.
 * tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup).
@@ -134,7 +138,6 @@ tx_client_config="${tx_client_dir}/config.json"
 
 start_tx_smart_rollup() {
     flextesa mini-network \
-        --base-port 20000 \
         --root-path "$root_path" \
         --set-history-mode=N000:archive \
         --size 1 \
@@ -150,7 +153,10 @@ start_tx_smart_rollup() {
 # Print tx-client config file
 tx_client_show_config() {
     if [ -f "$tx_client_config" ]; then
-        jq . "$tx_client_config"
+        echo '{'
+        echo "\"config_file\": \"$tx_client_config\","
+        echo "\"config\": $(jq . "$tx_client_config"),"
+        echo '}'
     else
         echo "Error: Config file not found at $tx_client_config"
         return 1
@@ -167,9 +173,8 @@ tx_client_init() {
     mkdir -p "$rollup_client_dir"
 
     # The tx-client config-init command takes as arguments the absolute paths to
-    # the tezos binaries with no optional arguments. So we create scrips for the
-    # binaries.
-    # Create octez-client script
+    # the tezos binaries with no optional arguments. Thus, the follow scripts are created.
+    # Create octez-client script with the correct endpoint
     echo '#! /bin/sh' >'/usr/bin/tz-client-for-tx-client.sh'
     echo 'octez-client -E http://localhost:20000 "$@"' >>'/usr/bin/tz-client-for-tx-client.sh'
     chmod +x '/usr/bin/tz-client-for-tx-client.sh'
@@ -205,9 +210,9 @@ all_commands="$all_commands
 * initclient : Setup the local octez-client."
 initclient() {
     octez-client --endpoint http://localhost:20000 config update
-    octez-client --protocol Psithaca2MLR import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    octez-client --protocol Psithaca2MLR import secret key bob "$(echo $bob | cut -d, -f 4)" --force
-    octez-client --protocol Psithaca2MLR import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
+    octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
 }
 
 all_commands="$all_commands
@@ -220,7 +225,7 @@ toru_info() {
 }
 
 all_commands="$all_commands
-* smart_rollup_info : Show information about the running smpart optimistic rollup sandbox."
+* smart_rollup_info : Show information about the running smart optimistic rollup sandbox."
 smart_rollup_info() {
     echo '{'
     echo "  \"smart_rollup_node_config\":  $(jq . ${root_path}/smart-rollup/tx-smart-rollup-operator-node-000/data-dir/config.json),"
