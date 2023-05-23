@@ -127,15 +127,50 @@ start_toru() {
         --tx-rollup 10:torubox
 }
 
-# Below are a few commands for the smart rollup box.
+## Smart rollup sandbox commandes
 all_commands="$all_commands
-* start_tx_smart_rollup : Start a smart rollup sandbox with the $default_protocol protocol.
+* start_custom_smart_rollup KIND TYPE PATH: Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel.
+* smart_rollup_info : Show the smart rollup node config file.
+* start_tx_smart_rollup : Start the tx-kerenel (transaction) smart rollup sandbox with the $default_protocol protocol.
 * tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup).
 * tx_client_init : Initialize the tx-client for interacting with the tx-smart-rollup kernel (Requires start_tx_smart_rollup)."
 root_path="/tmp/mini-smart-rollup-box"
 tx_client_dir="${root_path}/tx-client"
 tx_client_config="${tx_client_dir}/config.json"
 
+# Smart rollup with user provided kernel.
+start_custom_smart_rollup() {
+    kind="$1"
+    type="$2"
+    path="$3"
+
+    flextesa mini-network \
+        --root-path "$root_path" \
+        --time-between-blocks "$time_bb" \
+        --set-history-mode=N000:archive \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --number-of-boot 2 \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --no-daemons-for=alice \
+        --no-daemons-for=bob \
+        --until-level 200_000_000 \
+        --protocol-kind "$default_protocol" \
+        --smart-rollup \
+        --custom-kernel "$kind:$type:$path"
+
+}
+
+# Print the rollup node config.
+smart_rollup_info() {
+    config_file=$(find ${root_path}/smart-rollup -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
+
+    echo '{'
+    echo "  \"smart_rollup_node_config\":  $(jq . ${config_file}),"
+    echo '}'
+}
+
+# Smart rollup with tx-kernel (transaction rollup).
 start_tx_smart_rollup() {
     flextesa mini-network \
         --root-path "$root_path" \
@@ -221,14 +256,6 @@ toru_info() {
     echo '{'
     echo "  \"toru_node_config\":  $(jq . ${root_path}/tx-rollup-torubox/torubox-operator-node-000/data-dir/config.json),"
     echo "  \"turo_ticket_deposit_contract\":  $(jq .[0] ${root_path}/Client-base-C-N000/contracts)"
-    echo '}'
-}
-
-all_commands="$all_commands
-* smart_rollup_info : Show information about the running smart optimistic rollup sandbox."
-smart_rollup_info() {
-    echo '{'
-    echo "  \"smart_rollup_node_config\":  $(jq . ${root_path}/smart-rollup/tx-smart-rollup-operator-node-000/data-dir/config.json),"
     echo '}'
 }
 
