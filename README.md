@@ -315,8 +315,8 @@ Both are an implementation of the `flextesa mini-network` with the
 The following command will start a smart rollup with the kernel you provide.
 
 ``` default
-$ docker run --detach --volume /path/to/kernel/files:/rollup \
-        -p 20000:20000 -p 20010:20010 "$image" "$script" \
+$ docker run --rm --detach --volume /path/to/kernel/files:/rollup \
+        -p 20000:20000 -p 20010:20010 --name my-sandbox "$image" "$script" \
         start_custom_smart_rollup KIND TYPE /rollup/kernel.wasm
 ```
 
@@ -360,7 +360,7 @@ entrypoint when making calls with the smart-rollup-client. We recommend aliasing
 the following:
 
 ``` default
-$ alias srucli='docker exec my-sandbox octez-smart-rollup-client-PtMumbai -E http://localhost:20010' 
+$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtMumbai -E http://localhost:20010' 
 ```
 
 In order to include any smart contracts, add them to your
