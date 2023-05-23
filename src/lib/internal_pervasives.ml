@@ -89,8 +89,8 @@ module Dbg = struct
 
   let i (e : EF.t) = ignore e
   let f f = e (EF.pr f)
-  let any v = Dum.to_eformat v
-  let pp_any fmt v = Dum.to_formatter fmt v
+  (* let any v = Dum.to_eformat v
+     let pp_any fmt v = Dum.to_formatter fmt v *)
 end
 
 module Date = struct

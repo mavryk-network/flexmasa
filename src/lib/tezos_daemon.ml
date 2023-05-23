@@ -42,7 +42,7 @@ let to_script state (t : t) =
       let node_path = Tezos_node.data_dir state t.node in
       let extra_options =
         match t.protocol_kind with
-        | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Alpha ->
+        | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi | `Alpha ->
             [ "--liquidity-baking-toggle-vote"; "pass" ]
         | `Florence | `Carthage | `Delphi | `Ithaca | `Hangzhou | `Babylon
         | `Edo | `Granada | `Athens ->

@@ -5,7 +5,7 @@ module Key = struct
 
   module Of_name = struct
     type t = {
-      name : string;
+      (* name : string; *)
       pkh : Crypto.Public_key_hash.t;
       pk : Crypto.Public_key.t;
       sk : Crypto.Secret_key.t;
@@ -16,7 +16,7 @@ module Key = struct
       let pk = Crypto.Public_key.of_secret_key sk in
       let pkh = Crypto.Public_key_hash.of_public_key pk in
       (* let pkh, pk, sk = Tezos_crypto.Ed25519.generate_key ~seed () in *)
-      { name; pkh; pk; sk }
+      { (* name;  *) pkh; pk; sk }
 
     let pubkey n = Crypto.Public_key.to_base58 (make n).pk
     let pubkey_hash n = Crypto.Public_key_hash.to_base58 (make n).pkh
@@ -73,6 +73,7 @@ module Protocol_kind = struct
     | `Kathmandu
     | `Lima
     | `Mumbai
+    | `Nairobi
     | `Alpha ]
 
   let names =
@@ -90,6 +91,7 @@ module Protocol_kind = struct
       ("Kathmandu", `Kathmandu);
       ("Lima", `Lima);
       ("Mumbai", `Mumbai);
+      ("Nairobi", `Nairobi);
       ("Alpha", `Alpha);
     ]
 
@@ -119,6 +121,7 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
+    | `Nairobi -> "PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf"
     | `Mumbai -> "PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
     (* Version 1: "PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc" *)
     | `Lima -> "PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW"
@@ -138,6 +141,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Nairobi -> "PtNairob"
     | `Mumbai -> "PtMumbai"
     | `Lima -> "PtLimaPt"
     | `Kathmandu -> "PtKathma"
@@ -158,7 +162,8 @@ module Protocol_kind = struct
     | _ -> false
 
   let wants_endorser_daemon : t -> bool = function
-    | `Ithaca | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Alpha -> false
+    | `Ithaca | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi | `Alpha ->
+        false
     | `Florence | `Carthage | `Delphi | `Hangzhou | `Babylon | `Edo | `Granada
     | `Athens ->
         true
@@ -222,7 +227,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       let open Ezjsonm in
       (match t.kind with
-      | `Lima | `Mumbai | `Alpha -> ()
+      | `Mumbai | `Nairobi | `Alpha -> ()
       | other ->
           Fmt.failwith
             "Flextesa cannot generate parameters for old protocols like %a, \
@@ -235,10 +240,8 @@ let protocol_parameters_json t : Ezjsonm.t =
       let make_account (account, amount) =
         strings [ Account.pubkey account; sprintf "%Ld" amount ]
       in
-      let add (k, v) l = List.Assoc.add l ~equal:String.equal k v in
+      let add_replace (k, v) l = List.Assoc.add l ~equal:String.equal k v in
       let remove (k, _) l = List.Assoc.remove l ~equal:String.equal k in
-      (* Updates a key, value pair. Key's don't need to match. *)
-      let update old_param new_param l = remove old_param l |> add new_param in
       let prefix_keys prefix l =
         List.map l ~f:(fun (k, v) -> (Fmt.str "%s_%s" prefix k, v))
       in
@@ -269,10 +272,10 @@ let protocol_parameters_json t : Ezjsonm.t =
           ("origination_size", int 257);
           ("hard_storage_limit_per_operation", string (Int.to_string 60_000));
           ("cost_per_byte", string (Int.to_string 250));
-          ("quorum_min", int 3_000);
+          ("quorum_min", int 2_000);
           ("quorum_max", int 7_000);
           ("min_proposal_quorum", int 500);
-          ("liquidity_baking_subsidy", string "2500000");
+          ("liquidity_baking_subsidy", string "1_250_000");
           ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000);
           ("cache_script_size", int 100_000_000);
           ("cache_stake_distribution_cycles", int 8);
@@ -300,7 +303,8 @@ let protocol_parameters_json t : Ezjsonm.t =
           ]
         in
         match t.kind with
-        | `Mumbai | `Alpha -> base |> add ("tx_rollup_enable", bool false)
+        | `Mumbai | `Nairobi | `Alpha ->
+            base |> add_replace ("tx_rollup_enable", bool false)
         | _ -> base
       in
       let dal_specific_parameters =
@@ -310,7 +314,7 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("feature_enable", bool false);
               ("number_of_slots", int 16);
               ("number_of_shards", int 256);
-              ("endorsement_lag", int 1);
+              ("attestation_lag", int 1);
               ("availability_threshold", int 50);
               ("slot_size", int (1 lsl 16));
               ("redundancy_factor", int 4);
@@ -318,48 +322,48 @@ let protocol_parameters_json t : Ezjsonm.t =
             ]
           in
           match t.kind with
-          | `Lima -> base
-          | `Mumbai ->
+          | `Mumbai -> base
+          | `Nairobi | `Alpha ->
               base
-              |> update ("endorsement_lag", int 1) ("attestation_lag", int 1)
-          | `Alpha ->
-              base
-              |> update ("endorsement_lag", int 1) ("attestation_lag", int 1)
-              |> update
-                   ("availability_threshold", int 50)
-                   ("attestation_threshold", int 50)
-              |> add ("blocks_per_epoch", int (t.blocks_per_cycle / 2))
+              |> add_replace ("slot_size", int (1 lsl 20))
+              |> add_replace ("redundancy_factor", int 16)
+              |> add_replace ("number_of_shards", int 2048)
+              |> add_replace ("number_of_slots", int 256)
+              |> remove ("availability_threshold", int 50)
+              |> add_replace ("attestation_threshold", int 50)
+              (* blocks_per_epoch needs to be > 1 and a divisor of blocks_per_cycle. *)
+              |> add_replace ("blocks_per_epoch", int 2)
           | _ -> []
         in
         [ ("dal_parametric", `O dal) ]
       in
       let smart_rollup_specific_parameters =
         let base =
+          (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
+          let challenge_window_in_blocks = 30 in
           [
-            ("enable", bool false);
+            ("enable", bool true);
             ("origination_size", int 6_314);
-            ("challenge_window_in_blocks", int 30);
-            ("max_number_of_messages_per_commitment_period", int 32_765);
-            ("stake_amount", string "10000000000");
+            ("challenge_window_in_blocks", int challenge_window_in_blocks);
+            ("stake_amount", string "10_000_000_000");
             ("commitment_period_in_blocks", int 30);
-            ("max_lookahead_in_blocks", int 30_000);
-            ("max_active_outbox_levels", int 20160);
+            ("max_lookahead_in_blocks", int (challenge_window_in_blocks * 2));
+            ("max_active_outbox_levels", int challenge_window_in_blocks);
             ("max_outbox_messages_per_level", int 100);
             ("number_of_sections_in_dissection", int 32);
-            ("timeout_period_in_blocks", int 20160);
+            ("timeout_period_in_blocks", int (challenge_window_in_blocks / 2));
             ("max_number_of_cemented_commitments", int 5);
+            ("arith_pvm_enable", bool false);
+            ("max_number_of_parallel_games", int 32);
           ]
         in
         match t.kind with
-        | `Lima -> prefix_keys "sc_rollup" base
-        | `Mumbai | `Alpha ->
-            prefix_keys "smart_rollup" base
-            |> add ("smart_rollup_enable", bool true)
-            |> update
-                 ( "smart_rollup_max_number_of_messages_per_commitment_period",
-                   int 32_765 )
-                 ("smart_rollup_arith_pvm_enable", bool false)
-            |> add ("smart_rollup_max_number_of_parallel_games", int 32)
+        | `Mumbai -> prefix_keys "smart_rollup" base
+        | `Nairobi | `Alpha ->
+            prefix_keys "smart_rollup"
+              (base
+              (* max_number_of_stored_cempented_commitments is increased so the sandbox will store commitments longer. *)
+              |> add_replace ("max_number_of_cemented_commitments", int 30))
         | _ -> []
       in
       let zk_rollup_specific_parameters =
@@ -371,18 +375,18 @@ let protocol_parameters_json t : Ezjsonm.t =
           ]
         in
         match t.kind with
-        | `Lima | `Mumbai | `Alpha -> prefix_keys "zk_rollup" base
+        | `Mumbai | `Nairobi | `Alpha -> prefix_keys "zk_rollup" base
         | _ -> []
       in
       let tenderbake_specific_parameters =
         match t.kind with
-        | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Alpha ->
+        | `Mumbai | `Nairobi | `Alpha ->
             [
               ("max_operations_time_to_live", int 120);
               ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot);
-              ("baking_reward_fixed_portion", string "10000000");
-              ("baking_reward_bonus_per_slot", string "4286");
-              ("endorsing_reward_per_slot", string "2857");
+              ("baking_reward_fixed_portion", string "5_000_000");
+              ("baking_reward_bonus_per_slot", string "2143");
+              ("endorsing_reward_per_slot", string "1428");
               ("consensus_committee_size", int 67);
               ("consensus_threshold", int 6);
               ( "minimal_participation_ratio",
@@ -412,8 +416,7 @@ let protocol_parameters_json t : Ezjsonm.t =
       (* let list_of_zs = list (fun i -> string (Int.to_string i)) in *)
       dict
         (common @ tx_rollup_specific_parameters @ dal_specific_parameters
-       @ smart_rollup_specific_parameters
-       @ zk_rollup_specific_parameters (* @ since_lima *)
+       @ smart_rollup_specific_parameters @ zk_rollup_specific_parameters
        @ tenderbake_specific_parameters)
 
 let voting_period_to_string t (p : Voting_period.t) =

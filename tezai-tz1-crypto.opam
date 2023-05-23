@@ -10,7 +10,7 @@ homepage: "https://gitlab.com/tezos/flextesa"
 bug-reports: "https://gitlab.com/tezos/flextesa"
 depends: [
   "tezai-base58-digest"
-  "mirage-crypto"
+  "mirage-crypto" {>= "0.11.0"}
   "dune" {>= "2.8" & >= "2.9"}
   "ppx_inline_test" {>= "0.14.0"}
   "ppx_expect" {>= "0.14.0"}
