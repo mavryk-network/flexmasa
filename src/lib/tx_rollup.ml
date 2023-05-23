@@ -3,6 +3,8 @@ open Internal_pervasives
 type t = {
   level : int;
   name : string;
+  node_mode :
+    [ `Observer | `Accuser | `Batcher | `Maintenance | `Operator | `Custom ];
   node : Tezos_executable.t;
   client : Tezos_executable.t;
 }
@@ -29,12 +31,6 @@ module Account = struct
       Tezos_client.Keyed.make client ~key_name:key ~secret_key:priv
     in
     (acc, key)
-
-  let fund state ~client ~amount ~from ~destination =
-    Tezos_client.successful_client_cmd state ~client
-      [
-        "transfer"; amount; "from"; from; "to"; destination; "--burn-cap"; "15";
-      ]
 
   let fund_multiple state ~client ~from ~(recipients : (string * string) list) =
     let json =
@@ -176,7 +172,8 @@ module Deposit_contract = struct
 end
 
 module Tx_node = struct
-  type mode = Observer | Accuser | Batcher | Maintenance | Operator | Custom
+  type mode =
+    [ `Observer | `Accuser | `Batcher | `Maintenance | `Operator | `Custom ]
 
   type operation_signer =
     | Operator_signer of (Tezos_protocol.Account.t * Tezos_client.Keyed.t)
@@ -238,12 +235,12 @@ module Tx_node = struct
   let exec_path config node = node_dir "exec" config node
 
   let mode_string = function
-    | Observer -> "observer"
-    | Accuser -> "accuser"
-    | Batcher -> "batcher"
-    | Maintenance -> "maintenance"
-    | Operator -> "operator"
-    | Custom -> "custom "
+    | `Observer -> "observer"
+    | `Accuser -> "accuser"
+    | `Batcher -> "batcher"
+    | `Maintenance -> "maintenance"
+    | `Operator -> "operator"
+    | `Custom -> "custom "
 
   let make ?id ?port ?endpoint ~protocol ~exec ~client ~mode ?cors_origin
       ~account ?operation_signers ~tx_rollup () : node =
@@ -329,35 +326,6 @@ module Tx_node = struct
     Running_processes.Process.genspio
       (sprintf "%s-node-for-tx-rollup-%s" (mode_string t.mode) t.account.name)
       (script state t)
-
-  let cmdliner_term state () =
-    (* This was added in anticipation of possibly creating multiple nodes of different mode types. *)
-    (* Maybe users what to run their own TORU node and would like Flextesa to run a passive observer node.*)
-    let open Cmdliner in
-    let extra_doc = " for transaction rollups (requires --tx-rollup)" in
-    let docs =
-      Manpage_builder.section state ~rank:2
-        ~name:"TRANSACTION OPTIMISTIC ROLLUP NODE"
-    in
-    Arg.(
-      value
-      & opt
-          (enum
-             [
-               ("observer", Observer);
-               ("accuser", Accuser);
-               ("batcher", Batcher);
-               ("maintenance", Maintenance);
-               ("custom ", Custom);
-               ("operator", Operator);
-             ])
-          Operator
-      & info ~docs [ "tx-rollup-node-mode" ]
-          ~doc:
-            (sprintf
-               "Set the transaction rollup node's `mode`%s. The default mode \
-                is `Operator`."
-               extra_doc))
 end
 
 let origination_account ~client name =
@@ -387,16 +355,97 @@ let publish_deposit_contract state protocol rollup_name client account =
 
 let executables ({ client; node; _ } : t) = [ client; node ]
 
-let cmdliner_term base_state ~docs () =
+let run state ~protocol ~tx_rollup ~keys_and_daemons ~nodes ~base_port =
+  match tx_rollup with
+  | None -> return ()
+  | Some tx -> (
+      List.hd keys_and_daemons
+      (* The boot account at head is used to fund the two accounts which originate the TORU and the ticket-deposite-contract. *)
+      |>
+      function
+      | None -> return ()
+      | Some (_, boot_acc, client, _, _) ->
+          let toru_orig_acc, toru_orig_key =
+            origination_account ~client tx.name
+          in
+          Tezos_client.Keyed.initialize state toru_orig_key >>= fun _ ->
+          let contract_orig_acc, contract_orig_key =
+            origination_account ~client (sprintf "%s-deposit-contract" tx.name)
+          in
+          Tezos_client.Keyed.initialize state contract_orig_key >>= fun _ ->
+          let toru_orig = Tezos_protocol.Account.name toru_orig_acc in
+          let contract_orig = Tezos_protocol.Account.name contract_orig_acc in
+          let funder = Tezos_protocol.Account.name boot_acc in
+          Account.fund_multiple state ~client ~from:funder
+            ~recipients:[ (toru_orig, "1000"); (contract_orig, "10") ]
+          >>= fun _ ->
+          (* With the accounts funded we wait for LEVEL and then originate the TORU and deposit-contract. *)
+          Test_scenario.Queries.run_wait_level protocol state nodes
+            (`At_least tx.level) tx.level
+          >>= fun () ->
+          originate_and_confirm state ~name:tx.name ~client ~account:toru_orig
+            ~confirmations:1 ()
+          >>= fun (account, _conf) ->
+          publish_deposit_contract state protocol.kind tx.name client
+            contract_orig
+          >>= fun deposit_contract ->
+          (* Next configure the TORU node. *)
+          let tx_node =
+            let port = Test_scenario.Unix_port.(next_port nodes) in
+            Tx_node.make ~port ~endpoint:base_port ~mode:tx.node_mode
+              ~protocol:protocol.kind ~exec:tx.node ~client ~account
+              ~tx_rollup:tx ()
+          in
+          (* Init and fund the TORU node operation signers. *)
+          List_sequential.iter tx_node.operation_signers ~f:(fun os ->
+              Tx_node.operation_signer_map os ~f:(fun (_op_acc, op_key) ->
+                  Tezos_client.Keyed.initialize state op_key)
+              >>= fun _ -> return ())
+          >>= fun () ->
+          let dstlist =
+            List.fold tx_node.operation_signers ~init:[] ~f:(fun d os ->
+                let dst_key =
+                  Tx_node.operation_signer_map os ~f:(fun (_, os_key) ->
+                      os_key.key_name)
+                in
+                (dst_key, "100") :: d)
+          in
+          Account.fund_multiple state ~client ~from:toru_orig
+            ~recipients:dstlist
+          >>= fun _ ->
+          (* Start the TORU node. And print TORU information. *)
+          Running_processes.start state
+            Tx_node.(process state tx_node start_script)
+          >>= fun _ ->
+          Console.say state
+            EF.(
+              desc_list
+                (haf "Transaction Rollup Sandbox is ready:")
+                [
+                  desc (af "Name:") (af "%S" account.name);
+                  desc (af "Address:") (af "`%s`" account.address);
+                  desc
+                    (af "Tx-rollup Node RPC port:")
+                    (af "`%d`" (Option.value tx_node.port ~default:9999));
+                  desc
+                    (af "Deposit-contract Address:")
+                    (af "`%s`" deposit_contract);
+                ]))
+
+let cmdliner_term state () =
   let open Cmdliner in
   let open Term in
   let extra_doc = Fmt.str " for transaction rollups (requires --tx-rollup)" in
-  const (fun tx_rollup node client ->
+  let docs =
+    Manpage_builder.section state ~rank:2
+      ~name:"TRANSACTION OPTIMISTIC ROLLUP NODE"
+  in
+  const (fun tx_rollup node_mode node client ->
       Option.map tx_rollup ~f:(fun (level, name) ->
           let txr_name =
             match name with None -> "flextesa-tx-rollup" | Some n -> n
           in
-          { level; name = txr_name; node; client }))
+          { level; name = txr_name; node_mode; node; client }))
   $ Arg.(
       value
         (opt
@@ -405,5 +454,26 @@ let cmdliner_term base_state ~docs () =
            (info [ "tx-rollup" ]
               ~doc:"Originate a transaction rollup `name` at `level`." ~docs
               ~docv:"LEVEL:TX-ROLLUP-NAME")))
-  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_node "tezos"
-  $ Tezos_executable.cli_term ~extra_doc base_state `Tx_rollup_client "tezos"
+  $ Arg.(
+      value
+      & opt
+          (enum
+             [
+               ("observer", `Observer);
+               ("accuser", `Accuser);
+               ("batcher", `Batcher);
+               ("maintenance", `Maintenance);
+               ("custom", `Custom);
+               ("operator", `Operator);
+             ])
+          `Operator
+      & info ~docs [ "tx-rollup-node-mode" ]
+          ~doc:
+            (sprintf
+               "Set the transaction rollup node's `mode`%s. The default mode \
+                is `Operator`."
+               extra_doc))
+  $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_node ~prefix:"tezos"
+      ()
+  $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_client ~prefix:"tezos"
+      ()

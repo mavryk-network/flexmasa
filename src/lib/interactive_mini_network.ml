@@ -246,7 +246,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     node_exec client_exec baker_exec endorser_exec accuser_exec test_kind ?tx
-    ~tx_node ?soru () =
+    ?soru ~smart_contracts () =
   (if clear_root then
    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
    >>= fun () -> Helpers.clear_root state
@@ -381,195 +381,52 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       wf "initiailizing history file: `%s`"
         (Traffic_generation.Commands.history_file_path state))
   >>= fun () ->
-  ( Traffic_generation.Commands.init_cmd_history state
+  Traffic_generation.Commands.init_cmd_history state
   (* clear the command history file *)
   >>= fun () ->
-    match tx with
-    | None -> return ()
-    | Some tx -> (
-        List.hd keys_and_daemons
-        (* The boot account at head is used to fund the two accounts which originate the TORU and the ticket-deposite-contract. *)
-        |>
-        function
-        | None -> return ()
-        | Some (_, boot_acc, cli, _, _) ->
-            let toru_orig_acc, toru_orig_key =
-              Tx_rollup.origination_account ~client:cli tx.name
-            in
-            Tezos_client.Keyed.initialize state toru_orig_key >>= fun _ ->
-            let contract_orig_acc, contract_orig_key =
-              Tx_rollup.origination_account ~client:cli
-                (sprintf "%s-deposit-contract" tx.name)
-            in
-            Tezos_client.Keyed.initialize state contract_orig_key >>= fun _ ->
-            let toru_orig = Tezos_protocol.Account.name toru_orig_acc in
-            let contract_orig = Tezos_protocol.Account.name contract_orig_acc in
-            let funder = Tezos_protocol.Account.name boot_acc in
-            Tx_rollup.Account.fund_multiple state ~client:cli ~from:funder
-              ~recipients:[ (toru_orig, "1000"); (contract_orig, "10") ]
-            >>= fun _ ->
-            (* With the accounts funded we wait for LEVEL and then originate the TORU and deposit-contract. *)
-            Test_scenario.Queries.run_wait_level protocol state nodes
-              (`At_least tx.level) tx.level
-            >>= fun () ->
-            Tx_rollup.originate_and_confirm state ~name:tx.name ~client:cli
-              ~account:toru_orig ~confirmations:1 ()
-            >>= fun (account, _conf) ->
-            Tx_rollup.publish_deposit_contract state protocol.kind tx.name cli
-              contract_orig
-            >>= fun deposit_contract ->
-            (* Next configure the TORU node. *)
-            let tx_node =
-              Tx_rollup.Tx_node.(
-                let port = Test_scenario.Unix_port.(next_port nodes) in
-                make ~port ~endpoint:base_port ~mode:tx_node
-                  ~protocol:protocol.kind ~exec:tx.node ~client:cli ~account
-                  ~tx_rollup:tx ())
-            in
-            (* Init and fund the TORU node operation signers. *)
-            List_sequential.iter tx_node.operation_signers ~f:(fun os ->
-                Tx_rollup.Tx_node.operation_signer_map os
-                  ~f:(fun (_op_acc, op_key) ->
-                    Tezos_client.Keyed.initialize state op_key)
-                >>= fun _ -> return ())
-            >>= fun () ->
-            let dstlist =
-              List.fold tx_node.operation_signers ~init:[] ~f:(fun d os ->
-                  let dst_key =
-                    Tx_rollup.Tx_node.operation_signer_map os
-                      ~f:(fun (_, os_key) -> os_key.key_name)
-                  in
-                  (dst_key, "100") :: d)
-            in
-            Tx_rollup.Account.fund_multiple state ~client:cli ~from:toru_orig
-              ~recipients:dstlist
-            >>= fun _ ->
-            (* Start the TORU node. And print TORU information. *)
-            Running_processes.start state
-              Tx_rollup.Tx_node.(process state tx_node start_script)
-            >>= fun _ ->
-            Console.say state
-              EF.(
-                desc_list
-                  (haf "Transaction Rollup Sandbox is ready:")
-                  [
-                    desc (af "Name:") (af "%S" account.name);
-                    desc (af "Address:") (af "`%s`" account.address);
-                    desc
-                      (af "Tx-rollup Node RPC port:")
-                      (af "`%d`" (Option.value tx_node.port ~default:9999));
-                    desc
-                      (af "Deposit-contract Address:")
-                      (af "`%s`" deposit_contract);
-                  ])) )
+  Tx_rollup.run state ~protocol ~tx_rollup:tx ~keys_and_daemons ~nodes
+    ~base_port
   >>= fun () ->
-  match soru with
-  | None -> return ()
-  | Some soru -> (
-      begin
-        List.hd keys_and_daemons |> function
-        | None -> return ()
-        | Some (_, _, client, _, _) ->
-            (* Inicialze operator keys. *)
-            let op_acc = Tezos_protocol.soru_node_operator protocol in
-            let op_keys =
-              let name, priv =
-                Tezos_protocol.Account.(name op_acc, private_key op_acc)
-              in
-              Tezos_client.Keyed.make client ~key_name:name ~secret_key:priv
-            in
-            Tezos_client.Keyed.initialize state op_keys >>= fun _ ->
-            (* Originate SORU.*)
-            Smart_rollup.originate_and_confirm state ~client ~kernel:soru.kernel
-              ~account:op_keys.key_name ~confirmations:1 ()
-            >>= fun (origination_res, _confirmation_res) ->
-            (* Configure SORU node. *)
-            let soru_node =
-              let port = Test_scenario.Unix_port.(next_port nodes) in
-              Smart_rollup.Node.make_config ~mode:soru.node_mode
-                ~soru_addr:origination_res.address
-                ~operator_addr:op_keys.key_name ~rpc_port:port
-                ~endpoint:base_port ~protocol:protocol.kind ~exec:soru.node
-                ~client ()
-            in
-            (* Start SORU node. *)
-            Running_processes.start state
-              Smart_rollup.Node.(start state soru_node)
-            >>= fun _ ->
-            (match soru.kernel with
-            | None ->
-                (* Originate echo smart contract for default soru kernel. *)
-                Smart_rollup.Echo_contract.publish state ~client
-                  ~account:op_keys.key_name
-                >>= fun echo_contract ->
-                EF.(
-                  return
-                    [
-                      desc
-                        (af "Echo contract address")
-                        (af "`%s`" echo_contract);
-                    ])
-            | Some _ -> return [])
-            >>= fun echo_contract_addr ->
-            (* Print SORU info. *)
-            Console.say state
-              EF.(
-                desc_list
-                  (haf "Smart Optimistic Rollup (soru) is ready:")
-                  ([
-                     desc (af "Address:") (af "`%s`" origination_res.address);
-                     desc
-                       (af "Smart Rollup Node RPC port:")
-                       (af "`%d`"
-                          (Option.value_exn
-                             ?message:
-                               (Some
-                                  "Failed to get rpc port for Smart rollup \
-                                   node.") soru_node.rpc_port));
-                     desc
-                       (af "Node Operator address")
-                       (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
-                   ]
-                  @ echo_contract_addr))
-      end
-      >>= fun () ->
-      let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
-      Helpers.Shell_environement.(
-        let path = Paths.root state // "shell.env" in
-        let env = build state ~protocol ~clients in
-        write state env ~path >>= fun () ->
-        return (help_command state env ~path))
-      >>= fun shell_env_help ->
-      let keyed_clients =
-        List.map keys_and_daemons ~f:(fun (_, _, _, kc, _) -> kc)
-      in
-      Interactive_test.Pauser.add_commands state
-        Interactive_test.Commands.(
-          (shell_env_help :: all_defaults state ~nodes)
-          @ [
-              secret_keys state ~protocol;
-              forge_and_inject_piece_of_json state ~clients:keyed_clients;
-            ]
-          @ arbitrary_commands_for_each_and_all_clients state ~clients);
-      Test_scenario.Queries.(
-        match test_kind with
-        | `Interactive ->
-            Interactive_test.Pauser.generic state ~force:true
-              EF.[ haf "Sandbox is READY \\o/" ]
-        | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
-            run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
-            Interactive_test.Pauser.generic state ~force:true
-              EF.[ haf "Sandbox is READY \\o/" ]
-        | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
-            run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
-            let opt = `At_least lvl in
-            run_wait_level protocol state nodes opt lvl
-        | `Random_traffic (`Any, `Until level) ->
-            System.sleep 10. >>= fun () ->
-            Traffic_generation.Random.run state ~protocol ~nodes
-              ~clients:keyed_clients ~until_level:level `Any
-        | `Wait_level (`At_least lvl as opt) ->
-            run_wait_level protocol state nodes opt lvl))
+  Smart_rollup.run state ~smart_rollup:soru ~protocol ~keys_and_daemons ~nodes
+    ~base_port
+  >>= fun () ->
+  Smart_contract.run state ~smart_contracts ~keys_and_daemons >>= fun () ->
+  let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
+  Helpers.Shell_environement.(
+    let path = Paths.root state // "shell.env" in
+    let env = build state ~protocol ~clients in
+    write state env ~path >>= fun () -> return (help_command state env ~path))
+  >>= fun shell_env_help ->
+  let keyed_clients =
+    List.map keys_and_daemons ~f:(fun (_, _, _, kc, _) -> kc)
+  in
+  Interactive_test.Pauser.add_commands state
+    Interactive_test.Commands.(
+      (shell_env_help :: all_defaults state ~nodes)
+      @ [
+          secret_keys state ~protocol;
+          forge_and_inject_piece_of_json state ~clients:keyed_clients;
+        ]
+      @ arbitrary_commands_for_each_and_all_clients state ~clients);
+  Test_scenario.Queries.(
+    match test_kind with
+    | `Interactive ->
+        Interactive_test.Pauser.generic state ~force:true
+          EF.[ haf "Sandbox is READY \\o/" ]
+    | `Dsl_traffic (`Dsl_command dsl_command, `After `Interactive) ->
+        run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
+        Interactive_test.Pauser.generic state ~force:true
+          EF.[ haf "Sandbox is READY \\o/" ]
+    | `Dsl_traffic (`Dsl_command dsl_command, `After (`Until lvl)) ->
+        run_dsl_cmd state keyed_clients nodes dsl_command >>= fun () ->
+        let opt = `At_least lvl in
+        run_wait_level protocol state nodes opt lvl
+    | `Random_traffic (`Any, `Until level) ->
+        System.sleep 10. >>= fun () ->
+        Traffic_generation.Random.run state ~protocol ~nodes
+          ~clients:keyed_clients ~until_level:level `Any
+    | `Wait_level (`At_least lvl as opt) ->
+        run_wait_level protocol state nodes opt lvl)
 
 let cmd () =
   let open Cmdliner in
@@ -600,13 +457,14 @@ let cmd () =
         nodes_history_mode_edits
         state
         tx
-        tx_node
         soru
+        smart_contracts
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ?tx ~tx_node ?soru ~clear_root ~nodes_history_mode_edits
-            ~external_peer_ports ~no_daemons_for ~genesis_block_choice test_kind
+            ?hard_fork ?tx ?soru ~clear_root ~nodes_history_mode_edits
+            ~external_peer_ports ~no_daemons_for ~genesis_block_choice
+            ~smart_contracts test_kind
         in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test))
@@ -685,18 +543,18 @@ let cmd () =
                (info [ "no-daemons-for" ] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
     $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node "tezos"
-    $ Tezos_executable.cli_term base_state `Client "tezos"
-    $ Tezos_executable.cli_term base_state `Baker "tezos"
-    $ Tezos_executable.cli_term base_state `Endorser "tezos"
-    $ Tezos_executable.cli_term base_state `Accuser "tezos"
+    $ Tezos_executable.cli_term base_state `Node ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Client ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Baker ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"tezos" ()
+    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"tezos" ()
     $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Genesis_block_hash.Choice.cmdliner_term ()
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
-    $ Tx_rollup.cmdliner_term ~docs base_state ()
-    $ Tx_rollup.Tx_node.cmdliner_term base_state ()
+    $ Tx_rollup.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
+    $ Smart_contract.cmdliner_term base_state ()
   in
   let info =
     let doc = "Small network sandbox with bakers, endorsers, and accusers." in

@@ -24,7 +24,8 @@ type kind =
   | `Tx_rollup_node
   | `Tx_rollup_client
   | `Smart_rollup_node
-  | `Smart_rollup_client ]
+  | `Smart_rollup_client
+  | `Smart_rollup_installer ]
 
 type t = {
   kind : kind;
@@ -48,23 +49,27 @@ let kind_string (kind : [< kind ]) =
   | `Tx_rollup_client -> "tx-rollup-client"
   | `Smart_rollup_node -> "smart-rollup-node"
   | `Smart_rollup_client -> "smart-rollup-client"
+  | `Smart_rollup_installer -> "smart-rollup-installer"
 
 let default_binary ?protocol_kind t =
-  let with_suffix s =
-    match (t.kind, protocol_kind) with
-    | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
-        | `Smart_rollup_node | `Smart_rollup_client ),
-        Some pk ) ->
-        Fmt.str "%s-%s" s (Tezos_protocol.Protocol_kind.daemon_suffix_exn pk)
-    | (`Node | `Client | `Admin), _ -> s
-    | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
-        | `Smart_rollup_node | `Smart_rollup_client ),
-        _ ) ->
-        Fmt.failwith
-          "Called default_binary with for octez-%s and protocol_kind = None"
-          (kind_string t.kind)
+  let base_name kind = kind_string kind in
+  let proto_suffix proto s =
+    Fmt.str "%s-%s" s (Tezos_protocol.Protocol_kind.daemon_suffix_exn proto)
   in
-  sprintf "octez-%s" (with_suffix (kind_string t.kind))
+  let octez_prefix s = Fmt.str "octez-%s" s in
+  match (t.kind, protocol_kind) with
+  | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
+      | `Smart_rollup_node | `Smart_rollup_client ),
+      Some proto ) ->
+      base_name t.kind |> proto_suffix proto |> octez_prefix
+  | (`Node | `Client | `Admin), _ -> base_name t.kind |> octez_prefix
+  | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
+      | `Smart_rollup_node | `Smart_rollup_client ),
+      _ ) ->
+      Fmt.failwith
+        "Called default_binary with for octez-%s and protocol_kind = None"
+        (kind_string t.kind)
+  | `Smart_rollup_installer, _ -> base_name t.kind
 
 let get ?protocol_kind t =
   match t.binary with Some s -> s | None -> default_binary ?protocol_kind t
@@ -96,9 +101,10 @@ let call state t ?protocol_kind ~path args =
         exec (get ?protocol_kind t :: args);
       ])
 
-let cli_term ?(extra_doc = "") state kind prefix =
+let cli_term ?(extra_doc = "") state kind ?prefix () =
   let open Cmdliner in
   let open Term in
+  let pfx = match prefix with Some s -> sprintf "%s-" s | None -> "" in
   let docs = Manpage_builder.section state ~rank:2 ~name:"EXECUTABLE PATHS" in
   pure (fun binary ->
       { kind; binary; unix_files_sink = None; environment = [] })
@@ -106,7 +112,7 @@ let cli_term ?(extra_doc = "") state kind prefix =
       value
       & opt (some string) None
       & info ~docs
-          [ sprintf "%s-%s-binary" prefix (kind_string kind) ]
+          [ sprintf "%s%s-binary" pfx (kind_string kind) ]
           ~doc:
             (sprintf "Binary for the `octez-%s` to use%s." (kind_string kind)
                extra_doc))

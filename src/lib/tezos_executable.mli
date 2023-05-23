@@ -27,7 +27,8 @@ type kind =
   | `Tx_rollup_node
   | `Tx_rollup_client
   | `Smart_rollup_node
-  | `Smart_rollup_client ]
+  | `Smart_rollup_client
+  | `Smart_rollup_installer ]
 (** The type [kind] is used to distinguish ['a t] executables. *)
 
 type t = private {
@@ -64,8 +65,12 @@ val cli_term :
   ?extra_doc:string ->
   < manpager : Internal_pervasives.Manpage_builder.State.t ; .. > ->
   kind ->
-  string ->
+  ?prefix:string ->
+  unit ->
   t Cmdliner.Term.t
-(** Build a [Cmdliner] term which creates octez-executables, the second argument
-    is a prefix of option names (e.g. ["tezos"] for the option
-    ["--octez-accuser-alpha-binary"]). *)
+(** Build a [Cmdliner] term which creates executables, the second argument is a
+    prefix of option names (e.g. ["tezos"] for the option
+    ["--tezos-accuser-alpha-binary"]). *)
+
+val kind_string : [< kind ] -> string
+(** The name of the executable. *)
