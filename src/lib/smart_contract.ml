@@ -33,34 +33,47 @@ let originate_smart_contract state ~client ~account t =
     ]
   >>= fun res -> parse_origination ~lines:res#out t.name
 
-let default_contracts =
+let default_contracts ~(smart_rollup : Smart_rollup.t option) =
   let open Default_contracts in
-  [
-    {
-      name = "mint_and_deposit_to_rollup";
-      michelson = mint_and_deposit_to_rollup;
-    };
-  ]
-
-let run state ~keys_and_daemons ~smart_contracts =
-  let all_contracts = smart_contracts @ default_contracts in
-  let accounts_and_clients =
-    List.map keys_and_daemons ~f:(fun (_, a, c, _, _) -> (a, c))
+  (* The mint_and_deposit_to_rollup contract is only need to for the tx-rollup. *)
+  let tx_kernel_contract =
+    match smart_rollup with
+    | None -> []
+    | Some rollup -> (
+        match rollup.custom_kernel with
+        | None ->
+            [
+              {
+                name = "mint_and_deposit_to_rollup";
+                michelson = mint_and_deposit_to_rollup;
+              };
+            ]
+        | Some _ -> [])
   in
-  List_sequential.iteri all_contracts ~f:(fun ith t ->
-      let account, client =
-        List.nth_exn accounts_and_clients
-          (ith % List.length accounts_and_clients)
+  tx_kernel_contract @ []
+
+let run state ~keys_and_daemons ~smart_contracts ~smart_rollup =
+  let all_contracts = smart_contracts @ default_contracts ~smart_rollup in
+  match all_contracts with
+  | [] -> return ()
+  | _ ->
+      let accounts_and_clients =
+        List.map keys_and_daemons ~f:(fun (_, a, c, _, _) -> (a, c))
       in
-      originate_smart_contract state ~client
-        ~account:(Tezos_protocol.Account.name account)
-        t
-      >>= fun address ->
-      Console.say state
-        EF.(
-          desc_list
-            (haf "Originated Smart Contract %S" t.name)
-            [ desc (af "Address:") (af "%s" address) ]))
+      List_sequential.iteri all_contracts ~f:(fun ith t ->
+          let account, client =
+            List.nth_exn accounts_and_clients
+              (ith % List.length accounts_and_clients)
+          in
+          originate_smart_contract state ~client
+            ~account:(Tezos_protocol.Account.name account)
+            t
+          >>= fun address ->
+          Console.say state
+            EF.(
+              desc_list
+                (haf "Originated Smart Contract %S" t.name)
+                [ desc (af "Address:") (af "%s" address) ]))
 
 let cmdliner_term base_state () =
   let open Cmdliner in

@@ -254,7 +254,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     node_exec client_exec baker_exec endorser_exec accuser_exec test_kind ?tx
-    ?soru ~smart_contracts () =
+    ?smart_rollup ~smart_contracts () =
   (if clear_root then
    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
    >>= fun () -> Helpers.clear_root state
@@ -276,7 +276,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
         else [])
       @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables
       @ Option.value_map tx ~default:[] ~f:Tx_rollup.executables
-      @ Option.value_map soru ~default:[] ~f:Smart_rollup.executables)
+      @ Option.value_map smart_rollup ~default:[] ~f:Smart_rollup.executables)
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.") >>= fun () ->
   let node_custom_network =
@@ -395,10 +395,11 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Tx_rollup.run state ~protocol ~tx_rollup:tx ~keys_and_daemons ~nodes
     ~base_port
   >>= fun () ->
-  Smart_rollup.run state ~smart_rollup:soru ~protocol ~keys_and_daemons ~nodes
+  Smart_rollup.run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes
     ~base_port
   >>= fun () ->
-  Smart_contract.run state ~smart_contracts ~keys_and_daemons >>= fun () ->
+  Smart_contract.run state ~smart_contracts ~keys_and_daemons ~smart_rollup
+  >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in
@@ -465,12 +466,12 @@ let cmd () =
         nodes_history_mode_edits
         state
         tx
-        soru
+        smart_rollup
         smart_contracts
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ?tx ?soru ~clear_root ~nodes_history_mode_edits
+            ?hard_fork ?tx ?smart_rollup ~clear_root ~nodes_history_mode_edits
             ~external_peer_ports ~no_daemons_for ~genesis_block_choice
             ~smart_contracts test_kind
         in
