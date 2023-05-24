@@ -1,6 +1,5 @@
 open Internal_pervasives
 
-(* A type for SORU cmdliner options. *)
 type t = {
   id : string;
   level : int;
@@ -340,21 +339,18 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           Console.say state
             EF.(
               desc_list
-                (haf "%S Smart Optimistic Rollup is ready:" soru.id)
+                (haf "%S smart optimistic rollup is ready:" soru.id)
                 [
-                  desc (af "Rollup ddress:") (af "`%s`" origination_res.address);
+                  desc (af "Address:") (af "`%s`" origination_res.address);
                   desc
-                    (af "The  %s node is listening on port:"
+                    (af "A rollup node in %S mode is listening on"
                        (Node.mode_string soru_node.mode))
-                    (af "`%d`"
+                    (af "rpc_port: `%d`"
                        (Option.value_exn
                           ?message:
                             (Some
                                "Failed to get rpc port for Smart rollup node.")
                           soru_node.rpc_port));
-                  desc
-                    (af "Node Operator address:")
-                    (af "`%s`" (Tezos_protocol.Account.pubkey_hash op_acc));
                 ]))
 
 let cmdliner_term state () =
