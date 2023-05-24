@@ -272,13 +272,6 @@ will set the
 [mode](https://tezos.gitlab.io/alpha/smart_rollups.html#deploying-a-rollup-node)
 of the smart-rollup-node initialized by Flextesa.
 
-When Flextesa initializes a rollup node all kernel files will be in the rollup
-nodes data directory. This path is build from the root-path and the kernel filename.
-With the above example this would be at,
-`/tmp/my-sandbox/smart_rollup/my-kernel-smart-rollup-operator-node-000/data-dir/wasm_2_0_0/`
-If you're operating a separate rollup node, you may need to move those files
-into your rollup node's `.../data-dir/wasm_2_0_0`.
-
 Once the rollup is originated, Flextesa will display the rollup address and
 rpc_port for the rollup node. This information can also be found in the rollup
 node's data directory at `.../data-dir/config.json`.
