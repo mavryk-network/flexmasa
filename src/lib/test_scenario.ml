@@ -285,7 +285,7 @@ module Queries = struct
                      with _ -> default ()))
            | Ok None | Error _ -> return (default ()))
       >>= fun tbb ->
-      let seconds = Float.of_int tbb *. 1.5 in
+      let seconds = Float.(max (of_int tbb *. 1.5) 3.) in
       Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds);
       return seconds
     in
