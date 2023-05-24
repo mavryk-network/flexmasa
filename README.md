@@ -238,8 +238,8 @@ the [smart-rollup-installer](https://crates.io/crates/tezos-smart-rollup-install
 to create an installer kernel. After a few moments a smart rollup running your
 kernel should be originated.
 
-You can confirm that the smart-rollup-node has been initialized and see relevent
-data from the smart-rollup-node's config with the `smart_rollup_info` command.
+You can confirm that the smart-rollup-node has been initialized and see relevant rollup
+info with the smart-rollup-node's config with the `smart_rollup_info` command.
 
 ``` default
 $ docker exec my-sandbox "$script" smart_rollup_info
@@ -282,7 +282,8 @@ $ tcli originate contract my_contract_alias \
 
 #### Start the TX Smart Rollup
 The command `start_tx_smart_rollup`, originates the transaction smart rollup
-with the [tx-kernel](https://gitlab.com/tezos/kernel).
+with the [tx-kernel](https://gitlab.com/tezos/kernel). This is the default kernel 
+included with flextesa mini-network.
 
 ``` default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 -p 20002:20002 \
