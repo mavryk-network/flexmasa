@@ -72,7 +72,7 @@ let run state ~keys_and_daemons ~smart_contracts ~smart_rollup =
           Console.say state
             EF.(
               desc_list
-                (haf "Originated Smart Contract %S" t.name)
+                (haf "Originated smart contract %S" t.name)
                 [ desc (af "Address:") (af "%s" address) ]))
 
 let cmdliner_term base_state () =
@@ -80,9 +80,6 @@ let cmdliner_term base_state () =
   let open Term in
   let docs =
     Manpage_builder.section base_state ~rank:2 ~name:"SMART CONTRACTS"
-  in
-  let _extra_doc =
-    Fmt.str " for the smart contract (requires --smart-contract)."
   in
   let check_extension path =
     match Caml.Filename.extension path with
