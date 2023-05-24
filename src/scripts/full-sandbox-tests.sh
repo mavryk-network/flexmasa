@@ -24,7 +24,7 @@ fi
 runone () {
     name="$1"
     shift
-    rootroot="/tmp/flextesa-full-sandbox-tests/$name/"
+    rootroot="/tmp/flextesa-full-sandbox-tests/$name"
     root="$rootroot/root"
     log="$rootroot/log.txt"
     say "Running $name ($rootroot)"
@@ -42,7 +42,7 @@ before_alpha=$next
 quickmini () {
     proto="$1"
     runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
-           --time-between-blocks 1 $until_8 \
+           --time-between-blocks 1 $until_4 \
            --number-of-boot 1 --size 1
 }
 
