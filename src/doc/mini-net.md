@@ -224,3 +224,62 @@ catch-up, it is better to use “small” networks:
 
 Stopping the sandbox with `quit`, and restarting with the same command some time
 later usually works.
+
+## Smart Optimistic Rollups
+
+Flextesa automates several steps involved in originating a [smart optimistic
+rollup](https://tezos.gitlab.io/alpha/smart_rollups.html). For a quick start,
+the command `flextesa mini-network --smart-rollup` will start the mini-network
+sandbox with a default transaction smart rollup using the
+[tx-kernel](https://gitlab.com/tezos/kernel). A smart-rollup-node in
+**operator** mode will begin progressing the rollup. This assumes the octez
+binaries are in your `$PATH`. Otherwise, you'll need to pass the option
+`--octez-smart-rollup-node-binary`.
+
+You can use `/src/scripts/get-tx-client.sh` to get the tx-client binaries. The
+tx-client can be used to interact with the tx-rollup. See its
+[documentation](https://gitlab.com/emturner/tx-client).
+
+In order to start a smart rollup sandbox with a custom kernel use the
+`--custom-kernel` option.
+
+```
+$ flextesa mini-network \
+            --root-path /tmp/my-sandbox \
+            --protocol-kind Mumbai \
+            --smart-rollup \
+            --custom-kernel wasm_2_0_0:bytes:path/to/my-kernel.wasm
+            --smart-contract path/to/l1_contract.tz
+            --octez-smart-rollup-node /binaries/octez-smart-rollup-node-PtMumbai
+```
+
+The arguments passed to `--custom-kernel`, `wasm_2_0_0` and `bytes` are the
+`KIND` and `TYPE` of the rollup. Use values appropriate for your kernel. The
+final argument is the path to the .wasm file for your kernel.
+
+Most kernels will be too large for an L1 operation. When this is the case,
+Flextesa will use the
+[smart-rollup-installer](https://crates.io/crates/tezos-smart-rollup-installer)
+to create an installer kernel and originate the rollup.
+
+The `--smart-contract PATH` option simply originates the layer one smart
+contract at `PATH`.
+
+There are two additional options that can be used with the smart rollup. With
+`--smart-rollup-start-level LEVEL` option, Flextesa will wait until `LEVEL` to
+originate the rollup. The default is level 5. `--smart-rollup-node-mode MODE`
+will set the
+[mode](https://tezos.gitlab.io/alpha/smart_rollups.html#deploying-a-rollup-node)
+of the smart-rollup-node initialized by Flextesa.
+
+When Flextesa initializes a rollup node all kernel files will be in the rollup
+nodes data directory. This path is build from the root-path and the kernel filename.
+With the above example this would be at,
+`/tmp/my-sandbox/smart_rollup/my-kernel-smart-rollup-operator-node-000/data-dir/wasm_2_0_0/`
+If you're operating a separate rollup node, you may need to move those files
+into your rollup node's `.../data-dir/wasm_2_0_0`.
+
+Once the rollup is originated, Flextesa will display the rollup address and
+rpc_port for the rollup node. This information can also be found in the rollup
+node's data directory at `.../data-dir/config.json`.
+
