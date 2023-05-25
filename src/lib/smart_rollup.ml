@@ -175,41 +175,32 @@ module Kernel = struct
         load_default_preimages state config.reveal_data_dir Preimages.tx_kernel
         >>= fun _ -> return default_args
     | Some (kind, michelson_type, kernel_path) -> (
-        let cli_args hex = make_args ~kind ~michelson_type ~hex in
-        let size p =
-          let stats = Unix.stat p in
-          stats.st_size
+        let cli_args h =
+          h >>= fun hex -> return (make_args ~kind ~michelson_type ~hex)
         in
-        let content path size =
-          let open Stdlib in
-          let ic = open_in path in
-          let cont_str = really_input_string ic size in
-          close_in ic;
-          cont_str
-        in
-        if size kernel_path > 24 * 1048 then
-          (* wasm files larger that 24kB are passed to isntaller_crate. We can't do anything with large .hex files *)
+        let content path = System.read_file state path in
+        System.size state kernel_path >>= fun s ->
+        if s > 24 * 1048 then
+          (* wasm files larger that 24kB are passed to installer_create. We can't do anything with large .hex files *)
           match check_extension kernel_path with
           | `Hex p ->
               raise
                 (Invalid_argument
                    (sprintf
-                      "Installer cli_args is .hex. Was expecting .wasm at %s.\n"
+                      "%s is over the max operation size for (24kB). Try a \
+                       .wasm file \n"
                       p))
           | `Wasm _ ->
               installer_create state ~exec:config.exec.kind ~path:kernel_path
                 ~output:config.installer_kernel
                 ~preimages_dir:config.reveal_data_dir
-              >>= fun _ ->
-              return
-                (cli_args
-                   (content config.installer_kernel
-                      (size config.installer_kernel)))
+              >>= fun _ -> cli_args (content config.installer_kernel)
         else
           match check_extension kernel_path with
-          | `Hex p -> return (cli_args (content p (size p)))
+          | `Hex p -> cli_args (content p)
           | `Wasm p ->
-              return (cli_args Hex.(content p (size p) |> of_string |> show)))
+              content p >>= fun was ->
+              cli_args (return Hex.(was |> of_string |> show)))
 end
 
 (* octez-client call to originate a SORU. *)

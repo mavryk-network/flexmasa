@@ -595,6 +595,15 @@ module System = struct
         Lwt_io.with_file ~mode:Lwt_io.input path (fun out -> Lwt_io.read out))
       ()
 
+  let size (_state : _ Base_state.t) path =
+    System_error.catch
+      (fun () ->
+        Lwt.(
+          map
+            (fun (stats : Lwt_unix.stats) -> stats.st_size)
+            (Lwt_unix.stat path)))
+      ()
+
   let command (_state : _ Base_state.t) s =
     System_error.catch Lwt_unix.system s >>= fun status ->
     return Poly.(status = Lwt_unix.WEXITED 0)
