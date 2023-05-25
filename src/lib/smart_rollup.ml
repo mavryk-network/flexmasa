@@ -1,10 +1,12 @@
 open Internal_pervasives
 
+type mode = [ `Operator | `Batcher | `Observer | `Maintenance | `Accuser ]
+
 type t = {
   id : string;
   level : int;
   custom_kernel : (string * string * string) option;
-  node_mode : [ `Operator | `Batcher | `Observer | `Maintenance | `Accuser ];
+  node_mode : mode;
   node : Tezos_executable.t;
   client : Tezos_executable.t;
   installer : Tezos_executable.t;
@@ -17,7 +19,6 @@ let make_dir state p =
 
 module Node = struct
   (* The mode of the SORU node. *)
-  type mode = [ `Operator | `Batcher | `Observer | `Maintenance | `Accuser ]
 
   let mode_string = function
     | `Operator -> "operator"
@@ -49,7 +50,7 @@ module Node = struct
         (Option.value node_id ~default:"000")
     in
     {
-      node_id = name;
+      node_id = Option.value node_id ~default:name;
       mode;
       operator_addr;
       rpc_addr;
