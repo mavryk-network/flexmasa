@@ -41,9 +41,8 @@
   (with-stdout-to
    %{target}
    (progn
-    (echo "open Base\n")
-    (echo
-     "let tx_kernel = List.map ~f:(fun (file, bytes) -> (file, Bytes.of_string bytes)) [")
+    (echo "open !Base\n")
+    (echo "let tx_kernel = [")
     (bash
      "for file in %{deps}; do echo -n '(\"'; basename \"${file}\" | tr -d '\\n'; echo -n '\", '; echo -n '{notwasmbyte|'; cat \"$file\"; echo -n '|notwasmbyte}); '; done")
     (echo "]")))))

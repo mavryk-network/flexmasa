@@ -144,16 +144,10 @@ module Kernel = struct
     make_args ~kind:Tx_installer.kind
       ~michelson_type:Tx_installer.michelson_type ~hex:Tx_installer.hex
 
-  let load_default_preimages reveal_data_dir preimages =
-    let write_file path content =
-      let open Stdlib in
-      let oc = open_out_bin path in
-      output_bytes oc content;
-      close_out oc
-    in
-    List.iter preimages ~f:(fun (p, contents) ->
+  let load_default_preimages state reveal_data_dir preimages =
+    List_sequential.iter preimages ~f:(fun (p, content) ->
         let filename = Caml.Filename.basename p in
-        write_file (reveal_data_dir // filename) contents)
+        System.write_file state (reveal_data_dir // filename) ~content)
 
   (* Check the extension of user provided kernel. *)
   let check_extension path =
@@ -178,8 +172,7 @@ module Kernel = struct
     make_dir state config.reveal_data_dir >>= fun _ ->
     match smart_rollup.custom_kernel with
     | None ->
-        return
-          (load_default_preimages config.reveal_data_dir Preimages.tx_kernel)
+        load_default_preimages state config.reveal_data_dir Preimages.tx_kernel
         >>= fun _ -> return default_args
     | Some (kind, michelson_type, kernel_path) -> (
         let cli_args hex = make_args ~kind ~michelson_type ~hex in
