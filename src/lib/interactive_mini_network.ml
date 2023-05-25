@@ -501,7 +501,7 @@ let cmd () =
                     fail
                       (`Msg
                         "Error: option `--random-traffic` requires also \
-                         `w--until-level`."))
+                         `--until-level`."))
           $ value
               (opt (some int) None
                  (info [ "until-level" ] ~docs

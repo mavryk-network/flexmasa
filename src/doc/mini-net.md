@@ -245,7 +245,6 @@ In order to start a smart rollup sandbox with a custom kernel use the
 
 ```
 $ flextesa mini-network \
-            --root-path /tmp/my-sandbox \
             --protocol-kind Mumbai \
             --smart-rollup \
             --custom-kernel wasm_2_0_0:bytes:path/to/my-kernel.wasm
@@ -266,9 +265,8 @@ The `--smart-contract PATH` option simply originates the layer one smart
 contract at `PATH`.
 
 There are two additional options that can be used with the smart rollup. With
-`--smart-rollup-start-level LEVEL` option, Flextesa will wait until `LEVEL` to
-originate the rollup. The default is level 5. `--smart-rollup-node-mode MODE`
-will set the
+`--smart-rollup-start-level LEVEL` Flextesa will wait until `LEVEL` to originate
+the rollup. The default is level 5. `--smart-rollup-node-mode MODE` will set the
 [mode](https://tezos.gitlab.io/alpha/smart_rollups.html#deploying-a-rollup-node)
 of the smart-rollup-node initialized by Flextesa.
 
