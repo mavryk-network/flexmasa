@@ -18,7 +18,7 @@ let make_dir state p =
   Running_processes.run_successful_cmdf state "mkdir -p %s" p
 
 module Node = struct
-  (* The mode of the SORU node. *)
+  (* The mode of the smart-rollup node. *)
 
   let mode_string = function
     | `Operator -> "operator"
@@ -27,7 +27,7 @@ module Node = struct
     | `Maintenance -> "maintenance"
     | `Accuser -> "accuser"
 
-  (* A type for the SORU node config. *)
+  (* A type for the smart-rollup node config. *)
   type config = {
     node_id : string;
     mode : mode;
@@ -62,7 +62,7 @@ module Node = struct
       smart_rollup;
     }
 
-  (* SORU node directory. *)
+  (* smart-rollup node directory. *)
   let node_dir state node p = make_path ~state (sprintf "%s" node.node_id // p)
   let data_dir state node = node_dir state node "data-dir"
   let reveal_data_dir state node = data_dir state node // "wasm_2_0_0"
@@ -87,7 +87,7 @@ module Node = struct
           ~f:(fun p -> opt "rpc-port" (sprintf "%d" p))
           ~default:[])
 
-  (* Command to initiate a SORU node [config] *)
+  (* Command to initiate a smart-rollup node [config] *)
   let init state config soru_addr =
     call state ~config
       [
@@ -101,13 +101,13 @@ module Node = struct
         config.operator_addr;
       ]
 
-  (* Start a running SORU node. *)
+  (* Start a running smart-rollup node. *)
   let start state config soru_addr =
     Running_processes.Process.genspio config.node_id
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
-           ("init SORU node", init state config soru_addr);
-           ("run SORU node", call state ~config [ "run" ]);
+           ("init smart-rollup node", init state config soru_addr);
+           ("run smart-rollup node", call state ~config [ "run" ]);
          ])
 end
 
@@ -121,7 +121,7 @@ module Kernel = struct
     node : Node.t;
   }
 
-  (* SORU kernel dirctory *)
+  (* smart-rollup kernel dirctory *)
   let kernel_dir ~state smart_rollup p =
     make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
@@ -144,6 +144,7 @@ module Kernel = struct
     make_args ~kind:Tx_installer.kind
       ~michelson_type:Tx_installer.michelson_type ~hex:Tx_installer.hex
 
+  (* Write the tx-kernel files to the data reveal directory. *)
   let load_default_preimages state reveal_data_dir preimages =
     List_sequential.iter preimages ~f:(fun (p, content) ->
         let filename = Caml.Filename.basename p in
@@ -187,8 +188,8 @@ module Kernel = struct
               raise
                 (Invalid_argument
                    (sprintf
-                      "%s is over the max operation size for (24kB). Try a \
-                       .wasm file \n"
+                      "%s is over the max operation size (24kB). Try a .wasm \
+                       file \n"
                       p))
           | `Wasm _ ->
               installer_create state ~exec:config.exec.kind ~path:kernel_path
@@ -203,7 +204,7 @@ module Kernel = struct
               cli_args (return Hex.(was |> of_string |> show)))
 end
 
-(* octez-client call to originate a SORU. *)
+(* octez-client call to originate a smart-rollup. *)
 let originate state ~client ~account ~kernel () =
   let open Kernel in
   Tezos_client.successful_client_cmd state ~client
@@ -226,7 +227,7 @@ let originate state ~client ~account ~kernel () =
       "999";
     ]
 
-(* octez-client call confirming and operation. *)
+(* octez-client call confirming an operation. *)
 let confirm state ~client ~confirmations ~operation_hash () =
   Tezos_client.successful_client_cmd state ~client
     [
@@ -240,7 +241,7 @@ let confirm state ~client ~confirmations ~operation_hash () =
       Int.to_string confirmations;
     ]
 
-(* A type for octez client output from a SORU origination. *)
+(* A type for octez client output from a smart-rollup origination. *)
 type origination_result = {
   operation_hash : string;
   address : string;
@@ -248,7 +249,7 @@ type origination_result = {
   out : string list;
 }
 
-(* Parse octez-client output of SORU origination. *)
+(* Parse octez-client output of smart-rollup origination. *)
 let parse_origination ~lines =
   let rec prefix_from_list ~prefix = function
     | [] -> None
@@ -301,7 +302,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
             Tezos_client.Keyed.make client ~key_name:name ~secret_key:priv
           in
           Tezos_client.Keyed.initialize state op_keys >>= fun _ ->
-          (* Configure SORU node. *)
+          (* Configure smart-rollup node. *)
           let port = Test_scenario.Unix_port.(next_port nodes) in
           Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
             ~operator_addr:op_keys.key_name ~rpc_addr:"0.0.0.0" ~rpc_port:port
@@ -312,15 +313,15 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           (* Configure custom Kernel or use default if none. *)
           Kernel.build state ~smart_rollup:soru ~node:soru_node
           >>= fun kernel ->
-          (* Originate SORU.*)
+          (* Originate smart-rollup.*)
           originate_and_confirm state ~client ~kernel ~account:op_keys.key_name
             ~confirmations:1 ()
           >>= fun (origination_res, _confirmation_res) ->
-          (* Start SORU node. *)
+          (* Start smart-rollup node. *)
           Running_processes.start state
             Node.(start state soru_node origination_res.address)
           >>= fun _ ->
-          (* Print SORU info. *)
+          (* Print smart-rollup info. *)
           Console.say state
             EF.(
               desc_list
@@ -365,8 +366,9 @@ let cmdliner_term state () =
       & flag
           (info [ "smart-rollup" ]
              ~doc:
-               "Start the Flextexa mini-network with a smart optimistic rollup \
-                (SORU)."
+               "Start the Flextexa mini-network with a smart optimistic \
+                rollup. By default this will be the transction smart rollup \
+                (TX-kernel). See `--custom-kernel` for other options."
              ~docs))
   $ Arg.(
       value

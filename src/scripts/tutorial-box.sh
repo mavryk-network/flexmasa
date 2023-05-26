@@ -127,11 +127,11 @@ start_toru() {
         --tx-rollup 10:torubox
 }
 
-## Smart rollup sandbox commandes
+## Smart rollup sandbox commands
 all_commands="$all_commands
 * start_custom_smart_rollup KIND TYPE PATH: Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel.
 * smart_rollup_info : Show the smart rollup node config file.
-* start_tx_smart_rollup : Start the tx-kerenel (transaction) smart rollup sandbox with the $default_protocol protocol.
+* start_tx_smart_rollup : Start the tx-kernel (transaction) smart rollup sandbox with the $default_protocol protocol.
 * tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup).
 * tx_client_init : Initialize the tx-client for interacting with the tx-smart-rollup kernel (Requires start_tx_smart_rollup)."
 root_path="/tmp/mini-smart-rollup-box"

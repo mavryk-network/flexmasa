@@ -447,8 +447,6 @@ let kind t = t.kind
 let dictator_name { dictator; _ } = Account.name dictator
 let dictator_secret_key { dictator; _ } = Account.private_key dictator
 let soru_node_operator t = t.soru_node_op
-(* Account.(name soru_node_op, private_key soru_node_op) *)
-
 let make_path config t = Paths.root config // sprintf "protocol-%s" (id t)
 let sandbox_path config t = make_path config t // "sandbox.json"
 

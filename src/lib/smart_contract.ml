@@ -35,8 +35,9 @@ let originate_smart_contract state ~client ~account t =
 
 let default_contracts ~(smart_rollup : Smart_rollup.t option) =
   let open Default_contracts in
-  (* The mint_and_deposit_to_rollup contract is only need to for the tx-rollup. *)
   let tx_kernel_contract =
+    (* Origintate the mint_and_deposit_to_rollup contract for the default
+       smart-rollup (tx-rollup). *)
     match smart_rollup with
     | None -> []
     | Some rollup -> (
