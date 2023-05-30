@@ -239,7 +239,7 @@ to create an installer kernel. After a few moments a smart rollup running your
 kernel should be originated.
 
 You can confirm that the smart-rollup-node has been initialized and see relevant rollup
-info with the smart-rollup-node's config with the `smart_rollup_info` command.
+info from the smart-rollup-node's config with the `smart_rollup_info` command.
 
 ``` default
 $ docker exec my-sandbox "$script" smart_rollup_info

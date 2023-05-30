@@ -15,7 +15,7 @@ case "$(basename $0)" in
         default_protocol=Nairobi
         protocol_hash=PtNairob
         binary_suffix=PtNairob
-        next_protocol_name=Aplha
+        next_protocol_name=Alpha
         next_protocol=alpha
         ;;
     "alphabox")
