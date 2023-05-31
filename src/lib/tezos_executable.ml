@@ -101,7 +101,7 @@ let call state t ?protocol_kind ~path args =
         exec (get ?protocol_kind t :: args);
       ])
 
-let cli_term ?(extra_doc = "") state kind ?prefix () =
+let cli_term ?(extra_doc = "") ?prefix state kind =
   let open Cmdliner in
   let open Term in
   let pfx = match prefix with Some s -> sprintf "%s-" s | None -> "" in

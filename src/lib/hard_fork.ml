@@ -44,9 +44,9 @@ let cmdliner_term base_state ~docs ?(prefix = "hard-fork") () =
                 "Make a hard-fork happen (PROTOCOL-HASH is optional, the \
                  default is the canonical one for the given protocol-kind)."
               ~docs ~docv:"LEVEL:PROTOCOL-KIND:[PROTOCOL-HASH]")))
-  $ Tezos_executable.cli_term ~extra_doc base_state `Baker ~prefix ()
-  $ Tezos_executable.cli_term ~extra_doc base_state `Endorser ~prefix ()
-  $ Tezos_executable.cli_term ~extra_doc base_state `Accuser ~prefix ()
+  $ Tezos_executable.cli_term ~extra_doc base_state `Baker ~prefix
+  $ Tezos_executable.cli_term ~extra_doc base_state `Endorser ~prefix
+  $ Tezos_executable.cli_term ~extra_doc base_state `Accuser ~prefix
   [@@warning "-3"]
 
 let executables { protocol_kind; baker; endorser; accuser; _ } =

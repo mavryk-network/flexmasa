@@ -474,6 +474,4 @@ let cmdliner_term state () =
                 is `Operator`."
                extra_doc))
   $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_node ~prefix:"tezos"
-      ()
   $ Tezos_executable.cli_term ~extra_doc state `Tx_rollup_client ~prefix:"tezos"
-      ()

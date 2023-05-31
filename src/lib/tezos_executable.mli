@@ -63,10 +63,9 @@ val call :
 
 val cli_term :
   ?extra_doc:string ->
+  ?prefix:string ->
   < manpager : Internal_pervasives.Manpage_builder.State.t ; .. > ->
   kind ->
-  ?prefix:string ->
-  unit ->
   t Cmdliner.Term.t
 (** Build a [Cmdliner] term which creates executables, the second argument is a
     prefix of option names (e.g. ["tezos"] for the option

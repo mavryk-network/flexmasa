@@ -403,8 +403,8 @@ let cmdliner_term state () =
           [ "smart-rollup-node-mode" ]
           ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
-      ~prefix:"octez" ()
+      ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client
-      ~prefix:"octez" ()
+      ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
-      ~prefix:"octez" ()
+      ~prefix:"octez"

@@ -422,15 +422,15 @@ let cmd () =
                (info [ "no-daemons-for" ] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
     $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node ~prefix:"octez" ()
-    $ Tezos_executable.cli_term base_state `Client ~prefix:"octez" ()
-    $ Tezos_executable.cli_term base_state `Admin ~prefix:"octez" ()
-    $ Tezos_executable.cli_term base_state `Baker ~prefix:"first" ()
-    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"first" ()
-    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"first" ()
-    $ Tezos_executable.cli_term base_state `Baker ~prefix:"second" ()
-    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"second" ()
-    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"second" ()
+    $ Tezos_executable.cli_term base_state `Node ~prefix:"octez"
+    $ Tezos_executable.cli_term base_state `Client ~prefix:"octez"
+    $ Tezos_executable.cli_term base_state `Admin ~prefix:"octez"
+    $ Tezos_executable.cli_term base_state `Baker ~prefix:"first"
+    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"first"
+    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"first"
+    $ Tezos_executable.cli_term base_state `Baker ~prefix:"second"
+    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"second"
+    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"second"
     $ Arg.(
         const (fun p -> `Next_protocol p)
         $ value
