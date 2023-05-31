@@ -328,7 +328,7 @@ $ tx_cli mint-and-deposit \
         --ticket-alias my_tickets
 ```
 
-The tx-client command, `mint-and-deposit` is a layer one contracts call which
+The tx-client command, `mint-and-deposit` is a layer one contract call which
 mints ticket and deposits them to the target address. Below is a truncated
 example of the calls output.
 
