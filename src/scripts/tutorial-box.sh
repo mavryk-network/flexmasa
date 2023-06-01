@@ -108,25 +108,6 @@ start_upgrade() {
         --until-level 200_000_000
 }
 
-all_commands="$all_commands
-* start_toru : Start a transactional rollup sandbox with the $default_protocol protocol."
-root_path=/tmp/mini-box
-start_toru() {
-    flextesa mini-net \
-        --root "$root_path" --size 1 "$@" \
-        --set-history-mode N000:archive \
-        --number-of-b 2 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
-        --time-b "$time_bb" \
-        --add-bootstrap-account="$alice@2_000_000_000_000" \
-        --add-bootstrap-account="$bob@2_000_000_000_000" \
-        --no-daemons-for=alice \
-        --no-daemons-for=bob \
-        --until-level 200_000_000 \
-        --protocol-kind "$default_protocol" \
-        --tx-rollup 10:torubox
-}
-
 ## Smart rollup sandbox commands
 all_commands="$all_commands
 * start_custom_smart_rollup KIND TYPE PATH: Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel.
@@ -248,15 +229,6 @@ initclient() {
     octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
     octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
     octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
-}
-
-all_commands="$all_commands
-* toru_info : Show account and information about the trasanctional rollup sandbox."
-toru_info() {
-    echo '{'
-    echo "  \"toru_node_config\":  $(jq . ${root_path}/tx-rollup-torubox/torubox-operator-node-000/data-dir/config.json),"
-    echo "  \"turo_ticket_deposit_contract\":  $(jq .[0] ${root_path}/Client-base-C-N000/contracts)"
-    echo '}'
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then

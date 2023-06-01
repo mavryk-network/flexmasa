@@ -24,8 +24,6 @@ type kind =
   | `Accuser
   | `Client
   | `Admin
-  | `Tx_rollup_node
-  | `Tx_rollup_client
   | `Smart_rollup_node
   | `Smart_rollup_client
   | `Smart_rollup_installer ]

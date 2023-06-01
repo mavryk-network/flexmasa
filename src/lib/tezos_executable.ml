@@ -21,8 +21,6 @@ type kind =
   | `Accuser
   | `Client
   | `Admin
-  | `Tx_rollup_node
-  | `Tx_rollup_client
   | `Smart_rollup_node
   | `Smart_rollup_client
   | `Smart_rollup_installer ]
@@ -45,8 +43,6 @@ let kind_string (kind : [< kind ]) =
   | `Node -> "node"
   | `Client -> "client"
   | `Admin -> "admin-client"
-  | `Tx_rollup_node -> "tx-rollup-node"
-  | `Tx_rollup_client -> "tx-rollup-client"
   | `Smart_rollup_node -> "smart-rollup-node"
   | `Smart_rollup_client -> "smart-rollup-client"
   | `Smart_rollup_installer -> "smart-rollup-installer"
@@ -58,13 +54,11 @@ let default_binary ?protocol_kind t =
   in
   let octez_prefix s = Fmt.str "octez-%s" s in
   match (t.kind, protocol_kind) with
-  | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
-      | `Smart_rollup_node | `Smart_rollup_client ),
+  | ( (`Accuser | `Baker | `Endorser | `Smart_rollup_node | `Smart_rollup_client),
       Some proto ) ->
       base_name t.kind |> proto_suffix proto |> octez_prefix
   | (`Node | `Client | `Admin), _ -> base_name t.kind |> octez_prefix
-  | ( ( `Accuser | `Baker | `Endorser | `Tx_rollup_node | `Tx_rollup_client
-      | `Smart_rollup_node | `Smart_rollup_client ),
+  | ( (`Accuser | `Baker | `Endorser | `Smart_rollup_node | `Smart_rollup_client),
       _ ) ->
       Fmt.failwith
         "Called default_binary with for octez-%s and protocol_kind = None"

@@ -253,7 +253,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
-    node_exec client_exec baker_exec endorser_exec accuser_exec test_kind ?tx
+    node_exec client_exec baker_exec endorser_exec accuser_exec test_kind
     ?smart_rollup ~smart_contracts () =
   (if clear_root then
    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
@@ -275,7 +275,6 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
          else [ baker_exec; accuser_exec ]
         else [])
       @ Option.value_map hard_fork ~default:[] ~f:Hard_fork.executables
-      @ Option.value_map tx ~default:[] ~f:Tx_rollup.executables
       @ Option.value_map smart_rollup ~default:[] ~f:Smart_rollup.executables)
   >>= fun () ->
   Console.say state EF.(wf "Starting up the network.") >>= fun () ->
@@ -392,9 +391,6 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Traffic_generation.Commands.init_cmd_history state
   (* clear the command history file *)
   >>= fun () ->
-  Tx_rollup.run state ~protocol ~tx_rollup:tx ~keys_and_daemons ~nodes
-    ~base_port
-  >>= fun () ->
   Smart_rollup.run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes
     ~base_port
   >>= fun () ->
@@ -465,13 +461,12 @@ let cmd () =
         genesis_block_choice
         nodes_history_mode_edits
         state
-        tx
         smart_rollup
         smart_contracts
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
-            ?hard_fork ?tx ?smart_rollup ~clear_root ~nodes_history_mode_edits
+            ?hard_fork ?smart_rollup ~clear_root ~nodes_history_mode_edits
             ~external_peer_ports ~no_daemons_for ~genesis_block_choice
             ~smart_contracts test_kind
         in
@@ -501,7 +496,7 @@ let cmd () =
                     fail
                       (`Msg
                         "Error: option `--random-traffic` requires also \
-                         `--until-level`."))
+                         `w--until-level`."))
           $ value
               (opt (some int) None
                  (info [ "until-level" ] ~docs
@@ -561,7 +556,6 @@ let cmd () =
     $ Genesis_block_hash.Choice.cmdliner_term ()
     $ Tezos_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
-    $ Tx_rollup.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
     $ Smart_contract.cmdliner_term base_state ()
   in
