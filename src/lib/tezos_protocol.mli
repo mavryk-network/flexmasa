@@ -72,7 +72,8 @@ type t = {
   kind : Protocol_kind.t;
   bootstrap_accounts : (Account.t * Int64.t) list;
   dictator : Account.t;
-      (* ; bootstrap_contracts: (Account.t * int * Script.origin) list *)
+  (* ; bootstrap_contracts: (Account.t * int * Script.origin) list *)
+  soru_node_op : Account.t;
   expected_pow : int;
   name : string;
   hash : string;
@@ -101,6 +102,7 @@ val bootstrap_accounts : t -> Account.t list
 val kind : t -> Protocol_kind.t
 val dictator_name : t -> string
 val dictator_secret_key : t -> string
+val soru_node_operator : t -> Account.t
 val sandbox_path : < paths : Paths.t ; .. > -> t -> string
 val protocol_parameters_path : < paths : Paths.t ; .. > -> t -> string
 

@@ -24,7 +24,7 @@ fi
 runone () {
     name="$1"
     shift
-    rootroot="/tmp/flextesa-full-sandbox-tests/$name/"
+    rootroot="/tmp/flextesa-full-sandbox-tests/$name"
     root="$rootroot/root"
     log="$rootroot/log.txt"
     say "Running $name ($rootroot)"
@@ -42,7 +42,7 @@ before_alpha=$next
 quickmini () {
     proto="$1"
     runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
-           --time-between-blocks 1 $until_8 \
+           --time-between-blocks 1 $until_4 \
            --number-of-boot 1 --size 1
 }
 
@@ -104,6 +104,13 @@ daem_n2a () {
         --test-variant full-upgrade
 }
 
+smart-rollup () {
+    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
+           --time-between-blocks 1 $until_8 \
+           --number-of-boot 1 --size 1 \
+           --smart-rollup
+}
+
 all() {
     quickmini "$current"
     quickmini "$next"
@@ -113,6 +120,7 @@ all() {
     daem_c2n
     daem_c2n_nay
     daem_n2a
+    smart-rollup
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }

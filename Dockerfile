@@ -8,9 +8,10 @@ RUN opam update
 RUN opam install --with-test --deps-only ./tezai-tz1-crypto.opam ./flextesa.opam
 RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
-RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin/
-#WORKDIR /usr/bin
+RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
+RUN sudo sh src/scripts/get-octez-kernel-build.sh /usr/bin
+RUN sudo sh src/scripts/get-tx-client.sh /usr/bin
 FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap jq
@@ -38,6 +39,7 @@ COPY --from=0 /usr/bin/octez-smart-rollup-node-alpha .
 COPY --from=0 /usr/bin/octez-smart-rollup-wasm-debugger .
 COPY --from=0 /usr/bin/flextesa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
+COPY --from=0 /usr/bin/smart-rollup-installer .
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/mumbaibox
@@ -49,3 +51,4 @@ RUN chmod a+rx /usr/bin/alphabox
 RUN /usr/bin/alphabox initclient
 RUN ln -s /usr/bin/octez-client /usr/bin/tezos-client
 ENV TEZOS_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
+COPY --from=0 /usr/bin/tx-client .
