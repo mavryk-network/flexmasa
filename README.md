@@ -14,15 +14,16 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20230607-rc`
+The current _released_ image is `oxheadalpha/flextesa:20230607` (also available
+as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
 also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
-
+  
 ```sh
-image=oxheadalpha/flextesa:20230607-rc
+image=oxheadalpha/flextesa:latest
 script=mumbaibox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
