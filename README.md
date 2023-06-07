@@ -14,14 +14,14 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20230502` (also available
+The current _released_ image is `oxheadalpha/flextesa:20230607` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
 also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
-
+  
 ```sh
 image=oxheadalpha/flextesa:latest
 script=mumbaibox
@@ -39,7 +39,7 @@ baker advancing the blockchain):
   time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
 
-The default `block_time` is 5 seconds. <!-- TODO is this still right? -->
+The default `block_time` is 5 seconds.
 
 See also the accounts available by default:
 
@@ -203,6 +203,161 @@ The default values are:
 
 Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
 accounts by default.
+
+### Smart Optimistic Rollups
+
+The released image [scripts](#run-with-docker) include two commands for starting
+a [Smart Optimistic Rollup](https://tezos.gitlab.io/alpha/smart_rollups.html)
+sandbox:
+
+- [start_custom_smart_rollup](#staring-a-smart-rollup-sandbox-with-a-custom-kernel)
+- [start_tx_smart_rollup](#-start-the-tx-smart-rollup)
+
+Both are an implementation of the `flextesa mini-network` with the
+`--smart-rollup` option.
+
+#### Staring a Smart Rollup Sandbox with a Custom Kernel
+The following command will start a smart rollup with the kernel you provide.
+
+``` default
+$ docker run --rm --detach --volume /path/to/kernel/files:/rollup \
+        -p 20000:20000 -p 20010:20010 --name my-sandbox "$image" "$script" \
+        start_custom_smart_rollup KIND TYPE /rollup/kernel.wasm
+```
+
+Replace `/path/to/kernel/files` with the path to the directory containing the
+.wasm file on your machine. The `--volume` option will mount that director to
+the container. `KIND` and `TYPE` should be the values appropriate for your
+kernel. `/rollup/kernel.wasm` will be the location of your kernel in the
+container. The published (`-p`) ports **20000** and **20010** will be the
+rpc_ports for the **tezos-node** and **smart-rollup-node** respectively.
+
+Most kernels will be too large for an L1 operation. If this is the case for your
+kernel, after running `start_custom_smart_rollup`, Flextesa will use
+the [smart-rollup-installer](https://crates.io/crates/tezos-smart-rollup-installer)
+to create an installer kernel. After a few moments a smart rollup running your
+kernel should be originated.
+
+You can confirm that the smart-rollup-node has been initialized and see relevant rollup
+info from the smart-rollup-node's config with the `smart_rollup_info` command.
+
+``` default
+$ docker exec my-sandbox "$script" smart_rollup_info
+{
+  "smart_rollup_node_config":  {
+  "smart-rollup-address": "sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp",
+  "smart-rollup-node-operator": {
+    "publish": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
+    "add_messages": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
+    "cement": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
+    "refute": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ"
+  },
+  "rpc-addr": "0.0.0.0",
+  "rpc-port": 20010,
+  "fee-parameters": {},
+  "mode": "operator"
+},
+}
+```
+
+You'll need the **rpc-addr** and **rpc-port** for the smart rollup node
+entrypoint when making calls with the smart-rollup-client. We recommend aliasing
+the following:
+
+``` default
+$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtMumbai -E http://localhost:20010' 
+```
+
+In order to include any smart contracts, add them to your
+`/path/to/kernel/files` directory and originate them with the octez-client
+included in the docker container.
+
+``` default
+$ alias tcli='docker exec my-sandbox octez-client'
+
+$ tcli originate contract my_contract_alias \
+        transferring 0 from alice running /rollup/my_contract.tz \
+        --burn-cap 1 --init "Unit"
+```
+
+#### Start the TX Smart Rollup
+The command `start_tx_smart_rollup`, originates the transaction smart rollup
+with the [tx-kernel](https://gitlab.com/tezos/kernel). This is the default kernel 
+included with flextesa mini-network.
+
+``` default
+$ docker run --rm --name my-sandbox --detach -p 20000:20000 -p 20002:20002 \
+        "$image" "$script" start_tx_smart_rollup 
+```
+
+The docker container includes the
+[tx-client](https://gitlab.com/emturner/tx-client) which can be used to interact
+with the tx-smart-rollup. Initialize it with the following command.
+
+``` default
+$ docker exec my-sandbox "$script" tx_client_init
+$ docker exec my-sandbox "$script" tx_client_show_config
+{
+"config_file": "/tmp/mini-smart-rollup-box/tx-client/config.json",
+"config": {
+  "tz_client": "/usr/bin/tz-client-for-tx-client.sh",
+  "tz_client_base_dir": "/tmp/mini-smart-rollup-box/Client-base-C-N000",
+  "tz_rollup_client": "/usr/bin/tz-rollup-client-for-tx-client.sh",
+  "forwarding_account": "alice",
+  "depositor_address": "KT1EX3joap58iygupJsbxhgGmhwVTWzHM3ky",
+  "rollup_address": "sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp",
+  "known_accounts": [],
+  "known_tickets": {}
+},
+}
+
+```
+
+Alias the tx-client to simplify interacting with the tx-smart-rollup (the
+`--config-file` option is required). Then generate a new address and send ticks
+to that address.
+
+``` default
+$ alias tx_cli='docker exec my-sandbox tx-client \
+        --config-file /tmp/mini-smart-rollup-box/tx-client/config.json'
+$ tx_cli gen-key alice_rollup_addr
+$ tx_cli mint-and-deposit \
+        --amount 10 \
+        --contents "hello world" \
+        --target alice_rollup_addr \
+        --ticket-alias my_tickets
+```
+
+The tx-client command, `mint-and-deposit` is a layer one contract call which
+mints ticket and deposits them to the target address. Below is a truncated
+example of the calls output.
+
+``` default
+Node is bootstrapped.
+Estimated gas: 4058.231 units (will add 100 for safety)
+Estimated storage: 66 bytes added (will add 20 for safety)
+Operation successfully injected in the node.
+...
+      Internal operations:
+        Internal Transaction:
+          Amount: ꜩ0
+          From: KT1EX3joap58iygupJsbxhgGmhwVTWzHM3ky
+          To: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
+          Parameter: (Pair "5e87fcdd8c9bf5d80a58ec7c5e28c41bec64ae0a"
+                           (Pair 0x01411c976a093fbd4964353e52a2470ed61d1148ef00 (Pair "hello world" 10)))
+          This transaction was successfully applied
+          Consumed gas: 1007.075
+          Ticket updates:
+            Ticketer: KT1EX3joap58iygupJsbxhgGmhwVTWzHM3ky
+            Content type: string
+            Content: "hello world"
+            Account updates:
+              sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp ... +10
+
+...
+```
+
+For more information on the tx-client see it's [repository](https://gitlab.com/emturner/tx-client).
 
 ## Build
 
