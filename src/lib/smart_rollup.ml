@@ -348,9 +348,22 @@ let cmdliner_term state () =
   let extra_doc =
     Fmt.str " for the smart optimistic rollup (requires --smart-rollup)."
   in
-  const (fun soru level custom_kernel node_mode node client installer ->
-      match soru with
-      | true ->
+  const (fun soru evm level custom_kernel node_mode node client installer ->
+      match (soru, evm) with
+      | _, true ->
+          (* If --evm-rolup flag then start evm-smart rollup with octez-evm-kernel*)
+          Some
+            {
+              id = "evm";
+              level;
+              custom_kernel = None;
+              node_mode;
+              node;
+              client;
+              installer;
+            }
+      | true, false ->
+          (* If --smart-rollup flage check for --custome-kernel else us tx-kernel from Trilitech.*)
           let id =
             match custom_kernel with
             | None -> Tx_installer.name
@@ -360,7 +373,7 @@ let cmdliner_term state () =
                     Caml.Filename.(basename p |> chop_extension))
           in
           Some { id; level; custom_kernel; node_mode; node; client; installer }
-      | false -> None)
+      | false, false -> None)
   $ Arg.(
       value
       & flag
@@ -370,6 +383,12 @@ let cmdliner_term state () =
                 rollup. By default this will be the transction smart rollup \
                 (TX-kernel). See `--custom-kernel` for other options."
              ~docs))
+  $ Arg.(
+      value & flag
+      & info [ "evm-smart-rollup" ] ~docs
+          ~doc:
+            "Start the mini-network with an EVM smart rollup using the octez \
+             emv-kernel.")
   $ Arg.(
       value
       & opt int 5
