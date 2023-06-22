@@ -140,21 +140,15 @@ module Kernel = struct
   let make_args ~kind ~michelson_type ~hex : cli_args =
     { kind; michelson_type; hex }
 
-  let default_args =
-    make_args ~kind:Tx_installer.kind
-      ~michelson_type:Tx_installer.michelson_type ~hex:Tx_installer.hex
+  (* Write wasm byte code to file  *)
+  let write_wasm ~state ~smart_rollup ~filename ~content =
+    let path = kernel_dir ~state smart_rollup filename in
+    System.write_file state path ~content >>= fun () -> return path
 
-  (* Write the tx-kernel files to the data reveal directory. *)
-  let load_default_preimages state reveal_data_dir preimages =
-    List_sequential.iter preimages ~f:(fun (p, content) ->
-        let filename = Caml.Filename.basename p in
-        System.write_file state (reveal_data_dir // filename) ~content)
-
-  (* Check the extension of user provided kernel. *)
+  (* check the extension of user provided kernel. *)
   let check_extension path =
     let open Caml.Filename in
-    let ext = extension path in
-    match ext with
+    match extension path with
     | ".hex" -> `Hex path
     | ".wasm" -> `Wasm path
     | _ -> raise (Invalid_argument (sprintf "Wrong file type at: %S" path))
@@ -169,47 +163,49 @@ module Kernel = struct
   (* Build the kernel with the smart_rollup_installer executable. *)
   let build state ~smart_rollup ~node : (cli_args, _) Asynchronous_result.t =
     let config = make_config state ~smart_rollup ~node in
+    (* make dierctories *)
     make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
     make_dir state config.reveal_data_dir >>= fun _ ->
-    match smart_rollup.kernel with
-    | `Tx ->
-        load_default_preimages state config.reveal_data_dir Preimages.tx_kernel
-        >>= fun _ -> return default_args
-    | `Evm | `Custom _ (* (kind, michelson_type, kernel_path) *) -> (
-        (match smart_rollup.kernel with
-        | `Custom (k, m, kp) -> return (k, m, kp)
-        | `Evm ->
-            let kp = kernel_dir ~state smart_rollup "evm_kernel.wasm" in
-            System.write_file state kp ~content:Smart_rollup_kernels.evm_kernel
-            >>= fun () -> return ("wasm_2_0_0", "unit", kp)
-        | _ -> assert false)
-        >>= fun (kind, michelson_type, kernel_path) ->
-        let cli_args h =
-          h >>= fun hex -> return (make_args ~kind ~michelson_type ~hex)
-        in
-        let content path = System.read_file state path in
-        System.size state kernel_path >>= fun s ->
-        if s > 24 * 1048 then
-          (* wasm files larger that 24kB are passed to installer_create. We can't do anything with large .hex files *)
-          match check_extension kernel_path with
-          | `Hex p ->
-              raise
-                (Invalid_argument
-                   (sprintf
-                      "%s is over the max operation size (24kB). Try a .wasm \
-                       file \n"
-                      p))
-          | `Wasm _ ->
-              installer_create state ~exec:config.exec.kind ~path:kernel_path
-                ~output:config.installer_kernel
-                ~preimages_dir:config.reveal_data_dir
-              >>= fun _ -> cli_args (content config.installer_kernel)
-        else
-          match check_extension kernel_path with
-          | `Hex p -> cli_args (content p)
-          | `Wasm p ->
-              content p >>= fun was ->
-              cli_args (return Hex.(was |> of_string |> show)))
+    begin
+      (* Decided which kernel will be originated. *)
+      match smart_rollup.kernel with
+      | `Custom kernel -> return kernel
+      | `Evm ->
+          write_wasm ~state ~smart_rollup ~filename:"evm_kernel.wasm"
+            ~content:Smart_rollup_kernels.evm_kernel
+          >>= fun path -> return ("wasm_2_0_0", "unit", path)
+      | `Tx ->
+          write_wasm ~state ~smart_rollup ~filename:"tx_kernel.wasm"
+            ~content:Smart_rollup_kernels.tx_kernel
+          >>= fun path ->
+          return ("wasm_2_0_0", "pair string (ticket string)", path)
+    end
+    >>= fun (kind, michelson_type, kernel_path) ->
+    let cli_args h =
+      h >>= fun hex -> return (make_args ~kind ~michelson_type ~hex)
+    in
+    let content path = System.read_file state path in
+    System.size state kernel_path >>= fun s ->
+    if s > 24 * 1048 then
+      (* wasm files larger that 24kB are passed to installer_create. We can't do anything with large .hex files *)
+      match check_extension kernel_path with
+      | `Hex p ->
+          raise
+            (Invalid_argument
+               (sprintf
+                  "%s is over the max operation size (24kB). Try a .wasm file \n"
+                  p))
+      | `Wasm _ ->
+          installer_create state ~exec:config.exec.kind ~path:kernel_path
+            ~output:config.installer_kernel
+            ~preimages_dir:config.reveal_data_dir
+          >>= fun _ -> cli_args (content config.installer_kernel)
+    else
+      match check_extension kernel_path with
+      | `Hex p -> cli_args (content p)
+      | `Wasm p ->
+          content p >>= fun was ->
+          cli_args (return Hex.(was |> of_string |> show))
 end
 
 (* octez-client call to originate a smart-rollup. *)
