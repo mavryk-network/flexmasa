@@ -352,16 +352,18 @@ let cmdliner_term state () =
   let extra_doc =
     Fmt.str " for the smart optimistic rollup (requires --smart-rollup)."
   in
-  const (fun soru evm level custom_kernel node_mode node client installer ->
+  const (fun soru level custom_kernel node_mode node client installer ->
       let default_conf =
         { id = "TX"; level; kernel = `Tx; node_mode; node; client; installer }
       in
-      match (soru, evm) with
-      | _, true ->
-          (* If --evm-rolup flag then start evm-smart rollup with octez-evm-kernel*)
+      match soru with
+      | `Evm ->
+          (* If EVM then start evm-smart rollup with octez-evm-kernel*)
           Some { default_conf with id = "EVM"; kernel = `Evm }
-      | true, false -> (
-          (* If --smart-rollup flage check for --custome-kernel else us tx-kernel from Trilitech.*)
+      | `Tx | `Custom -> (
+          (* If TX or Custom check for --custome-kernel else us tx-kernel from
+             Trilitech. This should mainatain consistent behavior with past
+             versions of flextgesa. *)
           match custom_kernel with
           | None -> Some default_conf
           | Some (kind, mich_type, path) ->
@@ -376,22 +378,28 @@ let cmdliner_term state () =
                   id = custom_id;
                   kernel = `Custom (kind, mich_type, path);
                 })
-      | false, false -> None)
+      | `No_rollup -> None)
   $ Arg.(
       value
-      & flag
-          (info [ "smart-rollup" ]
+      & opt ~vopt:`Tx
+          (enum
+             [
+               ("tx", `Tx);
+               ("evm", `Evm);
+               ("custom", `Custom);
+               ("no-rollup", `No_rollup);
+             ])
+          `No_rollup
+          (info
+             [ "smart-rollup" ]
+             (*  TODO make enum for tx evm and custom kernel *)
              ~doc:
-               "Start the Flextexa mini-network with a smart optimistic \
-                rollup. By default this will be the transction smart rollup \
-                (TX-kernel). See `--custom-kernel` for other options."
-             ~docs))
-  $ Arg.(
-      value & flag
-      & info [ "evm-smart-rollup" ] ~docs
-          ~doc:
-            "Start the mini-network with an EVM smart rollup using the octez \
-             emv-kernel.")
+               "Choose the type of smart optimistic rollup for starting the \
+                mini-network. The options are: `tx` -- Transaction smart \
+                rollup (TX-kernel), `evm` -- EVM smart rollup (uses Octez \
+                EVM-kernel), and `custom` -- User provided custom kernel \
+                (specify path with `--custom-kernel` option)."
+             ~docv:"KIND" ~docs))
   $ Arg.(
       value
       & opt int 5
