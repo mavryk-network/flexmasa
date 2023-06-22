@@ -5,7 +5,7 @@ type mode = [ `Operator | `Batcher | `Observer | `Maintenance | `Accuser ]
 type t = {
   id : string;
   level : int;
-  custom_kernel : (string * string * string) option;
+  kernel : [ `Tx | `Evm | `Custom of string * string * string ];
   node_mode : mode;
   node : Tezos_executable.t;
   client : Tezos_executable.t;
@@ -171,11 +171,19 @@ module Kernel = struct
     let config = make_config state ~smart_rollup ~node in
     make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
     make_dir state config.reveal_data_dir >>= fun _ ->
-    match smart_rollup.custom_kernel with
-    | None ->
+    match smart_rollup.kernel with
+    | `Tx ->
         load_default_preimages state config.reveal_data_dir Preimages.tx_kernel
         >>= fun _ -> return default_args
-    | Some (kind, michelson_type, kernel_path) -> (
+    | `Evm | `Custom _ (* (kind, michelson_type, kernel_path) *) -> (
+        (match smart_rollup.kernel with
+        | `Custom (k, m, kp) -> return (k, m, kp)
+        | `Evm ->
+            let kp = kernel_dir ~state smart_rollup "evm_kernel.wasm" in
+            System.write_file state kp ~content:Smart_rollup_kernels.evm_kernel
+            >>= fun () -> return ("wasm_2_0_0", "unit", kp)
+        | _ -> assert false)
+        >>= fun (kind, michelson_type, kernel_path) ->
         let cli_args h =
           h >>= fun hex -> return (make_args ~kind ~michelson_type ~hex)
         in
@@ -349,30 +357,29 @@ let cmdliner_term state () =
     Fmt.str " for the smart optimistic rollup (requires --smart-rollup)."
   in
   const (fun soru evm level custom_kernel node_mode node client installer ->
+      let default_conf =
+        { id = "TX"; level; kernel = `Tx; node_mode; node; client; installer }
+      in
       match (soru, evm) with
       | _, true ->
           (* If --evm-rolup flag then start evm-smart rollup with octez-evm-kernel*)
-          Some
-            {
-              id = "evm";
-              level;
-              custom_kernel = None;
-              node_mode;
-              node;
-              client;
-              installer;
-            }
-      | true, false ->
+          Some { default_conf with id = "EVM"; kernel = `Evm }
+      | true, false -> (
           (* If --smart-rollup flage check for --custome-kernel else us tx-kernel from Trilitech.*)
-          let id =
-            match custom_kernel with
-            | None -> Tx_installer.name
-            | Some (_, _, p) -> (
-                match Kernel.check_extension p with
+          match custom_kernel with
+          | None -> Some default_conf
+          | Some (kind, mich_type, path) ->
+              let custom_id =
+                Kernel.check_extension path |> function
                 | `Hex p | `Wasm p ->
-                    Caml.Filename.(basename p |> chop_extension))
-          in
-          Some { id; level; custom_kernel; node_mode; node; client; installer }
+                    Caml.Filename.(basename p |> chop_extension)
+              in
+              Some
+                {
+                  default_conf with
+                  id = custom_id;
+                  kernel = `Custom (kind, mich_type, path);
+                })
       | false, false -> None)
   $ Arg.(
       value

@@ -41,15 +41,15 @@ let default_contracts ~(smart_rollup : Smart_rollup.t option) =
     match smart_rollup with
     | None -> []
     | Some rollup -> (
-        match rollup.custom_kernel with
-        | None ->
+        match rollup.kernel with
+        | `Tx ->
             [
               {
                 name = "mint_and_deposit_to_rollup";
                 michelson = mint_and_deposit_to_rollup;
               };
             ]
-        | Some _ -> [])
+        | `Evm | `Custom _ -> [])
   in
   tx_kernel_contract @ []
 

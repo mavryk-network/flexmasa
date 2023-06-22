@@ -3,7 +3,7 @@ open Internal_pervasives
 type t = {
   id : string;
   level : int;
-  custom_kernel : (string * string * string) option;
+  kernel : [ `Tx | `Evm | `Custom of string * string * string ];
   node_mode : [ `Accuser | `Batcher | `Maintenance | `Observer | `Operator ];
   node : Tezos_executable.t;
   client : Tezos_executable.t;
