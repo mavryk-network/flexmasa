@@ -352,54 +352,61 @@ let cmdliner_term state () =
   let extra_doc =
     Fmt.str " for the smart optimistic rollup (requires --smart-rollup)."
   in
-  const (fun soru level custom_kernel node_mode node client installer ->
-      let default_conf =
-        { id = "TX"; level; kernel = `Tx; node_mode; node; client; installer }
+  let parce_rollup_arg arg =
+    match String.split arg ~on:':' with
+    | [ "none" ] -> `No_rollup
+    | [ "tx" ] -> `Tx
+    | [ "evm" ] -> `Evm
+    | [ "custom"; kind; michelson_type; path ] ->
+        `Custom (kind, michelson_type, path)
+    | other -> Fmt.failwith "Nope: %a" Fmt.Dump.(list string) other
+  in
+  let custom_id (_, _, p) =
+    match Kernel.check_extension p with
+    | `Hex p | `Wasm p -> Caml.Filename.(basename p |> chop_extension)
+  in
+  const (fun start soru level custom_kernel node_mode node client installer ->
+      let make id kernel =
+        { id; level; kernel; node_mode; node; client; installer }
       in
-      match soru with
-      | `Evm ->
-          (* If EVM then start evm-smart rollup with octez-evm-kernel*)
-          Some { default_conf with id = "EVM"; kernel = `Evm }
-      | `Tx | `Custom -> (
-          (* If TX or Custom check for --custome-kernel else us tx-kernel from
-             Trilitech. This should mainatain consistent behavior with past
-             versions of flextgesa. *)
-          match custom_kernel with
-          | None -> Some default_conf
-          | Some (kind, mich_type, path) ->
-              let custom_id =
-                Kernel.check_extension path |> function
-                | `Hex p | `Wasm p ->
-                    Caml.Filename.(basename p |> chop_extension)
-              in
-              Some
-                {
-                  default_conf with
-                  id = custom_id;
-                  kernel = `Custom (kind, mich_type, path);
-                })
-      | `No_rollup -> None)
+      match parce_rollup_arg start with
+      | `Tx -> Some (make "tx" `Tx)
+      | `Evm -> Some (make "evm" `Evm)
+      | `Custom args -> Some (make (custom_id args) (`Custom args))
+      | `No_rollup -> (
+          match soru with
+          (* --smart-rollup is depricated in favor of of --start-smart-rollup 2023-06-23 *)
+          | true -> begin
+              match custom_kernel with
+              | None ->
+                  Some (make "tx" `Tx)
+                  (* without --custom-kernel --smart-rollup defaults to the tx rollup. *)
+              | Some args ->
+                  Some
+                    (make (custom_id args)
+                       (`Custom (Option.value_exn custom_kernel)))
+            end
+          | false -> None))
   $ Arg.(
       value
-      & opt ~vopt:`Tx
-          (enum
-             [
-               ("tx", `Tx);
-               ("evm", `Evm);
-               ("custom", `Custom);
-               ("no-rollup", `No_rollup);
-             ])
-          `No_rollup
-          (info
-             [ "smart-rollup" ]
-             (*  TODO make enum for tx evm and custom kernel *)
+      & opt string "none"
+          (info [ "start-smart-rollup" ]
              ~doc:
-               "Choose the type of smart optimistic rollup for starting the \
-                mini-network. The options are: `tx` -- Transaction smart \
-                rollup (TX-kernel), `evm` -- EVM smart rollup (uses Octez \
-                EVM-kernel), and `custom` -- User provided custom kernel \
-                (specify path with `--custom-kernel` option)."
-             ~docv:"KIND" ~docs))
+               "Start an optimistic smart rollup with one of the following \
+                options: `tx` starts a transaction smart rollup (tx_kernel). \
+                `evm` starts an EVM smart rollup (Octez evem_kernel). \
+                `custom:KIND:TYPE:PATH` starts an smart rollup with a user \
+                provided kernel. "
+             ~docs ~docv:"OPTION"))
+  $ Arg.(
+      value
+      & flag
+          (info [ "smart-rollup" ]
+             ~doc:
+               "Start the Flextexa mini-network with a smart optimistic \
+                rollup. By default this will be the transction smart rollup \
+                (TX-kernel). See `--custom-kernel` for other options."
+             ~docs))
   $ Arg.(
       value
       & opt int 5
