@@ -10,6 +10,7 @@ type t = {
   node : Tezos_executable.t;
   client : Tezos_executable.t;
   installer : Tezos_executable.t;
+  evm_proxy_server : Tezos_executable.t;
 }
 
 let make_path ~state p = Paths.root state // sprintf "smart-rollup" // p
@@ -146,6 +147,48 @@ module Node = struct
     in
     loop 1
 end
+
+module Evm_proxy_server = struct
+  type config = {
+    id : string;
+    rpc_addr : string;
+    rpc_port : int;
+    rollup_node_endpoint : int;
+    exec : Tezos_executable.t;
+    protocol : Tezos_protocol.Protocol_kind.t;
+    smart_rollup : t;
+  }
+
+  type t = config
+
+  let make ~smart_rollup ?(id = "evm-proxy-server") ?(rpc_addr = "127.0.0.1")
+      ~rpc_port ~rollup_node_endpoint ~exec ~protocol () : t =
+    {
+      id;
+      rpc_addr;
+      rpc_port;
+      rollup_node_endpoint;
+      exec;
+      protocol;
+      smart_rollup;
+    }
+
+  let server_dir state id p = make_path ~state (sprintf "%s" id // p)
+
+  let call state ~config ~command =
+    let open Tezos_executable.Make_cli in
+    Tezos_executable.call state config.exec ~protocol_kind:config.protocol
+      ~path:(server_dir state config.id "exec")
+      (command
+      @ opt "rollup-node-endpoint"
+          (sprintf "http://localhost:%d" config.rollup_node_endpoint)
+      @ opt "rpc-addr" config.rpc_addr
+      @ opt "rpc-port" (Int.to_string config.rpc_port))
+
+  (* Start a running evm-proxy-server. *)
+  let run state config =
+    Running_processes.Process.genspio config.id
+      (call state ~config ~command:[ "run" ])
 end
 
 module Kernel = struct
@@ -402,9 +445,29 @@ let cmdliner_term state () =
     match Kernel.check_extension p with
     | `Hex p | `Wasm p -> Caml.Filename.(basename p |> chop_extension)
   in
-  const (fun start soru level custom_kernel node_mode node client installer ->
+  const
+    (fun
+      start
+      soru
+      level
+      custom_kernel
+      node_mode
+      node
+      client
+      installer
+      evm_proxy_server
+    ->
       let make id kernel =
-        { id; level; kernel; node_mode; node; client; installer }
+        {
+          id;
+          level;
+          kernel;
+          node_mode;
+          node;
+          client;
+          installer;
+          evm_proxy_server;
+        }
       in
       match parce_rollup_arg start with
       | `Tx -> Some (make "tx" `Tx)
@@ -482,3 +545,4 @@ let cmdliner_term state () =
       ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
       ~prefix:"octez"
+  $ Tezos_executable.cli_term ~extra_doc state `Evm_proxy_server ~prefix:"octez"
