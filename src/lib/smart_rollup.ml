@@ -373,7 +373,7 @@ let executables ({ client; node; installer; _ } : t) =
 let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   match smart_rollup with
   | None -> return ()
-  | Some soru -> (
+  | Some soru -> begin
       List.hd keys_and_daemons |> function
       | None -> return ()
       | Some (_, _, client, _, _) ->
@@ -387,11 +387,11 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           in
           Tezos_client.Keyed.initialize state op_keys >>= fun _ ->
           (* Configure smart-rollup node. *)
-          let port = Test_scenario.Unix_port.(next_port nodes) in
+          let rollup_node_port = Test_scenario.Unix_port.(next_port nodes) in
           Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
-            ~operator_addr:op_keys.key_name ~rpc_addr:"0.0.0.0" ~rpc_port:port
-            ~endpoint:base_port ~protocol:protocol.kind ~exec:soru.node ~client
-            ()
+            ~operator_addr:op_keys.key_name ~rpc_addr:"0.0.0.0"
+            ~rpc_port:rollup_node_port ~endpoint:base_port
+            ~protocol:protocol.kind ~exec:soru.node ~client ()
           |> return
           >>= fun soru_node ->
           (* Configure custom Kernel or use default if none. *)
@@ -404,24 +404,58 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           (* Start smart-rollup node. *)
           Running_processes.start state
             Node.(start state soru_node origination_res.address)
-          >>= fun _ ->
+          >>= fun { process = _; lwt = _ } ->
+          return () >>= fun _ ->
+          begin
+            match soru.kernel with
+            | `Evm ->
+                (* Wait for the rollup node to bootstrap. *)
+                Node.wait_for_responce state ~config:soru_node >>= fun () ->
+                (* System.sleep 0.6 >>= fun () -> *)
+                (* Start the evm-proxy-sever. *)
+                let evm_proxy_port =
+                  Test_scenario.Unix_port.(next_port nodes)
+                in
+                Evm_proxy_server.make ~smart_rollup:soru
+                  ~rpc_port:evm_proxy_port
+                  ~rollup_node_endpoint:rollup_node_port
+                  ~exec:soru.evm_proxy_server ~protocol:protocol.kind ()
+                |> return
+                >>= fun evm_proxy_server ->
+                Running_processes.start state
+                  (Evm_proxy_server.run state evm_proxy_server)
+                >>= fun { process = _; lwt = _ } ->
+                return () >>= fun _ ->
+                (* Print evm-proxy-server rpc port.*)
+                EF.
+                  [
+                    desc
+                      (af "evm-proxy-server is listening on")
+                      (af "rpc_port: `%d`" evm_proxy_server.rpc_port);
+                  ]
+                |> return
+            | _ -> return []
+          end
+          >>= fun evm_proxy_server_info ->
           (* Print smart-rollup info. *)
           Console.say state
             EF.(
               desc_list
                 (haf "%S smart optimistic rollup is ready:" soru.id)
-                [
-                  desc (af "Address:") (af "`%s`" origination_res.address);
-                  desc
-                    (af "A rollup node in %S mode is listening on"
-                       (Node.mode_string soru_node.mode))
-                    (af "rpc_port: `%d`"
-                       (Option.value_exn
-                          ?message:
-                            (Some
-                               "Failed to get rpc port for Smart rollup node.")
-                          soru_node.rpc_port));
-                ]))
+                ([
+                   desc (af "Address:") (af "`%s`" origination_res.address);
+                   desc
+                     (af "A rollup node in %S mode is listening on"
+                        (Node.mode_string soru_node.mode))
+                     (af "rpc_port: `%d`"
+                        (Option.value_exn
+                           ?message:
+                             (Some
+                                "Failed to get rpc port for the smart rollup \
+                                 node.") soru_node.rpc_port));
+                 ]
+                @ evm_proxy_server_info))
+    end
 
 let cmdliner_term state () =
   let open Cmdliner in
