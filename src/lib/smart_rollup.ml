@@ -77,38 +77,75 @@ module Node = struct
            opt "endpoint" (sprintf "http://localhost:%d" e))
       (* The base-dir is the octez_client directory. *)
       @ opt "base-dir" client_dir
-      @ command
-      (* The directory where the node config is stored. *)
-      @ opt "data-dir" (data_dir state config)
-      @ Option.value_map config.rpc_addr
-          ~f:(fun a -> opt "rpc-addr" (sprintf "%s" a))
-          ~default:[]
-      @ Option.value_map config.rpc_port
-          ~f:(fun p -> opt "rpc-port" (sprintf "%d" p))
-          ~default:[])
+      @ command)
+
+  let int_run_options state ~config =
+    let open Tezos_executable.Make_cli in
+    (* The directory where the node config is stored. *)
+    opt "data-dir" (data_dir state config)
+    @ Option.value_map config.rpc_addr
+        ~f:(fun a -> opt "rpc-addr" (sprintf "%s" a))
+        ~default:[]
+    @ Option.value_map config.rpc_port
+        ~f:(fun p -> opt "rpc-port" (sprintf "%d" p))
+        ~default:[]
 
   (* Command to initiate a smart-rollup node [config] *)
   let init state config soru_addr =
     call state ~config
-      [
-        "init";
-        mode_string config.mode;
-        "config";
-        "for";
-        soru_addr;
-        "with";
-        "operators";
-        config.operator_addr;
-      ]
+      ([
+         "init";
+         mode_string config.mode;
+         "config";
+         "for";
+         soru_addr;
+         "with";
+         "operators";
+         config.operator_addr;
+       ]
+      @ int_run_options state ~config)
 
   (* Start a running smart-rollup node. *)
   let start state config soru_addr =
     Running_processes.Process.genspio config.node_id
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
-           ("init smart-rollup node", init state config soru_addr);
-           ("run smart-rollup node", call state ~config [ "run" ]);
+           ("init smart-rollup-node", init state config soru_addr);
+           ( "run smart-rollup-node",
+             call state ~config ([ "run" ] @ int_run_options state ~config) );
          ])
+
+  (* Pause until the node is responsive.*)
+  let wait_for_responce state ~config =
+    let try_once () =
+      sprintf "curl http://localhost:%d/block/global/block/head"
+        (Option.value_exn config.rpc_port)
+      |> fun call ->
+      Running_processes.run_cmdf ~id_prefix:"smart-rollup-node" state "%s" call
+      >>= fun res -> return Poly.(res#status = Unix.WEXITED 0)
+    in
+    let attempts = 5 in
+    let rec loop nth =
+      if nth >= attempts then
+        Process_result.Error.wrong_behavior
+          ~attach:
+            [
+              ( "node-id",
+                (`String_value config.node_id : Attached_result.content) );
+            ]
+          "Bootstrapping failed %d times." nth
+      else
+        try_once () >>= function
+        | true ->
+            Console.say state EF.(haf " %d nth waiting for bootstrap" nth)
+            >>= fun () -> return ()
+        | false ->
+            System.sleep Float.(of_int nth * 1.0) >>= fun () ->
+            loop (nth + 1) >>= fun () ->
+            Console.say state EF.(haf " %d nth waiting for bootstrap" nth)
+    in
+    loop 1
+end
 end
 
 module Kernel = struct
