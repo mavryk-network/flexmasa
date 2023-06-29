@@ -104,11 +104,18 @@ daem_n2a () {
         --test-variant full-upgrade
 }
 
-smart-rollup () {
+tx_smart_rollup () {
     runone "smart-rollup" flextesa mini --protocol-kind "$current" \
            --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1 \
-           --smart-rollup
+           --start-smart-rollup tx
+}
+
+evm_smart_rollup () {
+    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
+           --time-between-blocks 1 $until_8 \
+           --number-of-boot 1 --size 1 \
+           --start-smart-rollup evm
 }
 
 all() {
@@ -120,7 +127,8 @@ all() {
     daem_c2n
     daem_c2n_nay
     daem_n2a
-    smart-rollup
+    tx_smart_rollup
+    evm_smart_rollup
 }
 
 { if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
