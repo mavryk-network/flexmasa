@@ -29,7 +29,7 @@ module State : sig
     lwt : Lwt_process.process_none;
   }
 
-  type t = private { processes : (string, process_state) Caml.Hashtbl.t }
+  type t = private { processes : (string, process_state) Stdlib.Hashtbl.t }
 
   val pp : t Fmt.t
   val make : unit -> t

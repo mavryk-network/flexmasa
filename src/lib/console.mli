@@ -7,11 +7,11 @@ type t = {
   buffer : Buffer.t;
   channel : Lwt_io.output_channel;
   with_timestamp : bool;
-  formatter : Caml.Format.formatter;
+  formatter : Stdlib.Format.formatter;
 }
 
 val make : bool -> bool -> t
-val pp : Caml.Format.formatter -> t -> unit
+val pp : Stdlib.Format.formatter -> t -> unit
 
 val cli_term : unit -> t Cmdliner.Term.t
 (** {!Cmdliner.Term.t} which configures the console interaction (e.g. the
@@ -24,7 +24,7 @@ val say :
 
 val sayf :
   < application_name : string ; console : t ; .. > ->
-  (Caml.Format.formatter -> unit -> unit) ->
+  (Stdlib.Format.formatter -> unit -> unit) ->
   (unit, [> System_error.t ]) Asynchronous_result.t
 
 (** Create interactive prompts. *)

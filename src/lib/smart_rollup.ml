@@ -227,7 +227,7 @@ module Kernel = struct
 
   (* check the extension of user provided kernel. *)
   let check_extension path =
-    let open Caml.Filename in
+    let open Stdlib.Filename in
     match extension path with
     | ".hex" -> `Hex path
     | ".wasm" -> `Wasm path
@@ -477,7 +477,7 @@ let cmdliner_term state () =
   in
   let custom_id (_, _, p) =
     match Kernel.check_extension p with
-    | `Hex p | `Wasm p -> Caml.Filename.(basename p |> chop_extension)
+    | `Hex p | `Wasm p -> Stdlib.Filename.(basename p |> chop_extension)
   in
   const
     (fun

@@ -6,7 +6,7 @@ type display_policy =
   [ `All | `Lines of int | `No | `On_error of display_policy ]
 
 val call :
-  ?comment:(Caml.Format.formatter -> unit) ->
+  ?comment:(Stdlib.Format.formatter -> unit) ->
   ?expect:[< `Anything | `Status of Cohttp.Code.status_code > `Status ] ->
   ?show_body:display_policy ->
   ?show_response:display_policy ->

@@ -17,7 +17,7 @@ module Inconsistency_error : sig
     Asynchronous_result.t
 
   val pp :
-    Caml.Format.formatter ->
+    Stdlib.Format.formatter ->
     [< `Empty_protocol_list
     | `Too_many_protocols of 'a Base.List.t
     | `Too_many_timestamp_delays of 'a Base.List.t ] ->
