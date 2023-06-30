@@ -19,12 +19,12 @@ module Inconsistency_error = struct
   let pp fmt err =
     match err with
     | `Empty_protocol_list ->
-        Caml.Format.fprintf fmt "Wrong number of protocols in network: 0"
+        Stdlib.Format.fprintf fmt "Wrong number of protocols in network: 0"
     | `Too_many_protocols p ->
-        Caml.Format.fprintf fmt "Wrong number of protocols in network: %d"
+        Stdlib.Format.fprintf fmt "Wrong number of protocols in network: %d"
           (List.length p)
     | `Too_many_timestamp_delays p ->
-        Caml.Format.fprintf fmt
+        Stdlib.Format.fprintf fmt
           "Wrong number of protocol timestamp delays in network: %d"
           (List.length p)
 end

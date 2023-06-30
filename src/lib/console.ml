@@ -5,25 +5,25 @@ type t = {
   buffer : Buffer.t;
   channel : Lwt_io.output_channel;
   with_timestamp : bool;
-  formatter : Caml.Format.formatter;
+  formatter : Stdlib.Format.formatter;
 }
 
 let make with_timestamp color =
   let channel = Lwt_io.stderr in
   let b = Buffer.create 42 in
   let formatter =
-    Caml.Format.make_formatter (Caml.Buffer.add_substring b) (fun () -> ())
+    Stdlib.Format.make_formatter (Stdlib.Buffer.add_substring b) (fun () -> ())
   in
   let bold = "\027[01m" in
   let red = "\027[31m" in
   let reset = "\027[m" in
   if color then (
     let color_of_tag = function
-      | Caml.Format.String_tag "prompt" -> Some bold
-      | Caml.Format.String_tag "shout" -> Some red
+      | Stdlib.Format.String_tag "prompt" -> Some bold
+      | Stdlib.Format.String_tag "shout" -> Some red
       | _ -> None
     in
-    Caml.Format.(
+    Stdlib.Format.(
       pp_set_formatter_stag_functions formatter
         {
           mark_open_stag = (fun _ -> "");
@@ -46,8 +46,8 @@ let pp fmt { color; _ } = Fmt.pf fmt "@[<2>{Console:@ color: %b}@]" color
 let cli_term () =
   let guess =
     let dumb =
-      try match Caml.Sys.getenv "TERM" with "dumb" | "" -> true | _ -> false
-      with Caml.Not_found -> true
+      try match Stdlib.Sys.getenv "TERM" with "dumb" | "" -> true | _ -> false
+      with Stdlib.Not_found -> true
     in
     let isatty = try Unix.(isatty stderr) with Unix.Unix_error _ -> false in
     if (not dumb) && isatty then true else false
@@ -78,7 +78,7 @@ let do_output t =
       Buffer.clear t.buffer;
       return_unit)
 
-let sayf (o : _ Base_state.t) (fmt : Caml.Format.formatter -> unit -> unit) :
+let sayf (o : _ Base_state.t) (fmt : Stdlib.Format.formatter -> unit -> unit) :
     (_, _) Asynchronous_result.t =
   let date =
     if o#console.with_timestamp then
@@ -87,7 +87,7 @@ let sayf (o : _ Base_state.t) (fmt : Caml.Format.formatter -> unit -> unit) :
     else ""
   in
   let ppf = o#console.formatter in
-  Caml.Format.(
+  Stdlib.Format.(
     pp_open_hvbox ppf 2;
     pp_open_stag ppf (String_tag "prompt");
     fprintf ppf "%s%s:" o#application_name date;
@@ -108,7 +108,7 @@ let say (o : _ Base_state.t) ef : (_, _) Asynchronous_result.t =
   in
   let msg = EF.(label (ksprintf prompt "%s%s:" o#application_name date) ef) in
   let fmt = o#console.formatter in
-  Caml.Format.(
+  Stdlib.Format.(
     fprintf fmt "%a" Easy_format.Pretty.to_formatter msg;
     pp_print_newline fmt ();
     pp_print_flush fmt ());

@@ -20,7 +20,8 @@ let dump_connections state nodes =
 let clear_root state =
   let root = Paths.(root state) in
   System_error.catch
-    (fun () -> ksprintf Lwt_unix.system "rm -fr %s" (Caml.Filename.quote root))
+    (fun () ->
+      ksprintf Lwt_unix.system "rm -fr %s" (Stdlib.Filename.quote root))
     ()
   >>= function
   | Unix.WEXITED 0 -> return ()
@@ -163,10 +164,10 @@ module System_dependencies = struct
     type t = [ `Precheck_failure of string ]
 
     let pp fmt (`Precheck_failure f) =
-      Caml.Format.fprintf fmt "Failed precheck: %S" f
+      Stdlib.Format.fprintf fmt "Failed precheck: %S" f
 
     let failf fmt =
-      Caml.Format.kasprintf (fun s -> fail (`Precheck_failure s)) fmt
+      Stdlib.Format.kasprintf (fun s -> fail (`Precheck_failure s)) fmt
   end
 
   open Error
@@ -181,7 +182,7 @@ module System_dependencies = struct
     in
     List.fold ~init:(return []) commands_to_check ~f:(fun prev_m cmd ->
         prev_m >>= fun prev ->
-        Running_processes.run_cmdf state "type %s" (Caml.Filename.quote cmd)
+        Running_processes.run_cmdf state "type %s" (Stdlib.Filename.quote cmd)
         >>= fun result ->
         match result#status with
         | Unix.WEXITED 0 -> return prev
@@ -246,7 +247,7 @@ module System_dependencies = struct
         (if
          List.exists more ~f:(function
            | `Missing_exec ("octez-node", _)
-             when Caml.Sys.file_exists ("." // "octez-node") ->
+             when Stdlib.Sys.file_exists ("." // "octez-node") ->
                true
            | _ -> false)
         then
@@ -282,7 +283,7 @@ module Shell_environement = struct
     let aliases =
       List.concat_mapi clients ~f:(fun i c ->
           let call =
-            List.map ~f:Caml.Filename.quote
+            List.map ~f:Stdlib.Filename.quote
               (Tezos_client.client_call state c [])
           in
           let cmd exec = String.concat ~sep:" " (exec :: call) in
@@ -293,9 +294,9 @@ module Shell_environement = struct
                 c.Tezos_client.exec
             with
             | "octez-client" -> []
-            | f when Caml.Filename.is_relative f ->
-                [ (sprintf "c%d" i, cmd (Caml.Sys.getcwd () // f), help) ]
-            | f -> [ (sprintf "c%d" i, cmd (Caml.Sys.getcwd () // f), help) ]
+            | f when Stdlib.Filename.is_relative f ->
+                [ (sprintf "c%d" i, cmd (Stdlib.Sys.getcwd () // f), help) ]
+            | f -> [ (sprintf "c%d" i, cmd (Stdlib.Sys.getcwd () // f), help) ]
           in
           [
             ( sprintf "tc%d" i,
@@ -313,8 +314,9 @@ module Shell_environement = struct
         @ List.concat_map aliases ~f:(fun (k, v, doc) ->
               [
                 sprintf "echo %s"
-                  (sprintf "Defining alias %s: %s" k doc |> Caml.Filename.quote);
-                sprintf "alias %s=%s" k (Caml.Filename.quote v);
+                  (sprintf "Defining alias %s: %s" k doc
+                  |> Stdlib.Filename.quote);
+                sprintf "alias %s=%s" k (Stdlib.Filename.quote v);
               ]))
     in
     System.write_file state path ~content

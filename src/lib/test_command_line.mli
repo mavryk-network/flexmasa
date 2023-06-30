@@ -52,7 +52,7 @@ module Run_command : sig
     unit
 
   val make :
-    pp_error:(Caml.Format.formatter -> ([> ] as 'errors) -> unit) ->
+    pp_error:(Stdlib.Format.formatter -> ([> ] as 'errors) -> unit) ->
     (< application_name : string ; console : Console.t ; .. >
     * (unit -> (unit, 'errors) Asynchronous_result.t))
     Cmdliner.Term.t ->

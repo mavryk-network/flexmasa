@@ -39,18 +39,18 @@ module Common_errors = struct
 
   let pp ppf (e : t) =
     match e with
-    | `Scenario_error s -> Caml.Format.fprintf ppf "%s" s
+    | `Scenario_error s -> Stdlib.Format.fprintf ppf "%s" s
     | #Test_scenario.Inconsistency_error.t as e ->
-        Caml.Format.fprintf ppf "%a" Test_scenario.Inconsistency_error.pp e
+        Stdlib.Format.fprintf ppf "%a" Test_scenario.Inconsistency_error.pp e
     | #Process_result.Error.t as e ->
-        Caml.Format.fprintf ppf "%a" Process_result.Error.pp e
-    | #System_error.t as e -> Caml.Format.fprintf ppf "%a" System_error.pp e
+        Stdlib.Format.fprintf ppf "%a" Process_result.Error.pp e
+    | #System_error.t as e -> Stdlib.Format.fprintf ppf "%a" System_error.pp e
     | `Waiting_for (msg, `Time_out) ->
-        Caml.Format.fprintf ppf "WAITING-FOR “%s”: Time-out" msg
+        Stdlib.Format.fprintf ppf "WAITING-FOR “%s”: Time-out" msg
     | `Precheck_failure _ as p -> Helpers.System_dependencies.Error.pp ppf p
-    | `Die n -> Caml.Format.fprintf ppf "Exiting with %d" n
-    | `Command_line s -> Caml.Format.fprintf ppf "%s" s
-    | `Msg s -> Caml.Format.fprintf ppf "%s" s
+    | `Die n -> Stdlib.Format.fprintf ppf "Exiting with %d" n
+    | `Command_line s -> Stdlib.Format.fprintf ppf "%s" s
+    | `Msg s -> Stdlib.Format.fprintf ppf "%s" s
 end
 
 module Run_command = struct

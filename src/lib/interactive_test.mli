@@ -261,7 +261,7 @@ module Pauser : sig
     ; test_baking : bool
     ; .. > ->
     (unit -> (unit, ([> System_error.t ] as 'errors)) Asynchronous_result.t) ->
-    pp_error:(Caml.Format.formatter -> 'errors -> unit) ->
+    pp_error:(Stdlib.Format.formatter -> 'errors -> unit) ->
     unit ->
     (unit, [> System_error.t | `Die of int ]) Asynchronous_result.t
   (** Run a test-scenario and deal with potential errors according to

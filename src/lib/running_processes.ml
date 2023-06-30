@@ -32,26 +32,26 @@ end
 
 module State = struct
   type process_state = { process : Process.t; lwt : Lwt_process.process_none }
-  type t = { processes : (string, process_state) Caml.Hashtbl.t }
+  type t = { processes : (string, process_state) Stdlib.Hashtbl.t }
 
   let pp fmt { processes } =
-    let open Caml.Format in
+    let open Stdlib.Format in
     fprintf fmt "Processes:@ [@[";
-    Caml.Hashtbl.iter
+    Stdlib.Hashtbl.iter
       (fun s { lwt; _ } -> fprintf fmt "%S:%d" s lwt#pid)
       processes;
     fprintf fmt "]@]"
 
-  let make () = { processes = Caml.Hashtbl.create 42 }
+  let make () = { processes = Stdlib.Hashtbl.create 42 }
   let processes o = (o#runner : t).processes
 
   let add_process o process lwt =
-    Caml.Hashtbl.add (processes o) process.Process.id { process; lwt };
+    Stdlib.Hashtbl.add (processes o) process.Process.id { process; lwt };
     return ()
 
   let all_processes t =
     let res = ref [] in
-    Caml.Hashtbl.iter (fun _ t -> res := t :: !res) (processes t);
+    Stdlib.Hashtbl.iter (fun _ t -> res := t :: !res) (processes t);
     return !res
 end
 
@@ -97,7 +97,7 @@ let ef_lwt_state =
 let ef ?(all = false) state =
   EF.(
     let all_procs =
-      Caml.Hashtbl.fold
+      Stdlib.Hashtbl.fold
         (fun _ { process; lwt } prev ->
           match (all, lwt#state) with
           | true, _ | false, Lwt_process.Running ->
@@ -128,7 +128,8 @@ let start t process =
       ~attach:[ ("open_file", `String_value f) ]
       Lwt.Infix.(
         fun () ->
-          System.ensure_directory_path_exn ~perm:0o700 (Caml.Filename.dirname f)
+          System.ensure_directory_path_exn ~perm:0o700
+            (Stdlib.Filename.dirname f)
           >>= fun () ->
           Lwt_unix.file_exists f >>= fun exists ->
           (if exists then Lwt_unix.rename f (sprintf "%s.saved-%s" f date)
@@ -190,7 +191,7 @@ let kill _t { lwt; process } =
       System_error.catch
         (fun () ->
           Dbg.e EF.(wf "Killing %S" process.id);
-          let signal = Caml.Sys.sigkill in
+          let signal = Stdlib.Sys.sigkill in
           let pid = ~-(lwt#pid) (* Assumes “in session” *) in
           (try Unix.kill pid signal with
           | Unix.Unix_error (Unix.ESRCH, _, _) -> ()
@@ -237,9 +238,9 @@ let find_process_by_id ?(only_running = false) t ~f =
 let cmds = ref 0
 
 let fresh_id _state prefix ~seed =
-  Caml.incr cmds;
+  Stdlib.incr cmds;
   sprintf "%s-%05d-%s-%08d" prefix !cmds
-    Caml.Digest.(string seed |> to_hex)
+    Stdlib.Digest.(string seed |> to_hex)
     Random.(int 10_000_000)
 
 let run_cmdf ?(id_prefix = "cmd") state fmt =

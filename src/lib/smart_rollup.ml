@@ -147,12 +147,12 @@ module Kernel = struct
   (* Write the tx-kernel files to the data reveal directory. *)
   let load_default_preimages state reveal_data_dir preimages =
     List_sequential.iter preimages ~f:(fun (p, content) ->
-        let filename = Caml.Filename.basename p in
+        let filename = Stdlib.Filename.basename p in
         System.write_file state (reveal_data_dir // filename) ~content)
 
   (* Check the extension of user provided kernel. *)
   let check_extension path =
-    let open Caml.Filename in
+    let open Stdlib.Filename in
     let ext = extension path in
     match ext with
     | ".hex" -> `Hex path
@@ -357,7 +357,7 @@ let cmdliner_term state () =
             | Some (_, _, p) -> (
                 match Kernel.check_extension p with
                 | `Hex p | `Wasm p ->
-                    Caml.Filename.(basename p |> chop_extension))
+                    Stdlib.Filename.(basename p |> chop_extension))
           in
           Some { id; level; custom_kernel; node_mode; node; client; installer }
       | false -> None)

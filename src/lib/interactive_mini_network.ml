@@ -186,7 +186,7 @@ the chain to resume
       let open More_fmt in
       pf ppf "`%s` (corresponding chain-id: `%s`)" h (chain_id_of_hash h)
     in
-    match Caml.Sys.file_exists json_file with
+    match Stdlib.Sys.file_exists json_file with
     | true ->
         System.read_file state json_file >>= fun json_str ->
         System_error.catch_exn
@@ -231,7 +231,7 @@ the chain to resume
                 pp_hash_fancily hash Choice.pp_short choice)
         >>= fun () ->
         Running_processes.run_successful_cmdf state "mkdir -p %s"
-          Caml.Filename.(dirname json_file |> quote)
+          Stdlib.Filename.(dirname json_file |> quote)
         >>= fun _ ->
         System.write_file state json_file
           ~content:(to_json state hash |> Ezjsonm.value_to_string)

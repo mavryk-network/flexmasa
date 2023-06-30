@@ -33,7 +33,7 @@ module Michelson = struct
                         "push-dropping %d adds stupid bytes to the contract" ith))
               |> String.concat ~sep:"\n    "))
     in
-    let tmp = Caml.Filename.temp_file "little-id-script" ".tz" in
+    let tmp = Stdlib.Filename.temp_file "little-id-script" ".tz" in
     System.write_file state tmp ~content:(id_script parameter) >>= fun () ->
     Dbg.e EF.(wf "id_script %s: %s" parameter tmp);
     let origination =
@@ -257,14 +257,14 @@ module Multisig = struct
     Ezjsonm.value_from_string script_str
 
   let multisig_param_template =
-    Caml.(
+    Stdlib.(
       "{\"entrypoint\":\"default\",\"value\":{\"prim\":\"Pair\",\"args\":"
       ^^ "[{\"prim\":\"Pair\",\"args\":[{\"int\":\"%d\"},{\"prim\":\"Left\","
       ^^ "\"args\":[{\"prim\":\"Pair\",\"args\":[{\"int\":\"%d\"},{\"string\":"
       ^^ "\"%s\"}]}]}]},[%s]]}}")
 
   let sig_template =
-    Caml.("{\"prim\":\"Some\",\"args\":" ^^ "[{\"string\":\"%s\"}]},")
+    Stdlib.("{\"prim\":\"Some\",\"args\":" ^^ "[{\"string\":\"%s\"}]},")
 
   let multisig_params_json sigs counter amount msig : Ezjsonm.value =
     let the_signatures =
