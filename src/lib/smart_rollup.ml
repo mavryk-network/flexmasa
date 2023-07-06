@@ -137,13 +137,9 @@ module Node = struct
           "Bootstrapping failed %d times." nth
       else
         try_once () >>= function
-        | true ->
-            Console.say state EF.(haf " %d nth waiting for bootstrap" nth)
-            >>= fun () -> return ()
+        | true -> return ()
         | false ->
-            System.sleep Float.(of_int nth * 1.0) >>= fun () ->
-            loop (nth + 1) >>= fun () ->
-            Console.say state EF.(haf " %d nth waiting for bootstrap" nth)
+            System.sleep Float.(of_int nth * 1.0) >>= fun () -> loop (nth + 1)
     in
     loop 1
 end
