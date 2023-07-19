@@ -18,11 +18,11 @@ fi
 # - Put those durable URLs down there, as `download_uri`:
 #
 # This time: https://gitlab.com/tezos/tezos/-/pipelines/900218521
-# (from 2023-07-06)
+# (from 2023-07-19)
 # corresponding to
-# https://gitlab.com/tezos/tezos/-/commit/559c00e5a59c046a2cb2a37a2592b1845fc5265a
+# https://gitlab.com/tezos/tezos/-/commit/1341fefff980992824d92e657c922129c805f4c7
 
-download_uri="https://www.dropbox.com/s/p72rt4peldo0h1o/octez-kernel-build-20230706-559c00e5.zip?raw=1"
+download_uri="https://www.dropbox.com/s/ln62jy5hf9l5cif/octez-kernel-build-20230719-1341fefff9.zip?raw=1"
 
 (
     curl -L "$download_uri" -o "$dest_dir/bins.zip"
