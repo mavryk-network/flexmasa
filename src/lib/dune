@@ -19,16 +19,15 @@
   tezai-tz1-crypto))
 
 (rule
- (target default_contracts.ml)
+ (target sandbox_smart_contracts.ml)
  (deps
-  (:tz %{project_root}/src/smart-contracts/mint_and_deposit_to_rollup.tz))
+  (glob_files %{project_root}/src/smart-contracts/*.tz))
  (action
   (with-stdout-to
    %{target}
    (progn
-    (echo "let mint_and_deposit_to_rollup = {|")
-    (run cat %{tz})
-    (echo "|}")))))
+    (bash
+     "for file in %{deps}; do echo -n 'let '; basename \"${file}\" .tz | tr -d '\\n'; echo -n ' = {nottz|'; cat \"$file\"; echo '|nottz}'; done")))))
 
 (rule
  (target smart_rollup_kernels.ml)
