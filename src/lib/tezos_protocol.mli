@@ -74,6 +74,7 @@ type t = {
   dictator : Account.t;
   (* ; bootstrap_contracts: (Account.t * int * Script.origin) list *)
   soru_node_op : Account.t;
+  smart_contract_admin : Account.t;
   expected_pow : int;
   name : string;
   hash : string;
@@ -103,6 +104,7 @@ val kind : t -> Protocol_kind.t
 val dictator_name : t -> string
 val dictator_secret_key : t -> string
 val soru_node_operator : t -> Account.t
+val contract_admin : t -> Account.t
 val sandbox_path : < paths : Paths.t ; .. > -> t -> string
 val protocol_parameters_path : < paths : Paths.t ; .. > -> t -> string
 
