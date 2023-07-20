@@ -532,7 +532,7 @@ let cmdliner_term state () =
     Manpage_builder.section state ~rank:2 ~name:"SMART OPTIMISTIC ROLLUPS"
   in
   let extra_doc =
-    Fmt.str " for the smart optimistic rollup (requires --smart-rollup)."
+    Fmt.str " for the smart optimistic rollup (requires --start-smart-rollup)."
   in
   let parce_rollup_arg arg =
     match String.split arg ~on:':' with
@@ -603,12 +603,8 @@ let cmdliner_term state () =
   $ Arg.(
       value
       & flag
-          (info [ "smart-rollup" ]
-             ~doc:
-               "Start the Flextexa mini-network with a smart optimistic \
-                rollup. By default this will be the transction smart rollup \
-                (TX-kernel). See `--custom-kernel` for other options."
-             ~docs))
+          (info [ "smart-rollup" ] ~deprecated:"use --start-smart-rollup OPTION"
+             ~doc:"Use --start-smart-rollup" ~docs))
   $ Arg.(
       value
       & opt int 5
@@ -620,11 +616,8 @@ let cmdliner_term state () =
       value
       & opt (some (t3 ~sep:':' string string string)) None
       & info [ "custom-kernel" ] ~docs
-          ~doc:
-            (sprintf
-               "Originate a smart rollup of KIND and of TYPE with PATH to a \
-                custom kernel %s"
-               extra_doc)
+          ~deprecated:"use --start-smart-rollup custom:KIND:TYPE:PATH"
+          ~doc:(sprintf "Use --start-smart-rollup custom:KIND:TYPE:PATH")
           ~docv:"KIND:TYPE:PATH")
   $ Arg.(
       value
