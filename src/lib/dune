@@ -32,7 +32,7 @@
 (rule
  (target smart_rollup_kernels.ml)
  (deps
-  (glob_files ../smart-rollup-kernels/*.wasm))
+  (glob_files %{project_root}/src/smart-rollup-kernels/*.wasm))
  (action
   (with-stdout-to
    %{target}
