@@ -5,6 +5,8 @@ type t = {
   level : int;
   kernel : [ `Tx | `Evm | `Custom of string * string * string ];
   node_mode : [ `Accuser | `Batcher | `Maintenance | `Observer | `Operator ];
+  node_init_options : string list;
+  node_run_options : string list;
   node : Tezos_executable.t;
   client : Tezos_executable.t;
   installer : Tezos_executable.t;

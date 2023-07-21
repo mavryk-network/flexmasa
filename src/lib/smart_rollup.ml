@@ -7,6 +7,8 @@ type t = {
   level : int;
   kernel : [ `Tx | `Evm | `Custom of string * string * string ];
   node_mode : mode;
+  node_init_options : string list;
+  node_run_options : string list;
   node : Tezos_executable.t;
   client : Tezos_executable.t;
   installer : Tezos_executable.t;
@@ -91,8 +93,19 @@ module Node = struct
         ~f:(fun p -> opt "rpc-port" (sprintf "%d" p))
         ~default:[]
 
+  let custom_opt options : string list =
+    let open Tezos_executable.Make_cli in
+    List.concat_map options ~f:(fun s ->
+        match String.lsplit2 ~on:'=' s with
+        | None -> flag s
+        | Some (o, v) -> opt o v)
+
   (* Command to initiate a smart-rollup node [config] *)
   let init state config soru_addr =
+    let options : string list =
+      custom_opt config.smart_rollup.node_init_options
+    in
+
     call state ~config
       ([
          "init";
@@ -104,7 +117,25 @@ module Node = struct
          "operators";
          config.operator_addr;
        ]
-      @ int_run_options state ~config)
+      @ int_run_options state ~config
+      @ options)
+
+  let run state config soru_addr =
+    let options : string list =
+      custom_opt config.smart_rollup.node_run_options
+    in
+    call state ~config
+      ([
+         "run";
+         mode_string config.mode;
+         "for";
+         soru_addr;
+         "with";
+         "operators";
+         config.operator_addr;
+       ]
+      @ int_run_options state ~config
+      @ options)
 
   (* Start a running smart-rollup node. *)
   let start state config soru_addr =
@@ -112,8 +143,7 @@ module Node = struct
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
            ("init smart-rollup-node", init state config soru_addr);
-           ( "run smart-rollup-node",
-             call state ~config ([ "run" ] @ int_run_options state ~config) );
+           ("run smart-rollup-node", run state config soru_addr);
          ])
 
   (* Pause until the node is responsive.*)
@@ -554,6 +584,8 @@ let cmdliner_term state () =
       level
       custom_kernel
       node_mode
+      node_init_options
+      node_run_options
       node
       client
       installer
@@ -565,6 +597,8 @@ let cmdliner_term state () =
           level;
           kernel;
           node_mode;
+          node_init_options;
+          node_run_options;
           node;
           client;
           installer;
@@ -634,6 +668,28 @@ let cmdliner_term state () =
       & info ~docs
           [ "smart-rollup-node-mode" ]
           ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))
+  $ Arg.(
+      value
+      & opt (list ~sep:' ' string) []
+      & info ~docs
+          [ "smart-rollup-node-init-with" ]
+          ~doc:
+            "Initiate the smart-rollup-node config with the provided `flag` or \
+             `option=value`. Use quotes to provide multiple flags and options \
+             separated by spaces. (e.g. --smart-rollup-node-init-with \
+             \"OPT1=VAL1 FLAG OPT2=VAL2\")"
+          ~docv:"FLAG|OPTION=VALUE")
+  $ Arg.(
+      value
+      & opt (list ~sep:' ' string) []
+      & info ~docs
+          [ "smart-rollup-node-run-with" ]
+          ~doc:
+            "Run the smart-rollup-node with the provided `flag` or \
+             `option=value`. Use quotes to provide multiple flags and options \
+             separated by spaces. (e.g. --smart-rollup-node-init-with \
+             \"OPT1=VAL1 FLAG OPT2=VAL2\")"
+          ~docv:"FLAG|OPTION=VALUE")
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
       ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client
