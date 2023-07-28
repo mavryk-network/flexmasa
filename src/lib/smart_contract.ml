@@ -66,7 +66,7 @@ let cmdliner_term base_state () =
   let check_extension path =
     match Stdlib.Filename.extension path with
     | ".tz" -> `Ok path
-    | _ -> `Error (Fmt.str "Invalid file type: %s (expected .tz)" path)
+    | _ -> `Error (Fmt.str "Invalid file type: %S (expected .tz)" path)
   in
   const (fun s ->
       List.map s ~f:(fun (path, init_storage) ->
@@ -74,7 +74,7 @@ let cmdliner_term base_state () =
           | `Ok path ->
               let name = Stdlib.Filename.(basename path |> chop_extension) in
               { name; michelson = path; init_storage }
-          | `Error _ -> failwith "Invalid path"))
+          | `Error s -> failwith s))
   $ Arg.(
       value
         (opt_all
