@@ -591,14 +591,29 @@ let cmdliner_term state () =
       installer
       evm_proxy_server
     ->
+      let check_options l =
+        (* make sure users follow the rules regarding allowable options. *)
+        let check s =
+          if
+            List.exists [ "data-dir"; "rpc-addr"; "rpc-port" ] ~f:(fun e ->
+                String.is_prefix ~prefix:e s)
+          then
+            `Error
+              (Fmt.str
+                 "This option is set by Flextesa. It cannot by changed. %S" s)
+          else `Ok s
+        in
+        List.map l ~f:(fun e ->
+            match check e with `Ok s -> s | `Error s -> failwith s)
+      in
       let make id kernel =
         {
           id;
           level;
           kernel;
           node_mode;
-          node_init_options;
-          node_run_options;
+          node_init_options = check_options node_init_options;
+          node_run_options = check_options node_run_options;
           node;
           client;
           installer;
@@ -676,8 +691,8 @@ let cmdliner_term state () =
           ~doc:
             "Initiate the smart-rollup-node config with the provided `flag` or \
              `option=value`. Use quotes to provide multiple flags and options \
-             separated by spaces. (e.g. --smart-rollup-node-init-with \
-             \"OPT1=VAL1 FLAG OPT2=VAL2\")"
+             separated by spaces. (e.g. \"OPT1=VAL1 FLAG OPT2=VAL2\"). The \
+             following options aren't available: data-dir, rpc-addr, rpc-port."
           ~docv:"FLAG|OPTION=VALUE")
   $ Arg.(
       value
@@ -687,8 +702,8 @@ let cmdliner_term state () =
           ~doc:
             "Run the smart-rollup-node with the provided `flag` or \
              `option=value`. Use quotes to provide multiple flags and options \
-             separated by spaces. (e.g. --smart-rollup-node-init-with \
-             \"OPT1=VAL1 FLAG OPT2=VAL2\")"
+             separated by spaces. (e.g. \"OPT1=VAL1 FLAG OPT2=VAL2\") The \
+             following options aren't available: data-dir, rpc-addr, rpc-port."
           ~docv:"FLAG|OPTION=VALUE")
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
       ~prefix:"octez"
