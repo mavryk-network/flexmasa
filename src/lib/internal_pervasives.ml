@@ -4,7 +4,7 @@
 
 include Base
 
-let ( // ) = Caml.Filename.concat
+let ( // ) = Stdlib.Filename.concat
 let ksprintf, sprintf = Printf.(ksprintf, sprintf)
 
 (** Wrapper around the [EasyFormat] library to use for console display. *)
