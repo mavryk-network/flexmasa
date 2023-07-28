@@ -48,12 +48,12 @@ module Node = struct
 
   let make_config ~smart_rollup ?node_id ~mode ~operator_addr ?rpc_addr
       ?rpc_port ?endpoint ~protocol ~exec ~client () : config =
-    let name =
+    let node_id =
       sprintf "%s-smart-rollup-%s-node-%s" smart_rollup.id (mode_string mode)
         (Option.value node_id ~default:"000")
     in
     {
-      node_id = Option.value node_id ~default:name;
+      node_id;
       mode;
       operator_addr;
       rpc_addr;
@@ -651,7 +651,7 @@ let cmdliner_term state () =
       & opt (some (t3 ~sep:':' string string string)) None
       & info [ "custom-kernel" ] ~docs
           ~deprecated:"use --start-smart-rollup custom:KIND:TYPE:PATH"
-          ~doc:(sprintf "Use --start-smart-rollup custom:KIND:TYPE:PATH")
+          ~doc:"Use --start-smart-rollup custom:KIND:TYPE:PATH"
           ~docv:"KIND:TYPE:PATH")
   $ Arg.(
       value
