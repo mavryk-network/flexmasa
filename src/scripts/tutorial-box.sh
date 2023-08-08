@@ -110,15 +110,10 @@ start_upgrade() {
 
 ## Smart rollup sandbox commands
 all_commands="$all_commands
-* start_custom_smart_rollup KIND TYPE PATH: Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel.
-* smart_rollup_info : Show the smart rollup node config file.
-* start_tx_smart_rollup : Start the tx-kernel (transaction) smart rollup sandbox with the $default_protocol protocol.
-* tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup).
-* tx_client_init : Initialize the tx-client for interacting with the tx-smart-rollup kernel (Requires start_tx_smart_rollup)."
+* start_custom_smart_rollup KIND TYPE PATH: Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel."
 root_path="/tmp/mini-smart-rollup-box"
 tx_client_dir="${root_path}/tx-client"
 tx_client_config="${tx_client_dir}/config.json"
-
 # Smart rollup with user provided kernel.
 start_custom_smart_rollup() {
     kind="$1"
@@ -137,12 +132,13 @@ start_custom_smart_rollup() {
         --no-daemons-for=bob \
         --until-level 200_000_000 \
         --protocol-kind "$default_protocol" \
-        --smart-rollup \
-        --custom-kernel "$kind:$type:$path"
+        --start-smart-rollup "custom:$kind:$type:$path"
 
 }
 
 # Print the rollup node config.
+all_commands="$all_commands
+* smart_rollup_info : Show the smart rollup node config file."
 smart_rollup_info() {
     config_file=$(find ${root_path}/smart-rollup -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
 
@@ -152,6 +148,8 @@ smart_rollup_info() {
 }
 
 # Smart rollup with tx-kernel (transaction rollup).
+all_commands="$all_commands
+* start_tx_smart_rollup : Start the tx-kernel (transaction) smart rollup sandbox with the $default_protocol protocol."
 start_tx_smart_rollup() {
     flextesa mini-network \
         --root-path "$root_path" \
@@ -163,10 +161,12 @@ start_tx_smart_rollup() {
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --until-level 200_000_000 \
         --protocol-kind "$default_protocol" \
-        --smart-rollup
+        --start-smart-rollup tx
 }
 
 # Print tx-client config file
+all_commands="$all_commands
+* tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup)."
 tx_client_show_config() {
     if [ -f "$tx_client_config" ]; then
         echo '{'
@@ -180,6 +180,8 @@ tx_client_show_config() {
 }
 
 # Initialize the tx-client for interacting with the tx-smart-rollup kernel
+all_commands="$all_commands
+* tx_client_init : Initialize the tx-client for interacting with the tx-smart-rollup kernel (Requires start_tx_smart_rollup)."
 tx_client_init() {
     set -e
 
