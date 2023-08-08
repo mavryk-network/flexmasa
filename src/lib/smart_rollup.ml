@@ -401,18 +401,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   match smart_rollup with
   | None -> return ()
   | Some soru -> begin
-      let fresh_client (client : (int * Tezos_client.t) option) =
-        (* fresh_client is the next (index, client) from keys_and_daemons. *)
-        let next = match client with None -> 0 | Some (idx, _) -> idx + 1 in
-        match
-          List.nth keys_and_daemons
-            (Int.rem next (List.length keys_and_daemons))
-        with
-        | None ->
-            System_error.fail_fatalf
-              "smart_rollup.run - failed to find next client."
-        | Some (_, _, client, _, _) -> return (Some (next, client))
-      in
+      List.hd_exn keys_and_daemons |> return >>= fun (_, _, client, _, _) ->
       let add_keys state client account =
         (* Import keys of account*)
         let name, pubkey_hash, priv_key =
@@ -422,9 +411,6 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
         Tezos_client.import_secret_key state client ~name ~key:priv_key
         >>= fun () -> return (name, pubkey_hash, priv_key)
       in
-      fresh_client None >>= fun current_client ->
-      let _, client = Option.value_exn current_client in
-      (* Import keys for smart-rollup node operator account. *)
       add_keys state client (Tezos_protocol.soru_node_operator protocol)
       >>= fun (operator_name, operator_hash, _) ->
       (* Configure smart-rollup node. *)
@@ -461,24 +447,31 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
             >>= fun () ->
             (* Originate FA1.2 token contract. *)
             let fa12_init =
-              Fmt.str "(Pair {} (Pair %S (Pair False   1)))" admin_hash
+              let elt =
+                let pub_keys =
+                  Tezos_protocol.bootstrap_accounts protocol
+                  |> List.map ~f:(fun a -> Tezos_protocol.Account.pubkey_hash a)
+                  |> List.sort ~compare:String.compare
+                in
+                List.map pub_keys ~f:(fun pk ->
+                    let bal = 10_000_000_000L in
+                    Fmt.str "Elt %S (Pair %Ld {})" pk bal)
+                |> String.concat ~sep:"; "
+              in
+              Fmt.str "(Pair { %s } (Pair %S (Pair False 1)))" elt admin_hash
             in
-            Smart_contract.(
-              originate_smart_contract state ~client ~account:admin_name
-                {
-                  name = "fa12";
-                  michelson = fa12_dest;
-                  init_storage = fa12_init;
-                })
+            Smart_contract.originate_smart_contract state ~client
+              ~account:admin_name
+              { name = "fa12"; michelson = fa12_dest; init_storage = fa12_init }
             >>= fun fa12_contract_addr ->
-            (* Get new client with admin keys for second origination operatation. *)
-            fresh_client current_client >>= fun current_client ->
-            let _, client = Option.value_exn current_client in
-            add_keys state client admin >>= fun (_, _, _) ->
-            (* Originate L1/EVM rollup bridge contract. *)
+            List.max_elt protocol.time_between_blocks ~compare:Int.compare
+            |> Option.value_exn |> Float.of_int |> System.sleep
+            >>= fun () ->
             let bridge_init =
-              Fmt.str "(Pair (Pair %S %S)  None)" admin_hash fa12_contract_addr
+              Fmt.str "(Pair (Pair %S %S) (Some %S))" admin_hash
+                fa12_contract_addr origination_res.address
             in
+
             Smart_contract.(
               originate_smart_contract state ~client ~account:admin_name
                 {
