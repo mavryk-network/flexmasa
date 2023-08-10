@@ -275,7 +275,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           ("quorum_min", int 2_000);
           ("quorum_max", int 7_000);
           ("min_proposal_quorum", int 500);
-          ("liquidity_baking_subsidy", string "1_250_000");
+          ("liquidity_baking_subsidy", string "1250000");
           ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000);
           ("cache_script_size", int 100_000_000);
           ("cache_stake_distribution_cycles", int 8);
@@ -290,7 +290,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("tx_rollup_hard_size_limit_per_inbox", int 100_000);
             ("tx_rollup_hard_size_limit_per_message", int 5_000);
             ("tx_rollup_max_withdrawals_per_batch", int 255);
-            ("tx_rollup_commitment_bond", string "10_000_000_000");
+            ("tx_rollup_commitment_bond", string "10000000000");
             ("tx_rollup_finality_period", int 2_000);
             ("tx_rollup_max_inboxes_count", int 2_100);
             ("tx_rollup_withdraw_period", int 2_000);
@@ -345,7 +345,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("enable", bool true);
             ("origination_size", int 6_314);
             ("challenge_window_in_blocks", int challenge_window_in_blocks);
-            ("stake_amount", string "10_000_000_000");
+            ("stake_amount", string "10000000000");
             ("commitment_period_in_blocks", int 30);
             ("max_lookahead_in_blocks", int (challenge_window_in_blocks * 2));
             ("max_active_outbox_levels", int challenge_window_in_blocks);
@@ -384,7 +384,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             [
               ("max_operations_time_to_live", int 120);
               ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot);
-              ("baking_reward_fixed_portion", string "5_000_000");
+              ("baking_reward_fixed_portion", string "5000000");
               ("baking_reward_bonus_per_slot", string "2143");
               ("endorsing_reward_per_slot", string "1428");
               ("consensus_committee_size", int 67);
