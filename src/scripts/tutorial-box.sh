@@ -211,6 +211,23 @@ tx_client_init() {
 
 }
 
+# Start EVM Smart Rollup
+all_commands="$all_commands
+* start_evm_smart_rollup : Start the EVM smart rollup sandbox with the $default_protocol protocol."
+start_evm_smart_rollup() {
+    flextesa mini-network \
+        --root-path "$root_path" \
+        --size 3 --time-between-blocks "$time_bb" --number-of-boot 2 \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --set-history-mode=N000:archive \
+        --protocol-kind "$default_protocol" \
+        --until-level 200_000_000 \
+        --start-smart-rollup evm
+
+}
+
 all_commands="$all_commands
 * info : Show accounts and information about the sandbox."
 info() {
