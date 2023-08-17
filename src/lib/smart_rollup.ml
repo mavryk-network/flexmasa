@@ -244,6 +244,7 @@ module Kernel = struct
     name : string;
     installer_kernel : string;
     reveal_data_dir : string;
+    setup_file : string option;
     exec : Tezos_executable.t;
     smart_rollup : t;
     node : Node.t;
@@ -253,14 +254,22 @@ module Kernel = struct
   let kernel_dir ~state smart_rollup p =
     make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
-  let make_config state ~smart_rollup ~node : config =
+  let make_config ?setup_file state ~smart_rollup ~node : config =
     let name = smart_rollup.id in
     let installer_kernel =
       kernel_dir ~state smart_rollup (sprintf "%s-installer.hex" name)
     in
     let reveal_data_dir = Node.reveal_data_dir state node in
     let exec = smart_rollup.installer in
-    { name; installer_kernel; reveal_data_dir; exec; smart_rollup; node }
+    {
+      name;
+      installer_kernel;
+      reveal_data_dir;
+      setup_file;
+      exec;
+      smart_rollup;
+      node;
+    }
 
   (* The cli arguments for the octez_client smart rollup originatation. *)
   type cli_args = { kind : string; michelson_type : string; hex : string }
@@ -268,9 +277,22 @@ module Kernel = struct
   let make_args ~kind ~michelson_type ~hex : cli_args =
     { kind; michelson_type; hex }
 
-  (* Write wasm byte code to file  *)
+  (* Write wasm byte code to file.  *)
   let write_wasm ~state ~smart_rollup ~filename ~content =
     let path = kernel_dir ~state smart_rollup filename in
+    System.write_file state path ~content >>= fun () -> return path
+
+  (* Write the setup-file for the smart-rollup-installer. *)
+  let _setup_file state smart_rollup bridge_addr =
+    let content =
+      let addr = Hex.(of_string bridge_addr |> show) in
+      let chain_id = Hex.(of_string "128123" |> show) in
+      Fmt.str
+        "{instructions: [set: {value: %s, to: /evm/ticketer}, set: {value: %s \
+         , to: /evm/chain_id}]}"
+        addr chain_id
+    in
+    let path = kernel_dir ~state smart_rollup "setup-file.yaml" in
     System.write_file state path ~content >>= fun () -> return path
 
   (* check the extension of user provided kernel. *)
@@ -282,15 +304,23 @@ module Kernel = struct
     | _ -> raise (Invalid_argument (sprintf "Wrong file type at: %S" path))
 
   (* Build the installer_kernel and preimage with the smart_rollup_installer executable. *)
-  let installer_create state ~exec ~path ~output ~preimages_dir =
-    Running_processes.run_successful_cmdf state
-      "%s get-reveal-installer --upgrade-to %s --output %s --preimages-dir %s"
+  let installer_create ?setup_file state ~exec ~path ~output ~preimages_dir =
+    let options =
+      let open Tezos_executable.Make_cli in
+      opt "upgrade-to" path @ opt "output" output
+      @ opt "preimages-dir" preimages_dir
+      @ Option.value_map setup_file ~default:[] ~f:(fun setup_file ->
+            opt "setup-file" setup_file)
+      |> String.concat ~sep:" "
+    in
+    Running_processes.run_successful_cmdf state "%s get-reveal-installer %s"
       (Tezos_executable.kind_string exec)
-      path output preimages_dir
+      options
 
   (* Build the kernel with the smart_rollup_installer executable. *)
-  let build state ~smart_rollup ~node : (cli_args, _) Asynchronous_result.t =
-    let config = make_config state ~smart_rollup ~node in
+  let build ?setup_file state ~smart_rollup ~node :
+      (cli_args, _) Asynchronous_result.t =
+    let config = make_config ?setup_file state ~smart_rollup ~node in
     (* make dierctories *)
     make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
     make_dir state config.reveal_data_dir >>= fun _ ->
@@ -326,7 +356,8 @@ module Kernel = struct
                   "%s is over the max operation size (24kB). Try a .wasm file \n"
                   p))
       | `Wasm _ ->
-          installer_create state ~exec:config.exec.kind ~path:kernel_path
+          installer_create state ?setup_file:config.setup_file
+            ~exec:config.exec.kind ~path:kernel_path
             ~output:config.installer_kernel
             ~preimages_dir:config.reveal_data_dir
           >>= fun _ -> cli_args (content config.installer_kernel)
