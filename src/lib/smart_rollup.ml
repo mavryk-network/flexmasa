@@ -302,7 +302,8 @@ module Kernel = struct
           write_wasm ~state ~smart_rollup ~filename:"evm_kernel.wasm"
             ~content:Smart_rollup_kernels.evm_kernel
           >>= fun path ->
-          return ("wasm_2_0_0", "pair (pair bytes (ticket unit)) nat", path)
+          return
+            ("wasm_2_0_0", "pair (pair bytes (ticket unit)) nat bytes", path)
       | `Tx ->
           write_wasm ~state ~smart_rollup ~filename:"tx_kernel.wasm"
             ~content:Smart_rollup_kernels.tx_kernel
