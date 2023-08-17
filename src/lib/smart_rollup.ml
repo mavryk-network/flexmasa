@@ -105,7 +105,6 @@ module Node = struct
     let options : string list =
       custom_opt config.smart_rollup.node_init_options
     in
-
     call state ~config
       ([
          "init";
@@ -179,7 +178,7 @@ module Evm_proxy_server = struct
     id : string;
     rpc_addr : string;
     rpc_port : int;
-    rollup_node_endpoint : int;
+    rollup_node_endpoint : string;
     exec : Tezos_executable.t;
     protocol : Tezos_protocol.Protocol_kind.t;
     smart_rollup : t;
@@ -200,21 +199,44 @@ module Evm_proxy_server = struct
     }
 
   let server_dir state id p = make_path ~state (sprintf "%s" id // p)
+  let data_dir state t = server_dir state t.id "data-dir"
 
   let call state ~config ~command =
     let open Tezos_executable.Make_cli in
     Tezos_executable.call state config.exec ~protocol_kind:config.protocol
       ~path:(server_dir state config.id "exec")
       (command
-      @ opt "rollup-node-endpoint"
-          (sprintf "http://localhost:%d" config.rollup_node_endpoint)
       @ opt "rpc-addr" config.rpc_addr
       @ opt "rpc-port" (Int.to_string config.rpc_port))
 
+  let write_config state config =
+    let json =
+      Ezjsonm.(
+        dict
+          [
+            ("rpc_addr", string config.rpc_addr);
+            ("rpc_port", int config.rpc_port);
+            ( "rollup_node_endpoint",
+              string (Fmt.str "%s" config.rollup_node_endpoint) );
+          ])
+    in
+    System.write_file state
+      (data_dir state config // "config.json")
+      ~content:(Ezjsonm.to_string json)
+
   (* Start a running evm-proxy-server. *)
   let run state config =
+    make_dir state (data_dir state config) >>= fun _ ->
+    write_config state config >>= fun () ->
     Running_processes.Process.genspio config.id
-      (call state ~config ~command:[ "run" ])
+      (Genspio.EDSL.check_sequence ~verbosity:`Output_all
+         [
+           ( "run evm-proxy-server",
+             call state ~config
+               ~command:
+                 [ "run"; "with"; "endpoint"; config.rollup_node_endpoint ] );
+         ])
+    |> return
 end
 
 module Kernel = struct
@@ -485,12 +507,13 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
             (* Start the evm-proxy-sever. *)
             let evm_proxy_port = Test_scenario.Unix_port.(next_port nodes) in
             Evm_proxy_server.make ~smart_rollup:soru ~rpc_port:evm_proxy_port
-              ~rollup_node_endpoint:rollup_node_port ~exec:soru.evm_proxy_server
-              ~protocol:protocol.kind ()
+              ~rollup_node_endpoint:
+                (Fmt.str "http://127.0.0.1:%d" rollup_node_port)
+              ~exec:soru.evm_proxy_server ~protocol:protocol.kind ()
             |> return
             >>= fun evm_proxy_server ->
-            Running_processes.start state
-              (Evm_proxy_server.run state evm_proxy_server)
+            Evm_proxy_server.run state evm_proxy_server >>= fun process ->
+            Running_processes.start state process
             >>= fun { process = _; lwt = _ } ->
             return () >>= fun _ ->
             (* Print evm-proxy-server rpc port.*)
