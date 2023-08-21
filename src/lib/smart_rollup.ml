@@ -279,16 +279,28 @@ module Kernel = struct
     System.write_file state path ~content >>= fun () -> return path
 
   (* Write the setup-file for the smart-rollup-installer. *)
-  let _setup_file state smart_rollup bridge_addr =
+  let setup_file ~smart_rollup ~bridge_addr ?(chain_id = 123123) state =
     let content =
       let addr = Hex.(of_string bridge_addr |> show) in
-      let chain_id = Hex.(of_string "128123" |> show) in
+      let chain_id_encode =
+        Fmt.str "%x" chain_id |> fun s ->
+        let init_list = String.to_list s in
+        let rec reverse_bytes acc = function
+          | [] -> acc
+          | _ :: [] ->
+              reverse_bytes [] ('0' :: init_list)
+              (* If List.length list is odd, start over and append a zero. *)
+          | x :: y :: z -> reverse_bytes (x :: y :: acc) z
+        in
+        reverse_bytes [] init_list |> String.of_char_list
+      in
       Fmt.str
         "{instructions: [set: {value: %s, to: /evm/ticketer}, set: {value: %s \
          , to: /evm/chain_id}]}"
-        addr chain_id
+        addr chain_id_encode
     in
     let path = kernel_dir ~state smart_rollup "setup-file.yaml" in
+    make_dir state (Stdlib.Filename.dirname path) >>= fun _ ->
     System.write_file state path ~content >>= fun () -> return path
 
   (* check the extension of user provided kernel. *)
