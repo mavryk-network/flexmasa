@@ -36,7 +36,7 @@ module Node = struct
     mode : mode;
     operator_addr : string;
     rpc_addr : string option;
-    rpc_port : int option;
+    rpc_port : int;
     endpoint : int option;
     protocol : Tezos_protocol.Protocol_kind.t;
     exec : Tezos_executable.t;
@@ -47,7 +47,7 @@ module Node = struct
   type t = config
 
   let make_config ~smart_rollup ?node_id ~mode ~operator_addr ?rpc_addr
-      ?rpc_port ?endpoint ~protocol ~exec ~client () : config =
+      ~rpc_port ?endpoint ~protocol ~exec ~client () : config =
     let node_id =
       sprintf "%s-smart-rollup-%s-node-%s" smart_rollup.id (mode_string mode)
         (Option.value node_id ~default:"000")
@@ -89,9 +89,7 @@ module Node = struct
     @ Option.value_map config.rpc_addr
         ~f:(fun a -> opt "rpc-addr" (sprintf "%s" a))
         ~default:[]
-    @ Option.value_map config.rpc_port
-        ~f:(fun p -> opt "rpc-port" (sprintf "%d" p))
-        ~default:[]
+    @ opt "rpc-port" (Int.to_string config.rpc_port)
 
   let custom_opt options : string list =
     let open Tezos_executable.Make_cli in
@@ -148,8 +146,7 @@ module Node = struct
   (* Pause until the node is responsive.*)
   let wait_for_responce state ~config =
     let try_once () =
-      sprintf "curl http://localhost:%d/block/global/block/head"
-        (Option.value_exn config.rpc_port)
+      sprintf "curl http://localhost:%d/block/global/block/head" config.rpc_port
       |> fun call ->
       Running_processes.run_cmdf ~id_prefix:"smart-rollup-node" state "%s" call
       >>= fun res -> return Poly.(res#status = Unix.WEXITED 0)
@@ -184,10 +181,9 @@ module Evm_proxy_server = struct
     smart_rollup : t;
   }
 
-  type t = config
-
-  let make ~smart_rollup ?(id = "evm-proxy-server") ?(rpc_addr = "127.0.0.1")
-      ~rpc_port ~rollup_node_endpoint ~exec ~protocol () : t =
+  let make_config ~smart_rollup ?(id = "evm-proxy-server")
+      ?(rpc_addr = "127.0.0.1") ~rpc_port ~rollup_node_endpoint ~exec ~protocol
+      () : config =
     {
       id;
       rpc_addr;
@@ -199,7 +195,7 @@ module Evm_proxy_server = struct
     }
 
   let server_dir state id p = make_path ~state (sprintf "%s" id // p)
-  let data_dir state t = server_dir state t.id "data-dir"
+  let data_dir state config = server_dir state config.id "data-dir"
 
   let call state ~config ~command =
     let open Tezos_executable.Make_cli in
