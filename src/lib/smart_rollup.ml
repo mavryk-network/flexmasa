@@ -462,7 +462,7 @@ let executables ({ client; node; installer; _ } : t) =
 let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   match smart_rollup with
   | None -> return ()
-  | Some soru -> begin
+  | Some soru -> (
       List.hd_exn keys_and_daemons |> return >>= fun (_, _, client, _, _) ->
       let add_keys state client account =
         (* Import keys of account*)
@@ -476,140 +476,164 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       add_keys state client (Tezos_protocol.soru_node_operator protocol)
       >>= fun (operator_name, operator_hash, _) ->
       (* Configure smart-rollup node. *)
-      let rollup_node_port = Test_scenario.Unix_port.(next_port nodes) in
-      Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
-        ~operator_addr:operator_hash ~rpc_addr:"0.0.0.0"
-        ~rpc_port:rollup_node_port ~endpoint:base_port ~protocol:protocol.kind
-        ~exec:soru.node ~client ()
-      |> return
-      >>= fun soru_node ->
-      Kernel.build state ~smart_rollup:soru ~node:soru_node >>= fun kernel ->
-      (* Originate smart-rollup.*)
-      originate_and_confirm state ~client ~kernel ~account:operator_name
-        ~confirmations:1 ()
-      >>= fun (origination_res, _) ->
-      (* Start smart-rollup node. *)
-      Running_processes.start state
-        Node.(start state soru_node origination_res.address)
-      >>= fun { process = _; lwt = _ } ->
-      return () >>= fun _ ->
-      begin
-        (* If using one of Flextesa preconfigured kerenel, originiate the L1 helper contracts. *)
-        match soru.kernel with
-        | `Evm ->
-            (* Imort admin account and client for evm-rollup FA1.2 contracts. *)
-            let admin = Tezos_protocol.contract_admin protocol in
-            add_keys state client admin >>= fun (admin_name, admin_hash, _) ->
-            (* Write the fa12 to file. It is too large to pass to cmdline as a string. *)
-            let sc_dir = make_path ~state "l1-smart-contracts" in
-            make_dir state sc_dir >>= fun _ ->
-            let fa12_dest = sc_dir // "fa12.tz" in
-            System.write_file state fa12_dest
-              ~content:Sandbox_smart_contracts.fa12
-            >>= fun () ->
-            (* Originate FA1.2 token contract. *)
-            let fa12_init =
-              let elt =
-                let pub_keys =
-                  Tezos_protocol.bootstrap_accounts protocol
-                  |> List.map ~f:(fun a -> Tezos_protocol.Account.pubkey_hash a)
-                  |> List.sort ~compare:String.compare
-                in
-                List.map pub_keys ~f:(fun pk ->
-                    let bal = 10_000_000_000L in
-                    Fmt.str "Elt %S (Pair %Ld {})" pk bal)
-                |> String.concat ~sep:"; "
-              in
-              Fmt.str "(Pair { %s } (Pair %S (Pair False 1)))" elt admin_hash
-            in
-            Smart_contract.originate_smart_contract state ~client
-              ~account:admin_name
-              { name = "fa12"; michelson = fa12_dest; init_storage = fa12_init }
-            >>= fun fa12_contract_addr ->
-            List.max_elt protocol.time_between_blocks ~compare:Int.compare
-            |> Option.value_exn |> Float.of_int |> System.sleep
-            >>= fun () ->
-            let bridge_init =
-              Fmt.str "(Pair (Pair %S %S) (Some %S))" admin_hash
-                fa12_contract_addr origination_res.address
-            in
-
-            Smart_contract.(
-              originate_smart_contract state ~client ~account:admin_name
-                {
-                  name = "evm-bridge";
-                  michelson = Sandbox_smart_contracts.evm_bridge;
-                  init_storage = bridge_init;
-                })
-            >>= fun evm_bridge_address ->
-            (* Wait for the rollup node to bootstrap. *)
-            Node.wait_for_responce state ~config:soru_node >>= fun () ->
-            (* Start the evm-proxy-sever. *)
-            let evm_proxy_port = Test_scenario.Unix_port.(next_port nodes) in
-            Evm_proxy_server.make ~smart_rollup:soru ~rpc_port:evm_proxy_port
-              ~rollup_node_endpoint:
-                (Fmt.str "http://127.0.0.1:%d" rollup_node_port)
-              ~exec:soru.evm_proxy_server ~protocol:protocol.kind ()
-            |> return
-            >>= fun evm_proxy_server ->
-            Evm_proxy_server.run state evm_proxy_server >>= fun process ->
-            Running_processes.start state process
-            >>= fun { process = _; lwt = _ } ->
-            return () >>= fun _ ->
-            (* Print evm-proxy-server rpc port.*)
-            EF.
-              [
-                desc
-                  (af "evm-proxy-server is listening on")
-                  (af "rpc_port: `%d`" evm_proxy_server.rpc_port);
-                desc
-                  (af "FA1.2 contract address:")
-                  (af "`%s`" fa12_contract_addr);
-                desc
-                  (af "EVM bridge contract address:")
-                  (af "`%s`" evm_bridge_address);
-              ]
-            |> return
-        | `Tx ->
-            (* Originate mint_and_deposit_to_rollup contract. *)
-            Smart_contract.(
-              originate_smart_contract state ~client ~account:operator_name
-                {
-                  name = "mint_and_deposit_to_rollup";
-                  michelson = Sandbox_smart_contracts.mint_and_deposit_to_rollup;
-                  init_storage = "Unit";
-                })
-            >>= fun mint_addr ->
-            (* Pring contract address. *)
-            EF.
-              [
-                desc
-                  (af "mint_and_deposit_to_rollup contract address:")
-                  (af "`%s`" mint_addr);
-              ]
-            |> return
-        | _ -> return []
-      end
-      >>= fun included_rollups ->
+      let soru_node_config soru operator_hash base_port protocol =
+        let rollup_node_port = Test_scenario.Unix_port.(next_port nodes) in
+        Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
+          ~operator_addr:operator_hash ~rpc_addr:"0.0.0.0"
+          ~rpc_port:rollup_node_port ~endpoint:base_port
+          ~protocol:protocol.Tezos_protocol.kind ~exec:soru.node ~client ()
+        |> return
+      in
+      let originate_rollup state soru soru_node setup_file client operator_name
+          =
+        Kernel.build ?setup_file state ~smart_rollup:soru ~node:soru_node
+        >>= fun kernel ->
+        (* Originate smart-rollup.*)
+        originate_and_confirm state ~client ~kernel ~account:operator_name
+          ~confirmations:1 ()
+      in
+      let start_rollup_node state soru_node rollup_origination_res =
+        (* Start smart-rollup node. *)
+        Running_processes.start state
+          Node.(start state soru_node rollup_origination_res.address)
+        >>= fun { process = _; lwt = _ } -> return () (* >>= fun _ -> *)
+      in
       (* Print smart-rollup info. *)
-      Console.say state
-        EF.(
-          desc_list
-            (haf "%S smart optimistic rollup is ready:" soru.id)
-            ([
-               desc (af "Address:") (af "`%s`" origination_res.address);
-               desc
-                 (af "A rollup node in %S mode is listening on"
-                    (Node.mode_string soru_node.mode))
-                 (af "rpc_port: `%d`"
-                    (Option.value_exn
-                       ?message:
-                         (Some
-                            "Failed to get rpc port for the smart rollup node.")
-                       soru_node.rpc_port));
-             ]
-            @ included_rollups))
-    end
+      let print_info rollup_origination_res soru_node also =
+        Console.say state
+          EF.(
+            desc_list
+              (haf "%S smart optimistic rollup is ready:" soru.id)
+              ([
+                 desc (af "Address:") (af "`%s`" rollup_origination_res.address);
+                 desc
+                   (af "A rollup node in %S mode is listening on"
+                      (Node.mode_string soru_node.Node.mode))
+                   (af "rpc_port: `%d`" soru_node.Node.rpc_port);
+               ]
+              @ also))
+      in
+      match soru.kernel with
+      | `Evm ->
+          (* Imort admin account and client for evm-rollup FA1.2 contracts. *)
+          let admin = Tezos_protocol.contract_admin protocol in
+          add_keys state client admin >>= fun (admin_name, admin_hash, _) ->
+          (* Write the fa12 to file. It is too large to pass to cmdline as a string. *)
+          let sc_dir = make_path ~state "l1-smart-contracts" in
+          make_dir state sc_dir >>= fun _ ->
+          let fa12_dest = sc_dir // "fa12.tz" in
+          System.write_file state fa12_dest
+            ~content:Sandbox_smart_contracts.fa12
+          >>= fun () ->
+          (* Originate FA1.2 token contract. *)
+          let fa12_init =
+            let elt =
+              let pub_keys =
+                Tezos_protocol.bootstrap_accounts protocol
+                |> List.map ~f:(fun a -> Tezos_protocol.Account.pubkey_hash a)
+                |> List.sort ~compare:String.compare
+              in
+              List.map pub_keys ~f:(fun pk ->
+                  let bal = 10_000_000_000L in
+                  Fmt.str "Elt %S (Pair %Ld {})" pk bal)
+              (*  TODO Add approval for bridge contract *)
+              |> String.concat ~sep:"; "
+            in
+            Fmt.str "(Pair { %s } (Pair %S (Pair False 1)))" elt admin_hash
+          in
+          Smart_contract.originate_smart_contract state ~client
+            ~account:admin_name
+            { name = "fa12"; michelson = fa12_dest; init_storage = fa12_init }
+          >>= fun fa12_contract_addr ->
+          List.max_elt protocol.time_between_blocks ~compare:Int.compare
+          |> Option.value_exn |> Float.of_int |> System.sleep
+          >>= fun () ->
+          (* Originate bridge contract *)
+          let bridge_init =
+            Fmt.str "(Pair (Pair %S %S) (None))" admin_hash fa12_contract_addr
+          in
+          Smart_contract.(
+            originate_smart_contract state ~client ~account:admin_name
+              {
+                name = "evm-bridge";
+                michelson = Sandbox_smart_contracts.evm_bridge;
+                init_storage = bridge_init;
+              })
+          >>= fun evm_bridge_address ->
+          soru_node_config soru operator_hash base_port protocol
+          >>= fun soru_node ->
+          (*  Originate rollup with setup-file*)
+          Kernel.setup_file state ~smart_rollup:soru
+            ~bridge_addr:evm_bridge_address
+          >>= fun setup_file ->
+          originate_rollup state soru soru_node (Some setup_file) client
+            operator_hash
+          >>= fun (origination_result, _) ->
+          (*  Start rollup node*)
+          start_rollup_node state soru_node origination_result >>= fun () ->
+          (* Wait for the rollup node to bootstrap. *)
+          Node.wait_for_responce state ~config:soru_node >>= fun () ->
+          (* Start the evm-proxy-sever. *)
+          let evm_proxy_port = Test_scenario.Unix_port.(next_port nodes) in
+          Evm_proxy_server.make_config ~smart_rollup:soru
+            ~rpc_port:evm_proxy_port
+            ~rollup_node_endpoint:
+              (Fmt.str "http://127.0.0.1:%d" soru_node.rpc_port)
+            ~exec:soru.evm_proxy_server ~protocol:protocol.kind ()
+          |> return
+          >>= fun evm_proxy_server ->
+          Evm_proxy_server.run state evm_proxy_server >>= fun process ->
+          Running_processes.start state process
+          >>= fun { process = _; lwt = _ } ->
+          return () >>= fun _ ->
+          EF.
+            [
+              desc
+                (af "evm-proxy-server is listening on")
+                (af "rpc_port: `%d`" evm_proxy_server.rpc_port);
+              desc (af "FA1.2 contract address:") (af "`%s`" fa12_contract_addr);
+              desc
+                (af "EVM bridge contract address:")
+                (af "`%s`" evm_bridge_address);
+            ]
+          |> return
+          >>= fun info -> print_info origination_result soru_node info
+      | `Tx ->
+          (* Originate mint_and_deposit_to_rollup contract. *)
+          Smart_contract.(
+            originate_smart_contract state ~client ~account:operator_name
+              {
+                name = "mint_and_deposit_to_rollup";
+                michelson = Sandbox_smart_contracts.mint_and_deposit_to_rollup;
+                init_storage = "Unit";
+              })
+          >>= fun mint_addr ->
+          (* configure rollup node *)
+          soru_node_config soru operator_hash base_port protocol
+          >>= fun soru_node ->
+          (*  Originate rollup with setup-file*)
+          originate_rollup state soru soru_node None client operator_hash
+          >>= fun (origination_result, _) ->
+          (*  Start rollup node*)
+          start_rollup_node state soru_node origination_result >>= fun () ->
+          EF.
+            [
+              desc
+                (af "mint_and_deposit_to_rollup contract address:")
+                (af "`%s`" mint_addr);
+            ]
+          |> return
+          >>= fun info -> print_info origination_result soru_node info
+      | _ ->
+          soru_node_config soru operator_hash base_port protocol
+          >>= fun soru_node ->
+          (*  Originate rollup with setup-file*)
+          originate_rollup state soru soru_node None client operator_hash
+          >>= fun (origination_result, _) ->
+          (*  Start rollup node*)
+          start_rollup_node state soru_node origination_result >>= fun () ->
+          (* Pring contract address. *)
+          print_info origination_result soru_node [])
 
 let cmdliner_term state () =
   let open Cmdliner in
