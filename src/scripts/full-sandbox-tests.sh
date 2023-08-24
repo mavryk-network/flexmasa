@@ -7,21 +7,20 @@
 set -e
 set -o pipefail
 
-say () { printf "[full-sandbox-tests:] $@\n" >&2 ; } 
+say() { printf "[full-sandbox-tests:] $@\n" >&2; }
 
 until_4="--until-level 4"
 until_8="--until-level 8"
 until_12="--until-level 12"
 readline=""
-if [ "$interactive" = "true" ] ; then
+if [ "$interactive" = "true" ]; then
     until_4=""
     until_8=""
     until_12=""
     readline="rlwrap"
 fi
 
-
-runone () {
+runone() {
     name="$1"
     shift
     rootroot="/tmp/flextesa-full-sandbox-tests/$name"
@@ -32,65 +31,63 @@ runone () {
     $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/  ||/'
 }
 
-current=Mumbai
-next=Nairobi
-next_suffix=PtNairob
-# Alpha is upgrading from Mumbai:
+current=Nairobi
+next=Oxford
+next_suffix=Proxford
 before_alpha=$next
 
-
-quickmini () {
+quickmini() {
     proto="$1"
     runone "mini-$proto" flextesa mini --protocol-kind "$proto" \
-           --time-between-blocks 1 $until_4 \
-           --number-of-boot 1 --size 1
+        --time-between-blocks 1 $until_4 \
+        --number-of-boot 1 --size 1
 }
 
-c2n () {
+c2n() {
     runone "${current}2${next}" flextesa mini \
-           --protocol-kind "$current" \
-           --hard-fork 10:$next: \
-           --time-between-blocks 1 --number-of-boot 1 --size 1 \
-           $until_12
+        --protocol-kind "$current" \
+        --hard-fork 10:$next: \
+        --time-between-blocks 1 --number-of-boot 1 --size 1 \
+        $until_12
 }
-n2a () {
+n2a() {
     runone "${before_alpha}2alpha" flextesa mini \
-           --protocol-kind "$before_alpha" \
-           --hard-fork 10:Alpha: \
-           --time-between-blocks 2 --number-of-boot 2 --size 2 \
-           $until_12
+        --protocol-kind "$before_alpha" \
+        --hard-fork 10:Alpha: \
+        --time-between-blocks 2 --number-of-boot 2 --size 2 \
+        $until_12
 }
 
-daem_c2n () {
+daem_c2n() {
     runone "dameons-upgrade-c2n" flextesa daemons-upgrade \
-	   --protocol-kind "$current" \
-           --next-protocol-kind "$next" \
-	   --second-baker octez-baker-$next_suffix \
-	   --extra-dummy-proposals-batch-size 2 \
-	   --extra-dummy-proposals-batch-levels 3,5 \
-	   --size 2 \
-	   --number-of-b 2 \
-	   --time-between-blocks 3 \
-	   --blocks-per-vot 20 \
-	   --with-timestamp \
-           --test-variant full-upgrade
+        --protocol-kind "$current" \
+        --next-protocol-kind "$next" \
+        --second-baker octez-baker-$next_suffix \
+        --extra-dummy-proposals-batch-size 2 \
+        --extra-dummy-proposals-batch-levels 3,5 \
+        --size 2 \
+        --number-of-b 2 \
+        --time-between-blocks 3 \
+        --blocks-per-vot 20 \
+        --with-timestamp \
+        --test-variant full-upgrade
 }
 
-daem_c2n_nay () {
+daem_c2n_nay() {
     runone "dameons-upgrade-c2n-nay" flextesa daemons-upgrade \
-	   --protocol-kind "$current" \
-           --next-protocol-kind "$current" \
-	   --second-baker octez-baker-$next_suffix \
-	   --extra-dummy-proposals-batch-size 2 \
-	   --extra-dummy-proposals-batch-levels 3,5 \
-	   --size 2 \
-	   --number-of-b 2 \
-	   --time-between-blocks 3 \
-	   --with-timestamp \
-           --test-variant nay-for-promotion
+        --protocol-kind "$current" \
+        --next-protocol-kind "$current" \
+        --second-baker octez-baker-$next_suffix \
+        --extra-dummy-proposals-batch-size 2 \
+        --extra-dummy-proposals-batch-levels 3,5 \
+        --size 2 \
+        --number-of-b 2 \
+        --time-between-blocks 3 \
+        --with-timestamp \
+        --test-variant nay-for-promotion
 }
 
-daem_n2a () {
+daem_n2a() {
     runone "dameons-upgrade-n2a" flextesa daemons-upgrade \
         --protocol-kind "$before_alpha" \
         --next-protocol-kind Alpha \
@@ -104,11 +101,11 @@ daem_n2a () {
         --test-variant full-upgrade
 }
 
-smart-rollup () {
+smart-rollup() {
     runone "smart-rollup" flextesa mini --protocol-kind "$current" \
-           --time-between-blocks 1 $until_8 \
-           --number-of-boot 1 --size 1 \
-           --smart-rollup
+        --time-between-blocks 1 $until_8 \
+        --number-of-boot 1 --size 1 \
+        --smart-rollup
 }
 
 all() {
@@ -123,4 +120,4 @@ all() {
     smart-rollup
 }
 
-{ if [ "$1" = "" ] ; then all ; else "$@" ; fi ; }
+{ if [ "$1" = "" ]; then all; else "$@"; fi; }
