@@ -47,14 +47,14 @@ c2n() {
     runone "${current}2${next}" flextesa mini \
         --protocol-kind "$current" \
         --hard-fork 10:$next: \
-        --time-between-blocks 1 --number-of-boot 1 --size 1 \
+        --time-between-blocks 1,3 --number-of-boot 2 --size 2 \
         $until_12
 }
 n2a() {
     runone "${before_alpha}2alpha" flextesa mini \
         --protocol-kind "$before_alpha" \
         --hard-fork 10:Alpha: \
-        --time-between-blocks 2 --number-of-boot 2 --size 2 \
+        --time-between-blocks 1,3 --number-of-boot 2 --size 2 \
         $until_12
 }
 
@@ -65,12 +65,12 @@ daem_c2n() {
         --second-baker octez-baker-$next_suffix \
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
-        --size 2 \
-        --number-of-b 2 \
-        --time-between-blocks 3 \
-        --blocks-per-vot 20 \
+        --size 2 --number-of-b 2 \
+        --time-between-blocks 3,4 \
+        --blocks-per-vot 16 \
         --with-timestamp \
-        --test-variant full-upgrade
+        --test-variant full-upgrade \
+        $until_12
 }
 
 daem_c2n_nay() {
@@ -82,9 +82,11 @@ daem_c2n_nay() {
         --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 \
         --number-of-b 2 \
-        --time-between-blocks 3 \
+        --time-between-blocks 3,4 \
+        --blocks-per-vot 16 \
         --with-timestamp \
-        --test-variant nay-for-promotion
+        --test-variant nay-for-promotion \
+        $until_12
 }
 
 daem_n2a() {
@@ -96,14 +98,17 @@ daem_n2a() {
         --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 \
         --number-of-b 2 \
-        --time-betw 3 \
+        --time-between-blocks 3,4 \
+        --blocks-per-vot 16 \
         --with-timestamp \
-        --test-variant full-upgrade
+        --test-variant full-upgrade \
+        $until_12
 }
 
 smart-rollup() {
-    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
-        --time-between-blocks 1 $until_8 \
+    proto="$1"
+    runone "${proto}-smart-rollup" flextesa mini --protocol-kind "$current" \
+        --time-between-blocks 1,3 $until_8 \
         --number-of-boot 1 --size 1 \
         --smart-rollup
 }
@@ -117,7 +122,8 @@ all() {
     daem_c2n
     daem_c2n_nay
     daem_n2a
-    smart-rollup
+    smart-rollup "$current"
+    smart-rollup "$next"
 }
 
 { if [ "$1" = "" ]; then all; else "$@"; fi; }

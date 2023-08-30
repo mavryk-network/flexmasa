@@ -470,7 +470,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("hard_gas_limit_per_block", string (Int.to_string 2_600_000));
             ( "proof_of_work_threshold",
               ksprintf string "%d" t.proof_of_work_threshold );
-            ("minimal_stake", string (Int.to_string 6_000));
+            ("minimal_stake", string (Int.to_string 6_000_000_000));
             ("minimal_frozen_stake", string (Int.to_string 600));
             ( "vdf_difficulty",
               string (Int.to_string 50_000) (*From constants_sandbox *) );
@@ -519,6 +519,8 @@ let protocol_parameters_json t : Ezjsonm.t =
                  ( "frozen_deposits_percentage",
                    int 5 (* From constants_sandbox *) )
             |> add_replace
+                 (* minimal_stake / double_baking_punishment must be >= 10 to
+                    caclulate the Oxford constants. *)
                  ("double_baking_punishment", string (Int.to_string 640_000_000))
             |> add_replace
                  ( "ratio_of_frozen_deposits_slashed_per_double_endorsement",
