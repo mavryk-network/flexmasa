@@ -338,7 +338,7 @@ module Commands = struct
                | `Client -> Tezos_client.client_command state client args
                | `Admin mkadm ->
                    Tezos_admin_client.make_command state (mkadm client) args)
-              |> Genspio.Compile.to_one_liner |> Caml.Filename.quote)
+              |> Genspio.Compile.to_one_liner |> Stdlib.Filename.quote)
             >>= fun res ->
             Console.display_errors_of_command state res >>= function
             | true -> return ((client, String.concat ~sep:"\n" res#out) :: prev)
@@ -496,7 +496,7 @@ module Commands = struct
                   forge_template ~key_name:client.key_name ~src ~counter ~fee:3.
                     ~branch
                 in
-                let tmp = Caml.Filename.temp_file "flextesa-forge" ".json" in
+                let tmp = Stdlib.Filename.temp_file "flextesa-forge" ".json" in
                 System.write_file state tmp ~content:json_template >>= fun () ->
                 System.editor state >>= fun editor ->
                 Fmt.kstr (System.command state) "%s %s" editor tmp >>= function
@@ -731,16 +731,16 @@ module Pauser = struct
       Console.say state EF.(af "Waiting for processes to all die.")
       >>= fun () -> Running_processes.wait_all state
     in
-    Caml.Sys.catch_break false;
+    Stdlib.Sys.catch_break false;
     let cond = Lwt_condition.create () in
     let catch_signals () =
-      Lwt_unix.on_signal Caml.Sys.sigint (fun i ->
-          Caml.Printf.eprintf
+      Lwt_unix.on_signal Stdlib.Sys.sigint (fun i ->
+          Stdlib.Printf.eprintf
             "\nReceived signal SIGINT (%d), type `q` to quit prompts.\n\n%!" i;
           Lwt_condition.broadcast cond `Sig_int)
       |> ignore;
-      Lwt_unix.on_signal Caml.Sys.sigterm (fun i ->
-          Caml.Printf.eprintf
+      Lwt_unix.on_signal Stdlib.Sys.sigterm (fun i ->
+          Stdlib.Printf.eprintf
             "\nReceived signal SIGTERM (%d), type `q` to quit prompts.\n\n%!" i;
           Lwt_condition.broadcast cond `Sig_term)
       |> ignore

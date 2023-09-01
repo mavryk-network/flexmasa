@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20230607` (also available
+The current _released_ image is `oxheadalpha/flextesa:20230901` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -24,7 +24,7 @@ parameters. For instance:
   
 ```sh
 image=oxheadalpha/flextesa:latest
-script=mumbaibox
+script=nairobibox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -33,8 +33,8 @@ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
-- `mumbaibox`: Mumbai protocol
 - `nairobibox`: Nairobi protocol
+- `oxfordbox`: Oxford protocol
 - `alphabox`: Alpha protocol, the development version of the `N` protocol at the
   time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
@@ -126,12 +126,13 @@ Notes:
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
-a Mumbai sandbox which switches to Nairobi at level 20:
+a Nairobi sandbox which switches to Oxford at level 20:
+
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
          -e block_time=2 \
-         "$image" mumbaibox start --hard-fork 20:Nairobi:
+         "$image" nairobibox start --hard-fork 20:Oxford:
 ```
 
 With `tcli` above and `jq` you can keep checking the following to observe the
@@ -146,14 +147,14 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf"
+"Proxford..."
 ```
 
 Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `nairobibox` script can also switch to `Alpha` (e.g. `--hard-fork
+- The `oxfordbox` script can also switch to `Alpha` (e.g. `--hard-fork
   16:Alpha:`).
 
 ### Full Governance Upgrade
@@ -167,12 +168,12 @@ daemons-upgrade` (see its general
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e block_time=2 \
-         "$image" mumbaibox start_upgrade
+         "$image" nairobibox start_upgrade
 ```
 
 With `start_upgrade` the sandbox network will do a full voting round followed by
-a protocol change. The `mumbaibox` script will start with the `Mumbai` protocol and
-upgrade to `Nairobi`; the `Nairobibox` upgrades to protocol `Alpha`.
+a protocol change. The `nairobibox` script will start with the `Nairobi` protocol and
+upgrade to `Oxford`; the `oxfordbox` upgrades to protocol `Alpha`.
 
 Voting occurs over five periods. You can adjust the length of the voting periods
 with the variable `blocks_per_voting_period`. Batches of dummy proposals will be
@@ -265,7 +266,7 @@ entrypoint when making calls with the smart-rollup-client. We recommend aliasing
 the following:
 
 ``` default
-$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtMumbai -E http://localhost:20010' 
+$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtNairobi -E http://localhost:20010'
 ```
 
 In order to include any smart contracts, add them to your

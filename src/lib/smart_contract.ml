@@ -83,7 +83,7 @@ let cmdliner_term base_state () =
     Manpage_builder.section base_state ~rank:2 ~name:"SMART CONTRACTS"
   in
   let check_extension path =
-    match Caml.Filename.extension path with
+    match Stdlib.Filename.extension path with
     | ".tz" -> `Ok path
     | _ -> `Error (Fmt.str "Invalid file type: %s (expected .tz)" path)
   in
@@ -91,7 +91,7 @@ let cmdliner_term base_state () =
       List.map paths ~f:(fun path ->
           match check_extension path with
           | `Ok path ->
-              let name = Caml.Filename.(basename path |> chop_extension) in
+              let name = Stdlib.Filename.(basename path |> chop_extension) in
               { name; michelson = path }
           | `Error _ -> failwith "Invalid path"))
   $ Arg.(

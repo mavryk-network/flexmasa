@@ -4,7 +4,7 @@
 
 include Base
 
-let ( // ) = Caml.Filename.concat
+let ( // ) = Stdlib.Filename.concat
 let ksprintf, sprintf = Printf.(ksprintf, sprintf)
 
 (** Wrapper around the [EasyFormat] library to use for console display. *)
@@ -67,7 +67,7 @@ module Dbg = struct
   let on = ref false
 
   let () =
-    Option.iter (Caml.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
+    Option.iter (Stdlib.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
       | "true" -> on := true
       | _ -> ())
 
@@ -159,9 +159,9 @@ module More_fmt = struct
         string ppf (String.make 45 '`'))
 
   let tag tag ppf f =
-    Caml.Format.(pp_open_stag ppf (String_tag tag));
+    Stdlib.Format.(pp_open_stag ppf (String_tag tag));
     (f ppf : unit);
-    Caml.Format.pp_close_stag ppf ()
+    Stdlib.Format.pp_close_stag ppf ()
 
   let shout = tag "shout"
   let prompt = tag "prompt"
@@ -388,7 +388,7 @@ module Asynchronous_result = struct
               | Ok x -> f x elt
               | Error _ ->
                   error := Some prevm;
-                  Lwt.fail Caml.Not_found)
+                  Lwt.fail Stdlib.Not_found)
             stream (Attached_result.ok init))
         (fun e ->
           match !error with
@@ -413,8 +413,8 @@ module Asynchronous_result = struct
           Dbg.e EF.(wf "Lwt_main.run");
           r ())
     with
-    | { result = Ok (); _ } -> Caml.exit 0
-    | { result = Error (`Die ret); _ } -> Caml.exit ret
+    | { result = Ok (); _ } -> Stdlib.exit 0
+    | { result = Error (`Die ret); _ } -> Stdlib.exit ret
 end
 
 include Asynchronous_result.Std
@@ -612,7 +612,7 @@ module System = struct
     let open Lwt in
     Lwt_unix.file_exists dir >>= function
     | false ->
-        ensure_directory_path_exn (Caml.Filename.dirname dir) >>= fun () ->
+        ensure_directory_path_exn (Stdlib.Filename.dirname dir) >>= fun () ->
         Lwt.catch
           (fun () -> Lwt_unix.mkdir dir perm)
           (function
@@ -629,7 +629,7 @@ module System = struct
   let editor_opt state =
     let attempts =
       let defaults = [ "nano"; "vi" ] in
-      try Caml.Sys.getenv "EDITOR" :: defaults with _ -> defaults
+      try Stdlib.Sys.getenv "EDITOR" :: defaults with _ -> defaults
     in
     List.fold attempts ~init:(return None) ~f:(fun prevm attempt ->
         prevm >>= function

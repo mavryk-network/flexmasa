@@ -5,7 +5,7 @@ type t = { root : string }
 let make root =
   {
     root =
-      (if Caml.Filename.is_relative root then Caml.Sys.getcwd () // root
+      (if Stdlib.Filename.is_relative root then Stdlib.Sys.getcwd () // root
       else root);
   }
 
