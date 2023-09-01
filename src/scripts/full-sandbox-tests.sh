@@ -98,7 +98,7 @@ daem_n2a() {
         --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 \
         --number-of-b 2 \
-        --time-between-blocks 3,4 \
+        --time-between-blocks 3,5 \
         --blocks-per-vot 16 \
         --with-timestamp \
         --test-variant full-upgrade \
