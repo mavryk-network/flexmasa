@@ -7,8 +7,8 @@ module Small_utilities = struct
     ( (pure (fun n ->
            let open Flextesa.Tezos_protocol.Account in
            let account = of_name n in
-           Caml.Printf.printf "%s,%s,%s,%s\n%!" (name account) (pubkey account)
-             (pubkey_hash account) (private_key account))
+           Stdlib.Printf.printf "%s,%s,%s,%s\n%!" (name account)
+             (pubkey account) (pubkey_hash account) (private_key account))
       $ Arg.(
           required
             (pos 0 (some string) None

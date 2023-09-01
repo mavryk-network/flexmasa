@@ -1,29 +1,29 @@
 #! /bin/sh
 
-default_protocol=Mumbai
-next_protocol_name=Nairobi
-next_protocol=PtNairob
+default_protocol=Nairobi
+next_protocol_name=Oxford
+next_protocol_hash=Proxford
 case "$(basename $0)" in
-    "mumbaibox")
-        default_protocol=Mumbai
-        protocol_hash=PtMumbai
-        binary_suffix=PtMumbai
-        next_protocol_name=Nairobi
-        next_protocol=PtNairob
-        ;;
     "nairobibox")
         default_protocol=Nairobi
         protocol_hash=PtNairob
         binary_suffix=PtNairob
+        next_protocol_name=Oxford
+        next_protocol_hash=Proxford
+        ;;
+    "oxfordbox")
+        default_protocol=Oxford
+        protocol_hash=Proxford
+        binary_suffix=Proxford
         next_protocol_name=Alpha
-        next_protocol=alpha
+        next_protocol_hash=alpha
         ;;
     "alphabox")
         default_protocol=Alpha
         protocol_hash=ProtoA
         binary_suffix=alpha
         next_protocol_name=Failure
-        next_protocol=alpha
+        next_protocol_hash=alpha
         ;;
     *) ;;
 esac
@@ -76,7 +76,7 @@ start_manual() {
 all_commands="$all_commands
 * bake : Try to bake a block (to be used with 'start_manual' sandboxes)."
 bake() {
-    octez-client bake for baker0 --minimal-timestamp
+    octez-client --endpoint http://localhost:20000 bake for bootacc-0 --minimal-timestamp
 }
 
 vote_period=${blocks_per_voting_period:-16}
@@ -103,7 +103,7 @@ start_upgrade() {
         --blocks-per-voting-period "$vote_period" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
-        --second-baker octez-baker-"$next_protocol" \
+        --second-baker octez-baker-"$next_protocol_hash" \
         --test-variant full-upgrade \
         --until-level 200_000_000
 }

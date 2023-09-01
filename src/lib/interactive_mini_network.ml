@@ -98,7 +98,14 @@ module Genesis_block_hash = struct
          * Seed: "tutobox17-11111152"
            → block: "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
            → chain-id: "NetXNQiqPWDBoxN"
-      $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
+     $ ./flextesa van --first --seed tutobox18- --attempts 100_000_000  Boxo
+    Flextesa.vanity-chain-id:  Looking for "Boxo"
+    Flextesa.vanity-chain-id:
+      Results:
+        * Seed: "tutobox18-1551632"
+           → block: "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
+           → chain-id: "NetXnofnLBXBoxo"
+     $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
      Flextesa.vanity-chain-id:  Looking for "BoxA"
      Flextesa.vanity-chain-id:
        Results:
@@ -119,6 +126,7 @@ module Genesis_block_hash = struct
     | `Lima -> "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
     | `Mumbai -> "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
     | `Nairobi -> "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
+    | `Oxford -> "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
@@ -186,7 +194,7 @@ the chain to resume
       let open More_fmt in
       pf ppf "`%s` (corresponding chain-id: `%s`)" h (chain_id_of_hash h)
     in
-    match Caml.Sys.file_exists json_file with
+    match Stdlib.Sys.file_exists json_file with
     | true ->
         System.read_file state json_file >>= fun json_str ->
         System_error.catch_exn
@@ -231,7 +239,7 @@ the chain to resume
                 pp_hash_fancily hash Choice.pp_short choice)
         >>= fun () ->
         Running_processes.run_successful_cmdf state "mkdir -p %s"
-          Caml.Filename.(dirname json_file |> quote)
+          Stdlib.Filename.(dirname json_file |> quote)
         >>= fun _ ->
         System.write_file state json_file
           ~content:(to_json state hash |> Ezjsonm.value_to_string)

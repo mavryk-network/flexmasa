@@ -116,6 +116,9 @@ module Kernel = struct
     name : string;
     installer_kernel : string;
     reveal_data_dir : string;
+    kind : string;
+    michelson_type : string;
+    hex : string;
     exec : Tezos_executable.t;
     smart_rollup : t;
     node : Node.t;
@@ -125,34 +128,36 @@ module Kernel = struct
   let kernel_dir ~state smart_rollup p =
     make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
-  let make_config state ~smart_rollup ~node : config =
+  let make_config ?(kind = Tx_installer.kind)
+      ?(michelson_type = Tx_installer.michelson_type) ?(hex = Tx_installer.hex)
+      ~smart_rollup ~node state : config =
     let name = smart_rollup.id in
     let installer_kernel =
       kernel_dir ~state smart_rollup (sprintf "%s-installer.hex" name)
     in
     let reveal_data_dir = Node.reveal_data_dir state node in
     let exec = smart_rollup.installer in
-    { name; installer_kernel; reveal_data_dir; exec; smart_rollup; node }
-
-  (* The cli arguments for the octez_client smart rollup originatation. *)
-  type cli_args = { kind : string; michelson_type : string; hex : string }
-
-  let make_args ~kind ~michelson_type ~hex : cli_args =
-    { kind; michelson_type; hex }
-
-  let default_args =
-    make_args ~kind:Tx_installer.kind
-      ~michelson_type:Tx_installer.michelson_type ~hex:Tx_installer.hex
+    {
+      name;
+      installer_kernel;
+      reveal_data_dir;
+      kind;
+      michelson_type;
+      hex;
+      exec;
+      smart_rollup;
+      node;
+    }
 
   (* Write the tx-kernel files to the data reveal directory. *)
   let load_default_preimages state reveal_data_dir preimages =
     List_sequential.iter preimages ~f:(fun (p, content) ->
-        let filename = Caml.Filename.basename p in
+        let filename = Stdlib.Filename.basename p in
         System.write_file state (reveal_data_dir // filename) ~content)
 
   (* Check the extension of user provided kernel. *)
   let check_extension path =
-    let open Caml.Filename in
+    let open Stdlib.Filename in
     let ext = extension path in
     match ext with
     | ".hex" -> `Hex path
@@ -167,19 +172,15 @@ module Kernel = struct
       path output preimages_dir
 
   (* Build the kernel with the smart_rollup_installer executable. *)
-  let build state ~smart_rollup ~node : (cli_args, _) Asynchronous_result.t =
+  let build state ~smart_rollup ~node : (config, _) Asynchronous_result.t =
     let config = make_config state ~smart_rollup ~node in
     make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
     make_dir state config.reveal_data_dir >>= fun _ ->
     match smart_rollup.custom_kernel with
     | None ->
         load_default_preimages state config.reveal_data_dir Preimages.tx_kernel
-        >>= fun _ -> return default_args
+        >>= fun _ -> return config
     | Some (kind, michelson_type, kernel_path) -> (
-        let cli_args h =
-          h >>= fun hex -> return (make_args ~kind ~michelson_type ~hex)
-        in
-        let content path = System.read_file state path in
         System.size state kernel_path >>= fun s ->
         if s > 24 * 1048 then
           (* wasm files larger that 24kB are passed to installer_create. We can't do anything with large .hex files *)
@@ -195,13 +196,18 @@ module Kernel = struct
               installer_create state ~exec:config.exec.kind ~path:kernel_path
                 ~output:config.installer_kernel
                 ~preimages_dir:config.reveal_data_dir
-              >>= fun _ -> cli_args (content config.installer_kernel)
+              >>= fun _ ->
+              System.read_file state config.installer_kernel >>= fun hex ->
+              return { config with kind; michelson_type; hex }
         else
           match check_extension kernel_path with
-          | `Hex p -> cli_args (content p)
+          | `Hex p ->
+              System.read_file state p >>= fun hex ->
+              return { config with kind; michelson_type; hex }
           | `Wasm p ->
-              content p >>= fun was ->
-              cli_args (return Hex.(was |> of_string |> show)))
+              System.read_file state p >>= fun was ->
+              let hex = Hex.(was |> of_string |> show) in
+              return { config with kind; michelson_type; hex })
 end
 
 (* octez-client call to originate a smart-rollup. *)
@@ -212,6 +218,7 @@ let originate state ~client ~account ~kernel () =
       "originate";
       "smart";
       "rollup";
+      kernel.name;
       "from";
       account;
       "of";
@@ -357,7 +364,7 @@ let cmdliner_term state () =
             | Some (_, _, p) -> (
                 match Kernel.check_extension p with
                 | `Hex p | `Wasm p ->
-                    Caml.Filename.(basename p |> chop_extension))
+                    Stdlib.Filename.(basename p |> chop_extension))
           in
           Some { id; level; custom_kernel; node_mode; node; client; installer }
       | false -> None)

@@ -19,12 +19,12 @@ module Inconsistency_error = struct
   let pp fmt err =
     match err with
     | `Empty_protocol_list ->
-        Caml.Format.fprintf fmt "Wrong number of protocols in network: 0"
+        Stdlib.Format.fprintf fmt "Wrong number of protocols in network: 0"
     | `Too_many_protocols p ->
-        Caml.Format.fprintf fmt "Wrong number of protocols in network: %d"
+        Stdlib.Format.fprintf fmt "Wrong number of protocols in network: %d"
           (List.length p)
     | `Too_many_timestamp_delays p ->
-        Caml.Format.fprintf fmt
+        Stdlib.Format.fprintf fmt
           "Wrong number of protocol timestamp delays in network: %d"
           (List.length p)
 end
@@ -281,11 +281,13 @@ module Queries = struct
                    with _ -> (
                      try
                        field json ~k:"time_between_blocks"
-                       |> get_strings |> List.hd_exn |> Int.of_string
+                       |> get_strings
+                       |> List.fold ~init:0 ~f:(fun acc s ->
+                              Int.max acc (Int.of_string s))
                      with _ -> default ()))
            | Ok None | Error _ -> return (default ()))
       >>= fun tbb ->
-      let seconds = Float.(max (of_int tbb *. 1.5) 3.) in
+      let seconds = Float.(max (of_int tbb *. 2.) 5.) in
       Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds);
       return seconds
     in
