@@ -98,13 +98,13 @@ module Genesis_block_hash = struct
          * Seed: "tutobox17-11111152"
            → block: "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
            → chain-id: "NetXNQiqPWDBoxN"
-    $ ./flextesa van --first --seed tutobox18- --attempts 100_000_000  BoxM
-    Flextesa.vanity-chain-id:  Looking for "BoxM"
+     $ ./flextesa van --first --seed tutobox18- --attempts 100_000_000  Boxo
+    Flextesa.vanity-chain-id:  Looking for "Boxo"
     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox18-10900090"
-           → block: "BM2Pbzg6ZLdWcMwyQpavAtEVKYWeJgLMso6qBLZYoeyGhiwQ5z6"
-           → chain-id: "NetXPj1aT4fBoxM"
+      Results:
+        * Seed: "tutobox18-1551632"
+           → block: "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
+           → chain-id: "NetXnofnLBXBoxo"
      $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
      Flextesa.vanity-chain-id:  Looking for "BoxA"
      Flextesa.vanity-chain-id:
@@ -126,7 +126,7 @@ module Genesis_block_hash = struct
     | `Lima -> "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
     | `Mumbai -> "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
     | `Nairobi -> "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
-    | `Oxford -> "BM2Pbzg6ZLdWcMwyQpavAtEVKYWeJgLMso6qBLZYoeyGhiwQ5z6"
+    | `Oxford -> "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
