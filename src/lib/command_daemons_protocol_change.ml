@@ -129,10 +129,11 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
                  client,
                  [
                    Tezos_daemon.baker_of_node ~protocol_kind:protocol.kind
-                     ~exec:first_baker_exec ~client node ~key ~name_tag:"first";
+                     ~exec:first_baker_exec ~client node ~key ~name_tag:"first"
+                     ~adaptive_issuance:`Pass;
                    Tezos_daemon.baker_of_node ~protocol_kind:next_protocol_kind
                      ~exec:second_baker_exec ~client ~name_tag:"second" node
-                     ~key;
+                     ~key ~adaptive_issuance:`Pass;
                  ]
                  @ if_proto_wants protocol.kind (fun () ->
                        Tezos_daemon.endorser_of_node
