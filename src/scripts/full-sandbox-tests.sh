@@ -113,6 +113,14 @@ smart-rollup() {
         --smart-rollup
 }
 
+ai() {
+    proto="$1"
+    runone "adaptive-issuance-$proto" flextesa mini --protocol-kind "$proto" \
+        --time-between-blocks 1 --number-of-boot 1 --size 1 \
+        --adaptive-issuance-vote "on" --until-level 48
+
+}
+
 all() {
     quickmini "$current"
     quickmini "$next"
@@ -124,6 +132,8 @@ all() {
     daem_n2a
     smart-rollup "$current"
     smart-rollup "$next"
+    ai "$current"
+    ai "$next"
 }
 
 { if [ "$1" = "" ]; then all; else "$@"; fi; }
