@@ -205,6 +205,42 @@ The default values are:
 Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
 accounts by default.
 
+### Adaptive Issuance
+
+The `start_adaptive_issuance` command will start a sandbox in which adaptive issuance is activated immediately.
+
+``` default
+$ docker run --rm --name my-sandbox -p 20000:20000 --detach \
+        "$image" "$script" start_adaptive_issuance
+```
+
+The once activated issuance is determined five cycles in advance. Changes in issuance wont take place immediately.
+
+With the `tcli` command aliased above you can check the adaptive issuance launch cycle and check the expected_issuance for the next few cycles.
+
+
+``` default
+$ tcli rpc get /chains/main/blocks/head/context/adaptive_issuance_launch_cycle
+5
+$ tcli rpc get /chains/main/blocks/head/context/issuance/expected_issuance | jq .
+[
+  {
+    "cycle": 1,
+    "baking_reward_fixed_portion": "333333",
+    "baking_reward_bonus_per_slot": "1302",
+    "attesting_reward_per_slot": "2604",
+    "liquidity_baking_subsidy": "83333",
+    "seed_nonce_revelation_tip": "260",
+    "vdf_revelation_tip": "260"
+  },
+ ...
+]
+```
+
+The command `start_upgrade_with_adaptive_issuance` will start a sandbox network which progresses through the full governance upgrade with bakers voting `on`of adaptive issuance only after the upgrade to the next protocol.
+
+NOTE: Adaptive issuance sandboxes are not compatible with `nairobibox`. Please use `oxfordbox` or `alphabox.`
+
 ### Smart Optimistic Rollups
 
 The released image [scripts](#run-with-docker) include two commands for starting
