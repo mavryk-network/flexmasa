@@ -70,13 +70,14 @@ daem_c2n() {
         --blocks-per-vot 16 \
         --with-timestamp \
         --test-variant full-upgrade \
-        $until_12
+        --waiting-attempts 30 $until_12
+
 }
 
 daem_c2n_nay() {
     runone "dameons-upgrade-c2n-nay" flextesa daemons-upgrade \
         --protocol-kind "$current" \
-        --next-protocol-kind "$current" \
+        --next-protocol-kind "$next" \
         --second-baker octez-baker-$next_suffix \
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
@@ -86,7 +87,7 @@ daem_c2n_nay() {
         --blocks-per-vot 16 \
         --with-timestamp \
         --test-variant nay-for-promotion \
-        $until_12
+        --waiting-attempts 30 $until_12
 }
 
 daem_n2a() {
@@ -102,7 +103,7 @@ daem_n2a() {
         --blocks-per-vot 16 \
         --with-timestamp \
         --test-variant full-upgrade \
-        $until_12
+        --waiting-attempts 30 $until_12
 }
 
 smart-rollup() {
@@ -118,6 +119,16 @@ ai() {
     runone "adaptive-issuance-$proto" flextesa mini --protocol-kind "$proto" \
         --time-between-blocks 1 --number-of-boot 1 --size 1 \
         --adaptive-issuance-vote "on" --until-level 48
+
+}
+
+daem_ai() {
+    proto="$1"
+    runone "daemon-upgrage-adaptive-issuance-$proto" flextesa daemons-upgrade --protocol-kind "$proto" \
+        --time-between-blocks 1 --number-of-boot 1 --size 1 \
+        --test-variant full-upgrade --next-protocol-kind "$next" --second-baker octez-baker-"$next_suffix" \
+        --adaptive-issuance-vote-first-baker "pass" --adaptive-issuance-vote-second-baker "on" \
+        --waiting-attempts 30 $until_12
 
 }
 
