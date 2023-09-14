@@ -96,7 +96,7 @@ daem_n2a() {
         --next-protocol-kind Alpha \
         --second-baker octez-baker-alpha \
         --extra-dummy-proposals-batch-size 2 \
-        --extra-dummy-proposals-batch-levels 3,5 \
+        --extra-dummy-proposals-batch-levels 3,7 \
         --size 2 \
         --number-of-b 2 \
         --time-between-blocks 3,5 \
