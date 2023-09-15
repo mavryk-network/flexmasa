@@ -207,17 +207,18 @@ accounts by default.
 
 ### Adaptive Issuance
 
-The `start_adaptive_issuance` command will start a sandbox in which adaptive issuance is activated immediately.
+The `start_adaptive_issuance` command initializes a sandbox environment where
+adaptive issuance is immediately activated.
 
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
         "$image" "$script" start_adaptive_issuance
 ```
 
-The once activated issuance is determined five cycles in advance. Changes in issuance wont take place immediately.
-
-With the `tcli` command aliased above you can check the adaptive issuance launch cycle and check the expected_issuance for the next few cycles.
-
+Once adaptive issuance is activated, it will launch after five cycles. Any
+changes in issuance will take effect a few cycles after the launch cycle. Using
+the `tcli` command (as aliased earlier), you can check the launch cycle and view
+the expected issuance for the next few cycles.
 
 ``` default
 $ tcli rpc get /chains/main/blocks/head/context/adaptive_issuance_launch_cycle
@@ -237,9 +238,34 @@ $ tcli rpc get /chains/main/blocks/head/context/issuance/expected_issuance | jq 
 ]
 ```
 
-The command `start_upgrade_with_adaptive_issuance` will start a sandbox network which progresses through the full governance upgrade with bakers voting `on`of adaptive issuance only after the upgrade to the next protocol.
+The command `start_upgrade_with_adaptive_issuance` starts a sandbox network
+that undergoes a complete governance upgrade. Once the upgrade to the next
+protocol is completed, all bakers will vote "on" for adaptive issuance.
 
-NOTE: Adaptive issuance sandboxes are not compatible with `nairobibox`. Please use `oxfordbox` or `alphabox.`
+``` default
+$ docker run --rm --name my-sandbox -p 20000:20000 --detach \
+          "$image" "$script" start_upgrade_with_adaptive_issuance
+```
+
+To expedite the activation of adaptive issuance, the protocol constant
+`adaptive_issuance_ema_threshold` is set to 1. This facilitates immediate
+activation in most tests, with a singular exception: it's not possible to adjust
+protocol constants for a future protocol. Thus, when using the command
+`start_upgrade_with_adaptive_issuance` combined with the nairobibox script,
+after upgrading to the Oxford protocol, the `adaptive_issuance_ema_threshold`
+will be determined by the protocol.
+
+You can verify its value using:
+
+``` default
+$ tcli rpc get /chains/main/blocks/head/context/constants | jq .adaptive_issuance_launch_ema_threshold
+100000000
+```
+
+An EMA threshold of 100,000,000 signifies that, after upgrading to the Oxford
+protocol, nairobibox will require more than an hour (with block times set to
+one second) to activate adaptive issuance. For quicker activation, consider using
+`oxfordbox start_upgrade_with_adaptive_issuance`.
 
 ### Smart Optimistic Rollups
 
