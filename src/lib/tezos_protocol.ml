@@ -406,7 +406,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           [
             ("global_limit_of_staking_over_baking", int 5);
             ("edge_of_staking_over_delegation", int 2);
-            ("adaptive_issuance_launch_ema_threshold", int32 1_600_000_000l);
+            ("adaptive_issuance_launch_ema_threshold", int32 1l);
             ("adaptive_rewards_params", dict adaptive_rewards);
           ]
         in

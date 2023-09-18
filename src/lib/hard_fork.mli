@@ -40,5 +40,6 @@ val keyed_daemons :
   client:Tezos_client.t ->
   key:string ->
   node:Tezos_node.t ->
+  adaptive_issuance:Tezos_daemon.ai_vote ->
   Tezos_daemon.t list
 (** Prepare the baker and endorse daemons to secure the hard-fork. *)

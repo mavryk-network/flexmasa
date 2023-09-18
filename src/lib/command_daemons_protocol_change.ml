@@ -61,7 +61,8 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     ~first_endorser_exec ~first_accuser_exec ~second_baker_exec
     ~second_endorser_exec ~second_accuser_exec ~admin_exec
     ~extra_dummy_proposals_batch_size ~extra_dummy_proposals_batch_levels
-    ~waiting_attempts test_variant wait_level () =
+    ~waiting_attempts ~adaptive_issuance_first_baker
+    ~adaptive_issuance_second_baker test_variant wait_level () =
   Helpers.clear_root state >>= fun () ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~protocol_kind:protocol.Tezos_protocol.kind
@@ -129,10 +130,17 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
                  client,
                  [
                    Tezos_daemon.baker_of_node ~protocol_kind:protocol.kind
-                     ~exec:first_baker_exec ~client node ~key ~name_tag:"first";
+                     ~exec:first_baker_exec ~client node ~key
+                     ~name_tag:
+                       (Tezos_protocol.Protocol_kind.daemon_suffix_exn
+                          protocol.kind)
+                     ~adaptive_issuance:adaptive_issuance_first_baker;
                    Tezos_daemon.baker_of_node ~protocol_kind:next_protocol_kind
-                     ~exec:second_baker_exec ~client ~name_tag:"second" node
-                     ~key;
+                     ~exec:second_baker_exec ~client
+                     ~name_tag:
+                       (Tezos_protocol.Protocol_kind.daemon_suffix_exn
+                          next_protocol_kind)
+                     node ~key ~adaptive_issuance:adaptive_issuance_second_baker;
                  ]
                  @ if_proto_wants protocol.kind (fun () ->
                        Tezos_daemon.endorser_of_node
@@ -381,6 +389,8 @@ let cmd () =
         (`Extra_dummy_proposals_batch_size extra_dummy_proposals_batch_size)
         (`Extra_dummy_proposals_batch_levels extra_dummy_proposals_batch_levels)
         test_variant
+        adaptive_issuance_first_baker
+        adaptive_issuance_second_baker
         wait_level
         state
       ->
@@ -390,7 +400,8 @@ let cmd () =
             ~second_baker_exec ~second_endorser_exec ~second_accuser_exec
             ~admin_exec ~external_peer_ports ~no_daemons_for ~next_protocol_kind
             test_variant ~waiting_attempts ~extra_dummy_proposals_batch_size
-            ~extra_dummy_proposals_batch_levels wait_level
+            ~extra_dummy_proposals_batch_levels ~adaptive_issuance_first_baker
+            ~adaptive_issuance_second_baker wait_level
         in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test))
@@ -470,6 +481,24 @@ let cmd () =
              (enum (List.map variants ~f:(fun (n, v, _) -> (n, v))))
              `Full_upgrade
              (info ~docs [ "test-variant" ] ~doc)))
+    $ Arg.(
+        value
+        & opt (enum [ ("on", `On); ("off", `Off); ("pass", `Pass) ]) `Pass
+        & info
+            [ "adaptive-issuance-vote-first-baker" ]
+            ~docs ~docv:"VOTE"
+            ~doc:
+              "Set the adaptive issuance vote for the fist protocol bakers to \
+               $(docv).")
+    $ Arg.(
+        value
+        & opt (enum [ ("on", `On); ("off", `Off); ("pass", `Pass) ]) `Pass
+        & info
+            [ "adaptive-issuance-vote-second-baker" ]
+            ~docs ~docv:"VOTE"
+            ~doc:
+              "Set the adaptive issuance vote for the second protocol bakers \
+               to $(docv).")
     $ Arg.(
         pure (fun l ->
             match l with
