@@ -208,11 +208,12 @@ accounts by default.
 ### Adaptive Issuance
 
 The `start_adaptive_issuance` command initializes a sandbox environment where
-adaptive issuance is immediately activated.
+adaptive issuance is immediately activated (requires at least the Oxford
+protocol).
 
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
-        "$image" "$script" start_adaptive_issuance
+        "$image" oxfordbox start_adaptive_issuance
 ```
 
 Once adaptive issuance is activated, it will launch after five cycles. Any
