@@ -55,6 +55,7 @@ module Protocol_kind : sig
     | `Lima
     | `Mumbai
     | `Nairobi
+    | `Oxford
     | `Alpha ]
 
   val default : t

@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20230607` (also available
+The current _released_ image is `oxheadalpha/flextesa:20230915` (also available
 as `oxheadalpha/flextesa:latest`):
 
 It is built top of the `flextesa` executable and Octez suite, for 2
@@ -24,7 +24,7 @@ parameters. For instance:
   
 ```sh
 image=oxheadalpha/flextesa:latest
-script=mumbaibox
+script=nairobibox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -33,8 +33,8 @@ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
-- `mumbaibox`: Mumbai protocol
 - `nairobibox`: Nairobi protocol
+- `oxfordbox`: Oxford protocol
 - `alphabox`: Alpha protocol, the development version of the `N` protocol at the
   time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
@@ -126,12 +126,13 @@ Notes:
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
-a Mumbai sandbox which switches to Nairobi at level 20:
+a Nairobi sandbox which switches to Oxford at level 20:
+
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
          -e block_time=2 \
-         "$image" mumbaibox start --hard-fork 20:Nairobi:
+         "$image" nairobibox start --hard-fork 20:Oxford:
 ```
 
 With `tcli` above and `jq` you can keep checking the following to observe the
@@ -146,14 +147,14 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf"
+"Proxford..."
 ```
 
 Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `nairobibox` script can also switch to `Alpha` (e.g. `--hard-fork
+- The `oxfordbox` script can also switch to `Alpha` (e.g. `--hard-fork
   16:Alpha:`).
 
 ### Full Governance Upgrade
@@ -167,12 +168,12 @@ daemons-upgrade` (see its general
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e block_time=2 \
-         "$image" mumbaibox start_upgrade
+         "$image" nairobibox start_upgrade
 ```
 
 With `start_upgrade` the sandbox network will do a full voting round followed by
-a protocol change. The `mumbaibox` script will start with the `Mumbai` protocol and
-upgrade to `Nairobi`; the `Nairobibox` upgrades to protocol `Alpha`.
+a protocol change. The `nairobibox` script will start with the `Nairobi` protocol and
+upgrade to `Oxford`; the `oxfordbox` upgrades to protocol `Alpha`.
 
 Voting occurs over five periods. You can adjust the length of the voting periods
 with the variable `blocks_per_voting_period`. Batches of dummy proposals will be
@@ -203,6 +204,69 @@ The default values are:
 
 Note: As with the `start` command `start_upgrade` comes with the Alice and Bob
 accounts by default.
+
+### Adaptive Issuance
+
+The `start_adaptive_issuance` command initializes a sandbox environment where
+adaptive issuance is immediately activated (requires at least the Oxford
+protocol).
+
+``` default
+$ docker run --rm --name my-sandbox -p 20000:20000 --detach \
+        "$image" oxfordbox start_adaptive_issuance
+```
+
+Once adaptive issuance is activated, it will launch after five cycles. Any
+changes in issuance will take effect a few cycles after the launch cycle. Using
+the `tcli` command (as aliased earlier), you can check the launch cycle and view
+the expected issuance for the next few cycles.
+
+``` default
+$ tcli rpc get /chains/main/blocks/head/context/adaptive_issuance_launch_cycle
+5
+$ tcli rpc get /chains/main/blocks/head/context/issuance/expected_issuance | jq .
+[
+  {
+    "cycle": 1,
+    "baking_reward_fixed_portion": "333333",
+    "baking_reward_bonus_per_slot": "1302",
+    "attesting_reward_per_slot": "2604",
+    "liquidity_baking_subsidy": "83333",
+    "seed_nonce_revelation_tip": "260",
+    "vdf_revelation_tip": "260"
+  },
+ ...
+]
+```
+
+The command `start_upgrade_with_adaptive_issuance` starts a sandbox network
+that undergoes a complete governance upgrade. Once the upgrade to the next
+protocol is completed, all bakers will vote "on" for adaptive issuance.
+
+``` default
+$ docker run --rm --name my-sandbox -p 20000:20000 --detach \
+          "$image" "$script" start_upgrade_with_adaptive_issuance
+```
+
+To expedite the activation of adaptive issuance, the protocol constant
+`adaptive_issuance_ema_threshold` is set to 1. This facilitates immediate
+activation in most tests, with a singular exception: it's not possible to adjust
+protocol constants for a future protocol. Thus, when using the command
+`start_upgrade_with_adaptive_issuance` combined with the nairobibox script,
+after upgrading to the Oxford protocol, the `adaptive_issuance_ema_threshold`
+will be determined by the protocol.
+
+You can verify its value using:
+
+``` default
+$ tcli rpc get /chains/main/blocks/head/context/constants | jq .adaptive_issuance_launch_ema_threshold
+100000000
+```
+
+An EMA threshold of 100,000,000 signifies that, after upgrading to the Oxford
+protocol, nairobibox will require more than an hour (with block times set to
+one second) to activate adaptive issuance. For quicker activation, consider using
+`oxfordbox start_upgrade_with_adaptive_issuance`.
 
 ### Smart Optimistic Rollups
 
@@ -265,7 +329,7 @@ entrypoint when making calls with the smart-rollup-client. We recommend aliasing
 the following:
 
 ``` default
-$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtMumbai -E http://localhost:20010' 
+$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtNairobi -E http://localhost:20010'
 ```
 
 In order to include any smart contracts, add them to your

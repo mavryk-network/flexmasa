@@ -66,11 +66,11 @@ let node_network_config t =
           ];
       ] )
 
-let keyed_daemons t ~client ~key ~node =
+let keyed_daemons t ~client ~key ~node ~adaptive_issuance =
   let protocol_kind = t.protocol_kind in
   [
     Tezos_daemon.baker_of_node ~name_tag:t.name ~exec:t.baker ~client node ~key
-      ~protocol_kind;
+      ~adaptive_issuance ~protocol_kind;
     Tezos_daemon.endorser_of_node ~name_tag:t.name ~exec:t.endorser ~client
       ~protocol_kind node ~key;
   ]

@@ -74,6 +74,7 @@ module Protocol_kind = struct
     | `Lima
     | `Mumbai
     | `Nairobi
+    | `Oxford
     | `Alpha ]
 
   let names =
@@ -92,6 +93,7 @@ module Protocol_kind = struct
       ("Lima", `Lima);
       ("Mumbai", `Mumbai);
       ("Nairobi", `Nairobi);
+      ("Oxford", `Oxford);
       ("Alpha", `Alpha);
     ]
 
@@ -121,6 +123,7 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
+    | `Oxford -> "ProxfordSW2S7fvchT1Zgj2avb5UES194neRyYVXoaDGvF9egt8"
     | `Nairobi -> "PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf"
     | `Mumbai -> "PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
     (* Version 1: "PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc" *)
@@ -141,6 +144,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Oxford -> "Proxford"
     | `Nairobi -> "PtNairob"
     | `Mumbai -> "PtMumbai"
     | `Lima -> "PtLimaPt"
@@ -162,7 +166,8 @@ module Protocol_kind = struct
     | _ -> false
 
   let wants_endorser_daemon : t -> bool = function
-    | `Ithaca | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi | `Alpha ->
+    | `Ithaca | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi | `Oxford
+    | `Alpha ->
         false
     | `Florence | `Carthage | `Delphi | `Hangzhou | `Babylon | `Edo | `Granada
     | `Athens ->
@@ -215,11 +220,12 @@ let default () =
     time_between_blocks = [ 2; 3 ];
     baking_reward_per_endorsement = [ 78_125; 11_719 ];
     endorsement_reward = [ 78_125; 52_083 ];
-    blocks_per_roll_snapshot = 4;
+    blocks_per_roll_snapshot =
+      4 (* From lib_parameters/default_parameters.ml constants_sandbox *);
     blocks_per_voting_period = 16;
-    blocks_per_cycle = 8;
-    preserved_cycles = 2;
-    proof_of_work_threshold = -1;
+    blocks_per_cycle = 8 (* From constants_sandbox *);
+    preserved_cycles = 2 (* From constants_sandbox *);
+    proof_of_work_threshold = -1 (* From constants_sandbox *);
     timestamp_delay = None;
     custom_protocol_parameters = None;
   }
@@ -230,7 +236,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       let open Ezjsonm in
       (match t.kind with
-      | `Mumbai | `Nairobi | `Alpha -> ()
+      | `Nairobi | `Oxford | `Alpha -> ()
       | other ->
           Fmt.failwith
             "Flextesa cannot generate parameters for old protocols like %a, \
@@ -243,58 +249,25 @@ let protocol_parameters_json t : Ezjsonm.t =
       let make_account (account, amount) =
         strings [ Account.pubkey account; sprintf "%Ld" amount ]
       in
+      (* Use 'add_replace' and 'remove' to align "base" parameters to protocol
+         specifications. Ensure that "base" list remains up-to-date by adding new
+         parameters to the "base" list and use these functions for the older
+         protocols; which will eventually be removed. *)
       let add_replace (k, v) l = List.Assoc.add l ~equal:String.equal k v in
-      let remove (k, _) l = List.Assoc.remove l ~equal:String.equal k in
+      let remove key l = List.Assoc.remove l ~equal:String.equal key in
+      (* Use to prefix a string to key. Key prefixes can change with new protocol.  *)
       let prefix_keys prefix l =
         List.map l ~f:(fun (k, v) -> (Fmt.str "%s_%s" prefix k, v))
-      in
-      let common =
-        [
-          ( "bootstrap_accounts",
-            list make_account
-              (t.bootstrap_accounts
-              @ [ (t.dictator, 10_000_000L) ]
-              @ [ (t.soru_node_op, 1_000_000_000_000L) ]
-              @ [ (t.smart_contract_admin, 1_000_000_000_000L) ]) );
-          (let computed = t.blocks_per_voting_period / t.blocks_per_cycle in
-           if computed = 0 then
-             Fmt.failwith
-               "Jakarta & Alpha protocols want (t.blocks_per_voting_period / \
-                t.blocks_per_cycle) >= 1";
-           ("cycles_per_voting_period", int computed));
-          ("blocks_per_cycle", int t.blocks_per_cycle);
-          ("nonce_revelation_threshold", int 4);
-          ("preserved_cycles", int t.preserved_cycles);
-          ( "proof_of_work_threshold",
-            ksprintf string "%d" t.proof_of_work_threshold );
-          ("blocks_per_commitment", int 4);
-          ("hard_gas_limit_per_operation", string (Int.to_string 1_040_000));
-          ("hard_gas_limit_per_block", string (Int.to_string 5_200_000));
-          ("minimal_stake", string (Int.to_string 6_000_000_000));
-          ("vdf_difficulty", string "50000");
-          ("seed_nonce_revelation_tip", string (Int.to_string 125_000));
-          ("origination_size", int 257);
-          ("hard_storage_limit_per_operation", string (Int.to_string 60_000));
-          ("cost_per_byte", string (Int.to_string 250));
-          ("quorum_min", int 2_000);
-          ("quorum_max", int 7_000);
-          ("min_proposal_quorum", int 500);
-          ("liquidity_baking_subsidy", string "1_250_000");
-          ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000);
-          ("cache_script_size", int 100_000_000);
-          ("cache_stake_distribution_cycles", int 8);
-          ("cache_sampler_state_cycles", int 8);
-        ]
       in
       let tx_rollup_specific_parameters =
         let base =
           [
-            ("tx_rollup_enable", bool true);
+            ("tx_rollup_enable", bool false);
             ("tx_rollup_origination_size", int 60_000);
             ("tx_rollup_hard_size_limit_per_inbox", int 100_000);
             ("tx_rollup_hard_size_limit_per_message", int 5_000);
             ("tx_rollup_max_withdrawals_per_batch", int 255);
-            ("tx_rollup_commitment_bond", string "10_000_000_000");
+            ("tx_rollup_commitment_bond", string (Int.to_string 10_000_000_000));
             ("tx_rollup_finality_period", int 2_000);
             ("tx_rollup_max_inboxes_count", int 2_100);
             ("tx_rollup_withdraw_period", int 2_000);
@@ -306,68 +279,81 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("tx_rollup_sunset_level", int32 3_473_409l);
           ]
         in
-        match t.kind with
-        | `Mumbai | `Nairobi | `Alpha ->
-            base |> add_replace ("tx_rollup_enable", bool false)
-        | _ -> base
+        match t.kind with `Nairobi -> base | _ -> []
       in
       let dal_specific_parameters =
-        let dal =
+        let dal_parametric =
           let base =
+            (* Most of these valuse are from lib_parameters/default_parameters.ml constants_sandbox *)
             [
+              ("page_size", int (4096 / 32));
+              ("slot_size", int ((1 lsl 20) / 32));
+              ("redundancy_factor", int 8);
+              ("number_of_shards", int (2048 / 32));
               ("feature_enable", bool false);
               ("number_of_slots", int 16);
-              ("number_of_shards", int 256);
               ("attestation_lag", int 1);
-              ("availability_threshold", int 50);
-              ("slot_size", int (1 lsl 16));
-              ("redundancy_factor", int 4);
-              ("page_size", int 4096);
+              ("attestation_threshold", int 50);
+              ("blocks_per_epoch", int32 2l);
             ]
           in
           match t.kind with
-          | `Mumbai -> base
-          | `Nairobi | `Alpha ->
-              base
-              |> add_replace ("slot_size", int (1 lsl 20))
-              |> add_replace ("redundancy_factor", int 16)
-              |> add_replace ("number_of_shards", int 2048)
-              |> add_replace ("number_of_slots", int 256)
-              |> remove ("availability_threshold", int 50)
-              |> add_replace ("attestation_threshold", int 50)
-              (* blocks_per_epoch needs to be > 1 and a divisor of blocks_per_cycle. *)
-              |> add_replace ("blocks_per_epoch", int 2)
+          | `Nairobi -> base
+          | `Oxford | `Alpha -> base |> add_replace ("attestation_lag", int 4)
           | _ -> []
         in
-        [ ("dal_parametric", `O dal) ]
+        [ ("dal_parametric", dict dal_parametric) ]
       in
       let smart_rollup_specific_parameters =
+        let reveal_activation_level =
+          let base =
+            [
+              ("raw_data", dict [ ("Blake2B", int 0) ]);
+              ("metadata", int 0);
+              (* dal_page = *)
+              (*   (if default_dal.feature_enable then Raw_level.root *)
+              (*   else *)
+              (*     (\* Deactivate the reveal if the dal is not enabled. *\) *)
+              (*     (\* https://gitlab.com/tezos/tezos/-/issues/5968 *)
+              (*        Encoding error with Raw_level *)
+
+              (*        We set the activation level to [pred max_int] to deactivate *)
+              (*        the feature. The [pred] is needed to not trigger an encoding *)
+              (*        exception with the value [Int32.int_min] (see tezt/tests/mockup.ml). *\) *)
+              (*     Raw_level.of_int32_exn Int32.(pred max_int)); *)
+              ("dal_page", int32 Int32.(pred max_value));
+            ]
+          in
+          match t.kind with `Oxford | `Alpha -> base | _ -> []
+        in
         let base =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
           let challenge_window_in_blocks = 30 in
           [
             ("enable", bool true);
+            ("arith_pvm_enable", bool false);
             ("origination_size", int 6_314);
             ("challenge_window_in_blocks", int challenge_window_in_blocks);
-            ("stake_amount", string "10_000_000_000");
-            ("commitment_period_in_blocks", int 30);
+            ("commitment_period_in_blocks", int (challenge_window_in_blocks / 2));
+            ("stake_amount", string (Int.to_string 10_000_000_000));
             ("max_lookahead_in_blocks", int (challenge_window_in_blocks * 2));
             ("max_active_outbox_levels", int challenge_window_in_blocks);
             ("max_outbox_messages_per_level", int 100);
             ("number_of_sections_in_dissection", int 32);
             ("timeout_period_in_blocks", int (challenge_window_in_blocks / 2));
-            ("max_number_of_cemented_commitments", int 5);
-            ("arith_pvm_enable", bool false);
+            ( "max_number_of_cemented_commitments",
+              int 30 (* Keep more old commitments. *) );
             ("max_number_of_parallel_games", int 32);
+            ("reveal_activation_level", dict reveal_activation_level);
           ]
         in
         match t.kind with
-        | `Mumbai -> prefix_keys "smart_rollup" base
-        | `Nairobi | `Alpha ->
+        | `Nairobi ->
+            prefix_keys "smart_rollup" (base |> remove "reveal_activation_level")
+        | `Oxford -> prefix_keys "smart_rollup" base
+        | `Alpha ->
             prefix_keys "smart_rollup"
-              (base
-              (* max_number_of_stored_cempented_commitments is increased so the sandbox will store commitments longer. *)
-              |> add_replace ("max_number_of_cemented_commitments", int 30))
+              (base |> add_replace ("private_enable", bool false))
         | _ -> []
       in
       let zk_rollup_specific_parameters =
@@ -376,52 +362,194 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("enable", bool false);
             ("origination_size", int 4_000);
             ("min_pending_to_process", int 10);
+            ("max_ticket_payload_size", int 2_048);
           ]
         in
         match t.kind with
-        | `Mumbai | `Nairobi | `Alpha -> prefix_keys "zk_rollup" base
+        | `Nairobi ->
+            prefix_keys "zk_rollup" (base |> remove "max_ticket_payload_size")
+        | `Oxford | `Alpha -> prefix_keys "zk_rollup" base
         | _ -> []
       in
-      let tenderbake_specific_parameters =
-        match t.kind with
-        | `Mumbai | `Nairobi | `Alpha ->
+      let adaptive_issuance_specific_parameters =
+        let adaptive_rewards =
+          let base =
             [
-              ("max_operations_time_to_live", int 120);
-              ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot);
-              ("baking_reward_fixed_portion", string "5_000_000");
-              ("baking_reward_bonus_per_slot", string "2143");
-              ("endorsing_reward_per_slot", string "1428");
-              ("consensus_committee_size", int 67);
-              ("consensus_threshold", int 6);
-              ( "minimal_participation_ratio",
-                dict [ ("numerator", int 2); ("denominator", int 3) ] );
-              ( "minimal_block_delay",
-                string
-                  (match List.nth_exn t.time_between_blocks 0 with
-                  | n -> Int.to_string n
-                  | exception _ ->
-                      Fmt.failwith "time_between_blocks cannot be an empty list")
-              );
-              ( "delay_increment_per_round",
-                string
-                  (match t.time_between_blocks with
-                  | [ n ] | _ :: n :: _ -> Int.to_string n
-                  | _ ->
-                      Fmt.failwith "time_between_blocks cannot be an empty list")
-              );
-              ("max_slashing_period", int 2);
-              ("frozen_deposits_percentage", int 10);
-              ( "ratio_of_frozen_deposits_slashed_per_double_endorsement",
-                dict [ ("numerator", int 1); ("denominator", int 2) ] );
-              ("double_baking_punishment", string "640000000");
+              ( "issuance_ratio_min",
+                dict
+                  [
+                    ("numerator", string (Int.to_string 5));
+                    ("denominator", string (Int.to_string 10000));
+                  ] );
+              ( "issuance_ratio_max",
+                dict
+                  [
+                    ("numerator", string (Int.to_string 5));
+                    ("denominator", string (Int.to_string 20));
+                  ] );
+              ("max_bonus", string (Int64.to_string 50_000_000_000_000L));
+              ("growth_rate", string (Int64.to_string 115_740_740L));
+              ( "center_dz",
+                dict
+                  [
+                    ("numerator", string (Int.to_string 1));
+                    ("denominator", string (Int.to_string 2));
+                  ] );
+              ( "radius_dz",
+                dict
+                  [
+                    ("numerator", string (Int.to_string 1));
+                    ("denominator", string (Int.to_string 50));
+                  ] );
             ]
-        | other -> unsupported_protocol "tenderbake_specific_parameters" other
+          in
+          match t.kind with `Oxford | `Alpha -> base | _ -> []
+        in
+        let base =
+          [
+            ("global_limit_of_staking_over_baking", int 5);
+            ("edge_of_staking_over_delegation", int 2);
+            ("adaptive_issuance_launch_ema_threshold", int32 1l);
+            ("adaptive_rewards_params", dict adaptive_rewards);
+          ]
+        in
+        match t.kind with `Oxford | `Alpha -> base | _ -> []
       in
-      (* let list_of_zs = list (fun i -> string (Int.to_string i)) in *)
+      let general_parameters =
+        let consensus_committee_size =
+          256 (* From lib_parameters/default_parameters.ml constants_sandbox *)
+        in
+        let consensus_threshold = 0 (* From constants_sandbox *) in
+        let issuance_weights =
+          (* Form module Generated in /lib_protocol/constants_repr.ml *)
+          let bonus_committee_size =
+            consensus_committee_size - consensus_threshold
+          in
+          let _reward_parts_whole = 20480 (* = 256 * 80 *) in
+          let reward_parts_half = 10240 (* = reward_parts_whole / 2 *) in
+          let reward_parts_quarter = 5120 (* = reward_parts_whole / 4 *) in
+          let reward_parts_16th = 1280 (* = reward_parts_whole / 16 *) in
+          let base =
+            [
+              ( "base_total_issued_per_minute",
+                string (Int64.to_string 85_007_812L) );
+              ( "baking_reward_fixed_portion_weight",
+                int
+                  (if bonus_committee_size <= 0 then reward_parts_half
+                  else reward_parts_quarter) );
+              ( "baking_reward_bonus_weight",
+                int
+                  (if bonus_committee_size <= 0 then 0
+                  else reward_parts_quarter) );
+              ("attesting_reward_weight", int reward_parts_half);
+              ("liquidity_baking_subsidy_weight", int reward_parts_16th);
+              ("seed_nonce_revelation_tip_weight", int 1);
+              ("vdf_revelation_tip_weight", int 1);
+            ]
+          in
+          match t.kind with `Oxford | `Alpha -> base | _ -> []
+        in
+        let base =
+          [
+            ( "bootstrap_accounts",
+              list make_account
+                (t.bootstrap_accounts
+                @ [ (t.dictator, 10_000_000L) ]
+                @ [ (t.soru_node_op, 1_000_000_000_000L) ]) );
+            ("preserved_cycles", int t.preserved_cycles);
+            ("blocks_per_cycle", int t.blocks_per_cycle);
+            ("blocks_per_commitment", int 4 (* From constants_sandbox *));
+            ("nonce_revelation_threshold", int 4 (* From constants_sandbox *));
+            ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot);
+            ( "cycles_per_voting_period",
+              int
+                ( t.blocks_per_voting_period / t.blocks_per_cycle |> fun c ->
+                  if c = 0 then
+                    Fmt.failwith
+                      "Requries (t.blocks_per_voting_period / \
+                       t.blocks_per_cycle) >= 1"
+                  else c ) );
+            ("hard_gas_limit_per_operation", string (Int.to_string 1_040_000));
+            ("hard_gas_limit_per_block", string (Int.to_string 2_600_000));
+            ( "proof_of_work_threshold",
+              ksprintf string "%d" t.proof_of_work_threshold );
+            ("minimal_stake", string (Int.to_string 6_000_000_000));
+            ("minimal_frozen_stake", string (Int.to_string 600));
+            ( "vdf_difficulty",
+              string (Int.to_string 50_000) (*From constants_sandbox *) );
+            ("origination_size", int 257);
+            ("issuance_weights", dict issuance_weights);
+            ("hard_storage_limit_per_operation", string (Int.to_string 60_000));
+            ("cost_per_byte", string (Int.to_string 250));
+            ("quorum_min", int 2_000);
+            ("quorum_max", int 7_000);
+            ("min_proposal_quorum", int 500);
+            ("liquidity_baking_toggle_ema_threshold", int 1_000_000_000);
+            ("max_operations_time_to_live", int 240);
+            ( "minimal_block_delay",
+              string
+                (match List.nth_exn t.time_between_blocks 0 with
+                | n -> Int.to_string n
+                | exception _ ->
+                    Fmt.failwith "time_between_blocks cannot be an empty list")
+            );
+            ( "delay_increment_per_round",
+              string
+                (match t.time_between_blocks with
+                | [ n ] | _ :: n :: _ -> Int.to_string n
+                | _ ->
+                    Fmt.failwith "time_between_blocks cannot be an empty list")
+            );
+            ("consensus_committee_size", int consensus_committee_size);
+            ("consensus_threshold", int consensus_threshold);
+            ( "minimal_participation_ratio",
+              dict [ ("numerator", int 2); ("denominator", int 3) ] );
+            ("max_slashing_period", int 2);
+            ( "limit_of_delegation_over_baking",
+              int 19 (* From constants_sandbox *) );
+            ("percentage_of_frozen_deposits_slashed_per_double_baking", int 10);
+            ( "percentage_of_frozen_deposits_slashed_per_double_attestation",
+              int 50 );
+            ("cache_script_size", int 100_000_000);
+            ("cache_stake_distribution_cycles", int 8);
+            ("cache_sampler_state_cycles", int 8);
+          ]
+        in
+        match t.kind with
+        | `Nairobi ->
+            base
+            |> add_replace
+                 ( "frozen_deposits_percentage",
+                   int 5 (* From constants_sandbox *) )
+            |> add_replace
+                 (* minimal_stake / double_baking_punishment must be >= 10 to
+                    caclulate the Oxford constants. *)
+                 ("double_baking_punishment", string (Int.to_string 640_000_000))
+            |> add_replace
+                 ( "ratio_of_frozen_deposits_slashed_per_double_endorsement",
+                   dict [ ("numerator", int 1); ("denominator", int 2) ] )
+            |> add_replace
+                 ("seed_nonce_revelation_tip", string (Int.to_string 125_000))
+            |> add_replace
+                 ( "baking_reward_fixed_portion",
+                   string (Int.to_string 5_000_000) )
+            |> add_replace ("baking_reward_bonus_per_slot", string "2143")
+            |> add_replace ("endorsing_reward_per_slot", string "1428")
+            |> add_replace
+                 ("liquidity_baking_subsidy", string (Int.to_string 1_250_000))
+            |> remove "minimal_frozen_stake"
+            |> remove "issuance_weights"
+            |> remove "limit_of_delegation_over_baking"
+            |> remove "percentage_of_frozen_deposits_slashed_per_double_baking"
+            |> remove
+                 "percentage_of_frozen_deposits_slashed_per_double_attestation"
+        | `Oxford | `Alpha -> base
+        | other -> unsupported_protocol "defalut_parameters" other
+      in
       dict
-        (common @ tx_rollup_specific_parameters @ dal_specific_parameters
-       @ smart_rollup_specific_parameters @ zk_rollup_specific_parameters
-       @ tenderbake_specific_parameters)
+        (general_parameters @ tx_rollup_specific_parameters
+       @ dal_specific_parameters @ smart_rollup_specific_parameters
+       @ zk_rollup_specific_parameters @ adaptive_issuance_specific_parameters)
 
 let voting_period_to_string t (p : Voting_period.t) =
   (* This has to mimic: src/proto_alpha/lib_protocol/voting_period_repr.ml *)

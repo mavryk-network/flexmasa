@@ -16,12 +16,12 @@ FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap jq
 WORKDIR /usr/bin
-COPY --from=0 /usr/bin/octez-accuser-PtMumbai .
 COPY --from=0 /usr/bin/octez-accuser-PtNairob .
+COPY --from=0 /usr/bin/octez-accuser-Proxford .
 COPY --from=0 /usr/bin/octez-accuser-alpha .
 COPY --from=0 /usr/bin/octez-admin-client .
-COPY --from=0 /usr/bin/octez-baker-PtMumbai .
 COPY --from=0 /usr/bin/octez-baker-PtNairob .
+COPY --from=0 /usr/bin/octez-baker-Proxford .
 COPY --from=0 /usr/bin/octez-baker-alpha .
 COPY --from=0 /usr/bin/octez-client .
 COPY --from=0 /usr/bin/octez-codec .
@@ -30,11 +30,11 @@ COPY --from=0 /usr/bin/octez-dal-node .
 COPY --from=0 /usr/bin/octez-node .
 COPY --from=0 /usr/bin/octez-proxy-server .
 COPY --from=0 /usr/bin/octez-signer .
-COPY --from=0 /usr/bin/octez-smart-rollup-client-PtMumbai .
 COPY --from=0 /usr/bin/octez-smart-rollup-client-PtNairob .
+COPY --from=0 /usr/bin/octez-smart-rollup-client-Proxford .
 COPY --from=0 /usr/bin/octez-smart-rollup-client-alpha .
-COPY --from=0 /usr/bin/octez-smart-rollup-node-PtMumbai .
 COPY --from=0 /usr/bin/octez-smart-rollup-node-PtNairob .
+COPY --from=0 /usr/bin/octez-smart-rollup-node-Proxford .
 COPY --from=0 /usr/bin/octez-smart-rollup-node-alpha .
 COPY --from=0 /usr/bin/octez-smart-rollup-wasm-debugger .
 COPY --from=0 /usr/bin/flextesa .
@@ -42,11 +42,11 @@ COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
 COPY --from=0 /usr/bin/smart-rollup-installer .
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
 RUN chmod a+rx /usr/bin/flextesarl
-COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/mumbaibox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/nairobibox
+COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/oxfordbox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
-RUN chmod a+rx /usr/bin/mumbaibox
 RUN chmod a+rx /usr/bin/nairobibox
+RUN chmod a+rx /usr/bin/oxfordbox
 RUN chmod a+rx /usr/bin/alphabox
 RUN /usr/bin/alphabox initclient
 RUN ln -s /usr/bin/octez-client /usr/bin/tezos-client

@@ -1,29 +1,29 @@
 #! /bin/sh
 
-default_protocol=Mumbai
-next_protocol_name=Nairobi
-next_protocol=PtNairob
+default_protocol=Nairobi
+next_protocol_name=Oxford
+next_protocol_hash=Proxford
 case "$(basename $0)" in
-    "mumbaibox")
-        default_protocol=Mumbai
-        protocol_hash=PtMumbai
-        binary_suffix=PtMumbai
-        next_protocol_name=Nairobi
-        next_protocol=PtNairob
-        ;;
     "nairobibox")
         default_protocol=Nairobi
         protocol_hash=PtNairob
         binary_suffix=PtNairob
+        next_protocol_name=Oxford
+        next_protocol_hash=Proxford
+        ;;
+    "oxfordbox")
+        default_protocol=Oxford
+        protocol_hash=Proxford
+        binary_suffix=Proxford
         next_protocol_name=Alpha
-        next_protocol=alpha
+        next_protocol_hash=alpha
         ;;
     "alphabox")
         default_protocol=Alpha
         protocol_hash=ProtoA
         binary_suffix=alpha
         next_protocol_name=Failure
-        next_protocol=alpha
+        next_protocol_hash=alpha
         ;;
     *) ;;
 esac
@@ -51,7 +51,7 @@ export bob="$(flextesa key bob)"
 export b0="$(flextesa key bootacc-0)"
 all_commands="$all_commands
 * start : Start a sandbox with the $default_protocol protocol."
-root_path=/tmp/mini-box
+root_path=/tmp/flextesa-mini-box
 start() {
     flextesa mini-net \
         --root "$root_path" --size 1 "$@" \
@@ -76,7 +76,7 @@ start_manual() {
 all_commands="$all_commands
 * bake : Try to bake a block (to be used with 'start_manual' sandboxes)."
 bake() {
-    octez-client bake for baker0 --minimal-timestamp
+    octez-client --endpoint http://localhost:20000 bake for bootacc-0 --minimal-timestamp
 }
 
 vote_period=${blocks_per_voting_period:-16}
@@ -85,7 +85,7 @@ dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
 
 all_commands="$all_commands
 * start_upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
-daemons_root=/tmp/daemons-upgrade-box
+daemons_root=/tmp/flextesa-daemons-upgrade-box
 start_upgrade() {
     flextesa daemons-upgrade \
         --next-protocol-kind "$next_protocol_name" \
@@ -103,7 +103,7 @@ start_upgrade() {
         --blocks-per-voting-period "$vote_period" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
-        --second-baker octez-baker-"$next_protocol" \
+        --second-baker octez-baker-"$next_protocol_hash" \
         --test-variant full-upgrade \
         --until-level 200_000_000
 }
@@ -229,11 +229,50 @@ start_evm_smart_rollup() {
 }
 
 all_commands="$all_commands
+* start_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
+root_path=/tmp/flextesa-adaptive-issuance-box
+start_adaptive_issuance() {
+    flextesa mini-net \
+        --root "$root_path" --size 1 \
+        --set-history-mode N000:archive \
+        --number-of-b 1 \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --time-b "$time_bb" \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --no-daemons-for=alice \
+        --no-daemons-for=bob \
+        --until-level 200_000_000 \
+        --protocol-kind "$default_protocol" \
+        --adaptive-issuance-vote "on"
+}
+
+all_commands="$all_commands
+* start_upgrade_with_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
+root_path=/tmp/flextesa-daemons-upgrade-adaptive-issuance-box
+start_upgrade_with_adaptive_issuance() {
+    flextesa daemons-upgrade \
+        --root "$root_path" --size 1 \
+        --number-of-b 2 \
+        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --add-bootstrap-account="$alice@2_000_000_000_000" \
+        --add-bootstrap-account="$bob@2_000_000_000_000" \
+        --no-daemons-for=alice \
+        --no-daemons-for=bob \
+        --time-b "$time_bb" \
+        --with-timestamp \
+        --protocol-kind "$default_protocol" \
+        --second-baker octez-baker-"$next_protocol_hash" \
+        --test-variant full-upgrade \
+        --until-level 200_000_000 \
+        --adaptive-issuance-vote-first-baker "pass" --adaptive-issuance-vote-second-baker "on"
+}
+
+all_commands="$all_commands
 * info : Show accounts and information about the sandbox."
 info() {
     cat >&2 <<EOF
 Usable accounts:
-
 - $(echo $alice | sed 's/,/\n  * /g')
 - $(echo $bob | sed 's/,/\n  * /g')
 

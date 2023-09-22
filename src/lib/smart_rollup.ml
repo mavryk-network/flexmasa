@@ -385,6 +385,7 @@ let originate state ~client ~account ~kernel () =
       "originate";
       "smart";
       "rollup";
+      kernel.name;
       "from";
       account;
       "of";

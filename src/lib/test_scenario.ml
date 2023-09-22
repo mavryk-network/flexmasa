@@ -281,11 +281,13 @@ module Queries = struct
                    with _ -> (
                      try
                        field json ~k:"time_between_blocks"
-                       |> get_strings |> List.hd_exn |> Int.of_string
+                       |> get_strings
+                       |> List.fold ~init:0 ~f:(fun acc s ->
+                              Int.max acc (Int.of_string s))
                      with _ -> default ()))
            | Ok None | Error _ -> return (default ()))
       >>= fun tbb ->
-      let seconds = Float.(max (of_int tbb *. 1.5) 3.) in
+      let seconds = Float.(max (of_int tbb *. 2.) 5.) in
       Dbg.e EF.(wf "TBB: %d, seconds: %f" tbb seconds);
       return seconds
     in

@@ -5,6 +5,8 @@ type args =
   | Endorser : string -> args
   | Accuser : args
 
+type ai_vote = [ `On | `Off | `Pass ]
+
 type t = {
   node : Tezos_node.t;
   client : Tezos_client.t;
@@ -12,12 +14,16 @@ type t = {
   protocol_kind : Tezos_protocol.Protocol_kind.t;
   args : args;
   name_tag : string option;
+  adaptive_issuance : ai_vote;
 }
 
-let of_node ?name_tag node args ~protocol_kind ~exec ~client =
-  { node; exec; client; args; name_tag; protocol_kind }
+let of_node ?(adaptive_issuance = `Pass) ?name_tag node args ~protocol_kind
+    ~exec ~client =
+  { node; exec; client; args; name_tag; protocol_kind; adaptive_issuance }
 
-let baker_of_node ?name_tag nod ~key = of_node nod ?name_tag (Baker key)
+let baker_of_node ?name_tag nod ~key ~adaptive_issuance =
+  of_node nod ~adaptive_issuance ?name_tag (Baker key)
+
 let endorser_of_node ?name_tag nod ~key = of_node nod ?name_tag (Endorser key)
 let accuser_of_node ?name_tag nod = of_node ?name_tag nod Accuser
 
@@ -40,10 +46,18 @@ let to_script state (t : t) =
   match t.args with
   | Baker key ->
       let node_path = Tezos_node.data_dir state t.node in
+      let ai =
+        [
+          "--adaptive-issuance-vote";
+          (function `On -> "on" | `Off -> "off" | `Pass -> "pass")
+            t.adaptive_issuance;
+        ]
+      in
+      let lb = [ "--liquidity-baking-toggle-vote"; "pass" ] in
       let extra_options =
         match t.protocol_kind with
-        | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi | `Alpha ->
-            [ "--liquidity-baking-toggle-vote"; "pass" ]
+        | `Oxford | `Alpha -> ai @ lb
+        | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi -> lb
         | `Florence | `Carthage | `Delphi | `Ithaca | `Hangzhou | `Babylon
         | `Edo | `Granada | `Athens ->
             []

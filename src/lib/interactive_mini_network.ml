@@ -98,7 +98,14 @@ module Genesis_block_hash = struct
          * Seed: "tutobox17-11111152"
            → block: "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
            → chain-id: "NetXNQiqPWDBoxN"
-      $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
+     $ ./flextesa van --first --seed tutobox18- --attempts 100_000_000  Boxo
+    Flextesa.vanity-chain-id:  Looking for "Boxo"
+    Flextesa.vanity-chain-id:
+      Results:
+        * Seed: "tutobox18-1551632"
+           → block: "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
+           → chain-id: "NetXnofnLBXBoxo"
+     $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
      Flextesa.vanity-chain-id:  Looking for "BoxA"
      Flextesa.vanity-chain-id:
        Results:
@@ -119,6 +126,7 @@ module Genesis_block_hash = struct
     | `Lima -> "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
     | `Mumbai -> "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
     | `Nairobi -> "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
+    | `Oxford -> "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
@@ -254,7 +262,7 @@ let run_dsl_cmd state clients nodes dsl_command =
 let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
     ~genesis_block_choice ?external_peer_ports ~nodes_history_mode_edits
     node_exec client_exec baker_exec endorser_exec accuser_exec test_kind
-    ?smart_rollup ~smart_contracts () =
+    ?smart_rollup ~smart_contracts ~adaptive_issuance () =
   (if clear_root then
    Console.say state EF.(wf "Clearing root: `%s`" (Paths.root state))
    >>= fun () -> Helpers.clear_root state
@@ -318,10 +326,12 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                  client,
                  to_keyed acc client,
                  Option.value_map hard_fork ~default:[]
-                   ~f:(Hard_fork.keyed_daemons ~client ~node ~key)
+                   ~f:
+                     (Hard_fork.keyed_daemons ~client ~node ~key
+                        ~adaptive_issuance)
                  @ [
                      Tezos_daemon.baker_of_node ~exec:baker_exec ~client node
-                       ~key ~protocol_kind:protocol.kind;
+                       ~key ~adaptive_issuance ~protocol_kind:protocol.kind;
                      Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
                        ~protocol_kind:protocol.kind node ~key;
                    ] ))
@@ -462,12 +472,13 @@ let cmd () =
         state
         smart_rollup
         smart_contracts
+        adaptive_issuance
       ->
         let actual_test =
           run state ~size ~base_port ~protocol bnod bcli bak endo accu
             ?hard_fork ?smart_rollup ~clear_root ~nodes_history_mode_edits
             ~external_peer_ports ~no_daemons_for ~genesis_block_choice
-            ~smart_contracts test_kind
+            ~smart_contracts ~adaptive_issuance test_kind
         in
         Test_command_line.Run_command.or_hard_fail state ~pp_error
           (Interactive_test.Pauser.run_test ~pp_error state actual_test))
@@ -520,7 +531,7 @@ let cmd () =
         pure (fun kr -> `Clear_root (not kr))
         $ value
             (flag
-               (info [ "keep-root" ] ~docs
+               (info [ "keep-root" ]
                   ~doc:
                     "Do not erase the root path before starting (this also \
                      makes the sandbox start-up bypass the protocol-activation \
@@ -557,6 +568,13 @@ let cmd () =
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
     $ Smart_contract.cmdliner_term base_state ()
+    $ Arg.(
+        value
+        & opt (enum [ ("on", `On); ("off", `Off); ("pass", `Pass) ]) `Pass
+        & info
+            [ "adaptive-issuance-vote" ]
+            ~docs ~docv:"VOTE"
+            ~doc:"Set the adaptive issuance vote for all bakers to $(docv).")
   in
   let info =
     let doc = "Small network sandbox with bakers, endorsers, and accusers." in
