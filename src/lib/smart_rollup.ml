@@ -268,10 +268,15 @@ module Kernel = struct
     }
 
   (* The cli arguments for the octez_client smart rollup originatation. *)
-  type cli_args = { kind : string; michelson_type : string; hex : string }
+  type cli_args = {
+    name : string;
+    kind : string;
+    michelson_type : string;
+    hex : string;
+  }
 
-  let make_args ~kind ~michelson_type ~hex : cli_args =
-    { kind; michelson_type; hex }
+  let make_args ~name ~kind ~michelson_type ~hex : cli_args =
+    { name; kind; michelson_type; hex }
 
   (* Write wasm byte code to file.  *)
   let write_wasm ~state ~smart_rollup ~filename ~content =
@@ -350,7 +355,8 @@ module Kernel = struct
     end
     >>= fun (kind, michelson_type, kernel_path) ->
     let cli_args h =
-      h >>= fun hex -> return (make_args ~kind ~michelson_type ~hex)
+      h >>= fun hex ->
+      return (make_args ~name:config.name ~kind ~michelson_type ~hex)
     in
     let content path = System.read_file state path in
     System.size state kernel_path >>= fun s ->

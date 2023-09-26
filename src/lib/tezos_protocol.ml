@@ -454,8 +454,11 @@ let protocol_parameters_json t : Ezjsonm.t =
             ( "bootstrap_accounts",
               list make_account
                 (t.bootstrap_accounts
-                @ [ (t.dictator, 10_000_000L) ]
-                @ [ (t.soru_node_op, 1_000_000_000_000L) ]) );
+                @ [
+                    (t.dictator, 10_000_000L);
+                    (t.soru_node_op, 1_000_000_000_000L);
+                    (t.smart_contract_admin, 10_000_000_000L);
+                  ]) );
             ("preserved_cycles", int t.preserved_cycles);
             ("blocks_per_cycle", int t.blocks_per_cycle);
             ("blocks_per_commitment", int 4 (* From constants_sandbox *));
