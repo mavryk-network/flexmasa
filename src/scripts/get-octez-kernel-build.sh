@@ -17,12 +17,12 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/900218521
-# (from 2023-07-19)
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/1018329699
+# (from 2023-09-27)
 # corresponding to
-# https://gitlab.com/tezos/tezos/-/commit/1341fefff980992824d92e657c922129c805f4c7
+# https://gitlab.com/tezos/tezos/-/commit/47bf956cf8b46d6606d00ce53f767478aa2251e6
 
-download_uri="https://www.dropbox.com/s/ln62jy5hf9l5cif/octez-kernel-build-20230719-1341fefff9.zip?raw=1"
+download_uri="https://www.dropbox.com/scl/fi/bh2dptylfq7su1bu8wmm5/octez-kernel-build-20230927-47bf956c.zip?rlkey=ksglks74x22okpbglikghcpj5&raw=1"
 
 (
     curl -L "$download_uri" -o "$dest_dir/bins.zip"
