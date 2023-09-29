@@ -471,32 +471,50 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   | None -> return ()
   | Some soru -> (
       List.hd_exn keys_and_daemons |> return >>= fun (_, _, client, _, _) ->
-      let add_keys state client account =
-        (* Import keys of account*)
-        let name, pubkey_hash, priv_key =
-          Tezos_protocol.Account.
-            (name account, pubkey_hash account, private_key account)
-        in
-        Tezos_client.import_secret_key state client ~name ~key:priv_key
-        >>= fun () -> return (name, pubkey_hash, priv_key)
+      (* Create admin account for rollup operations *)
+      let admin_name, admin_hash, admin_secret =
+        let acc = Tezos_protocol.Account.of_name "rollup-admin" in
+        Tezos_protocol.Account.(name acc, pubkey_hash acc, private_key acc)
       in
-      add_keys state client (Tezos_protocol.soru_node_operator protocol)
-      >>= fun (operator_name, operator_hash, _) ->
+      (* Import the rollup-admin to the client. *)
+      Tezos_client.Keyed.initialize state
+        { client; key_name = admin_name; secret_key = admin_secret }
+      >>= fun _ ->
+      (* Import the dictator keys to the client. *)
+      Tezos_client.Keyed.initialize state
+        {
+          client;
+          key_name = Tezos_protocol.dictator_name protocol;
+          secret_key = Tezos_protocol.dictator_secret_key protocol;
+        }
+      >>= fun _ ->
+      (* Fund the rollup-admi account. *)
+      Tezos_client.successful_client_cmd state ~wait:"1" ~client
+        [
+          "transfer";
+          Int.to_string 20_000;
+          "from";
+          "dictator-default";
+          "to";
+          admin_name;
+          "--burn-cap";
+          "1";
+        ]
+      >>= fun _ ->
       (* Configure smart-rollup node. *)
-      let soru_node_config soru operator_hash base_port protocol =
+      let soru_node_config soru admin_hash base_port protocol =
         let rollup_node_port = Test_scenario.Unix_port.(next_port nodes) in
         Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
-          ~operator_addr:operator_hash ~rpc_addr:"0.0.0.0"
+          ~operator_addr:admin_hash ~rpc_addr:"0.0.0.0"
           ~rpc_port:rollup_node_port ~endpoint:base_port
           ~protocol:protocol.Tezos_protocol.kind ~exec:soru.node ~client ()
         |> return
       in
-      let originate_rollup state soru soru_node setup_file client operator_name
-          =
+      let originate_rollup state soru soru_node setup_file client admin_name =
         Kernel.build ?setup_file state ~smart_rollup:soru ~node:soru_node
         >>= fun kernel ->
         (* Originate smart-rollup.*)
-        originate_and_confirm state ~client ~kernel ~account:operator_name
+        originate_and_confirm state ~client ~kernel ~account:admin_name
           ~confirmations:1 ()
       in
       let start_rollup_node state soru_node rollup_origination_res =
@@ -522,10 +540,6 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       in
       match soru.kernel with
       | `Evm ->
-          (* Imort admin account and client for evm-rollup FA1.2 contracts. *)
-          let admin = Tezos_protocol.contract_admin protocol in
-          add_keys state client admin >>= fun (admin_name, admin_hash, _) ->
-          (* Write the fa12 to file. It is too large to pass to cmdline as a string. *)
           let sc_dir = make_path ~state "l1-smart-contracts" in
           make_dir state sc_dir >>= fun _ ->
           let fa12_dest = sc_dir // "fa12.tz" in
@@ -548,7 +562,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
             in
             Fmt.str "(Pair { %s } (Pair %S (Pair False 1)))" elt admin_hash
           in
-          Smart_contract.originate_smart_contract state ~client
+          Smart_contract.originate_smart_contract state ~client ~wait:"1"
             ~account:admin_name
             {
               name = "flextez";
@@ -556,16 +570,12 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
               init_storage = fa12_init;
             }
           >>= fun fa12_contract_addr ->
-          (* Sleep for one block. *)
-          List.max_elt protocol.time_between_blocks ~compare:Int.compare
-          |> Option.value_exn |> Float.of_int |> System.sleep
-          >>= fun () ->
           (* Originate the bridge contract. *)
           let bridge_init =
             Fmt.str "(Pair (Pair %S %S) (None))" admin_hash fa12_contract_addr
           in
           Smart_contract.(
-            originate_smart_contract state ~client ~account:admin_name
+            originate_smart_contract state ~client ~account:admin_name ~wait:"1"
               {
                 name = "evm-bridge";
                 michelson = Sandbox_smart_contracts.evm_bridge;
@@ -592,14 +602,14 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           |> return
           >>= fun _ ->
           (* configure rollup node *)
-          soru_node_config soru operator_hash base_port protocol
+          soru_node_config soru admin_hash base_port protocol
           >>= fun soru_node ->
           (* Originate rollup with setup-file *)
           Kernel.setup_file state ~smart_rollup:soru
             ~bridge_addr:evm_bridge_address
           >>= fun setup_file ->
           originate_rollup state soru soru_node (Some setup_file) client
-            operator_hash
+            admin_hash
           >>= fun (origination_result, _) ->
           (* Start rollup node*)
           start_rollup_node state soru_node origination_result >>= fun () ->
@@ -650,7 +660,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       | `Tx ->
           (* Originate mint_and_deposit_to_rollup contract. *)
           Smart_contract.(
-            originate_smart_contract state ~client ~account:operator_name
+            originate_smart_contract state ~client ~account:admin_name
               {
                 name = "mint_and_deposit_to_rollup";
                 michelson = Sandbox_smart_contracts.mint_and_deposit_to_rollup;
@@ -658,10 +668,10 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
               })
           >>= fun mint_addr ->
           (* configure rollup node *)
-          soru_node_config soru operator_hash base_port protocol
+          soru_node_config soru admin_hash base_port protocol
           >>= fun soru_node ->
           (*  Originate rollup with setup-file*)
-          originate_rollup state soru soru_node None client operator_hash
+          originate_rollup state soru soru_node None client admin_hash
           >>= fun (origination_result, _) ->
           (*  Start rollup node*)
           start_rollup_node state soru_node origination_result >>= fun () ->
@@ -674,10 +684,10 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           |> return
           >>= fun info -> print_info origination_result soru_node info
       | _ ->
-          soru_node_config soru operator_hash base_port protocol
+          soru_node_config soru admin_hash base_port protocol
           >>= fun soru_node ->
           (*  Originate rollup with setup-file*)
-          originate_rollup state soru soru_node None client operator_hash
+          originate_rollup state soru soru_node None client admin_hash
           >>= fun (origination_result, _) ->
           (*  Start rollup node*)
           start_rollup_node state soru_node origination_result >>= fun () ->

@@ -3,6 +3,7 @@ open Internal_pervasives
 type t = { name : string; michelson : string; init_storage : string }
 
 val originate_smart_contract :
+  ?wait:string ->
   < application_name : string
   ; console : Console.t
   ; env_config : Environment_configuration.t

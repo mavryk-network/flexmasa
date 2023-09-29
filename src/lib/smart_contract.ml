@@ -16,8 +16,8 @@ let parse_origination ~lines name =
         name
   | Some address -> return address
 
-let originate_smart_contract state ~client ~account t =
-  Tezos_client.successful_client_cmd state ~client
+let originate_smart_contract ?wait state ~client ~account t =
+  Tezos_client.successful_client_cmd state ~client ?wait
     [
       "originate";
       "contract";
