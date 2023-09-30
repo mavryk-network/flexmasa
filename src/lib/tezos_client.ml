@@ -15,7 +15,7 @@ let base_dir t ~state = Paths.root state // sprintf "Client-base-%s" t.id
 open Tezos_executable.Make_cli
 
 let client_call ?(wait = "none") state t args =
-  ("--wait" :: wait :: optf "port" "%d" t.port)
+  ("--wait" :: wait :: optf "endpoint" "http://localhost:%d" t.port)
   @ opt "base-dir" (base_dir ~state t)
   @ args
 
