@@ -6,6 +6,7 @@ type t = {
   id : string;
   level : int;
   kernel : [ `Tx | `Evm | `Custom of string * string * string ];
+  setup_file : string option;
   node_mode : mode;
   node_init_options : string list;
   node_run_options : string list;
@@ -250,19 +251,18 @@ module Kernel = struct
   let kernel_dir ~state smart_rollup p =
     make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
-  let make_config ?setup_file state ~smart_rollup ~node : config =
+  let make_config state ~smart_rollup ~node : config =
     let name = smart_rollup.id in
     let installer_kernel =
       kernel_dir ~state smart_rollup (sprintf "%s-installer.hex" name)
     in
     let reveal_data_dir = Node.reveal_data_dir state node in
-    let exec = smart_rollup.installer in
     {
       name;
       installer_kernel;
       reveal_data_dir;
-      setup_file;
-      exec;
+      setup_file = smart_rollup.setup_file;
+      exec = smart_rollup.installer;
       smart_rollup;
       node;
     }
@@ -283,8 +283,8 @@ module Kernel = struct
     let path = kernel_dir ~state smart_rollup filename in
     System.write_file state path ~content >>= fun () -> return path
 
-  (* Write the setup-file for the smart-rollup-installer. *)
-  let setup_file ~smart_rollup ~bridge_addr ?(chain_id = 123123) state =
+  (* Write the evm-kernel setup-file for the smart-rollup-installer. *)
+  let evm_setup_file ~smart_rollup ~bridge_addr ?(chain_id = 123123) state =
     let content =
       let addr = Hex.(of_string bridge_addr |> show) in
       let chain_id_encode =
@@ -331,10 +331,9 @@ module Kernel = struct
       options
 
   (* Build the kernel with the smart_rollup_installer executable. *)
-  let build ?setup_file state ~smart_rollup ~node :
-      (cli_args, _) Asynchronous_result.t =
-    let config = make_config ?setup_file state ~smart_rollup ~node in
-    (* make dierctories *)
+  let build state ~smart_rollup ~node : (cli_args, _) Asynchronous_result.t =
+    let config = make_config state ~smart_rollup ~node in
+    (* make directories *)
     make_dir state (kernel_dir ~state smart_rollup "") >>= fun _ ->
     make_dir state config.reveal_data_dir >>= fun _ ->
     begin
@@ -510,15 +509,15 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           ~protocol:protocol.Tezos_protocol.kind ~exec:soru.node ~client ()
         |> return
       in
-      let originate_rollup state soru soru_node setup_file client admin_name =
-        Kernel.build ?setup_file state ~smart_rollup:soru ~node:soru_node
-        >>= fun kernel ->
+      (* Originate smart-rollup. *)
+      let originate_rollup state soru soru_node client admin_name =
+        Kernel.build state ~smart_rollup:soru ~node:soru_node >>= fun kernel ->
         (* Originate smart-rollup.*)
         originate_and_confirm state ~client ~kernel ~account:admin_name
           ~confirmations:1 ()
       in
+      (* Start smart-rollup node. *)
       let start_rollup_node state soru_node rollup_origination_res =
-        (* Start smart-rollup node. *)
         Running_processes.start state
           Node.(start state soru_node rollup_origination_res.address)
         >>= fun { process = _; lwt = _ } -> return () (* >>= fun _ -> *)
@@ -605,11 +604,12 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           soru_node_config soru admin_hash base_port protocol
           >>= fun soru_node ->
           (* Originate rollup with setup-file *)
-          Kernel.setup_file state ~smart_rollup:soru
+          Kernel.evm_setup_file state ~smart_rollup:soru
             ~bridge_addr:evm_bridge_address
-          >>= fun setup_file ->
-          originate_rollup state soru soru_node (Some setup_file) client
-            admin_hash
+          >>= fun evm_setup_file ->
+          originate_rollup state
+            { soru with setup_file = Some evm_setup_file }
+            soru_node client admin_hash
           >>= fun (origination_result, _) ->
           (* Start rollup node*)
           start_rollup_node state soru_node origination_result >>= fun () ->
@@ -671,10 +671,11 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           soru_node_config soru admin_hash base_port protocol
           >>= fun soru_node ->
           (*  Originate rollup with setup-file*)
-          originate_rollup state soru soru_node None client admin_hash
+          originate_rollup state soru soru_node client admin_hash
           >>= fun (origination_result, _) ->
           (*  Start rollup node*)
           start_rollup_node state soru_node origination_result >>= fun () ->
+          (* Pring contract address. *)
           EF.
             [
               desc
@@ -686,8 +687,8 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       | _ ->
           soru_node_config soru admin_hash base_port protocol
           >>= fun soru_node ->
-          (*  Originate rollup with setup-file*)
-          originate_rollup state soru soru_node None client admin_hash
+          (*  Originate rollup *)
+          originate_rollup state soru soru_node client admin_hash
           >>= fun (origination_result, _) ->
           (*  Start rollup node*)
           start_rollup_node state soru_node origination_result >>= fun () ->
@@ -719,6 +720,7 @@ let cmdliner_term state () =
   const
     (fun
       start
+      setup_file
       soru
       level
       custom_kernel
@@ -748,6 +750,7 @@ let cmdliner_term state () =
       let make id kernel =
         {
           id;
+          setup_file;
           level;
           kernel;
           node_mode;
@@ -788,6 +791,16 @@ let cmdliner_term state () =
                 `custom:KIND:TYPE:PATH` starts an smart rollup with a user \
                 provided kernel. "
              ~docs ~docv:"OPTION"))
+  $ Arg.(
+      value
+      & opt (some string) None
+          (info [ "kernel-setup-file" ]
+             ~doc:
+               (sprintf
+                  "`Path` to the setup_file passed to `smart-rollup-installer` \
+                   %s"
+                  extra_doc)
+             ~docs ~docv:"PATH"))
   $ Arg.(
       value
       & flag

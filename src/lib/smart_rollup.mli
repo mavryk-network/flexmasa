@@ -4,6 +4,7 @@ type t = {
   id : string;
   level : int;
   kernel : [ `Tx | `Evm | `Custom of string * string * string ];
+  setup_file : string option;
   node_mode : [ `Accuser | `Batcher | `Maintenance | `Observer | `Operator ];
   node_init_options : string list;
   node_run_options : string list;
