@@ -247,7 +247,7 @@ module Kernel = struct
     node : Node.t;
   }
 
-  (* smart-rollup kernel dirctory *)
+  (* smart-rollup kernel directory *)
   let kernel_dir ~state smart_rollup p =
     make_path ~state (sprintf "%s-kernel" smart_rollup.id // p)
 
@@ -267,7 +267,7 @@ module Kernel = struct
       node;
     }
 
-  (* The cli arguments for the octez_client smart rollup originatation. *)
+  (* The cli arguments for the octez_client smart rollup origination. *)
   type cli_args = {
     name : string;
     kind : string;
@@ -500,6 +500,9 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           "1";
         ]
       >>= fun _ ->
+      (* The next three functions are in step order for basic rollup with an
+         operating node: 1) Configure node 2) Originate rollup 3) Start node. The
+         various kernels below will require additional steps. *)
       (* Configure smart-rollup node. *)
       let soru_node_config soru admin_hash base_port protocol =
         let rollup_node_port = Test_scenario.Unix_port.(next_port nodes) in
@@ -645,6 +648,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           Running_processes.start state process
           >>= fun { process = _; lwt = _ } ->
           return () >>= fun _ ->
+          (* Print rollup info *)
           EF.
             [
               desc
