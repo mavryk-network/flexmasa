@@ -222,7 +222,7 @@ tx_client_init() {
 # Start EVM Smart Rollup
 all_commands="$all_commands
 * start_evm_smart_rollup : Start the EVM smart rollup sandbox with the $default_protocol protocol."
-evm_root="${rollup_root}/evm-smart-rollup"
+evm_root="${root_path}/evm-smart-rollup"
 start_evm_smart_rollup() {
     flextesa mini-network \
         --root-path "$evm_root" \
