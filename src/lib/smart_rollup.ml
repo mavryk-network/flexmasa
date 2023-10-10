@@ -544,38 +544,21 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       | `Evm ->
           let sc_dir = make_path ~state "l1-smart-contracts" in
           make_dir state sc_dir >>= fun _ ->
-          let fa12_dest = sc_dir // "fa12.tz" in
-          System.write_file state fa12_dest
-            ~content:Sandbox_smart_contracts.fa12
+          let exchanger_dest = sc_dir // "exchanger.tz" in
+          System.write_file state exchanger_dest
+            ~content:Sandbox_smart_contracts.exchanger
           >>= fun () ->
-          (* Originate Flextez FA1.2 token contract. *)
-          (* Flxtz tokens will be pre-minted for all bootstrap accounts. *)
-          let boot_keys =
-            Tezos_protocol.bootstrap_accounts protocol
-            |> List.map ~f:(fun a -> Tezos_protocol.Account.pubkey_hash a)
-            |> List.sort ~compare:String.compare
-          in
-          let flxtz_bal = 10_000_000_000L in
-          let fa12_init =
-            let elt =
-              List.map boot_keys ~f:(fun pkh ->
-                  Fmt.str "Elt %S (Pair %Ld {})" pkh flxtz_bal)
-              |> String.concat ~sep:"; "
-            in
-            Fmt.str "(Pair { %s } (Pair %S (Pair False 1)))" elt admin_hash
-          in
+          (* Originate exchanger contract. *)
           Smart_contract.originate_smart_contract state ~client ~wait:"1"
             ~account:admin_name
             {
-              name = "flextez";
-              michelson = fa12_dest;
-              init_storage = fa12_init;
+              name = "exchanger";
+              michelson = exchanger_dest;
+              init_storage = "Unit";
             }
-          >>= fun fa12_contract_addr ->
+          >>= fun exchanger_contract_addr ->
           (* Originate the bridge contract. *)
-          let bridge_init =
-            Fmt.str "(Pair (Pair %S %S) (None))" admin_hash fa12_contract_addr
-          in
+          let bridge_init = Fmt.str "(Pair %S  None)" exchanger_contract_addr in
           Smart_contract.(
             originate_smart_contract state ~client ~account:admin_name ~wait:"1"
               {
@@ -584,25 +567,6 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
                 init_storage = bridge_init;
               })
           >>= fun evm_bridge_address ->
-          (* Give approvals for evm-bridge to transfer flextez for each bootstrap account. *)
-          List.map boot_keys ~f:(fun pkh ->
-              Tezos_client.successful_client_cmd state ~client
-                [
-                  "from";
-                  "fa1.2";
-                  "contract";
-                  fa12_contract_addr;
-                  "as";
-                  pkh;
-                  "approve";
-                  Int64.to_string flxtz_bal;
-                  "from";
-                  "evm-bridge";
-                  "--burn-cap";
-                  "1";
-                ])
-          |> return
-          >>= fun _ ->
           (* configure rollup node *)
           soru_node_config soru admin_hash base_port protocol
           >>= fun soru_node ->
@@ -618,23 +582,6 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           start_rollup_node state soru_node origination_result >>= fun () ->
           (* Wait for the rollup node to bootstrap. *)
           Node.wait_for_responce state ~config:soru_node >>= fun () ->
-          (* Set the evm-rollup as target for the bridge contract deposits. *)
-          Tezos_client.successful_client_cmd state ~client
-            [
-              "transfer";
-              "0";
-              "from";
-              admin_name;
-              "to";
-              "evm-bridge";
-              "--entrypoint";
-              "set";
-              "--arg";
-              Fmt.str "%S" origination_result.address;
-              "--burn-cap";
-              "1";
-            ]
-          >>= fun _ ->
           (* Start the evm-proxy-sever. *)
           let evm_proxy_port = Test_scenario.Unix_port.(next_port nodes) in
           Evm_proxy_server.make_config ~smart_rollup:soru
@@ -654,7 +601,9 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
               desc
                 (af "evm-proxy-server is listening on")
                 (af "rpc_port: `%d`" evm_proxy_server.rpc_port);
-              desc (af "FA1.2 contract address:") (af "`%s`" fa12_contract_addr);
+              desc
+                (af "Exchanger contract address:")
+                (af "`%s`" exchanger_contract_addr);
               desc
                 (af "EVM bridge contract address:")
                 (af "`%s`" evm_bridge_address);
