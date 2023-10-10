@@ -150,6 +150,11 @@ modes](https://tezos.gitlab.io/user/history_modes.html)).
 
 ### Adding Custom Bootstrap Accounts
 
+**Note on Oxford** Bootstrap accounts in Oxford protocol will start out
+automatically staking. This stake is frozen and will not show up in the account
+balance until un-staked. The frozen balance is calculated by the protocol with a
+minimum of 6,000 ꜩ.
+
 The option `--add-bootstrap-account` adds arbitrary key-pairs as
 bootstrap-accounts with a given amount of μꜩ; the option `--no-daemons-for`
 prevents the sandbox from baking with a given bootstrap-account.
