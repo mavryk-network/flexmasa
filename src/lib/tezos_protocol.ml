@@ -688,7 +688,11 @@ let cli_term state =
                     ~docv:"NAME,PUBKEY,PUBKEY-HASH,PRIVATE-URI@MUTEZ-AMOUNT"
                     ~doc:
                       "Add a custom bootstrap account, e.g. \
-                       `LedgerBaker,edpku...,tz1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`."))))
+                       `LedgerBaker,edpku...,tz1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`. \
+                       Note: that Oxford protocal starts bootstrap_accounts \
+                       with portion of their balance already staked (minimum \
+                       mutez:6_000_000_000). The staked balance doesn't show \
+                       up as avaialbe balance until it is unstaked. "))))
   $ Arg.(
       pure (fun x -> `Blocks_per_voting_period x)
       $ value
