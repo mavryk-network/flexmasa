@@ -82,6 +82,7 @@ let cmdliner_term base_state () =
            []
            (info [ "smart-contract" ]
               ~doc:
-                "Provide a `path` and `initial storage` for a smart contract. \
-                 This option can be used multiple times."
+                "Provide a `path` to a .tz file and `initial storage` for a \
+                 smart contract to orginate. This option can be used multiple \
+                 times."
               ~docv:"PATH:INIT" ~docs)))
