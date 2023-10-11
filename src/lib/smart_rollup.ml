@@ -686,29 +686,26 @@ let cmdliner_term state () =
       evm_proxy_server
     ->
       let check_options l =
-        (* make sure users follow the rules regarding allowable options. *)
-        let check s =
-          if
-            List.exists [ "data-dir"; "rpc-addr"; "rpc-port" ] ~f:(fun e ->
-                String.is_prefix ~prefix:e s)
-          then
-            `Error
-              (Fmt.str
-                 "This option is set by Flextesa. It cannot by changed. %S" s)
-          else `Ok s
-        in
-        List.map l ~f:(fun e ->
-            match check e with `Ok s -> s | `Error s -> failwith s)
+        (* Make sure there are no reduntant options are passed. *)
+        List.iter l ~f:(fun opt ->
+            if
+              List.exists [ "data-dir"; "rpc-addr"; "rpc-port" ] ~f:(fun e ->
+                  String.is_prefix ~prefix:e opt)
+            then
+              Fmt.failwith
+                "This option is set by Flextesa. It cannot be changed. %S" opt)
       in
       let make id kernel =
+        check_options node_init_options;
+        check_options node_run_options;
         {
           id;
           setup_file;
           level;
           kernel;
           node_mode;
-          node_init_options = check_options node_init_options;
-          node_run_options = check_options node_run_options;
+          node_init_options;
+          node_run_options;
           node;
           client;
           installer;
