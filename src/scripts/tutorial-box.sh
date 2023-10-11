@@ -45,14 +45,13 @@ EOF
 }
 
 time_bb=${block_time:-5}
-root_path=/tmp/flextesa
+root_path=/tmp/flextesa-mini-box
 
 export alice="$(flextesa key alice)"
 export bob="$(flextesa key bob)"
 export b0="$(flextesa key bootacc-0)"
 all_commands="$all_commands
 * start : Start a sandbox with the $default_protocol protocol."
-start_root="${root_path}/start-mini"
 start() {
     flextesa mini-net \
         --root "$root_path" --size 1 "$@" \
@@ -86,11 +85,10 @@ dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
 
 all_commands="$all_commands
 * start_upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
-daemons_root="${root_path}/daemons-upgrade"
 start_upgrade() {
     flextesa daemons-upgrade \
         --next-protocol-kind "$next_protocol_name" \
-        --root-path "$daemons_root" \
+        --root-path "$root_path" \
         --extra-dummy-proposals-batch-size "$dummy_props" \
         --extra-dummy-proposals-batch-levels "$dummy_levels" \
         --size 2 \
@@ -112,7 +110,6 @@ start_upgrade() {
 ## Smart rollup sandbox commands
 all_commands="$all_commands
 * start_custom_smart_rollup KIND TYPE PATH [SETUP_FILE_PATH]: Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel. Optionally, specify a setup-file path with SETUP_FILE_PATH."
-custom_ru_root="${root_path}/custom-smart-rollup"
 # Smart rollup with user provided kernel.
 start_custom_smart_rollup() {
     kind="$1"
@@ -126,7 +123,7 @@ start_custom_smart_rollup() {
     fi
 
     flextesa mini-network \
-        --root-path "$custom_ru_root" \
+        --root-path "$root_path" \
         --time-between-blocks "$time_bb" \
         --set-history-mode=N000:archive \
         --balance-of-bootstrap-accounts tez:100_000_000 \
@@ -145,7 +142,7 @@ start_custom_smart_rollup() {
 all_commands="$all_commands
 * custom_smart_rollup_info : Show the smart rollup node config file."
 smart_rollup_info() {
-    config_file=$(find ${custom_ru_root}/smart-rollup -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
+    config_file=$(find ${root_path}/smart-rollup -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
 
     echo '{'
     echo "  \"smart_rollup_node_config\":  $(jq . ${config_file}),"
@@ -155,10 +152,9 @@ smart_rollup_info() {
 # Smart rollup with tx-kernel (transaction rollup).
 all_commands="$all_commands
 * start_tx_smart_rollup : Start the tx-kernel (transaction) smart rollup sandbox with the $default_protocol protocol."
-tx_root="${root_path}/tx-smart-rollup"
 start_tx_smart_rollup() {
     flextesa mini-network \
-        --root-path "$tx_root" \
+        --root-path "$root_path" \
         --set-history-mode=N000:archive \
         --size 1 \
         --time-between-blocks "$time_bb" \
@@ -173,7 +169,7 @@ start_tx_smart_rollup() {
 # Print tx-client config file
 all_commands="$all_commands
 * tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup)."
-tx_client_dir="${tx_root}/tx-client"
+tx_client_dir="${root_root}/tx-client"
 tx_client_config="${tx_client_dir}/config.json"
 tx_client_show_config() {
     if [ -f "$tx_client_config" ]; then
@@ -194,8 +190,8 @@ tx_client_init() {
     set -e
 
     mkdir -p "$tx_client_dir"
-    base_dir="${tx_root}/Client-base-C-N000"
-    rollup_client_dir="${tx_root}/smart-rollup/smart-rollup-client-${binary_suffix}"
+    base_dir="${root_path}/Client-base-C-N000"
+    rollup_client_dir="${root_path}/smart-rollup/smart-rollup-client-${binary_suffix}"
     mkdir -p "$rollup_client_dir"
 
     # The tx-client config-init command takes as arguments the absolute paths to
@@ -222,10 +218,9 @@ tx_client_init() {
 # Start EVM Smart Rollup
 all_commands="$all_commands
 * start_evm_smart_rollup : Start the EVM smart rollup sandbox with the $default_protocol protocol."
-evm_root="${root_path}/evm-smart-rollup"
 start_evm_smart_rollup() {
     flextesa mini-network \
-        --root-path "$evm_root" \
+        --root-path "$root_path" \
         --size 3 --time-between-blocks "$time_bb" --number-of-boot 2 \
         --balance-of-bootstrap-accounts tez:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
@@ -239,10 +234,9 @@ start_evm_smart_rollup() {
 
 all_commands="$all_commands
 * start_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
-ai_root="${root_path}/adaptive-issuance"
 start_adaptive_issuance() {
     flextesa mini-net \
-        --root "$ai_root" --size 1 \
+        --root "$root_path" --size 1 \
         --set-history-mode N000:archive \
         --number-of-b 1 \
         --balance-of-bootstrap-accounts tez:100_000_000 \
@@ -258,10 +252,9 @@ start_adaptive_issuance() {
 
 all_commands="$all_commands
 * start_upgrade_with_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
-up_ai_root="${root_path}/upgrade_with_adaptive-issuance"
 start_upgrade_with_adaptive_issuance() {
     flextesa daemons-upgrade \
-        --root "$up_ai_root" --size 1 \
+        --root "$root_path" --size 1 \
         --number-of-b 2 \
         --balance-of-bootstrap-accounts tez:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
