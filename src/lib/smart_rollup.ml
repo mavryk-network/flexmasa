@@ -732,81 +732,86 @@ let cmdliner_term state () =
           | false -> None))
   $ Arg.(
       value
-      & opt string "none"
-          (info [ "start-smart-rollup" ]
-             ~doc:
-               "Start an optimistic smart rollup with one of the following \
-                options: `tx` starts a transaction smart rollup (tx_kernel). \
-                `evm` starts an EVM smart rollup (Octez evem_kernel). \
-                `custom:KIND:TYPE:PATH` starts an smart rollup with a user \
-                provided kernel. "
-             ~docs ~docv:"OPTION"))
+        (opt string "none"
+           (info [ "start-smart-rollup" ]
+              ~doc:
+                "Start an optimistic smart rollup with one of the following \
+                 options: `tx` starts a transaction smart rollup (tx_kernel). \
+                 `evm` starts an EVM smart rollup (Octez evem_kernel). \
+                 `custom:KIND:TYPE:PATH` starts an smart rollup with a user \
+                 provided kernel. "
+              ~docs ~docv:"OPTION")))
   $ Arg.(
       value
-      & opt (some string) None
-          (info [ "kernel-setup-file" ]
-             ~doc:
-               (sprintf
-                  "`Path` to the setup_file passed to `smart-rollup-installer` \
-                   %s"
-                  extra_doc)
-             ~docs ~docv:"PATH"))
+        (opt (some string) None
+           (info [ "kernel-setup-file" ]
+              ~doc:
+                (sprintf
+                   "`Path` to the setup_file passed to \
+                    `smart-rollup-installer` %s"
+                   extra_doc)
+              ~docs ~docv:"PATH")))
   $ Arg.(
       value
-      & flag
-          (info [ "smart-rollup" ] ~deprecated:"use --start-smart-rollup OPTION"
-             ~doc:"Use --start-smart-rollup" ~docs))
+        (flag
+           (info [ "smart-rollup" ]
+              ~deprecated:"use --start-smart-rollup OPTION"
+              ~doc:"Use --start-smart-rollup" ~docs)))
   $ Arg.(
       value
-      & opt int 5
-          (info
-             [ "smart-rollup-start-level" ]
-             ~doc:(sprintf "Origination `level` %s" extra_doc)
-             ~docs ~docv:"LEVEL"))
+        (opt int 5
+           (info
+              [ "smart-rollup-start-level" ]
+              ~doc:(sprintf "Origination `level` %s" extra_doc)
+              ~docs ~docv:"LEVEL")))
   $ Arg.(
       value
-      & opt (some (t3 ~sep:':' string string string)) None
-      & info [ "custom-kernel" ] ~docs
-          ~deprecated:"use --start-smart-rollup custom:KIND:TYPE:PATH"
-          ~doc:"Use --start-smart-rollup custom:KIND:TYPE:PATH"
-          ~docv:"KIND:TYPE:PATH")
+        (opt
+           (some (t3 ~sep:':' string string string))
+           None
+           (info [ "custom-kernel" ] ~docs
+              ~deprecated:"use --start-smart-rollup custom:KIND:TYPE:PATH"
+              ~doc:"Use --start-smart-rollup custom:KIND:TYPE:PATH"
+              ~docv:"KIND:TYPE:PATH")))
   $ Arg.(
       value
-      & opt
-          (enum
-             [
-               ("operator", `Operator);
-               ("batcher", `Batcher);
-               ("observer", `Observer);
-               ("maintenance", `Maintenance);
-               ("accuser", `Accuser);
-             ])
-          `Operator
-      & info ~docs
-          [ "smart-rollup-node-mode" ]
-          ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))
+        (opt
+           (enum
+              [
+                ("operator", `Operator);
+                ("batcher", `Batcher);
+                ("observer", `Observer);
+                ("maintenance", `Maintenance);
+                ("accuser", `Accuser);
+              ])
+           `Operator
+           (info ~docs
+              [ "smart-rollup-node-mode" ]
+              ~doc:(sprintf "Set the rollup node's `mode`%s" extra_doc))))
   $ Arg.(
       value
-      & opt (list ~sep:' ' string) []
-      & info ~docs
-          [ "smart-rollup-node-init-with" ]
-          ~doc:
-            "Initiate the smart-rollup-node config with the provided `flag` or \
-             `option=value`. Use quotes to provide multiple flags and options \
-             separated by spaces. (e.g. \"OPT1=VAL1 FLAG OPT2=VAL2\"). The \
-             following options aren't available: data-dir, rpc-addr, rpc-port."
-          ~docv:"FLAG|OPTION=VALUE")
+        (opt (list ~sep:' ' string) []
+           (info ~docs
+              [ "smart-rollup-node-init-with" ]
+              ~doc:
+                "Initiate the smart-rollup-node config with the provided \
+                 `flag` or `option=value`. Use quotes to provide multiple \
+                 flags and options separated by spaces. (e.g. \"OPT1=VAL1 FLAG \
+                 OPT2=VAL2\"). The following options aren't available: \
+                 data-dir, rpc-addr, rpc-port."
+              ~docv:"FLAG|OPTION=VALUE")))
   $ Arg.(
       value
-      & opt (list ~sep:' ' string) []
-      & info ~docs
-          [ "smart-rollup-node-run-with" ]
-          ~doc:
-            "Run the smart-rollup-node with the provided `flag` or \
-             `option=value`. Use quotes to provide multiple flags and options \
-             separated by spaces. (e.g. \"OPT1=VAL1 FLAG OPT2=VAL2\") The \
-             following options aren't available: data-dir, rpc-addr, rpc-port."
-          ~docv:"FLAG|OPTION=VALUE")
+        (opt (list ~sep:' ' string) []
+           (info ~docs
+              [ "smart-rollup-node-run-with" ]
+              ~doc:
+                "Run the smart-rollup-node with the provided `flag` or \
+                 `option=value`. Use quotes to provide multiple flags and \
+                 options separated by spaces. (e.g. \"OPT1=VAL1 FLAG \
+                 OPT2=VAL2\") The following options aren't available: \
+                 data-dir, rpc-addr, rpc-port."
+              ~docv:"FLAG|OPTION=VALUE")))
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
       ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client
