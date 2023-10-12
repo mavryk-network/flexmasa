@@ -1,6 +1,6 @@
 open Internal_pervasives
 
-type t = { name : string; michelson : string }
+type t = { name : string; michelson : string; init_storage : string }
 
 let parse_origination ~lines name =
   let rec prefix_from_list ~prefix = function
@@ -16,8 +16,8 @@ let parse_origination ~lines name =
         name
   | Some address -> return address
 
-let originate_smart_contract state ~client ~account t =
-  Tezos_client.successful_client_cmd state ~client
+let originate_smart_contract ?wait state ~client ~account t =
+  Tezos_client.successful_client_cmd state ~client ?wait
     [
       "originate";
       "contract";
@@ -28,40 +28,21 @@ let originate_smart_contract state ~client ~account t =
       account;
       "running";
       t.michelson;
+      "--init";
+      t.init_storage;
       "--burn-cap";
       "15";
     ]
   >>= fun res -> parse_origination ~lines:res#out t.name
 
-let default_contracts ~(smart_rollup : Smart_rollup.t option) =
-  let open Default_contracts in
-  let tx_kernel_contract =
-    (* Origintate the mint_and_deposit_to_rollup contract for the default
-       smart-rollup (tx-rollup). *)
-    match smart_rollup with
-    | None -> []
-    | Some rollup -> (
-        match rollup.custom_kernel with
-        | None ->
-            [
-              {
-                name = "mint_and_deposit_to_rollup";
-                michelson = mint_and_deposit_to_rollup;
-              };
-            ]
-        | Some _ -> [])
-  in
-  tx_kernel_contract @ []
-
-let run state ~keys_and_daemons ~smart_contracts ~smart_rollup =
-  let all_contracts = smart_contracts @ default_contracts ~smart_rollup in
-  match all_contracts with
+let run state ~keys_and_daemons ~smart_contracts =
+  match smart_contracts with
   | [] -> return ()
   | _ ->
       let accounts_and_clients =
         List.map keys_and_daemons ~f:(fun (_, a, c, _, _) -> (a, c))
       in
-      List_sequential.iteri all_contracts ~f:(fun ith t ->
+      List_sequential.iteri smart_contracts ~f:(fun ith t ->
           let account, client =
             List.nth_exn accounts_and_clients
               (ith % List.length accounts_and_clients)
@@ -85,20 +66,23 @@ let cmdliner_term base_state () =
   let check_extension path =
     match Stdlib.Filename.extension path with
     | ".tz" -> `Ok path
-    | _ -> `Error (Fmt.str "Invalid file type: %s (expected .tz)" path)
+    | _ -> `Error (Fmt.str "Invalid file type: %S (expected .tz)" path)
   in
-  const (fun paths ->
-      List.map paths ~f:(fun path ->
+  const (fun s ->
+      List.map s ~f:(fun (path, init_storage) ->
           match check_extension path with
           | `Ok path ->
               let name = Stdlib.Filename.(basename path |> chop_extension) in
-              { name; michelson = path }
-          | `Error _ -> failwith "Invalid path"))
+              { name; michelson = path; init_storage }
+          | `Error s -> failwith s))
   $ Arg.(
       value
-        (opt_all string []
+        (opt_all
+           (pair ~sep:':' string string)
+           []
            (info [ "smart-contract" ]
               ~doc:
-                "Provide a `path` for the smart contract. This option can be \
-                 used multiple times."
-              ~docv:"PATH" ~docs)))
+                "Provide a `path` to a .tz file and `initial storage` for a \
+                 smart contract to orginate. This option can be used multiple \
+                 times."
+              ~docv:"PATH:INIT" ~docs)))

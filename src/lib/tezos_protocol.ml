@@ -180,7 +180,6 @@ type t = {
   bootstrap_accounts : (Account.t * Int64.t) list;
   dictator : Account.t;
   (* ; bootstrap_contracts: (Account.t * int * Script.origin) list *)
-  soru_node_op : Account.t;
   expected_pow : int;
   name : string; (* e.g. alpha *)
   hash : string;
@@ -203,14 +202,12 @@ let make_bootstrap_accounts ~balance n =
 
 let default () =
   let dictator = Account.of_name "dictator-default" in
-  let soru_node_op = Account.of_name "soru-node-operator" in
   {
     id = "default-bootstrap";
     kind = Protocol_kind.default;
     bootstrap_accounts = make_bootstrap_accounts ~balance:4_000_000_000_000L 4;
     dictator
     (* ; bootstrap_contracts= [(dictator, 10_000_000, `Sandbox_faucet)] *);
-    soru_node_op;
     expected_pow = 1;
     name = "alpha";
     hash = "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK";
@@ -450,9 +447,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           [
             ( "bootstrap_accounts",
               list make_account
-                (t.bootstrap_accounts
-                @ [ (t.dictator, 10_000_000L) ]
-                @ [ (t.soru_node_op, 1_000_000_000_000L) ]) );
+                (t.bootstrap_accounts @ [ (t.dictator, 27_000_000_000L) ]) );
             ("preserved_cycles", int t.preserved_cycles);
             ("blocks_per_cycle", int t.blocks_per_cycle);
             ("blocks_per_commitment", int 4 (* From constants_sandbox *));
@@ -575,7 +570,6 @@ let bootstrap_accounts t = List.map ~f:fst t.bootstrap_accounts
 let kind t = t.kind
 let dictator_name { dictator; _ } = Account.name dictator
 let dictator_secret_key { dictator; _ } = Account.private_key dictator
-let soru_node_operator t = t.soru_node_op
 let make_path config t = Paths.root config // sprintf "protocol-%s" (id t)
 let sandbox_path config t = make_path config t // "sandbox.json"
 

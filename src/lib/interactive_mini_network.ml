@@ -404,8 +404,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Smart_rollup.run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes
     ~base_port
   >>= fun () ->
-  Smart_contract.run state ~smart_contracts ~keys_and_daemons ~smart_rollup
-  >>= fun () ->
+  Smart_contract.run state ~smart_contracts ~keys_and_daemons >>= fun () ->
   let clients = List.map keys_and_daemons ~f:(fun (_, _, c, _, _) -> c) in
   Helpers.Shell_environement.(
     let path = Paths.root state // "shell.env" in

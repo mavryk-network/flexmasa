@@ -106,12 +106,19 @@ daem_n2a() {
         --waiting-attempts 30 $until_12
 }
 
-smart-rollup() {
-    proto="$1"
-    runone "${proto}-smart-rollup" flextesa mini --protocol-kind "$current" \
-        --time-between-blocks 1,3 $until_8 \
-        --number-of-boot 1 --size 1 \
-        --smart-rollup
+tx_smart_rollup () {
+    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
+           --time-between-blocks 1 $until_8 \
+           --number-of-boot 1 --size 1 \
+           --start-smart-rollup tx
+}
+
+
+evm_smart_rollup () {
+    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
+           --time-between-blocks 1 $until_8 \
+           --number-of-boot 1 --size 1 \
+           --start-smart-rollup evm
 }
 
 ai() {
@@ -141,10 +148,11 @@ all() {
     daem_c2n
     daem_c2n_nay
     daem_n2a
-    smart-rollup "$current"
-    smart-rollup "$next"
+    tx_smart_rollup
+    evm_smart_rollup
     ai "$current"
     ai "$next"
+
 }
 
 { if [ "$1" = "" ]; then all; else "$@"; fi; }
