@@ -87,8 +87,8 @@ all_commands="$all_commands
 * start_upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
 start_upgrade() {
     flextesa daemons-upgrade \
+        --root-path "$root_path" "$@" \
         --next-protocol-kind "$next_protocol_name" \
-        --root-path "$root_path" \
         --extra-dummy-proposals-batch-size "$dummy_props" \
         --extra-dummy-proposals-batch-levels "$dummy_levels" \
         --size 2 \
@@ -122,19 +122,7 @@ start_custom_smart_rollup() {
         setup="--kernel-setup-file=$setup_file_path"
     fi
 
-    flextesa mini-network \
-        --root-path "$root_path" \
-        --time-between-blocks "$time_bb" \
-        --set-history-mode=N000:archive \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
-        --number-of-boot 2 \
-        --add-bootstrap-account="$alice@2_000_000_000_000" \
-        --add-bootstrap-account="$bob@2_000_000_000_000" \
-        --no-daemons-for=alice \
-        --no-daemons-for=bob \
-        --until-level 200_000_000 \
-        --protocol-kind "$default_protocol" \
-        --start-smart-rollup "custom:$kind:$type:$kernel_path" $setup
+    start --start-smart-rollup "custom:$kind:$type:$kernel_path" "$setup" "$@"
 
 }
 
@@ -153,17 +141,7 @@ smart_rollup_info() {
 all_commands="$all_commands
 * start_tx_smart_rollup : Start the tx-kernel (transaction) smart rollup sandbox with the $default_protocol protocol."
 start_tx_smart_rollup() {
-    flextesa mini-network \
-        --root-path "$root_path" \
-        --set-history-mode=N000:archive \
-        --size 1 \
-        --time-between-blocks "$time_bb" \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
-        --number-of-boot 2 \
-        --add-bootstrap-account="$alice@2_000_000_000_000" \
-        --until-level 200_000_000 \
-        --protocol-kind "$default_protocol" \
-        --start-smart-rollup tx
+    start --start-smart-rollup tx "$@"
 }
 
 # Print tx-client config file
@@ -212,49 +190,26 @@ tx_client_init() {
         --forwarding-account alice
 
     tx_client_show_config
-
 }
 
 # Start EVM Smart Rollup
 all_commands="$all_commands
 * start_evm_smart_rollup : Start the EVM smart rollup sandbox with the $default_protocol protocol."
 start_evm_smart_rollup() {
-    flextesa mini-network \
-        --root-path "$root_path" \
-        --size 3 --time-between-blocks "$time_bb" --number-of-boot 2 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
-        --add-bootstrap-account="$alice@2_000_000_000_000" \
-        --add-bootstrap-account="$bob@2_000_000_000_000" \
-        --set-history-mode=N000:archive \
-        --protocol-kind "$default_protocol" \
-        --until-level 200_000_000 \
-        --start-smart-rollup evm
-
+    start --start-smart-rollup evm "$@"
 }
 
 all_commands="$all_commands
 * start_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
 start_adaptive_issuance() {
-    flextesa mini-net \
-        --root "$root_path" --size 1 \
-        --set-history-mode N000:archive \
-        --number-of-b 1 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
-        --time-b "$time_bb" \
-        --add-bootstrap-account="$alice@2_000_000_000_000" \
-        --add-bootstrap-account="$bob@2_000_000_000_000" \
-        --no-daemons-for=alice \
-        --no-daemons-for=bob \
-        --until-level 200_000_000 \
-        --protocol-kind "$default_protocol" \
-        --adaptive-issuance-vote "on"
+    start --issuance-vote "on" "$@"
 }
 
 all_commands="$all_commands
 * start_upgrade_with_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
 start_upgrade_with_adaptive_issuance() {
     flextesa daemons-upgrade \
-        --root "$root_path" --size 1 \
+        --root "$root_path" --size 1 "$@" \
         --number-of-b 2 \
         --balance-of-bootstrap-accounts tez:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
