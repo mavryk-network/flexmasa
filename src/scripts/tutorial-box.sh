@@ -216,34 +216,6 @@ start_evm_smart_rollup() {
 }
 
 all_commands="$all_commands
-* client_remember_contracts : Add the \"exchanger\" and \"evm-bridge\" L1 contracts to the octez-client data-dir."
-client_remember_contracts() {
-    contracts="${root_path}/Client-base-C-N000/contracts"
-
-    if [ -f "$contracts" ]; then
-
-        exchanger_addr=$(jq -r '.[] | select(.name=="exchanger") | .value' "$contracts")
-        if [ -z "$exchanger_addr" ]; then
-            echo "Error: Could not find the exchanger contract address in $contracts"
-        else
-            octez-client remember contract exchanger "$exchanger_addr"
-            echo "Added exchanger contract: $exchanger_addr"
-        fi
-
-        evm_bridge_addr=$(jq -r '.[] | select(.name=="evm-bridge") | .value' "$contracts")
-        if [ -z "$evm_bridge_addr" ]; then
-            echo "Error: Could not find the evm-bridge contract address in $contracts"
-        else
-            octez-client remember contract evm-bridge "$evm_bridge_addr"
-            echo "Added evm-bridge contract: $evm_bridge_addr"
-        fi
-
-    else
-        echo "Error: Contract file not found at $contracts"
-    fi
-}
-
-all_commands="$all_commands
 * start_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
 start_adaptive_issuance() {
     start --issuance-vote "on" "$@"
@@ -288,6 +260,29 @@ initclient() {
     octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
     octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
     octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
+}
+
+all_commands="$all_commands
+* client_remember_contracts : Add the contracts originated by flextesa to the octez-client data-dir."
+client_remember_contracts() {
+    contracts="${root_path}/Client-base-C-N000/contracts"
+
+    if [ -f "$contracts" ]; then
+        length=$(jq 'length' "$contracts")
+        i=0
+
+        while [ $i -lt $length ]; do
+            contract_name=$(jq -r ".[$i].name" "$contracts")
+            contract_value=$(jq -r ".[$i].value" "$contracts")
+
+            octez-client remember contract "$contract_name" "$contract_value"
+            echo "Added contract $contract_name: $contract_value"
+
+            i=$((i + 1))
+        done
+    else
+        echo "Error: Contract file not found at $contracts"
+    fi
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
