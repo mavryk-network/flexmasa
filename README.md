@@ -284,26 +284,51 @@ Both are an implementation of the `flextesa mini-network` with the
 The following command will start a smart rollup with the kernel you provide.
 
 ``` default
-$ docker run --rm --detach --volume /path/to/kernel/files:/rollup \
-        -p 20000:20000 -p 20010:20010 --name my-sandbox "$image" "$script" \
-        start_custom_smart_rollup KIND TYPE /rollup/kernel.wasm
+$ docker run --rm --detach -p 20000:20000 -p 20002:20002 --name my-sandbox \
+        --volume /path/to/kernel/files:/rollup "$image" "$script" \
+        start_custom_smart_rollup wasm_2_0_0 "Unit" /rollup/my-kernel.wasm \
 ```
 
 Replace `/path/to/kernel/files` with the path to the directory containing the
-.wasm file on your machine. The `--volume` option will mount that director to
-the container. `KIND` and `TYPE` should be the values appropriate for your
-kernel. `/rollup/kernel.wasm` will be the location of your kernel in the
-container. The published (`-p`) ports **20000** and **20010** will be the
-rpc_ports for the **tezos-node** and **smart-rollup-node** respectively.
+.wasm file on the docker host. The `--volume` option will mount that directory
+to the docker container. `wasm_2_0_0` and `Unit` should be the values (KIND and
+TYPE) appropriate for your kernel. `/rollup/my-kernel.wasm` will be the location
+of your kernel inside the container. The published (`-p`) ports **20000** and
+**20002** will be the rpc_ports for the **tezos-node** and **smart-rollup-node**
+respectively.
 
-Most kernels will be too large for an L1 operation. If this is the case for your
-kernel, after running `start_custom_smart_rollup`, Flextesa will use
-the [smart-rollup-installer](https://crates.io/crates/tezos-smart-rollup-installer)
-to create an installer kernel. After a few moments a smart rollup running your
-kernel should be originated.
+Flextesa has a few help options to use when testing your smart rollup kernel.
+This example uses the same `start_custom_rollup` command from above.
 
-You can confirm that the smart-rollup-node has been initialized and see relevant rollup
-info from the smart-rollup-node's config with the `smart_rollup_info` command.
+``` default
+$ docker run --rm --detach -p 20000:20000 -p 20002:20002 --name my-sandbox \
+        --volume /path/to/kernel/files:/rollup "$image" "$script" \
+        start_custom_smart_rollup wasm_2_0_0 "Unit" /rollup/kernel.wasm \
+        --kernel-setup-file=/rollup/setup-file.yaml \
+        --smart-contract=/rollup/my-contract.tz:"Unit" \
+        --smart-rollup-node-init-with=log-kernel-debug \
+        --smart-rollup-node-run-with="log-kernel-debug log-kernel-debug-file=/tmp/my-debug.log"
+```
+
+If you have a kernel "set-up" file, Flextesa will pass it to the
+`smart-rollup-installer` when preparing the kernel preimage with the option
+`--kernel-setup-file=PATH`. The option `--smart-contract=PATH:TYPE` will
+originate the smart contract of TYPE at PATH. Both the smart contract and set-up
+files can added to the same directory as your kernel file which will be mounted
+to the container.
+
+The options `--smart-rollup-node-init-with=FLAG|OPTION=VALUE` and
+`--smart-rollup-node-run-with=FLAG|OPTION=VALUE` will allow you to pass
+additional options to the octez-smart-rollup-node binaries `init` and `run`
+command. The example above is equivalent to:
+
+``` default
+$ octez-smart-rollup-node init --log-kernel-debug
+$ octez-smart-rollup-node run --log-kernel-debug --log-kernel-debug-file=/tmp/my-debug.log 
+```
+
+You can confirm that the smart-rollup-node has been initialized and see relevant
+rollup info from the node's config with the `smart_rollup_info` command.
 
 ``` default
 $ docker exec my-sandbox "$script" smart_rollup_info
@@ -317,31 +342,32 @@ $ docker exec my-sandbox "$script" smart_rollup_info
     "refute": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ"
   },
   "rpc-addr": "0.0.0.0",
-  "rpc-port": 20010,
+  "rpc-port": 20002,
   "fee-parameters": {},
   "mode": "operator"
 },
 }
 ```
 
-You'll need the **rpc-addr** and **rpc-port** for the smart rollup node
-entrypoint when making calls with the smart-rollup-client. We recommend aliasing
-the following:
+You'll need the **rpc-port** for the smart rollup node entrypoint when making
+calls with the smart-rollup-client. For exmaple:
 
 ``` default
-$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtNairobi -E http://localhost:20010'
+$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtNairobi -E http://localhost:20002'
 ```
 
-In order to include any smart contracts, add them to your
-`/path/to/kernel/files` directory and originate them with the octez-client
-included in the docker container.
+For convenience, the included script contains the function
+`client_remember_smart_contracts` to add contract addresses to the octez-client
+data directory configured.
 
 ``` default
-$ alias tcli='docker exec my-sandbox octez-client'
+$ docker exec my-sandbox "$script" client_remember_contracts
+Added contract my-contract: KT19Z5M5z9jBf1ikYABrbrCw3M2QLQLSV1KA
 
-$ tcli originate contract my_contract_alias \
-        transferring 0 from alice running /rollup/my_contract.tz \
-        --burn-cap 1 --init "Unit"
+$ docker exec my-sandbox octez-client list known contracts
+my-contract: KT19Z5M5z9jBf1ikYABrbrCw3M2QLQLSV1KA
+```
+
 ```
 
 #### Start the TX Smart Rollup
