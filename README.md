@@ -73,6 +73,10 @@ $ tcli get balance for alice
 2000000 ꜩ
 ```
 
+**Note on Oxford** Bootstrap accounts in `oxfordbox` will start out
+automatically staking. This stake is frozen and will not show up in the account
+balance until un-staked.
+
 You can always stop the sandbox, and clean-up your resources with: `docker kill
 my-sandbox`.
 
