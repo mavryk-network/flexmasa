@@ -183,8 +183,8 @@ module Evm_proxy_server = struct
   }
 
   let make_config ~smart_rollup ?(id = "evm-proxy-server")
-      ?(rpc_addr = "127.0.0.1") ~rpc_port ~rollup_node_endpoint ~exec ~protocol
-      () : config =
+      ?(rpc_addr = "0.0.0.0") ~rpc_port ~rollup_node_endpoint ~exec ~protocol ()
+      : config =
     {
       id;
       rpc_addr;
