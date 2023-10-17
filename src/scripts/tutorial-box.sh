@@ -200,6 +200,34 @@ start_evm_smart_rollup() {
 }
 
 all_commands="$all_commands
+* client_remember_contracts : Add the \"exchanger\" and \"evm-bridge\" L1 contracts to the octez-client data-dir."
+client_remember_contracts() {
+    contracts="${root_path}/Client-base-C-N000/contracts"
+
+    if [ -f "$contracts" ]; then
+
+        exchanger_addr=$(jq -r '.[] | select(.name=="exchanger") | .value' "$contracts")
+        if [ -z "$exchanger_addr" ]; then
+            echo "Error: Could not find the exchanger contract address in $contracts"
+        else
+            octez-client remember contract exchanger "$exchanger_addr"
+            echo "Added exchanger contract: $exchanger_addr"
+        fi
+
+        evm_bridge_addr=$(jq -r '.[] | select(.name=="evm-bridge") | .value' "$contracts")
+        if [ -z "$evm_bridge_addr" ]; then
+            echo "Error: Could not find the evm-bridge contract address in $contracts"
+        else
+            octez-client remember contract evm-bridge "$evm_bridge_addr"
+            echo "Added evm-bridge contract: $evm_bridge_addr"
+        fi
+
+    else
+        echo "Error: Contract file not found at $contracts"
+    fi
+}
+
+all_commands="$all_commands
 * start_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
 start_adaptive_issuance() {
     start --issuance-vote "on" "$@"
