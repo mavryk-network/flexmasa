@@ -109,31 +109,47 @@ start_upgrade() {
 
 ## Smart rollup sandbox commands
 all_commands="$all_commands
-* start_custom_smart_rollup KIND TYPE PATH [SETUP_FILE_PATH]: Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel. Optionally, specify a setup-file path with SETUP_FILE_PATH."
+* start_custom_smart_rollup KIND TYPE PATH : Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel."
 # Smart rollup with user provided kernel.
 start_custom_smart_rollup() {
     kind="$1"
     type="$2"
     kernel_path="$3"
-    setup_file_path="$4"  #  optional fourth agurment
+    shift 3
 
-    # Append --kernel-setup-file if $setup_file_path is not empty
-    if [ ! -z "$setup_file_path" ]; then
-        setup="--kernel-setup-file=$setup_file_path"
+    # Check if the required arguments are provided
+    if [ -z "$kind" ] || [ -z "$type" ] || [ -z "$kernel_path" ]; then
+        echo "Error: Missing required arguments: KIND TYPE PATH"
+        return 1
     fi
 
-    start --start-smart-rollup "custom:$kind:$type:$kernel_path" "$setup" "$@"
+    start --start-smart-rollup "custom:$kind:$type:$kernel_path" "$@"
 
 }
 
 # Print the rollup node config.
 all_commands="$all_commands
-* custom_smart_rollup_info : Show the smart rollup node config file."
+* smart_rollup_info : Show the smart rollup node config file. (and evm proxy config file if applicable)."
 smart_rollup_info() {
-    config_file=$(find ${root_path}/smart-rollup -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
+    config_file=$(find "${root_path}/smart-rollup" -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
+    evm_proxy_config="/tmp/flextesa-mini-box/smart-rollup/evm-proxy-server/data-dir/config.json"
+
+    if [ ! -f "$config_file" ]; then
+        echo "Smart-rollup-node config file not found."
+        config_json="{}"
+    else
+        config_json=$(jq . "$config_file")
+    fi
+
+    if [ ! -f "$evm_proxy_config" ]; then
+        proxy_conf_json="{}"
+    else
+        proxy_conf_json=$(jq . "$evm_proxy_config")
+    fi
 
     echo '{'
-    echo "  \"smart_rollup_node_config\":  $(jq . ${config_file}),"
+    echo "  \"smart_rollup_node_config\":  ${config_json},"
+    echo "  \"evm_proxy_config\":  ${proxy_conf_json},"
     echo '}'
 }
 
@@ -244,6 +260,29 @@ initclient() {
     octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
     octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
     octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
+}
+
+all_commands="$all_commands
+* client_remember_contracts : Add the contracts originated by flextesa to the octez-client data-dir."
+client_remember_contracts() {
+    contracts="${root_path}/Client-base-C-N000/contracts"
+
+    if [ -f "$contracts" ]; then
+        length=$(jq 'length' "$contracts")
+        i=0
+
+        while [ $i -lt $length ]; do
+            contract_name=$(jq -r ".[$i].name" "$contracts")
+            contract_value=$(jq -r ".[$i].value" "$contracts")
+
+            octez-client remember contract "$contract_name" "$contract_value"
+            echo "Added contract $contract_name: $contract_value"
+
+            i=$((i + 1))
+        done
+    else
+        echo "Error: Contract file not found at $contracts"
+    fi
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
