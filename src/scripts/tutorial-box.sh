@@ -109,7 +109,7 @@ start_upgrade() {
 
 ## Smart rollup sandbox commands
 all_commands="$all_commands
-* start_custom_smart_rollup KIND TYPE PATH : Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel. Optionally~."
+* start_custom_smart_rollup KIND TYPE PATH : Start a smart rollup sandbox with the $default_protocol protocol and a custom kernel."
 # Smart rollup with user provided kernel.
 start_custom_smart_rollup() {
     kind="$1"
