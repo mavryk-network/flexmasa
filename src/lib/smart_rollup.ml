@@ -13,7 +13,7 @@ type t = {
   node : Tezos_executable.t;
   client : Tezos_executable.t;
   installer : Tezos_executable.t;
-  evm_proxy_server : Tezos_executable.t;
+  evm_node : Tezos_executable.t;
 }
 
 let make_path ~state p = Paths.root state // sprintf "smart-rollup" // p
@@ -171,7 +171,7 @@ module Node = struct
     loop 1
 end
 
-module Evm_proxy_server = struct
+module Evm_node = struct
   type config = {
     id : string;
     rpc_addr : string;
@@ -182,9 +182,8 @@ module Evm_proxy_server = struct
     smart_rollup : t;
   }
 
-  let make_config ~smart_rollup ?(id = "evm-proxy-server")
-      ?(rpc_addr = "0.0.0.0") ~rpc_port ~rollup_node_endpoint ~exec ~protocol ()
-      : config =
+  let make_config ~smart_rollup ?(id = "evm-node") ?(rpc_addr = "0.0.0.0")
+      ~rpc_port ~rollup_node_endpoint ~exec ~protocol () : config =
     {
       id;
       rpc_addr;
@@ -221,17 +220,23 @@ module Evm_proxy_server = struct
       (data_dir state config // "config.json")
       ~content:(Ezjsonm.to_string json)
 
-  (* Start a running evm-proxy-server. *)
+  (* Start a running evm-node. *)
   let run state config =
     make_dir state (data_dir state config) >>= fun _ ->
     write_config state config >>= fun () ->
     Running_processes.Process.genspio config.id
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
-           ( "run evm-proxy-server",
+           ( "run evm-node",
              call state ~config
                ~command:
-                 [ "run"; "with"; "endpoint"; config.rollup_node_endpoint ] );
+                 [
+                   "run";
+                   "proxy";
+                   "with";
+                   "endpoint";
+                   config.rollup_node_endpoint;
+                 ] );
          ])
     |> return
 end
@@ -582,16 +587,15 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           start_rollup_node state soru_node origination_result >>= fun () ->
           (* Wait for the rollup node to bootstrap. *)
           Node.wait_for_responce state ~config:soru_node >>= fun () ->
-          (* Start the evm-proxy-sever. *)
-          let evm_proxy_port = Test_scenario.Unix_port.(next_port nodes) in
-          Evm_proxy_server.make_config ~smart_rollup:soru
-            ~rpc_port:evm_proxy_port
+          (* Start the octez-evm-node. *)
+          let evm_node_port = Test_scenario.Unix_port.(next_port nodes) in
+          Evm_node.make_config ~smart_rollup:soru ~rpc_port:evm_node_port
             ~rollup_node_endpoint:
               (Fmt.str "http://127.0.0.1:%d" soru_node.rpc_port)
-            ~exec:soru.evm_proxy_server ~protocol:protocol.kind ()
+            ~exec:soru.evm_node ~protocol:protocol.kind ()
           |> return
-          >>= fun evm_proxy_server ->
-          Evm_proxy_server.run state evm_proxy_server >>= fun process ->
+          >>= fun evm_node ->
+          Evm_node.run state evm_node >>= fun process ->
           Running_processes.start state process
           >>= fun { process = _; lwt = _ } ->
           return () >>= fun _ ->
@@ -599,8 +603,8 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           EF.
             [
               desc
-                (af "evm-proxy-server is listening on")
-                (af "rpc_port: `%d`" evm_proxy_server.rpc_port);
+                (af "octez-evm-node is listening on")
+                (af "rpc_port: `%d`" evm_node.rpc_port);
               desc
                 (af "Exchanger contract address:")
                 (af "`%s`" exchanger_contract_addr);
@@ -683,7 +687,7 @@ let cmdliner_term state () =
       node
       client
       installer
-      evm_proxy_server
+      evm_node
     ->
       let check_options l =
         (* Make sure there are no reduntant options are passed. *)
@@ -709,7 +713,7 @@ let cmdliner_term state () =
           node;
           client;
           installer;
-          evm_proxy_server;
+          evm_node;
         }
       in
       match parce_rollup_arg start with
@@ -818,4 +822,4 @@ let cmdliner_term state () =
       ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
       ~prefix:"octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Evm_proxy_server ~prefix:"octez"
+  $ Tezos_executable.cli_term ~extra_doc state `Evm_node ~prefix:"octez"

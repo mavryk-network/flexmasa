@@ -27,7 +27,7 @@ type kind =
   | `Smart_rollup_node
   | `Smart_rollup_client
   | `Smart_rollup_installer
-  | `Evm_proxy_server ]
+  | `Evm_node ]
 (** The type [kind] is used to distinguish ['a t] executables. *)
 
 type t = private {

@@ -24,7 +24,7 @@ type kind =
   | `Smart_rollup_node
   | `Smart_rollup_client
   | `Smart_rollup_installer
-  | `Evm_proxy_server ]
+  | `Evm_node ]
 
 type t = {
   kind : kind;
@@ -47,7 +47,7 @@ let kind_string (kind : [< kind ]) =
   | `Smart_rollup_node -> "smart-rollup-node"
   | `Smart_rollup_client -> "smart-rollup-client"
   | `Smart_rollup_installer -> "smart-rollup-installer"
-  | `Evm_proxy_server -> "evm-proxy-server"
+  | `Evm_node -> "evm-node"
 
 let default_binary ?protocol_kind t =
   let base_name kind = kind_string kind in
@@ -59,7 +59,7 @@ let default_binary ?protocol_kind t =
   | ( (`Accuser | `Baker | `Endorser | `Smart_rollup_node | `Smart_rollup_client),
       Some proto ) ->
       base_name t.kind |> proto_suffix proto |> octez_prefix
-  | (`Node | `Client | `Admin | `Evm_proxy_server), _ ->
+  | (`Node | `Client | `Admin | `Evm_node), _ ->
       base_name t.kind |> octez_prefix
   | ( (`Accuser | `Baker | `Endorser | `Smart_rollup_node | `Smart_rollup_client),
       _ ) ->

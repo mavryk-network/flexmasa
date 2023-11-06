@@ -11,7 +11,7 @@ type t = {
   node : Tezos_executable.t;
   client : Tezos_executable.t;
   installer : Tezos_executable.t;
-  evm_proxy_server : Tezos_executable.t;
+  evm_node : Tezos_executable.t;
 }
 
 val executables : t -> Tezos_executable.t list
