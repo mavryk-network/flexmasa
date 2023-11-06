@@ -14,7 +14,7 @@
  (description "Tezos Ed25519 Accounts Based on Mirage-Crypto.")
  (version 0.2)
  (depends
-   "tezai-base58-digest"
+   "mavai-base58-digest"
   (mirage-crypto (>= "0.11.0"))
   (dune (>= "2.9"))
   (ppx_inline_test ( >= "0.14.0"))
@@ -38,7 +38,7 @@
   tls
   cohttp-lwt-unix
   (pp (>= 1.1.2))
-  tezai-base58-digest
+  mavai-base58-digest
   tezai-tz1-crypto
   ))
 

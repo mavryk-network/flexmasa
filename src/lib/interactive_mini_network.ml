@@ -185,7 +185,7 @@ the chain to resume
   end
 
   let chain_id_of_hash hash =
-    let open Tezai_base58_digest.Identifier in
+    let open Mavai_base58_digest.Identifier in
     Chain_id.of_base58_block_hash hash
 
   let process_choice state ~protocol_kind choice =
@@ -226,7 +226,7 @@ the chain to resume
               let seed =
                 Fmt.str "%d:%f" (Random.int 1_000_000) (Unix.gettimeofday ())
               in
-              let open Tezai_base58_digest.Identifier in
+              let open Mavai_base58_digest.Identifier in
               let block_hash = Block_hash.hash_string seed in
               Block_hash.encode block_hash
         in

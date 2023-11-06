@@ -107,8 +107,8 @@ And indeed we can use such a client to bake a new block:
 
 ```
  $ c0 list known addresses
-bootacc-0: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU (unencrypted sk known)
-dictator-default: tz1aYQcaXmowUu59gAgMGdiX6ARR7gdmikZk (unencrypted sk known)
+bootacc-0: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk (unencrypted sk known)
+dictator-default: mv1JXtLg4dQtexW8ADAwc85Qf5qFZhy3xttY (unencrypted sk known)
 
  $ c0 bake for bootacc-0
 Feb 12 10:30:42 - alpha.baking.forge: found 0 valid operations (0 refused) for timestamp 2020-02-12T15:30:42-00:00 (fitness 01::0000000000000002)
@@ -173,7 +173,7 @@ baking. See the output of the key generation:
 
 ```
  $ flextesa key-of-name alice
-alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
+alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 ```
 
 One can use simply `octez-client import secret key the-alice

@@ -239,7 +239,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
            sprintf "proto-%s-%d" tag s))
       ~f:(fun s ->
         ( t,
-          Tezai_base58_digest.Identifier.Protocol_hash.(hash_string s |> encode)
+          Mavai_base58_digest.Identifier.Protocol_hash.(hash_string s |> encode)
         ))
   in
   let extra_dummy_protocols =

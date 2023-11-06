@@ -15,7 +15,7 @@
   genspio
   ezjsonm
   ptime.clock.os
-  tezai-base58-digest
+  mavai-base58-digest
   tezai-tz1-crypto))
 
 (rule

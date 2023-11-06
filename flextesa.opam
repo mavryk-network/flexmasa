@@ -21,7 +21,7 @@ depends: [
   "tls"
   "cohttp-lwt-unix"
   "pp" {>= "1.1.2"}
-  "tezai-base58-digest"
+  "mavai-base58-digest"
   "tezai-tz1-crypto"
   "odoc" {with-doc}
 ]

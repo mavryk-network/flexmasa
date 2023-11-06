@@ -443,7 +443,7 @@ module Ledger = struct
           chain =
             (let v = Re.Group.get matches 2 in
              if String.equal v "'Unspecified'" then None
-             else Some (Tezai_base58_digest.Identifier.Chain_id.decode v));
+             else Some (Mavai_base58_digest.Identifier.Chain_id.decode v));
           test = Int.of_string (Re.Group.get matches 3);
         }
     with e ->
@@ -557,7 +557,7 @@ module Keyed = struct
     in
     Dbg.e EF.(af "To Decode: %s" to_decode);
     let decoded =
-      Tezai_base58_digest.Identifier.Ed25519.Signature.decode to_decode
+      Mavai_base58_digest.Identifier.Ed25519.Signature.decode to_decode
       |> Hex.of_string ?ignore:None |> Hex.show
     in
     say state EF.(desc (shout "DECODED:") (af "%S" decoded)) >>= fun () ->

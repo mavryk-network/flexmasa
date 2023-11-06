@@ -49,11 +49,11 @@ Usable accounts:
 
 - alice
   * edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn
-  * tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+  * mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
   * unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 - bob
   * edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4
-  * tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
+  * mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
   * unencrypted:edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt
 
 Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
@@ -315,10 +315,10 @@ $ docker exec my-sandbox "$script" smart_rollup_info
   "smart_rollup_node_config":  {
   "smart-rollup-address": "sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp",
   "smart-rollup-node-operator": {
-    "publish": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
-    "add_messages": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
-    "cement": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
-    "refute": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ"
+    "publish": "mv1UiMy95h6JXtpYvcuVqf6ZLL2q4djfwofT",
+    "add_messages": "mv1UiMy95h6JXtpYvcuVqf6ZLL2q4djfwofT",
+    "cement": "mv1UiMy95h6JXtpYvcuVqf6ZLL2q4djfwofT",
+    "refute": "mv1UiMy95h6JXtpYvcuVqf6ZLL2q4djfwofT"
   },
   "rpc-addr": "0.0.0.0",
   "rpc-port": 20010,
@@ -435,7 +435,7 @@ With Opam ≥ 2.1:
 opam switch create . --deps-only \
      --formula='"ocaml-base-compiler" {>= "4.13" & < "4.14"}'
 eval $(opam env)
-opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-digest.git
+opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base58-digest.git
 opam install --deps-only --with-test --with-doc \
      ./tezai-tz1-crypto.opam \
      ./flextesa.opam ./flextesa-cli.opam # Most of this should be already done.

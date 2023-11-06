@@ -2,8 +2,8 @@ module String = StringLabels
 module List = ListLabels
 
 module Make_with_id (Id : sig
-  val encode : string -> Tezai_base58_digest__Raw.base58
-  val decode : Tezai_base58_digest__Raw.base58 -> string
+  val encode : string -> Mavai_base58_digest__Raw.base58
+  val decode : Mavai_base58_digest__Raw.base58 -> string
 end) =
 struct
   type t = Bytes of string
@@ -16,7 +16,7 @@ struct
 end
 
 module Secret_key = struct
-  include Make_with_id (Tezai_base58_digest.Identifier.Ed25519.Secret_key)
+  include Make_with_id (Mavai_base58_digest.Identifier.Ed25519.Secret_key)
 
   (* type t = Bytes of string *)
 
@@ -25,7 +25,7 @@ module Secret_key = struct
     | str ->
         let seed =
           if String.length str < 32 then str
-          else Tezai_base58_digest.Crypto_hash.String.sha256 str
+          else Mavai_base58_digest.Crypto_hash.String.sha256 str
         in
         let alices =
           List.init ~len:32 ~f:(fun _ -> seed)
@@ -62,7 +62,7 @@ module Secret_key = struct
 end
 
 module Public_key = struct
-  include Make_with_id (Tezai_base58_digest.Identifier.Ed25519.Public_key)
+  include Make_with_id (Mavai_base58_digest.Identifier.Ed25519.Public_key)
 
   let of_secret_key (Secret_key.Bytes s) =
     (* Bytes (String.sub s ~pos:0 ~len:32) *)
@@ -78,7 +78,7 @@ module Public_key = struct
 end
 
 module Public_key_hash = struct
-  module Tz1 = Tezai_base58_digest.Identifier.Ed25519.Public_key_hash
+  module Tz1 = Mavai_base58_digest.Identifier.Ed25519.Public_key_hash
   include Make_with_id (Tz1)
 
   let of_public_key pk = Bytes (Public_key.to_string pk |> Tz1.hash_string)
@@ -103,7 +103,7 @@ let%expect_test _ =
     Seed: "alice"
     SK: edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
     PK: edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn
-    PKH: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+    PKH: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
     |}];
   show_of_seed "bob";
   [%expect
@@ -111,7 +111,7 @@ let%expect_test _ =
     Seed: "bob"
     SK: edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt
     PK: edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4
-    PKH: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
+    PKH: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
     |}];
   show_of_seed "chuck";
   [%expect
@@ -119,6 +119,6 @@ let%expect_test _ =
     Seed: "chuck"
     SK: edsk3RgXNjpM6MhBJjxjAcm4AVNp6B2jr9KKdLdTce63bgnAr9jmWS
     PK: edpktn8R91vDHirgNYz6DbK5TPHqTvJmtE3WqQoYitdmCSL94EKwQs
-    PKH: tz1U6gfR9YAkJe8H2UNeo5zudU2mojsdkKYb
+    PKH: mv1GU9y1TuU6suuWAnwW2ugvnUtkN8MvXkqN
     |}];
   ()
