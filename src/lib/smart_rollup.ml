@@ -203,27 +203,12 @@ module Evm_node = struct
       ~path:(server_dir state config.id "exec")
       (command
       @ opt "rpc-addr" config.rpc_addr
-      @ opt "rpc-port" (Int.to_string config.rpc_port))
+      @ opt "rpc-port" (Int.to_string config.rpc_port)
+      @ opt "data-dir" (data_dir state config))
 
-  let write_config state config =
-    let json =
-      Ezjsonm.(
-        dict
-          [
-            ("rpc_addr", string config.rpc_addr);
-            ("rpc_port", int config.rpc_port);
-            ( "rollup_node_endpoint",
-              string (Fmt.str "%s" config.rollup_node_endpoint) );
-          ])
-    in
-    System.write_file state
-      (data_dir state config // "config.json")
-      ~content:(Ezjsonm.to_string json)
-
-  (* Start a running evm-node. *)
+  (* Start a running octez-evm-node. *)
   let run state config =
     make_dir state (data_dir state config) >>= fun _ ->
-    write_config state config >>= fun () ->
     Running_processes.Process.genspio config.id
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
