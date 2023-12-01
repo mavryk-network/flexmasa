@@ -535,18 +535,18 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       in
       match soru.kernel with
       | `Evm ->
-          let sc_dir = make_path ~state "l1-smart-contracts" in
-          make_dir state sc_dir >>= fun _ ->
-          let exchanger_dest = sc_dir // "exchanger.tz" in
-          System.write_file state exchanger_dest
-            ~content:Sandbox_smart_contracts.exchanger
-          >>= fun () ->
+          (* let sc_dir = make_path ~state "l1-smart-contracts" in *)
+          (* make_dir state sc_dir >>= fun _ -> *)
+          (* let exchanger_dest = sc_dir // "exchanger.tz" in *)
+          (* System.write_file state exchanger_dest *)
+          (*   ~content:Sandbox_smart_contracts.exchanger *)
+          (* >>= fun () -> *)
           (* Originate exchanger contract. *)
           Smart_contract.originate_smart_contract state ~client ~wait:"1"
             ~account:admin_name
             {
               name = "exchanger";
-              michelson = exchanger_dest;
+              michelson = Sandbox_smart_contracts.exchanger;
               init_storage = "Unit";
             }
           >>= fun exchanger_contract_addr ->
