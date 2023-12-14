@@ -75,6 +75,7 @@ module Protocol_kind = struct
     | `Mumbai
     | `Nairobi
     | `Oxford
+    | `Atlas
     | `Alpha ]
 
   let names =
@@ -94,6 +95,7 @@ module Protocol_kind = struct
       ("Mumbai", `Mumbai);
       ("Nairobi", `Nairobi);
       ("Oxford", `Oxford);
+      ("Atlas", `Atlas);
       ("Alpha", `Alpha);
     ]
 
@@ -123,6 +125,7 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
+    | `Atlas -> "PtAtLasLVMXnJGQPjVwVsLse9ncWgqCu32NKRsUM8R5u6RRDn5v"
     | `Oxford -> "ProxfordSW2S7fvchT1Zgj2avb5UES194neRyYVXoaDGvF9egt8"
     | `Nairobi -> "PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf"
     | `Mumbai -> "PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
@@ -144,6 +147,7 @@ module Protocol_kind = struct
     | `Athens -> "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd"
 
   let daemon_suffix_exn : t -> string = function
+    | `Atlas -> "PtAtLasL"
     | `Oxford -> "Proxford"
     | `Nairobi -> "PtNairob"
     | `Mumbai -> "PtMumbai"
@@ -166,7 +170,7 @@ module Protocol_kind = struct
     | _ -> false
 
   let wants_endorser_daemon : t -> bool = function
-    | `Ithaca | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi | `Oxford
+    | `Ithaca | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi | `Oxford | `Atlas
     | `Alpha ->
         false
     | `Florence | `Carthage | `Delphi | `Hangzhou | `Babylon | `Edo | `Granada
@@ -233,7 +237,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | None ->
       let open Ezjsonm in
       (match t.kind with
-      | `Nairobi | `Oxford | `Alpha -> ()
+      | `Nairobi | `Oxford | `Atlas | `Alpha -> ()
       | other ->
           Fmt.failwith
             "Flextesa cannot generate parameters for old protocols like %a, \
@@ -296,7 +300,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           in
           match t.kind with
           | `Nairobi -> base
-          | `Oxford | `Alpha -> base |> add_replace ("attestation_lag", int 4)
+          | `Oxford | `Atlas | `Alpha -> base |> add_replace ("attestation_lag", int 4)
           | _ -> []
         in
         [ ("dal_parametric", dict dal_parametric) ]
@@ -321,7 +325,7 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("dal_page", int32 Int32.(pred max_value));
             ]
           in
-          match t.kind with `Oxford | `Alpha -> base | _ -> []
+          match t.kind with `Oxford | `Atlas | `Alpha -> base | _ -> []
         in
         let base =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
@@ -347,7 +351,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         match t.kind with
         | `Nairobi ->
             prefix_keys "smart_rollup" (base |> remove "reveal_activation_level")
-        | `Oxford -> prefix_keys "smart_rollup" base
+        | `Oxford | `Atlas -> prefix_keys "smart_rollup" base
         | `Alpha ->
             prefix_keys "smart_rollup"
               (base |> add_replace ("private_enable", bool false))
@@ -365,7 +369,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         match t.kind with
         | `Nairobi ->
             prefix_keys "zk_rollup" (base |> remove "max_ticket_payload_size")
-        | `Oxford | `Alpha -> prefix_keys "zk_rollup" base
+        | `Oxford | `Atlas | `Alpha -> prefix_keys "zk_rollup" base
         | _ -> []
       in
       let adaptive_issuance_specific_parameters =
@@ -400,7 +404,7 @@ let protocol_parameters_json t : Ezjsonm.t =
                   ] );
             ]
           in
-          match t.kind with `Oxford | `Alpha -> base | _ -> []
+          match t.kind with `Oxford | `Atlas | `Alpha -> base | _ -> []
         in
         let base =
           [
@@ -410,7 +414,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("adaptive_rewards_params", dict adaptive_rewards);
           ]
         in
-        match t.kind with `Oxford | `Alpha -> base | _ -> []
+        match t.kind with `Oxford | `Atlas | `Alpha -> base | _ -> []
       in
       let general_parameters =
         let consensus_committee_size =
@@ -444,7 +448,7 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("vdf_revelation_tip_weight", int 1);
             ]
           in
-          match t.kind with `Oxford | `Alpha -> base | _ -> []
+          match t.kind with `Oxford | `Atlas | `Alpha -> base | _ -> []
         in
         let base =
           [
@@ -520,7 +524,7 @@ let protocol_parameters_json t : Ezjsonm.t =
                    int 5 (* From constants_sandbox *) )
             |> add_replace
                  (* minimal_stake / double_baking_punishment must be >= 10 to
-                    caclulate the Oxford constants. *)
+                    caclulate the Atlas constants. *)
                  ("double_baking_punishment", string (Int.to_string 640_000_000))
             |> add_replace
                  ( "ratio_of_frozen_deposits_slashed_per_double_endorsement",
@@ -540,7 +544,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             |> remove "percentage_of_frozen_deposits_slashed_per_double_baking"
             |> remove
                  "percentage_of_frozen_deposits_slashed_per_double_attestation"
-        | `Oxford | `Alpha -> base
+        | `Oxford | `Atlas | `Alpha -> base
         | other -> unsupported_protocol "defalut_parameters" other
       in
       dict
@@ -689,7 +693,7 @@ let cli_term state =
                     ~doc:
                       "Add a custom bootstrap account, e.g. \
                        `LedgerBaker,edpku...,mv1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`. \
-                       Note: that Oxford protocal starts bootstrap_accounts \
+                       Note: that Atlas protocal starts bootstrap_accounts \
                        with portion of their balance already staked (minimum \
                        mutez:6_000_000_000). The staked balance doesn't show \
                        up as avaialbe balance until it is unstaked. "))))

@@ -24,7 +24,7 @@ parameters. For instance:
   
 ```sh
 image=oxheadalpha/flextesa:latest
-script=nairobibox
+script=atlasbox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -33,8 +33,7 @@ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
-- `nairobibox`: Nairobi protocol
-- `oxfordbox`: Oxford protocol
+- `atlasbox`: Atlas protocol
 - `alphabox`: Alpha protocol, the development version of the `N` protocol at the
   time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
@@ -435,7 +434,7 @@ With Opam ≥ 2.1:
 opam switch create . --deps-only \
      --formula='"ocaml-base-compiler" {>= "4.13" & < "4.14"}'
 eval $(opam env)
-opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base58-digest.git
+opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
 opam install --deps-only --with-test --with-doc \
      ./tezai-tz1-crypto.opam \
      ./flextesa.opam ./flextesa-cli.opam # Most of this should be already done.

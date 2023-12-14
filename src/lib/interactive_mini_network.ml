@@ -127,6 +127,7 @@ module Genesis_block_hash = struct
     | `Mumbai -> "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
     | `Nairobi -> "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
     | `Oxford -> "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
+    | `Atlas -> "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
     | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
