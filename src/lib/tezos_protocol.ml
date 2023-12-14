@@ -322,6 +322,7 @@ let protocol_parameters_json t : Ezjsonm.t =
               (*        the feature. The [pred] is needed to not trigger an encoding *)
               (*        exception with the value [Int32.int_min] (see tezt/tests/mockup.ml). *\) *)
               (*     Raw_level.of_int32_exn Int32.(pred max_int)); *)
+              ("dal_parameters", int32 Int32.(pred max_value));
               ("dal_page", int32 Int32.(pred max_value));
             ]
           in
@@ -331,7 +332,6 @@ let protocol_parameters_json t : Ezjsonm.t =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
           let challenge_window_in_blocks = 30 in
           [
-            ("enable", bool true);
             ("arith_pvm_enable", bool false);
             ("origination_size", int 6_314);
             ("challenge_window_in_blocks", int challenge_window_in_blocks);
@@ -342,9 +342,11 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("max_outbox_messages_per_level", int 100);
             ("number_of_sections_in_dissection", int 32);
             ("timeout_period_in_blocks", int (challenge_window_in_blocks / 2));
-            ( "max_number_of_cemented_commitments",
+            ("max_number_of_cemented_commitments",
               int 30 (* Keep more old commitments. *) );
             ("max_number_of_parallel_games", int 32);
+            ("private_enable", bool true);
+            ("riscv_pvm_enable", bool true);
             ("reveal_activation_level", dict reveal_activation_level);
           ]
         in
@@ -389,7 +391,12 @@ let protocol_parameters_json t : Ezjsonm.t =
                     ("denominator", string (Int.to_string 20));
                   ] );
               ("max_bonus", string (Int64.to_string 50_000_000_000_000L));
-              ("growth_rate", string (Int64.to_string 115_740_740L));
+              ("growth_rate",
+                dict
+                  [
+                    ("numerator", string (Int.to_string 1));
+                    ("denominator", string (Int.to_string 100));
+                  ] );
               ( "center_dz",
                 dict
                   [
@@ -412,6 +419,8 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("edge_of_staking_over_delegation", int 2);
             ("adaptive_issuance_launch_ema_threshold", int32 1l);
             ("adaptive_rewards_params", dict adaptive_rewards);
+            ("adaptive_issuance_activation_vote_enable", bool true);
+            ("autostaking_enable", bool true);
           ]
         in
         match t.kind with `Oxford | `Atlas | `Alpha -> base | _ -> []
@@ -505,7 +514,6 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("consensus_threshold", int consensus_threshold);
             ( "minimal_participation_ratio",
               dict [ ("numerator", int 2); ("denominator", int 3) ] );
-            ("max_slashing_period", int 2);
             ( "limit_of_delegation_over_baking",
               int 19 (* From constants_sandbox *) );
             ("percentage_of_frozen_deposits_slashed_per_double_baking", int 10);
