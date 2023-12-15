@@ -25,15 +25,14 @@ case "$(basename $0)" in
         next_protocol_name=Alpha
         next_protocol_hash=alpha
         ;;
+    "alphabox")
+        default_protocol=Alpha
+        protocol_hash=ProtoA
+        binary_suffix=alpha
+        next_protocol_name=Failure
+        next_protocol_hash=alpha
+        ;;
     *) ;;
-    # "alphabox")
-    #     default_protocol=Alpha
-    #     protocol_hash=ProtoA
-    #     binary_suffix=alpha
-    #     next_protocol_name=Failure
-    #     next_protocol_hash=alpha
-    #     ;;
-    # *) ;;
 esac
 
 all_commands="
