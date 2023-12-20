@@ -15,19 +15,19 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/974935275
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/1114692838
 # (from 2023-08-21)
-# corresponding to
-# https://gitlab.com/tezos/tezos/-/commit/1ec1f20452c8d22a049d35f54bd51cb6edbfc616
+# corresponding to:
+# https://gitlab.com/tezos/tezos/-/commit/3e6ec4792f706670615cd565014228641aafd0f5
 
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/scl/fi/bco5xnuffiw3qmux2xal9/octez-static-binaries-x86_64-20230821-4abcc358fd.zip?rlkey=0bln8cb7smihu9yowy7srd2fi&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/yae7xzxc7b58413tjiqvf/octez-static-binaries-x86_64-20231220-3e6ec479.zip?rlkey=wy7ajmhcngh61w0r39rp5nqi6&dl&raw=1"
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/scl/fi/ab99e89xqavhokzuirqmy/octez-static-binaries-arm64-20230821-4abcc358fd.zip?rlkey=v7qw0abbe3nvyif7jkdm4a78v&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/9obhl5se9ea0prhlm99y3/octez-static-binaries-arm64-20231220-3e6ec479.zip?rlkey=a7x4jv3x6b3hnm8qgn15fi99z&dl&raw=1"
         directory_name=arm64
         ;;
     *)

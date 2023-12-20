@@ -25,7 +25,6 @@ type kind =
   | `Client
   | `Admin
   | `Smart_rollup_node
-  | `Smart_rollup_client
   | `Smart_rollup_installer
   | `Evm_node ]
 (** The type [kind] is used to distinguish ['a t] executables. *)

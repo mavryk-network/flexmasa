@@ -9,7 +9,6 @@ type t = {
   node_init_options : string list;
   node_run_options : string list;
   node : Tezos_executable.t;
-  client : Tezos_executable.t;
   installer : Tezos_executable.t;
   evm_node : Tezos_executable.t;
 }

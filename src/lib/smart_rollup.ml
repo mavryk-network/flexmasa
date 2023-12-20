@@ -11,7 +11,6 @@ type t = {
   node_init_options : string list;
   node_run_options : string list;
   node : Tezos_executable.t;
-  client : Tezos_executable.t;
   installer : Tezos_executable.t;
   evm_node : Tezos_executable.t;
 }
@@ -455,8 +454,8 @@ let originate_and_confirm state ~client ~account ~kernel ~confirmations () =
       >>= fun conf -> return (origination_result, conf)
 
 (* A list of smart rollup executables. *)
-let executables ({ client; node; installer; _ } : t) =
-  [ client; node; installer ]
+let executables ({ node; installer; _ } : t) =
+  [  node; installer ]
 
 let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   match smart_rollup with
@@ -667,7 +666,6 @@ let cmdliner_term state () =
       node_init_options
       node_run_options
       node
-      client
       installer
       evm_node
     ->
@@ -693,7 +691,6 @@ let cmdliner_term state () =
           node_init_options;
           node_run_options;
           node;
-          client;
           installer;
           evm_node;
         }
@@ -799,8 +796,6 @@ let cmdliner_term state () =
                  data-dir, rpc-addr, rpc-port."
               ~docv:"FLAG|OPTION=VALUE")))
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
-      ~prefix:"octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client
       ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
       ~prefix:"octez"
