@@ -9,7 +9,7 @@ if ! [ -d "$dest_dir" ]; then
     exit 3
 fi
 
-# Use this scrpcipt to get the evm_kernel and the smart-rollup-client binary.
+# Use this scrpcipt to get the smart-rollup-installer and octez smart-rollup kernel binaries.
 #
 # - Go to https://gitlab.com/tezos/tezos/
 # - Find a successful master-branch pipeline.
@@ -17,12 +17,12 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/1018329699
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/1114693893
 # (from 2023-09-27)
-# corresponding to
-# https://gitlab.com/tezos/tezos/-/commit/47bf956cf8b46d6606d00ce53f767478aa2251e6
+# corresponding to:
+# https://gitlab.com/tezos/tezos/-/commit/50ce0bb6453cfa56cd62a417eba3454dd05d863e
 
-download_uri="https://www.dropbox.com/scl/fi/bh2dptylfq7su1bu8wmm5/octez-kernel-build-20230927-47bf956c.zip?rlkey=ksglks74x22okpbglikghcpj5&raw=1"
+download_uri="https://www.dropbox.com/scl/fi/qj8cjro7nipn47rxrw5sa/octez-kernel-build-20231220-50ce0bb6.zip?rlkey=nez38t9bdtw2xnl1c1iwo4q8q&dl&raw=1"
 
 (
     curl -L "$download_uri" -o "$dest_dir/bins.zip"
