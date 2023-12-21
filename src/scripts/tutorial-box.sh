@@ -129,10 +129,10 @@ start_custom_smart_rollup() {
 
 # Print the rollup node config.
 all_commands="$all_commands
-* smart_rollup_info : Show the smart rollup node config file. (and evm proxy config file if applicable)."
+* smart_rollup_info : Show the smart rollup node config file. (and evm node config file if applicable)."
 smart_rollup_info() {
     config_file=$(find "${root_path}/smart-rollup" -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
-    evm_proxy_config="/tmp/flextesa-mini-box/smart-rollup/evm-proxy-server/data-dir/config.json"
+    evm_node_conf="/tmp/flextesa-mini-box/smart-rollup/evm-node/data-dir/config.json"
 
     if [ ! -f "$config_file" ]; then
         echo "Smart-rollup-node config file not found."
@@ -141,15 +141,15 @@ smart_rollup_info() {
         config_json=$(jq . "$config_file")
     fi
 
-    if [ ! -f "$evm_proxy_config" ]; then
-        proxy_conf_json="{}"
+    if [ ! -f "$evm_node_conf" ]; then
+        evm_conf_json="{}"
     else
-        proxy_conf_json=$(jq . "$evm_proxy_config")
+        evm_conf_json=$(jq . "$evm_node_conf")
     fi
 
     echo '{'
     echo "  \"smart_rollup_node_config\":  ${config_json},"
-    echo "  \"evm_proxy_config\":  ${proxy_conf_json},"
+    echo "  \"evm_node_config\":  ${evm_conf_json},"
     echo '}'
 }
 
