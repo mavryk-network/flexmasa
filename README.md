@@ -279,13 +279,14 @@ a [Smart Optimistic Rollup](https://tezos.gitlab.io/alpha/smart_rollups.html)
 sandbox:
 
 - [start_custom_smart_rollup](#staring-a-smart-rollup-sandbox-with-a-custom-kernel)
+- [start_evm_rollup](#startgin-the-evm-smart-rollup)
 - [start_tx_smart_rollup](#-start-the-tx-smart-rollup)
 
 Both are an implementation of the `flextesa mini-network` with the
 `--smart-rollup` option.
 
-#### Staring a Smart Rollup Sandbox with a Custom Kernel
-The following command will start a smart rollup with the kernel you provide.
+#### Staring a Smart-Rollup Sandbox with a Custom Kernel
+The following command will start a smart-rollup with the kernel you provide.
 
 ``` default
 $ docker run --rm --detach -p 20000:20000 -p 20002:20002 --name my-sandbox \
@@ -301,7 +302,7 @@ of your kernel inside the container. The published (`-p`) ports **20000** and
 **20002** will be the rpc_ports for the **tezos-node** and **smart-rollup-node**
 respectively.
 
-Flextesa has a few help options to use when testing your smart rollup kernel.
+Flextesa has a few help options to use when testing your smart-rollup kernel.
 This example uses the same `start_custom_rollup` command from above.
 
 ``` default
@@ -353,26 +354,85 @@ $ docker exec my-sandbox "$script" smart_rollup_info
 }
 ```
 
-You'll need the **rpc-port** for the smart rollup node entrypoint when making
-calls with the smart-rollup-client. For exmaple:
-
-``` default
-$ alias srcli='docker exec my-sandbox octez-smart-rollup-client-PtNairobi -E http://localhost:20002'
-```
-
 For convenience, the included script contains the function
-`client_remember_smart_contracts` to add contract addresses to the octez-client
+`inticlient` to add smart contract and smart rollup addresses to the octez-client
 data directory configured.
 
 ``` default
-$ docker exec my-sandbox "$script" client_remember_contracts
+$ docker exec my-sandbox "$script" initclient
+Tezos address added: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+Tezos address added: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
+Tezos address added: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
 Added contract my-contract: KT19Z5M5z9jBf1ikYABrbrCw3M2QLQLSV1KA
+Added smart rollup custom: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
+```
+#### Start the EVM Smart-Rollup
 
-$ docker exec my-sandbox octez-client list known contracts
-my-contract: KT19Z5M5z9jBf1ikYABrbrCw3M2QLQLSV1KA
+Flextesa includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) developed by Nomadic Labs. See its documentation [here](https://docs.etherlink.com/get-started/connect-your-wallet-to-etherlink). To start this sandbox Use the `star_evm_smart_rollup` command form the included scripts. 
+
+``` default
+$ docker run --rm --detach -p 20000:20000 -p 20002:20002 -p 20004:20004 --name my-sandbox \
+        "$image" "$script" start_evm_smart_rollup 
+```
+The published ports `20000`, `20002`and `20004` are for the `octez-node`, `octez-smart-rollup-node` and `octez-evm-node`, respectively. You can use Ethereum's rpc [api](https://ethereum.org/en/developers/docs/apis/json-rpc/) to interact with the `octez-evm-node` at port `20004`. For example, this call returns the Ethereum chain_id:
+
+``` sh
+$ curl -s -H "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\",\"method\":\"net_version\",\"params\":[]}" http://localhost:20004
+{"jsonrpc":"2.0","result":"123123","id":null}
 ```
 
+In addition to the EVM smart-rollup, this sandbox will originate two smart-contracts used for depositing tez to an account in the rollup. Use the 'initclient' function in the included scrips to setup the octez-client (included in the container). 
+
+``` sh
+$ docker exec my-sandbox "$script" initclient
+Tezos address added: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+Tezos address added: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
+Tezos address added: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
+Added contract evm-bridge: KT1Vq3vBnCNuds6YwjjcJeqBTaeqgTh52oQy
+Added contract exchanger: KT1D3VK3BQ2rbpufqwacJU97wgQst7NyuST3
+Added smart rollup evm: sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
+
+$ alias tcli='docker exec my-sandbox octez-client'
+
+$ tcli list known contracts
+exchanger: KT1Ty6UAYMwV4bteh8oEM6XdUvXzvsUuk3fX
+evm-bridge: KT1GC5oTZMP6Wi3V4cJq4uia9dEmNyWsmd3U
+baker0: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
+bob: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
+alice: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+
+$ tcli list known smart rollups
+evm: sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
 ```
+
+Record the evm smart rollup address. You will use it to transfer tez onto the rollup. Tez can be transferred an Ethereum account address on the rollup via the evm-bridge contract. 
+
+``` sh
+$ sr_addr=sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
+$ example_ethacc=0x798e0be76b06De09b88534c56EDF7AF339447e02
+
+$ tcli transfer 10 from alice to evm-bridge --entrypoint "deposit" --arg "(Pair \"${sr_addr}\" ${example_ethacc})" --burn-cap 1
+Node is bootstrapped.
+Estimated gas: 6019.859 units (will add 100 for safety)
+Estimated storage: 123 bytes added (will add 20 for safety)
+Operation successfully injected in the node.
+...
+```
+
+Now check the balance of the eth account.
+
+``` sh
+$ curl -s -H "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBalance\",\"params\":[\"$example_ethacc\", \"latest\"]}" http://localhost:20004
+{"jsonrpc":"2.0","result":"0x8ac7230489e80000","id":null}
+
+# Convert "result" to decimal. Remove the 'Ox' and uppercase. 
+$ echo 'ibase=16; 8AC7230489E80000' | bc
+10000000000000000000
+```
+
+The Ethereum rpc api uses units of "wei", which isn't very meaningful in this case. Removing 18 zeros will give you 10 tez.
+
+From here you can connect an Etheruem client to the `octez-evm-node` at the localhost address and port `20004`. You'll also need the Ethereum chain_id or net_version which we fetch in the example above (123123).
 
 #### Start the TX Smart Rollup
 The command `start_tx_smart_rollup`, originates the transaction smart rollup
