@@ -280,7 +280,6 @@ sandbox:
 
 - [start_custom_smart_rollup](#staring-a-smart-rollup-sandbox-with-a-custom-kernel)
 - [start_evm_rollup](#startgin-the-evm-smart-rollup)
-- [start_tx_smart_rollup](#-start-the-tx-smart-rollup)
 
 Both are an implementation of the `flextesa mini-network` with the
 `--smart-rollup` option.
@@ -432,86 +431,7 @@ $ echo 'ibase=16; 8AC7230489E80000' | bc
 
 The Ethereum rpc api uses units of "wei", which isn't very meaningful in this case. Removing 18 zeros will give you 10 tez.
 
-From here you can connect an Etheruem client to the `octez-evm-node` at the localhost address and port `20004`. You'll also need the Ethereum chain_id or net_version which we fetch in the example above (123123).
-
-#### Start the TX Smart Rollup
-The command `start_tx_smart_rollup`, originates the transaction smart rollup
-with the [tx-kernel](https://gitlab.com/tezos/kernel). This is the default kernel 
-included with flextesa mini-network.
-
-``` default
-$ docker run --rm --name my-sandbox --detach -p 20000:20000 -p 20002:20002 \
-        "$image" "$script" start_tx_smart_rollup 
-```
-
-The docker container includes the
-[tx-client](https://gitlab.com/emturner/tx-client) which can be used to interact
-with the tx-smart-rollup. Initialize it with the following command.
-
-``` default
-$ docker exec my-sandbox "$script" tx_client_init
-$ docker exec my-sandbox "$script" tx_client_show_config
-{
-"config_file": "/tmp/mini-smart-rollup-box/tx-client/config.json",
-"config": {
-  "tz_client": "/usr/bin/tz-client-for-tx-client.sh",
-  "tz_client_base_dir": "/tmp/mini-smart-rollup-box/Client-base-C-N000",
-  "tz_rollup_client": "/usr/bin/tz-rollup-client-for-tx-client.sh",
-  "forwarding_account": "alice",
-  "depositor_address": "KT1EX3joap58iygupJsbxhgGmhwVTWzHM3ky",
-  "rollup_address": "sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp",
-  "known_accounts": [],
-  "known_tickets": {}
-},
-}
-
-```
-
-Alias the tx-client to simplify interacting with the tx-smart-rollup (the
-`--config-file` option is required). Then generate a new address and send ticks
-to that address.
-
-``` default
-$ alias tx_cli='docker exec my-sandbox tx-client \
-        --config-file /tmp/mini-smart-rollup-box/tx-client/config.json'
-$ tx_cli gen-key alice_rollup_addr
-$ tx_cli mint-and-deposit \
-        --amount 10 \
-        --contents "hello world" \
-        --target alice_rollup_addr \
-        --ticket-alias my_tickets
-```
-
-The tx-client command, `mint-and-deposit` is a layer one contract call which
-mints ticket and deposits them to the target address. Below is a truncated
-example of the calls output.
-
-``` default
-Node is bootstrapped.
-Estimated gas: 4058.231 units (will add 100 for safety)
-Estimated storage: 66 bytes added (will add 20 for safety)
-Operation successfully injected in the node.
-...
-      Internal operations:
-        Internal Transaction:
-          Amount: ꜩ0
-          From: KT1EX3joap58iygupJsbxhgGmhwVTWzHM3ky
-          To: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
-          Parameter: (Pair "5e87fcdd8c9bf5d80a58ec7c5e28c41bec64ae0a"
-                           (Pair 0x01411c976a093fbd4964353e52a2470ed61d1148ef00 (Pair "hello world" 10)))
-          This transaction was successfully applied
-          Consumed gas: 1007.075
-          Ticket updates:
-            Ticketer: KT1EX3joap58iygupJsbxhgGmhwVTWzHM3ky
-            Content type: string
-            Content: "hello world"
-            Account updates:
-              sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp ... +10
-
-...
-```
-
-For more information on the tx-client see it's [repository](https://gitlab.com/emturner/tx-client).
+From here you can connect an Ethereum client to the `octez-evm-node` at the localhost address and port `20004`. You'll also need the Ethereum chain_id or net_version which we fetch in the example above (123123).
 
 ## Build
 
@@ -572,12 +492,12 @@ Do not forget to test it: `docker run -it "$image" "$script" start`
 
 To build the **released multi-architecture images**, we used to use
 [buildx](https://docs.docker.com/buildx/working-with-buildx/) but this does not
-work anymore (Qemu cannot handle the build on the foreign archtecture). We use
+work anymore (Qemu cannot handle the build on the foreign architecture). We use
 the “manifest method” cf.
 [docker.com](https://www.docker.com/blog/multi-arch-build-and-images-the-simple-way/).
 We need one host for each architecture (AMD64 and ARM64).
 
-#### On Each Architechture
+#### On Each Architecture
 
 Setting up Docker (example of AWS-like Ubuntu hosts):
 

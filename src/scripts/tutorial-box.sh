@@ -153,61 +153,6 @@ smart_rollup_info() {
     echo '}'
 }
 
-# Smart rollup with tx-kernel (transaction rollup).
-all_commands="$all_commands
-* start_tx_smart_rollup : Start the tx-kernel (transaction) smart rollup sandbox with the $default_protocol protocol."
-start_tx_smart_rollup() {
-    start --start-smart-rollup tx "$@"
-}
-
-# Print tx-client config file
-all_commands="$all_commands
-* tx_client_show_config : Print tx-client config file. (Requires start_tx_smart_rollup)."
-tx_client_dir="${root_root}/tx-client"
-tx_client_config="${tx_client_dir}/config.json"
-tx_client_show_config() {
-    if [ -f "$tx_client_config" ]; then
-        echo '{'
-        echo "\"config_file\": \"$tx_client_config\","
-        echo "\"config\": $(jq . "$tx_client_config"),"
-        echo '}'
-    else
-        echo "Error: Config file not found at $tx_client_config"
-        return 1
-    fi
-}
-
-# Initialize the tx-client for interacting with the tx-smart-rollup kernel
-all_commands="$all_commands
-* tx_client_init : Initialize the tx-client for interacting with the tx-smart-rollup kernel (Requires start_tx_smart_rollup)."
-tx_client_init() {
-    set -e
-
-    mkdir -p "$tx_client_dir"
-    base_dir="${root_path}/Client-base-C-N000"
-    rollup_client_dir="${root_path}/smart-rollup/smart-rollup-client-${binary_suffix}"
-    mkdir -p "$rollup_client_dir"
-
-    # The tx-client config-init command takes as arguments the absolute paths to
-    # the tezos binaries with no optional arguments. Thus, the follow scripts are created.
-    # Create octez-client script with the correct endpoint
-    echo '#! /bin/sh' >'/usr/bin/tz-client-for-tx-client.sh'
-    echo 'octez-client -E http://localhost:20000 "$@"' >>'/usr/bin/tz-client-for-tx-client.sh'
-    chmod +x '/usr/bin/tz-client-for-tx-client.sh'
-    # Create octez-smart-rollup-client script
-    echo '#! /bin/sh' >'/usr/bin/tz-rollup-client-for-tx-client.sh'
-    echo "octez-smart-rollup-client-${binary_suffix} -E http://localhost:20002 -d \"${rollup_client_dir}\" \"\$@\"" >>'/usr/bin/tz-rollup-client-for-tx-client.sh'
-    chmod +x '/usr/bin/tz-rollup-client-for-tx-client.sh'
-
-    tx-client --config-file "$tx_client_config" config-init \
-        --tz-client "/usr/bin/tz-client-for-tx-client.sh" \
-        --tz-client-base-dir "$base_dir" \
-        --tz-rollup-client "/usr/bin/tz-rollup-client-for-tx-client.sh" \
-        --forwarding-account alice
-
-    tx_client_show_config
-}
-
 # Start EVM Smart Rollup
 all_commands="$all_commands
 * start_evm_smart_rollup : Start the EVM smart rollup sandbox with the $default_protocol protocol."
