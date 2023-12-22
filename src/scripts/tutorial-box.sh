@@ -253,14 +253,6 @@ Root path (logs, chain data, etc.): $root_path (inside container).
 EOF
 }
 
-all_commands="$all_commands
-* initclient : Setup the local octez-client."
-initclient() {
-    octez-client --endpoint http://localhost:20000 config update
-    octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
-    octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
-}
 
 all_commands="$all_commands
 * client_remember_contracts : Add the contracts originated by flextesa to the octez-client data-dir."
@@ -281,8 +273,42 @@ client_remember_contracts() {
             i=$((i + 1))
         done
     else
-        echo "Error: Contract file not found at $contracts"
+        echo "There were no smart contract addresses found at $contracts"
     fi
+}
+
+all_commands="$all_commands
+* client_remember_rollups : Add smart-rollup address to the octez-client data-dir."
+client_remember_rollups() {
+    rollups="${root_path}/Client-base-C-N000/smart_rollups"
+
+    if [ -f "$rollups" ]; then
+        length=$(jq 'length' "$rollups")
+        i=0
+
+        while [ $i -lt $length ]; do
+            rollup_name=$(jq -r ".[$i].name" "$rollups")
+            rollup_value=$(jq -r ".[$i].value" "$rollups")
+
+            octez-client remember smart rollup "$rollup_name" "$rollup_value"
+            echo "Added smart rollup $rollup_name: $rollup_value"
+
+            i=$((i + 1))
+        done
+    else
+        echo "There were no smart rollup addresses found at $rollups"
+    fi
+}
+
+all_commands="$all_commands
+* initclient : Setup the local octez-client."
+initclient() {
+    octez-client --endpoint http://localhost:20000 config update
+    octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
+    client_remember_contracts
+    client_remember_rollups
 }
 
 if [ "$1" = "" ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
