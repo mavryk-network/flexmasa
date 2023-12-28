@@ -101,8 +101,8 @@ module Genesis_block_hash = struct
      $ ./flextesa van --first --seed tutobox18- --attempts 100_000_000  Boxo
     Flextesa.vanity-chain-id:  Looking for "Boxo"
     Flextesa.vanity-chain-id:
-      Results:
-        * Seed: "tutobox18-1551632"
+       Results:
+         * Seed: "tutobox18-1551632"
            → block: "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
            → chain-id: "NetXnofnLBXBoxo"
      $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
