@@ -55,15 +55,13 @@ let default_binary ?protocol_kind t =
   let octez_prefix s = Fmt.str "octez-%s" s in
   match (t.kind, protocol_kind) with
   (* add octez prefix and protocol suffix *)
-  | ( (`Accuser | `Baker | `Endorser),
-      Some proto ) ->
-    base_name t.kind |> proto_suffix proto |> octez_prefix
+  | (`Accuser | `Baker | `Endorser), Some proto ->
+      base_name t.kind |> proto_suffix proto |> octez_prefix
   (* add octez prefix *)
-  | (`Node | `Client | `Admin | `Evm_node | `Smart_rollup_node ), _ ->
-    base_name t.kind |> octez_prefix
+  | (`Node | `Client | `Admin | `Evm_node | `Smart_rollup_node), _ ->
+      base_name t.kind |> octez_prefix
   (* no prefix or suffix*)
-  | ( (`Accuser | `Baker | `Endorser ),
-      _ ) ->
+  | (`Accuser | `Baker | `Endorser), _ ->
       Fmt.failwith
         "Called default_binary with octez-%s and protocol_kind = None"
         (kind_string t.kind)

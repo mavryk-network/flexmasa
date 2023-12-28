@@ -454,8 +454,7 @@ let originate_and_confirm state ~client ~account ~kernel ~confirmations () =
       >>= fun conf -> return (origination_result, conf)
 
 (* A list of smart rollup executables. *)
-let executables ({ node; installer; _ } : t) =
-  [  node; installer ]
+let executables ({ node; installer; _ } : t) = [ node; installer ]
 
 let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   match smart_rollup with
