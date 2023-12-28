@@ -163,7 +163,7 @@ start_evm_smart_rollup() {
 all_commands="$all_commands
 * start_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
 start_adaptive_issuance() {
-    start --issuance-vote "on" "$@"
+    start --adaptive-issuance-vote "on" "$@"
 }
 
 all_commands="$all_commands
