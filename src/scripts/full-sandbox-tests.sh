@@ -106,15 +106,6 @@ daem_n2a() {
         --waiting-attempts 30 $until_12
 }
 
-tx_smart_rollup () {
-    proto="$1"
-    runone "tx-smart-rollup" flextesa mini --protocol-kind "$proto" \
-           --time-between-blocks 1 $until_8 \
-           --number-of-boot 1 --size 1 \
-           --start-smart-rollup tx
-}
-
-
 evm_smart_rollup () {
     proto="$1"
     runone "evm-smart-rollup" flextesa mini --protocol-kind "$proto" \
@@ -176,8 +167,6 @@ gov() {
 }
 
 rollup() {
-    # tx_smart_rollup "$current"
-    tx_smart_rollup "$next"
     evm_smart_rollup "$current"
     evm_smart_rollup "$next"
 
