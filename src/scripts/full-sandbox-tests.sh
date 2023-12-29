@@ -63,14 +63,14 @@ daem_c2n() {
         --protocol-kind "$current" \
         --next-protocol-kind "$next" \
         --second-baker octez-baker-$next_suffix \
-        --extra-dummy-proposals-batch-size 2 \
-        --extra-dummy-proposals-batch-levels 3,5 \
+        --extra-dummy-proposals-batch-size 1 \
+        --extra-dummy-proposals-batch-levels 3  \
         --size 2 --number-of-b 2 \
         --time-between-blocks 3,4 \
-        --blocks-per-vot 16 \
+        --blocks-per-vot 8 \
         --with-timestamp \
         --test-variant full-upgrade \
-        --waiting-attempts 30 $until_12
+        --waiting-attempts 12 $until_4
 
 }
 
@@ -79,15 +79,15 @@ daem_c2n_nay() {
         --protocol-kind "$current" \
         --next-protocol-kind "$next" \
         --second-baker octez-baker-$next_suffix \
-        --extra-dummy-proposals-batch-size 2 \
-        --extra-dummy-proposals-batch-levels 3,5 \
+        --extra-dummy-proposals-batch-size 1 \
+        --extra-dummy-proposals-batch-levels 3 \
         --size 2 \
         --number-of-b 2 \
         --time-between-blocks 3,4 \
-        --blocks-per-vot 16 \
+        --blocks-per-vot 8 \
         --with-timestamp \
         --test-variant nay-for-promotion \
-        --waiting-attempts 30 $until_12
+        --waiting-attempts 12 $until_4
 }
 
 daem_n2a() {
@@ -95,19 +95,19 @@ daem_n2a() {
         --protocol-kind "$before_alpha" \
         --next-protocol-kind Alpha \
         --second-baker octez-baker-alpha \
-        --extra-dummy-proposals-batch-size 2 \
-        --extra-dummy-proposals-batch-levels 3,5 \
+        --extra-dummy-proposals-batch-size 1 \
+        --extra-dummy-proposals-batch-levels 3 \
         --size 2 \
         --number-of-b 2 \
-        --time-between-blocks 3,5 \
-        --blocks-per-vot 16 \
+        --time-between-blocks 3,4 \
+        --blocks-per-vot 8 \
         --with-timestamp \
         --test-variant full-upgrade \
-        --waiting-attempts 30 $until_12
+        --waiting-attempts 12 $until_4
 }
 
 tx_smart_rollup () {
-    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
+    runone "tx-smart-rollup" flextesa mini --protocol-kind "$current" \
            --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1 \
            --start-smart-rollup tx
@@ -115,7 +115,7 @@ tx_smart_rollup () {
 
 
 evm_smart_rollup () {
-    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
+    runone "evm-smart-rollup" flextesa mini --protocol-kind "$current" \
            --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1 \
            --start-smart-rollup evm
@@ -125,17 +125,17 @@ ai() {
     proto="$1"
     runone "adaptive-issuance-$proto" flextesa mini --protocol-kind "$proto" \
         --time-between-blocks 1 --number-of-boot 1 --size 1 \
-        --adaptive-issuance-vote "on" --until-level 48
+        --adaptive-issuance-vote "on" $until_12
 
 }
 
 daem_ai() {
     proto="$1"
     runone "daemon-upgrage-adaptive-issuance-$proto" flextesa daemons-upgrade --protocol-kind "$proto" \
-        --time-between-blocks 1 --number-of-boot 1 --size 1 \
+        --time-between-blocks 1 --number-of-boot 1 --size 1 --blocks-per-vot 8 \
         --test-variant full-upgrade --next-protocol-kind "$next" --second-baker octez-baker-"$next_suffix" \
         --adaptive-issuance-vote-first-baker "pass" --adaptive-issuance-vote-second-baker "on" \
-        --waiting-attempts 30 $until_12
+        --waiting-attempts 12 $until_12
 
 }
 
