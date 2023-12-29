@@ -107,7 +107,8 @@ daem_n2a() {
 }
 
 tx_smart_rollup () {
-    runone "tx-smart-rollup" flextesa mini --protocol-kind "$current" \
+    proto="$1"
+    runone "tx-smart-rollup" flextesa mini --protocol-kind "$proto" \
            --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1 \
            --start-smart-rollup tx
@@ -115,7 +116,8 @@ tx_smart_rollup () {
 
 
 evm_smart_rollup () {
-    runone "evm-smart-rollup" flextesa mini --protocol-kind "$current" \
+    proto="$1"
+    runone "evm-smart-rollup" flextesa mini --protocol-kind "$proto" \
            --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1 \
            --start-smart-rollup evm
@@ -174,8 +176,10 @@ gov() {
 }
 
 rollup() {
-    tx_smart_rollup
-    evm_smart_rollup
+    tx_smart_rollup "$current"
+    tx_smart_rollup "$next"
+    evm_smart_rollup "$current"
+    evm_smart_rollup "$next"
 
 }
 
