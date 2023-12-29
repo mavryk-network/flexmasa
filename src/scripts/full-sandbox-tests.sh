@@ -176,7 +176,7 @@ gov() {
 }
 
 rollup() {
-    tx_smart_rollup "$current"
+    # tx_smart_rollup "$current"
     tx_smart_rollup "$next"
     evm_smart_rollup "$current"
     evm_smart_rollup "$next"
