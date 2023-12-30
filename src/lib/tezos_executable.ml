@@ -22,9 +22,8 @@ type kind =
   | `Client
   | `Admin
   | `Smart_rollup_node
-  | `Smart_rollup_client
   | `Smart_rollup_installer
-  | `Evm_proxy_server ]
+  | `Evm_node ]
 
 type t = {
   kind : kind;
@@ -45,9 +44,8 @@ let kind_string (kind : [< kind ]) =
   | `Client -> "client"
   | `Admin -> "admin-client"
   | `Smart_rollup_node -> "smart-rollup-node"
-  | `Smart_rollup_client -> "smart-rollup-client"
   | `Smart_rollup_installer -> "smart-rollup-installer"
-  | `Evm_proxy_server -> "evm-proxy-server"
+  | `Evm_node -> "evm-node"
 
 let default_binary ?protocol_kind t =
   let base_name kind = kind_string kind in
@@ -56,13 +54,14 @@ let default_binary ?protocol_kind t =
   in
   let octez_prefix s = Fmt.str "octez-%s" s in
   match (t.kind, protocol_kind) with
-  | ( (`Accuser | `Baker | `Endorser | `Smart_rollup_node | `Smart_rollup_client),
-      Some proto ) ->
+  (* add octez prefix and protocol suffix *)
+  | (`Accuser | `Baker | `Endorser), Some proto ->
       base_name t.kind |> proto_suffix proto |> octez_prefix
-  | (`Node | `Client | `Admin | `Evm_proxy_server), _ ->
+  (* add octez prefix *)
+  | (`Node | `Client | `Admin | `Evm_node | `Smart_rollup_node), _ ->
       base_name t.kind |> octez_prefix
-  | ( (`Accuser | `Baker | `Endorser | `Smart_rollup_node | `Smart_rollup_client),
-      _ ) ->
+  (* no prefix or suffix*)
+  | (`Accuser | `Baker | `Endorser), _ ->
       Fmt.failwith
         "Called default_binary with octez-%s and protocol_kind = None"
         (kind_string t.kind)

@@ -11,9 +11,8 @@ type t = {
   node_init_options : string list;
   node_run_options : string list;
   node : Tezos_executable.t;
-  client : Tezos_executable.t;
   installer : Tezos_executable.t;
-  evm_proxy_server : Tezos_executable.t;
+  evm_node : Tezos_executable.t;
 }
 
 let make_path ~state p = Paths.root state // sprintf "smart-rollup" // p
@@ -171,7 +170,7 @@ module Node = struct
     loop 1
 end
 
-module Evm_proxy_server = struct
+module Evm_node = struct
   type config = {
     id : string;
     rpc_addr : string;
@@ -182,9 +181,8 @@ module Evm_proxy_server = struct
     smart_rollup : t;
   }
 
-  let make_config ~smart_rollup ?(id = "evm-proxy-server")
-      ?(rpc_addr = "0.0.0.0") ~rpc_port ~rollup_node_endpoint ~exec ~protocol ()
-      : config =
+  let make_config ~smart_rollup ?(id = "evm-node") ?(rpc_addr = "0.0.0.0")
+      ~rpc_port ~rollup_node_endpoint ~exec ~protocol () : config =
     {
       id;
       rpc_addr;
@@ -204,34 +202,25 @@ module Evm_proxy_server = struct
       ~path:(server_dir state config.id "exec")
       (command
       @ opt "rpc-addr" config.rpc_addr
-      @ opt "rpc-port" (Int.to_string config.rpc_port))
+      @ opt "rpc-port" (Int.to_string config.rpc_port)
+      @ opt "data-dir" (data_dir state config))
 
-  let write_config state config =
-    let json =
-      Ezjsonm.(
-        dict
-          [
-            ("rpc_addr", string config.rpc_addr);
-            ("rpc_port", int config.rpc_port);
-            ( "rollup_node_endpoint",
-              string (Fmt.str "%s" config.rollup_node_endpoint) );
-          ])
-    in
-    System.write_file state
-      (data_dir state config // "config.json")
-      ~content:(Ezjsonm.to_string json)
-
-  (* Start a running evm-proxy-server. *)
+  (* Start a running octez-evm-node. *)
   let run state config =
     make_dir state (data_dir state config) >>= fun _ ->
-    write_config state config >>= fun () ->
     Running_processes.Process.genspio config.id
       (Genspio.EDSL.check_sequence ~verbosity:`Output_all
          [
-           ( "run evm-proxy-server",
+           ( "run evm-node",
              call state ~config
                ~command:
-                 [ "run"; "with"; "endpoint"; config.rollup_node_endpoint ] );
+                 [
+                   "run";
+                   "proxy";
+                   "with";
+                   "endpoint";
+                   config.rollup_node_endpoint;
+                 ] );
          ])
     |> return
 end
@@ -345,7 +334,10 @@ module Kernel = struct
             ~content:Smart_rollup_kernels.evm_kernel
           >>= fun path ->
           return
-            ("wasm_2_0_0", "pair (pair bytes (ticket unit)) nat bytes", path)
+            ( "wasm_2_0_0",
+              "or (or (pair bytes (ticket (pair nat (option bytes)))) bytes) \
+               bytes",
+              path )
       | `Tx ->
           write_wasm ~state ~smart_rollup ~filename:"tx_kernel.wasm"
             ~content:Smart_rollup_kernels.tx_kernel
@@ -462,8 +454,7 @@ let originate_and_confirm state ~client ~account ~kernel ~confirmations () =
       >>= fun conf -> return (origination_result, conf)
 
 (* A list of smart rollup executables. *)
-let executables ({ client; node; installer; _ } : t) =
-  [ client; node; installer ]
+let executables ({ node; installer; _ } : t) = [ node; installer ]
 
 let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
   match smart_rollup with
@@ -542,18 +533,12 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       in
       match soru.kernel with
       | `Evm ->
-          let sc_dir = make_path ~state "l1-smart-contracts" in
-          make_dir state sc_dir >>= fun _ ->
-          let exchanger_dest = sc_dir // "exchanger.tz" in
-          System.write_file state exchanger_dest
-            ~content:Sandbox_smart_contracts.exchanger
-          >>= fun () ->
           (* Originate exchanger contract. *)
           Smart_contract.originate_smart_contract state ~client ~wait:"1"
             ~account:admin_name
             {
               name = "exchanger";
-              michelson = exchanger_dest;
+              michelson = Sandbox_smart_contracts.exchanger;
               init_storage = "Unit";
             }
           >>= fun exchanger_contract_addr ->
@@ -572,7 +557,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           >>= fun soru_node ->
           (* Originate rollup with setup-file *)
           Kernel.evm_setup_file state ~smart_rollup:soru
-            ~bridge_addr:evm_bridge_address
+            ~bridge_addr:exchanger_contract_addr
           >>= fun evm_setup_file ->
           originate_rollup state
             { soru with setup_file = Some evm_setup_file }
@@ -582,16 +567,15 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           start_rollup_node state soru_node origination_result >>= fun () ->
           (* Wait for the rollup node to bootstrap. *)
           Node.wait_for_responce state ~config:soru_node >>= fun () ->
-          (* Start the evm-proxy-sever. *)
-          let evm_proxy_port = Test_scenario.Unix_port.(next_port nodes) in
-          Evm_proxy_server.make_config ~smart_rollup:soru
-            ~rpc_port:evm_proxy_port
+          (* Start the octez-evm-node. *)
+          let evm_node_port = Test_scenario.Unix_port.(next_port nodes) in
+          Evm_node.make_config ~smart_rollup:soru ~rpc_port:evm_node_port
             ~rollup_node_endpoint:
               (Fmt.str "http://127.0.0.1:%d" soru_node.rpc_port)
-            ~exec:soru.evm_proxy_server ~protocol:protocol.kind ()
+            ~exec:soru.evm_node ~protocol:protocol.kind ()
           |> return
-          >>= fun evm_proxy_server ->
-          Evm_proxy_server.run state evm_proxy_server >>= fun process ->
+          >>= fun evm_node ->
+          Evm_node.run state evm_node >>= fun process ->
           Running_processes.start state process
           >>= fun { process = _; lwt = _ } ->
           return () >>= fun _ ->
@@ -599,8 +583,8 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           EF.
             [
               desc
-                (af "evm-proxy-server is listening on")
-                (af "rpc_port: `%d`" evm_proxy_server.rpc_port);
+                (af "octez-evm-node is listening on")
+                (af "rpc_port: `%d`" evm_node.rpc_port);
               desc
                 (af "Exchanger contract address:")
                 (af "`%s`" exchanger_contract_addr);
@@ -681,9 +665,8 @@ let cmdliner_term state () =
       node_init_options
       node_run_options
       node
-      client
       installer
-      evm_proxy_server
+      evm_node
     ->
       let check_options l =
         (* Make sure there are no reduntant options are passed. *)
@@ -707,9 +690,8 @@ let cmdliner_term state () =
           node_init_options;
           node_run_options;
           node;
-          client;
           installer;
-          evm_proxy_server;
+          evm_node;
         }
       in
       match parce_rollup_arg start with
@@ -814,8 +796,6 @@ let cmdliner_term state () =
               ~docv:"FLAG|OPTION=VALUE")))
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
       ~prefix:"octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_client
-      ~prefix:"octez"
   $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
       ~prefix:"octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Evm_proxy_server ~prefix:"octez"
+  $ Tezos_executable.cli_term ~extra_doc state `Evm_node ~prefix:"octez"

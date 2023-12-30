@@ -96,7 +96,7 @@ daem_n2a() {
         --next-protocol-kind Alpha \
         --second-baker octez-baker-alpha \
         --extra-dummy-proposals-batch-size 2 \
-        --extra-dummy-proposals-batch-levels 3,7 \
+        --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 \
         --number-of-b 2 \
         --time-between-blocks 3,5 \
@@ -106,16 +106,9 @@ daem_n2a() {
         --waiting-attempts 30 $until_12
 }
 
-tx_smart_rollup () {
-    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
-           --time-between-blocks 1 $until_8 \
-           --number-of-boot 1 --size 1 \
-           --start-smart-rollup tx
-}
-
-
 evm_smart_rollup () {
-    runone "smart-rollup" flextesa mini --protocol-kind "$current" \
+    proto="$1"
+    runone "evm-smart-rollup" flextesa mini --protocol-kind "$proto" \
            --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1 \
            --start-smart-rollup evm
@@ -152,6 +145,38 @@ all() {
     evm_smart_rollup
     ai "$current"
     ai "$next"
+    daem_ai "$current"
+    daem_ai "$next"
+
+}
+
+mini() {
+    quickmini "$current"
+    quickmini "$next"
+    quickmini Alpha
+
+}
+
+gov() {
+    c2n
+    n2a
+    daem_c2n
+    daem_c2n_nay
+    daem_n2a
+
+}
+
+rollup() {
+    evm_smart_rollup "$current"
+    evm_smart_rollup "$next"
+
+}
+
+adissu() {
+    ai "$current"
+    ai "$next"
+    daem_ai "$current"
+    daem_ai "$next"
 
 }
 

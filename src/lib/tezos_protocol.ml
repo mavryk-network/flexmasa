@@ -123,7 +123,7 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
-    | `Oxford -> "ProxfordSW2S7fvchT1Zgj2avb5UES194neRyYVXoaDGvF9egt8"
+    | `Oxford -> "ProxfordYmVfjWnRcgjWH36fW6PArwqykTFzotUxRs6gmTcZDuH"
     | `Nairobi -> "PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf"
     | `Mumbai -> "PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1"
     (* Version 1: "PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc" *)
@@ -190,7 +190,7 @@ type t = {
   blocks_per_voting_period : int;
   blocks_per_cycle : int;
   preserved_cycles : int;
-  proof_of_work_threshold : int;
+  proof_of_work_threshold : int64;
   timestamp_delay : int option;
   custom_protocol_parameters : Ezjsonm.t option;
 }
@@ -219,12 +219,39 @@ let default () =
     blocks_per_voting_period = 16;
     blocks_per_cycle = 8 (* From constants_sandbox *);
     preserved_cycles = 2 (* From constants_sandbox *);
-    proof_of_work_threshold = -1 (* From constants_sandbox *);
+    proof_of_work_threshold =
+      Int64.(shift_left 1L 62 - 1L) (* From constants_sandbox *);
     timestamp_delay = None;
     custom_protocol_parameters = None;
   }
 
 let protocol_parameters_json t : Ezjsonm.t =
+  (* Note on advancing the protocol parameters.
+
+     Get the values form the /tezos/tezos gitlab repo:
+     /src/proto_<proto>/lib_parameters/default_parameters.ml
+     (The 'constants_sandbox' value is a good guide.)
+
+     Flextesa only supports the current, next and alpha protocols. Older
+     protocols can be removed. Parameters are grouped by feature and the
+     ordering tries to match 'default_parameters.ml'. Ensure that "base"
+     parameter list remains up-to-date by adding new protocol parameters there
+     first. Then use the 'add_replace', 'remove' and 'prefix_keys' functions to
+     align "base" parameters to protocol specifications of current (or older)
+     protocols; which will eventually be removed. *)
+
+  (* add_replace (k,v) l. Adds (k,v) to l or replaces (k,_) with (k,v) if it
+     already exists in l. *)
+  let add_replace (k, v) l = List.Assoc.add l ~equal:String.equal k v in
+
+  (* remove key l. Removes (key,_) from l. *)
+  let remove key l = List.Assoc.remove l ~equal:String.equal key in
+
+  (* Use to prefix a string to key. Key prefixes can change with new protocol.  *)
+  let prefix_keys prefix l =
+    List.map l ~f:(fun (k, v) -> (Fmt.str "%s_%s" prefix k, v))
+  in
+
   match t.custom_protocol_parameters with
   | Some s -> s
   | None ->
@@ -242,16 +269,6 @@ let protocol_parameters_json t : Ezjsonm.t =
       in
       let make_account (account, amount) =
         strings [ Account.pubkey account; sprintf "%Ld" amount ]
-      in
-      (* Use 'add_replace' and 'remove' to align "base" parameters to protocol
-         specifications. Ensure that "base" list remains up-to-date by adding new
-         parameters to the "base" list and use these functions for the older
-         protocols; which will eventually be removed. *)
-      let add_replace (k, v) l = List.Assoc.add l ~equal:String.equal k v in
-      let remove key l = List.Assoc.remove l ~equal:String.equal key in
-      (* Use to prefix a string to key. Key prefixes can change with new protocol.  *)
-      let prefix_keys prefix l =
-        List.map l ~f:(fun (k, v) -> (Fmt.str "%s_%s" prefix k, v))
       in
       let tx_rollup_specific_parameters =
         let base =
@@ -286,14 +303,17 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("number_of_shards", int (2048 / 32));
               ("feature_enable", bool false);
               ("number_of_slots", int 16);
-              ("attestation_lag", int 1);
+              ("attestation_lag", int 4);
               ("attestation_threshold", int 50);
-              ("blocks_per_epoch", int32 2l);
+              ("blocks_per_epoch", int32 1l);
             ]
           in
           match t.kind with
-          | `Nairobi -> base
-          | `Oxford | `Alpha -> base |> add_replace ("attestation_lag", int 4)
+          | `Nairobi ->
+              base
+              |> add_replace ("blocks_per_epoch", int32 2l)
+              |> add_replace ("attestation_lag", int 1)
+          | `Oxford | `Alpha -> base
           | _ -> []
         in
         [ ("dal_parametric", dict dal_parametric) ]
@@ -301,21 +321,26 @@ let protocol_parameters_json t : Ezjsonm.t =
       let smart_rollup_specific_parameters =
         let reveal_activation_level =
           let base =
+            let dal_activation_level =
+              int32 Int32.(pred max_value)
+              (* from octez/src/proto_018_Proxford/lib_parameters/default_parameters.ml *)
+              (* if default_dal.feature_enable then Raw_level.root *)
+              (* else *)
+              (*   (\* Deactivate the reveal if the dal is not enabled. *\) *)
+              (*   (\* https://gitlab.com/tezos/tezos/-/issues/5968 *)
+              (*      Encoding error with Raw_level *)
+
+              (*      We set the activation level to [pred max_int] to deactivate *)
+              (*      the feature. The [pred] is needed to not trigger an encoding *)
+              (*      exception with the value [Int32.int_min] (see tezt/tests/mockup.ml). *\) *)
+              (* Raw_level.of_int32_exn Int32.(pred max_int) *)
+            in
+
             [
               ("raw_data", dict [ ("Blake2B", int 0) ]);
               ("metadata", int 0);
-              (* dal_page = *)
-              (*   (if default_dal.feature_enable then Raw_level.root *)
-              (*   else *)
-              (*     (\* Deactivate the reveal if the dal is not enabled. *\) *)
-              (*     (\* https://gitlab.com/tezos/tezos/-/issues/5968 *)
-              (*        Encoding error with Raw_level *)
-
-              (*        We set the activation level to [pred max_int] to deactivate *)
-              (*        the feature. The [pred] is needed to not trigger an encoding *)
-              (*        exception with the value [Int32.int_min] (see tezt/tests/mockup.ml). *\) *)
-              (*     Raw_level.of_int32_exn Int32.(pred max_int)); *)
-              ("dal_page", int32 Int32.(pred max_value));
+              ("dal_page", dal_activation_level);
+              ("dal_parameters", dal_activation_level);
             ]
           in
           match t.kind with `Oxford | `Alpha -> base | _ -> []
@@ -324,7 +349,6 @@ let protocol_parameters_json t : Ezjsonm.t =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
           let challenge_window_in_blocks = 30 in
           [
-            ("enable", bool true);
             ("arith_pvm_enable", bool false);
             ("origination_size", int 6_314);
             ("challenge_window_in_blocks", int challenge_window_in_blocks);
@@ -339,11 +363,17 @@ let protocol_parameters_json t : Ezjsonm.t =
               int 30 (* Keep more old commitments. *) );
             ("max_number_of_parallel_games", int 32);
             ("reveal_activation_level", dict reveal_activation_level);
+            ("private_enable", bool true);
+            ("riscv_pvm_enable", bool false);
           ]
         in
         match t.kind with
         | `Nairobi ->
-            prefix_keys "smart_rollup" (base |> remove "reveal_activation_level")
+            prefix_keys "smart_rollup"
+              (base
+              |> add_replace ("enable", bool true)
+              |> remove "reveal_activation_level"
+              |> remove "private_enable" |> remove "riscv_pvm_enable")
         | `Oxford -> prefix_keys "smart_rollup" base
         | `Alpha ->
             prefix_keys "smart_rollup"
@@ -368,43 +398,34 @@ let protocol_parameters_json t : Ezjsonm.t =
       let adaptive_issuance_specific_parameters =
         let adaptive_rewards =
           let base =
+            let rat x y =
+              dict
+                [
+                  ("numerator", string (Int.to_string x));
+                  ("denominator", string (Int.to_string y));
+                ]
+            in
             [
-              ( "issuance_ratio_min",
-                dict
-                  [
-                    ("numerator", string (Int.to_string 5));
-                    ("denominator", string (Int.to_string 10000));
-                  ] );
-              ( "issuance_ratio_max",
-                dict
-                  [
-                    ("numerator", string (Int.to_string 5));
-                    ("denominator", string (Int.to_string 20));
-                  ] );
-              ("max_bonus", string (Int64.to_string 50_000_000_000_000L));
-              ("growth_rate", string (Int64.to_string 115_740_740L));
-              ( "center_dz",
-                dict
-                  [
-                    ("numerator", string (Int.to_string 1));
-                    ("denominator", string (Int.to_string 2));
-                  ] );
-              ( "radius_dz",
-                dict
-                  [
-                    ("numerator", string (Int.to_string 1));
-                    ("denominator", string (Int.to_string 50));
-                  ] );
+              ("issuance_ratio_min", rat 5 100);
+              ("issuance_ratio_max", rat 5 20);
+              ("growth_rate", rat 1 100);
+              ("center_dz", rat 1 2);
+              ("radius_dz", rat 1 50);
             ]
           in
-          match t.kind with `Oxford | `Alpha -> base | _ -> []
+          match t.kind with
+          | `Oxford | `Alpha -> base |> add_replace ("max_bonus", string "1")
+          | _ -> []
         in
         let base =
           [
             ("global_limit_of_staking_over_baking", int 5);
             ("edge_of_staking_over_delegation", int 2);
             ("adaptive_issuance_launch_ema_threshold", int32 1l);
+            (* Set to 1 for quick activation. *)
             ("adaptive_rewards_params", dict adaptive_rewards);
+            ("adaptive_issuance_activation_vote_enable", bool true);
+            ("autostaking_enable", bool true);
           ]
         in
         match t.kind with `Oxford | `Alpha -> base | _ -> []
@@ -464,7 +485,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("hard_gas_limit_per_operation", string (Int.to_string 1_040_000));
             ("hard_gas_limit_per_block", string (Int.to_string 2_600_000));
             ( "proof_of_work_threshold",
-              ksprintf string "%d" t.proof_of_work_threshold );
+              ksprintf string "%Ld" t.proof_of_work_threshold );
             ("minimal_stake", string (Int.to_string 6_000_000_000));
             ("minimal_frozen_stake", string (Int.to_string 600));
             ( "vdf_difficulty",
@@ -496,10 +517,9 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("consensus_threshold", int consensus_threshold);
             ( "minimal_participation_ratio",
               dict [ ("numerator", int 2); ("denominator", int 3) ] );
-            ("max_slashing_period", int 2);
             ( "limit_of_delegation_over_baking",
               int 19 (* From constants_sandbox *) );
-            ("percentage_of_frozen_deposits_slashed_per_double_baking", int 10);
+            ("percentage_of_frozen_deposits_slashed_per_double_baking", int 5);
             ( "percentage_of_frozen_deposits_slashed_per_double_attestation",
               int 50 );
             ("cache_script_size", int 100_000_000);
@@ -529,13 +549,22 @@ let protocol_parameters_json t : Ezjsonm.t =
             |> add_replace ("endorsing_reward_per_slot", string "1428")
             |> add_replace
                  ("liquidity_baking_subsidy", string (Int.to_string 1_250_000))
+            |> add_replace ("max_slashing_period", int 2)
             |> remove "minimal_frozen_stake"
             |> remove "issuance_weights"
             |> remove "limit_of_delegation_over_baking"
             |> remove "percentage_of_frozen_deposits_slashed_per_double_baking"
             |> remove
                  "percentage_of_frozen_deposits_slashed_per_double_attestation"
-        | `Oxford | `Alpha -> base
+            |> add_replace
+                 ("proof_of_work_threshold", string (Int64.to_string (-1L)))
+        | `Oxford -> base
+        | `Alpha ->
+            base
+            |> add_replace ("consensus_rights_delay", int 2)
+            |> add_replace ("blocks_preservation_cycles", int 1)
+            |> add_replace ("delegate_parameters_activation_delay", int 2)
+            |> add_replace ("direct_ticket_spending_enable", bool false)
         | other -> unsupported_protocol "defalut_parameters" other
       in
       dict
