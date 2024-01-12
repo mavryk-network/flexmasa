@@ -45,7 +45,7 @@ EOF
 }
 
 time_bb=${block_time:-5}
-root_path=/tmp/flextesa-mini-box
+root_path=${root_path:-/tmp/mini-box}
 
 export alice="$(flextesa key alice)"
 export bob="$(flextesa key bob)"
@@ -132,7 +132,7 @@ all_commands="$all_commands
 * smart_rollup_info : Show the smart rollup node config file. (and evm node config file if applicable)."
 smart_rollup_info() {
     config_file=$(find "${root_path}/smart-rollup" -name '*-smart-rollup-operator-node-000' -type d -exec echo {}/data-dir/config.json \;)
-    evm_node_conf="/tmp/flextesa-mini-box/smart-rollup/evm-node/data-dir/config.json"
+    evm_node_conf="$root_path/smart-rollup/evm-node/data-dir/config.json"
 
     if [ ! -f "$config_file" ]; then
         echo "Smart-rollup-node config file not found."
