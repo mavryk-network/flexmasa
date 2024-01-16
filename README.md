@@ -14,8 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The current _released_ image is `oxheadalpha/flextesa:20230915` (also available
-as `oxheadalpha/flextesa:latest`):
+The _dev_ image is `registry.gitlab.com/tezos/flextesa:dev-run`
 
 It is built top of the `flextesa` executable and Octez suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it

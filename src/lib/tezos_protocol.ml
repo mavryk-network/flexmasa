@@ -355,7 +355,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("commitment_period_in_blocks", int (challenge_window_in_blocks / 2));
             ("stake_amount", string (Int.to_string 10_000_000_000));
             ("max_lookahead_in_blocks", int (challenge_window_in_blocks * 2));
-            ("max_active_outbox_levels", int challenge_window_in_blocks);
+            ("max_active_outbox_levels", int (challenge_window_in_blocks * 10));
             ("max_outbox_messages_per_level", int 100);
             ("number_of_sections_in_dissection", int 32);
             ("timeout_period_in_blocks", int (challenge_window_in_blocks / 2));
