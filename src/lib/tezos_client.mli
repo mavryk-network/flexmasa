@@ -196,7 +196,7 @@ val prefix_from_list : prefix:string -> string list -> string option
 val parse_account :
   name:string -> lines:string list -> Tezos_protocol.Account.t option
 (** Parse Account from client output of the form: * Hash:
-    tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU * Public Key:
+    mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk * Public Key:
     edpkuTpUWcNgn4QYcBVGDLy6rmpJ3WSTSV2bdiJFwyoDk5fSwxyV5k * Secret Key:
     unencrypted:edsk3RFgDiCt7tWB2oe96w1eRw72iYiiqZPLu9nnEY23MYRp2d8Kkx *)
 

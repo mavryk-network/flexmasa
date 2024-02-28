@@ -78,7 +78,7 @@ module Small_utilities = struct
                    then res
                    else
                      let seed = seed ^ Int.to_string count in
-                     let open Tezai_base58_digest.Identifier in
+                     let open Mavai_base58_digest.Identifier in
                      let block_hash = Block_hash.(hash_string seed |> encode) in
                      let chain_id = Chain_id.of_base58_block_hash block_hash in
                      let acc =

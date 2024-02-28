@@ -107,7 +107,7 @@ And indeed we can use such a client to bake a new block:
 
 ```
  $ c0 list known addresses
-bootacc-0: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU (unencrypted sk known)
+bootacc-0: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk (unencrypted sk known)
 dictator-default: tz1aYQcaXmowUu59gAgMGdiX6ARR7gdmikZk (unencrypted sk known)
 
  $ c0 bake for bootacc-0
@@ -122,7 +122,7 @@ expected time between blocks.
 ### Running Another Protocol And History Modes
 
 The
-[`./src/scripts/tutorial-box.sh`](https://gitlab.com/tezos/flextesa/blob/master/src/scripts/tutorial-box.sh)
+[`./src/scripts/tutorial-box.sh`](https://gitlab.com/mavryk-network/flextesa/blob/master/src/scripts/tutorial-box.sh)
 uses protocol-specific binaries (present in the default docker image) to run
 non-interactive sandboxes with the “real” Babylon or Carthage protocols.
 
@@ -150,7 +150,7 @@ modes](https://tezos.gitlab.io/user/history_modes.html)).
 
 ### Adding Custom Bootstrap Accounts
 
-**Note on Oxford** Bootstrap accounts in Oxford protocol will start out
+**Note on Atlas** Bootstrap accounts in Atlas protocol will start out
 automatically staking. This stake is frozen and will not show up in the account
 balance until un-staked. The frozen balance is calculated by the protocol with a
 minimum of 6,000 ꜩ.
@@ -173,7 +173,7 @@ baking. See the output of the key generation:
 
 ```
  $ flextesa key-of-name alice
-alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
+alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 ```
 
 One can use simply `octez-client import secret key the-alice

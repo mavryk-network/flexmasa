@@ -14,7 +14,7 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The _dev_ image is `registry.gitlab.com/tezos/flextesa:dev-run`
+The _dev_ image is `registry.gitlab.com/mavryk-network/flextesa:dev-run`
 
 It is built top of the `flextesa` executable and Octez suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
@@ -22,7 +22,7 @@ also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
   
 ```sh
-image=oxheadalpha/flextesa:latest
+image=mavrykdynamics/flextesa:latest
 script=nairobibox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -32,8 +32,7 @@ docker run --rm --name my-sandbox --detach -p 20000:20000 \
 All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
-- `nairobibox`: Nairobi protocol
-- `oxfordbox`: Oxford protocol
+- `atlasbox`: Atlas protocol
 - `alphabox`: Alpha protocol, the development version of the `N` protocol at the
   time the docker-build was last updated.
     - See also `docker run "$image" octez-node --version`.
@@ -48,11 +47,11 @@ Usable accounts:
 
 - alice
   * edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn
-  * tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+  * mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
   * unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 - bob
   * edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4
-  * tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
+  * mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
   * unencrypted:edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt
 
 Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
@@ -72,7 +71,7 @@ $ tcli get balance for alice
 2000000 ꜩ
 ```
 
-**Note on Oxford** Bootstrap accounts in `oxfordbox` will start out
+**Note on Atlas** Bootstrap accounts in `atlasbox` will start out
 automatically staking. This stake is frozen and will not show up in the account
 balance until un-staked.
 
@@ -129,13 +128,13 @@ Notes:
 
 The scripts inherit the [mini-net](./src/doc/mini-net.md)'s support for
 user-activated-upgrades (a.k.a. “hard forks”). For instance, this command starts
-a Nairobi sandbox which switches to Oxford at level 20:
+a Nairobi sandbox which switches to Atlas at level 20:
 
 
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
          -e block_time=2 \
-         "$image" nairobibox start --hard-fork 20:Oxford:
+         "$image" nairobibox start --hard-fork 20:Atlas:
 ```
 
 With `tcli` above and `jq` you can keep checking the following to observe the
@@ -150,14 +149,14 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"Proxford..."
+"PtAtlas..."
 ```
 
 Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
   before the end of the first cycle is not supported by Octez.
-- The `oxfordbox` script can also switch to `Alpha` (e.g. `--hard-fork
+- The `atlasbox` script can also switch to `Alpha` (e.g. `--hard-fork
   16:Alpha:`).
 
 ### Full Governance Upgrade
@@ -176,7 +175,7 @@ $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
 
 With `start_upgrade` the sandbox network will do a full voting round followed by
 a protocol change. The `nairobibox` script will start with the `Nairobi` protocol and
-upgrade to `Oxford`; the `oxfordbox` upgrades to protocol `Alpha`.
+upgrade to `Atlas`; the `atlasbox` upgrades to protocol `Alpha`.
 
 Voting occurs over five periods. You can adjust the length of the voting periods
 with the variable `blocks_per_voting_period`. Batches of dummy proposals will be
@@ -211,12 +210,12 @@ accounts by default.
 ### Adaptive Issuance
 
 The `start_adaptive_issuance` command initializes a sandbox environment where
-adaptive issuance is immediately activated (requires at least the Oxford
+adaptive issuance is immediately activated (requires at least the Atlas
 protocol).
 
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
-        "$image" oxfordbox start_adaptive_issuance
+        "$image" atlasbox start_adaptive_issuance
 ```
 
 Once adaptive issuance is activated, it will launch after five cycles. Any
@@ -256,7 +255,7 @@ To expedite the activation of adaptive issuance, the protocol constant
 activation in most tests, with a singular exception: it's not possible to adjust
 protocol constants for a future protocol. Thus, when using the command
 `start_upgrade_with_adaptive_issuance` combined with the nairobibox script,
-after upgrading to the Oxford protocol, the `adaptive_issuance_ema_threshold`
+after upgrading to the Atlas protocol, the `adaptive_issuance_ema_threshold`
 will be determined by the protocol.
 
 You can verify its value using:
@@ -266,10 +265,10 @@ $ tcli rpc get /chains/main/blocks/head/context/constants | jq .adaptive_issuanc
 100000000
 ```
 
-An EMA threshold of 100,000,000 signifies that, after upgrading to the Oxford
+An EMA threshold of 100,000,000 signifies that, after upgrading to the Atlas
 protocol, nairobibox will require more than an hour (with block times set to
 one second) to activate adaptive issuance. For quicker activation, consider using
-`oxfordbox start_upgrade_with_adaptive_issuance`.
+`atlasbox start_upgrade_with_adaptive_issuance`.
 
 ### Smart Optimistic Rollups
 
@@ -339,10 +338,10 @@ $ docker exec my-sandbox "$script" smart_rollup_info
   "smart_rollup_node_config":  {
   "smart-rollup-address": "sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp",
   "smart-rollup-node-operator": {
-    "publish": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
-    "add_messages": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
-    "cement": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ",
-    "refute": "tz1SEQPRfF2JKz7XFF3rN2smFkmeAmws51nQ"
+    "publish": "mv1TjkB9jh2RXyDZgvdDgwC9f93WxCUzimyp",
+    "add_messages": "mv1TjkB9jh2RXyDZgvdDgwC9f93WxCUzimyp",
+    "cement": "mv1TjkB9jh2RXyDZgvdDgwC9f93WxCUzimyp",
+    "refute": "mv1TjkB9jh2RXyDZgvdDgwC9f93WxCUzimyp"
   },
   "rpc-addr": "0.0.0.0",
   "rpc-port": 20002,
@@ -358,9 +357,9 @@ data directory configured.
 
 ``` default
 $ docker exec my-sandbox "$script" initclient
-Tezos address added: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
-Tezos address added: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
-Tezos address added: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
+Tezos address added: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
+Tezos address added: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
+Tezos address added: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
 Added contract my-contract: KT19Z5M5z9jBf1ikYABrbrCw3M2QLQLSV1KA
 Added smart rollup custom: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
 ```
@@ -383,9 +382,9 @@ In addition to the EVM smart-rollup, this sandbox will originate two smart-contr
 
 ``` sh
 $ docker exec my-sandbox "$script" initclient
-Tezos address added: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
-Tezos address added: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
-Tezos address added: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
+Tezos address added: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
+Tezos address added: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
+Tezos address added: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
 Added contract evm-bridge: KT1Vq3vBnCNuds6YwjjcJeqBTaeqgTh52oQy
 Added contract exchanger: KT1D3VK3BQ2rbpufqwacJU97wgQst7NyuST3
 Added smart rollup evm: sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
@@ -395,9 +394,9 @@ $ alias tcli='docker exec my-sandbox octez-client'
 $ tcli list known contracts
 exchanger: KT1Ty6UAYMwV4bteh8oEM6XdUvXzvsUuk3fX
 evm-bridge: KT1GC5oTZMP6Wi3V4cJq4uia9dEmNyWsmd3U
-baker0: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU
-bob: tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6
-alice: tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+baker0: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
+bob: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
+alice: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
 
 $ tcli list known smart rollups
 evm: sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
@@ -440,9 +439,9 @@ With Opam ≥ 2.1:
 opam switch create . --deps-only \
      --formula='"ocaml-base-compiler" {>= "4.13" & < "4.14"}'
 eval $(opam env)
-opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-digest.git
+opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
 opam install --deps-only --with-test --with-doc \
-     ./tezai-tz1-crypto.opam \
+     ./mavai-mv1-crypto.opam \
      ./flextesa.opam ./flextesa-cli.opam # Most of this should be already done.
 opam install merlin ocamlformat.0.24.1    # For development.
 ```
@@ -511,8 +510,8 @@ sudo adduser ubuntu docker
 Build and push the image (you may need to `docker login`):
 
 ```sh
-base=oxheadalpha/flextesa
-tag=20221024-rc
+base=mavrykdynamics/flextesa
+tag=20240228-rc
 docker build --target run_image -t flextesa-run .
 docker tag flextesa-run "$base:$tag-$(uname -p)"
 docker push "$base:$tag-$(uname -p)"
@@ -533,7 +532,7 @@ When ready for the release, repeat the theses steps swapping the manifest "$tag"
 each time. Once sans "-rc" and again for "latest".
 
 ``` sh
-newtag=20221024
+newtag=20240228
 docker manifest create $base:$newtag \
       --amend $base:$tag-aarch64 \
       --amend $base:$tag-x86_64

@@ -31,9 +31,9 @@ runone() {
     $readline "$@" --root "$root" 2>&1 | tee "$log" | sed 's/^/  ||/'
 }
 
-current=Nairobi
-next=Oxford
-next_suffix=Proxford
+current=Atlas
+next=Alpha
+next_suffix=alpha
 before_alpha=$next
 
 quickmini() {

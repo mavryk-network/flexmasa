@@ -2,19 +2,19 @@
 (name flextesa)
 (generate_opam_files true)
 (license MIT)
-(source (uri git+https://gitlab.com/tezos/flextesa.git))
-(homepage https://gitlab.com/tezos/flextesa)
-(bug_reports https://gitlab.com/tezos/flextesa)
+(source (uri git+https://gitlab.com/mavryk-network/flextesa.git))
+(homepage https://gitlab.com/mavryk-network/flextesa)
+(bug_reports https://gitlab.com/mavryk-network/flextesa)
 (authors "Seb Mondet <seb@mondet.org>" "Mark Nichols")
 (maintainers "seb@mondet.org")
 
 (package
- (name tezai-tz1-crypto)
+ (name mavai-mv1-crypto)
  (synopsis "Tezos Ed25519 Accounts Based on Mirage-Crypto")
  (description "Tezos Ed25519 Accounts Based on Mirage-Crypto.")
  (version 0.2)
  (depends
-   "tezai-base58-digest"
+   "mavai-base58-digest"
   (mirage-crypto (>= "0.11.0"))
   (dune (>= "2.9"))
   (ppx_inline_test ( >= "0.14.0"))
@@ -38,8 +38,8 @@
   tls
   cohttp-lwt-unix
   (pp (>= 1.1.2))
-  tezai-base58-digest
-  tezai-tz1-crypto
+  mavai-base58-digest
+  mavai-mv1-crypto
   ))
 
 (package

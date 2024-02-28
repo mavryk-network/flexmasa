@@ -54,8 +54,8 @@ cp -r $(odig odoc-theme path odig.light)/* "$output_path/"
 
 lib_index_fragment=$(mktemp "/tmp/lib-index-XXXX.html")
 odoc html-frag src/doc/index.mld \
-     -I _build/default/src/lib_base58_digest/.tezai_base58_digest.objs/byte/ \
-     -I _build/default/src/lib_tz1_crypto/.tezai_tz1_crypto.objs/byte/ \
+     -I _build/default/src/lib_base58_digest/.mavai_base58_digest.objs/byte/ \
+     -I _build/default/src/lib_mv1_crypto/.mavai_mv1_crypto.objs/byte/ \
      -I _build/default/src/lib/.flextesa.objs/byte/ -o "$lib_index_fragment"
 lib_index="$output_path/lib-index.html"
 

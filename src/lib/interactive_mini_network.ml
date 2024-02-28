@@ -14,97 +14,13 @@ module Genesis_block_hash = struct
 
   let of_protocol_kind : Tezos_protocol.Protocol_kind.t -> string =
     (*
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box6
-     Flextesa.vanity-chain-id:  Looking for "Box6"
+      $ flextesa van --first --seed atlasbox- --attempts 100_000_000  Box1
+     Flextesa.vanity-chain-id:  Looking for "Box1"
      Flextesa.vanity-chain-id:
        Results:
-         * Seed: "tutobox-99116"
-           → block: "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
-           → chain-id: "NetXyJVJ3mkBox6"
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box7
-     Flextesa.vanity-chain-id:  Looking for "Box7"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox-21176358"
-           → block: "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
-           → chain-id: "NetXMFJWfpUBox7"
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box8
-     Flextesa.vanity-chain-id:  Looking for "Box8"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox-615179"
-           → block: "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
-           → chain-id: "NetXnuwTfg9Box8"
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box9
-     Flextesa.vanity-chain-id:  Looking for "Box9"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox-7157776"
-           → block: "BMJqwuTLa3aSi3KAg4XtvSdVe5r7RuoXh5n15DwEoivx2Ve3Wfk"
-           → chain-id: "NetXfpUfwJdBox9"
-      $ flextesa van --first --seed tutobox10- --attempts 100_000_000  BoxG
-     Flextesa.vanity-chain-id:  Looking for "BoxG"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox10-27980054"
-           → block: "BLCRemfAUthe9XSXuJmuH5PmwvQk55aZUwtCbGZdjLh2niWZSJZ"
-           → chain-id: "NetXzcB5DmnBoxG"
-      $ flextesa van --first --seed tutobox11- --attempts 100_000_000  BoxH
-     Flextesa.vanity-chain-id:  Looking for "BoxH"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox11-3307590"
-           → block: "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
-           → chain-id: "NetXgbFy27eBoxH"
-      $ ./flextesa van --first --seed tutobox12- --attempts 100_000_000  Boxi
-     Flextesa.vanity-chain-id:  Looking for "Boxi"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox12-10249265"
-           → block: "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
-           → chain-id: "NetXfHjxW3qBoxi"
-      $ ./flextesa van --first --seed tutobox13- --attempts 100_000_000  BoxJ
-     Flextesa.vanity-chain-id:  Looking for "BoxJ"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox13-9735310"
-           → block: "BLfSRBVkFEdfDEwU5NSqNWoDh2N5HCCvmzj4rS3sPPCt6jSvGJC"
-           → chain-id: "NetXq4AxoF7BoxJ"
-      $ ./flextesa van --first --seed tutobox15- --attempts 100_000_000  BoxK
-     Flextesa.vanity-chain-id:  Looking for "BoxK"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox15-8628610"
-           → block: "BMZd8EyX6m221RMzeP3Eu2f28vrhNfCsUkoMUwGXYWihTJ5aD9m"
-           → chain-id: "NetXj4nRMnbBoxK"
-      $ ./flextesa van --first --seed tutobox15- --attempts 100_000_000  BoxL
-     Flextesa.vanity-chain-id:  Looking for "BoxL"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox15-5141571"
-           → block: "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
-           → chain-id: "NetXPabwW4tBoxL"
-      $ ./flextesa van --first --seed tutobox16- --attempts 100_000_000  BoxM
-     Flextesa.vanity-chain-id:  Looking for "BoxM"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox16-106640"
-           → block: "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
-           → chain-id: "NetXo5iVw1vBoxM"
-     $ ./flextesa van --first --seed tutobox17- --attempts 100_000_000  BoxN
-    Flextesa.vanity-chain-id:  Looking for "BoxN"
-    Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox17-11111152"
-           → block: "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
-           → chain-id: "NetXNQiqPWDBoxN"
-     $ ./flextesa van --first --seed tutobox18- --attempts 100_000_000  Boxo
-    Flextesa.vanity-chain-id:  Looking for "Boxo"
-    Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox18-1551632"
-           → block: "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
-           → chain-id: "NetXnofnLBXBoxo"
+         * Seed: "atlasbox-402009"
+           → block: "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
+           → chain-id: "NetXSq4NpQeBox1"
      $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
      Flextesa.vanity-chain-id:  Looking for "BoxA"
      Flextesa.vanity-chain-id:
@@ -114,21 +30,8 @@ module Genesis_block_hash = struct
            → chain-id: "NetXmGq7LPFBoxA"
     *)
     function
-    | `Carthage -> "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
-    | `Delphi -> "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
-    | `Edo -> "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
-    | `Florence -> "BMJqwuTLa3aSi3KAg4XtvSdVe5r7RuoXh5n15DwEoivx2Ve3Wfk"
-    | `Granada -> "BLCRemfAUthe9XSXuJmuH5PmwvQk55aZUwtCbGZdjLh2niWZSJZ"
-    | `Hangzhou -> "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
-    | `Ithaca -> "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
-    | `Jakarta -> "BLfSRBVkFEdfDEwU5NSqNWoDh2N5HCCvmzj4rS3sPPCt6jSvGJC"
-    | `Kathmandu -> "BMZd8EyX6m221RMzeP3Eu2f28vrhNfCsUkoMUwGXYWihTJ5aD9m"
-    | `Lima -> "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
-    | `Mumbai -> "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
-    | `Nairobi -> "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
-    | `Oxford -> "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
+    | `Atlas -> "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
-    | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
   module Choice = struct
     type t = [ `Random | `Force of string | `Old_default | `From_protocol_kind ]
@@ -185,7 +88,7 @@ the chain to resume
   end
 
   let chain_id_of_hash hash =
-    let open Tezai_base58_digest.Identifier in
+    let open Mavai_base58_digest.Identifier in
     Chain_id.of_base58_block_hash hash
 
   let process_choice state ~protocol_kind choice =
@@ -226,7 +129,7 @@ the chain to resume
               let seed =
                 Fmt.str "%d:%f" (Random.int 1_000_000) (Unix.gettimeofday ())
               in
-              let open Tezai_base58_digest.Identifier in
+              let open Mavai_base58_digest.Identifier in
               let block_hash = Block_hash.hash_string seed in
               Block_hash.encode block_hash
         in

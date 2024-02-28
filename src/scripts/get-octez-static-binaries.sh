@@ -23,11 +23,11 @@ fi
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/scl/fi/yae7xzxc7b58413tjiqvf/octez-static-binaries-x86_64-20231220-3e6ec479.zip?rlkey=wy7ajmhcngh61w0r39rp5nqi6&dl&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/xasqg3mj0y0w056cndpg2/octez-static-binaries-x86_64.zip?rlkey=dm0gchz9rdwhmcx1dtwjfhjon&raw=1"
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/scl/fi/9obhl5se9ea0prhlm99y3/octez-static-binaries-arm64-20231220-3e6ec479.zip?rlkey=a7x4jv3x6b3hnm8qgn15fi99z&dl&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/laoaku2pm90ouqi4oq75o/octez-static-binaries-arm64.zip?rlkey=jlraeh0a56ybkpc68ydvkjbze&raw=1"
         directory_name=arm64
         ;;
     *)

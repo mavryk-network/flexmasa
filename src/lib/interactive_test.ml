@@ -438,14 +438,14 @@ module Commands = struct
     },
     {  // Key revelation
       "kind": "reveal",
-      "source": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb", // This is `alice`.
+      "source": "mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv", // This is `alice`.
       "fee": "1257", "counter": "3",
       "gas_limit": "10000", "storage_limit": "0",
       "public_key": "edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn"
     },
     {  // Contract origination
       "kind": "origination",
-      "source": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb", "fee": "1240",
+      "source": "mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv", "fee": "1240",
       "counter": "4", "gas_limit": "10744", "storage_limit": "309",
       "balance": "1000000",
       "script":

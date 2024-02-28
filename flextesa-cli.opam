@@ -6,8 +6,8 @@ description:
 maintainer: ["seb@mondet.org"]
 authors: ["Seb Mondet <seb@mondet.org>" "Mark Nichols"]
 license: "MIT"
-homepage: "https://gitlab.com/tezos/flextesa"
-bug-reports: "https://gitlab.com/tezos/flextesa"
+homepage: "https://gitlab.com/mavryk-network/flextesa"
+bug-reports: "https://gitlab.com/mavryk-network/flextesa"
 depends: [
   "dune" {>= "2.8" & > "2.8"}
   "flextesa"
@@ -27,4 +27,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://gitlab.com/tezos/flextesa.git"
+dev-repo: "git+https://gitlab.com/mavryk-network/flextesa.git"

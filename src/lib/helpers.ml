@@ -241,7 +241,7 @@ module System_dependencies = struct
                (wf
                   "This does not look like a standard Linux-ish environment. \
                    If you are on MacOSX, see \
-                   https://gitlab.com/tezos/flextesa/blob/master/README.md#macosx-users "))
+                   https://gitlab.com/mavryk-network/flextesa/blob/master/README.md#macosx-users "))
         else return ())
         >>= fun () ->
         (if

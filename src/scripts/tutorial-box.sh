@@ -1,20 +1,13 @@
 #! /bin/sh
 
-default_protocol=Nairobi
-next_protocol_name=Oxford
-next_protocol_hash=Proxford
+default_protocol=Atlas
+next_protocol_name=Alpha
+next_protocol_hash=alpha
 case "$(basename $0)" in
-    "nairobibox")
-        default_protocol=Nairobi
-        protocol_hash=PtNairob
-        binary_suffix=PtNairob
-        next_protocol_name=Oxford
-        next_protocol_hash=Proxford
-        ;;
-    "oxfordbox")
-        default_protocol=Oxford
-        protocol_hash=Proxford
-        binary_suffix=Proxford
+    "atlasbox")
+        default_protocol=Atlas
+        protocol_hash=PtAtlas
+        binary_suffix=PtAtlas
         next_protocol_name=Alpha
         next_protocol_hash=alpha
         ;;

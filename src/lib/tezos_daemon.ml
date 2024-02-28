@@ -56,11 +56,7 @@ let to_script state (t : t) =
       let lb = [ "--liquidity-baking-toggle-vote"; "pass" ] in
       let extra_options =
         match t.protocol_kind with
-        | `Oxford | `Alpha -> ai @ lb
-        | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi -> lb
-        | `Florence | `Carthage | `Delphi | `Ithaca | `Hangzhou | `Babylon
-        | `Edo | `Granada | `Athens ->
-            []
+        | `Atlas | `Alpha -> ai @ lb
       in
       call t
         ([
