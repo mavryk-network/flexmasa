@@ -149,7 +149,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
   "cycle_position": 7,
   "expected_commitment": true
 }
-"PtAtlas..."
+"PtAtLas..."
 ```
 
 Notes:

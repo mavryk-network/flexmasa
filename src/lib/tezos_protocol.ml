@@ -99,7 +99,7 @@ module Protocol_kind = struct
     | `Alpha -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
 
   let daemon_suffix_exn : t -> string = function
-    | `Atlas -> "PtAtlas"
+    | `Atlas -> "PtAtLas"
     | `Alpha -> "alpha"
 
   let wants_contract_manager : t -> bool = function
@@ -250,7 +250,7 @@ let protocol_parameters_json t : Ezjsonm.t =
           let base =
             let dal_activation_level =
               int32 Int32.(pred max_value)
-              (* from octez/src/proto_001_PtAtlas/lib_parameters/default_parameters.ml *)
+              (* from octez/src/proto_001_PtAtLas/lib_parameters/default_parameters.ml *)
               (* if default_dal.feature_enable then Raw_level.root *)
               (* else *)
               (*   (\* Deactivate the reveal if the dal is not enabled. *\) *)
