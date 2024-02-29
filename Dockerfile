@@ -14,7 +14,7 @@ RUN sudo sh src/scripts/get-octez-kernel-build.sh /usr/bin
 RUN sudo sh src/scripts/get-tx-client.sh /usr/bin
 FROM alpine:3.15 as run_image
 RUN apk update
-RUN apk add curl libev libffi unzip gmp rlwrap jq
+RUN apk add curl libev libffi unzip gmp rlwrap jq hidapi-dev libstdc++
 WORKDIR /usr/bin
 COPY --from=0 /usr/bin/octez-accuser-PtAtLas .
 COPY --from=0 /usr/bin/octez-accuser-alpha .
