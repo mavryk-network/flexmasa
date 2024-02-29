@@ -5,7 +5,7 @@ next_protocol_name=Alpha
 next_protocol_hash=alpha
 case "$(basename $0)" in
     "atlasbox")
-        default_protocol=AtLas
+        default_protocol=Atlas
         protocol_hash=PtAtLas
         binary_suffix=PtAtLas
         next_protocol_name=Alpha
