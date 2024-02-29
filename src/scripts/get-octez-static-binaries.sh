@@ -23,7 +23,7 @@ fi
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/scl/fi/xasqg3mj0y0w056cndpg2/octez-static-binaries-x86_64.zip?rlkey=dm0gchz9rdwhmcx1dtwjfhjon&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/gax4ftsu7xicopq6y0rtn/octez-binaries-arm64.zip?rlkey=mownxp65sc7zwf6osppu2kxrl&raw=1"
         directory_name=x86_64
         ;;
     aarch64)
