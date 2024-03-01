@@ -563,7 +563,7 @@ let cli_term state =
         $ value
             (opt
                (pair ~sep:':'
-                  (enum [ ("tz", `Mav); ("mav", `Mav); ("mumav", `Mumav) ])
+                  (enum [ ("mv", `Mav); ("mav", `Mav); ("mumav", `Mumav) ])
                   float)
                (`Mav, 4_000_000.)
                (info
@@ -571,7 +571,7 @@ let cli_term state =
                   ~docv:"UNIT:FLOAT" ~docs
                   ~doc:
                     "Set the initial balance of bootstrap accounts, for \
-                     instance: `tz:2_000_000.42` or \
+                     instance: `mv:2_000_000.42` or \
                      `mumav:42_000_000_000_000`.")))
       $ Arg.(
           pure (fun l ->

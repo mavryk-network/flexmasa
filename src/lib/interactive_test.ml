@@ -429,7 +429,7 @@ module Commands = struct
     {  // Basic transaction:
       "kind": "transaction",
       "source": "%s",  // This is already the %s's PKH
-      "destination": "tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F",
+      "destination": "mv2Xe9KfSJPiVSbLN64bMzaTPtq5tQC52iNJ",
       "amount": "1",
       "fee": "%d",
       "counter": "%d",  // The counter was fetched from the RPC (not mempool yet)

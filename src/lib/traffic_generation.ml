@@ -71,7 +71,7 @@ module Forge = struct
       ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Atlas)
       ?(counter = 0)
       ?(dst =
-        [ ("tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F", Random.int_incl 1 1000) ])
+        [ ("mv2Xe9KfSJPiVSbLN64bMzaTPtq5tQC52iNJ", Random.int_incl 1 1000) ])
       ~src ~fee ~branch n : Ezjsonm.value =
     let open Ezjsonm in
     ignore protocol_kind;
