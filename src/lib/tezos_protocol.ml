@@ -444,7 +444,12 @@ let protocol_parameters_json t : Ezjsonm.t =
           ]
         in
         match t.kind with
-        | `Atlas | `Alpha -> base
+        | `Atlas -> base
+        | `Alpha ->
+            base
+            |> add_replace ("consensus_rights_delay", int 2)
+            |> add_replace ("blocks_preservation_cycles", int 1)
+            |> add_replace ("direct_ticket_spending_enable", bool false)
       in
       dict
         (general_parameters @ tx_rollup_specific_parameters
