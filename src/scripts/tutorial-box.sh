@@ -50,7 +50,7 @@ start() {
         --root "$root_path" --size 1 "$@" \
         --set-history-mode N000:archive \
         --number-of-b 1 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --balance-of-bootstrap-accounts mav:100_000_000 \
         --time-b "$time_bb" \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --add-bootstrap-account="$bob@2_000_000_000_000" \
@@ -86,7 +86,7 @@ start_upgrade() {
         --extra-dummy-proposals-batch-levels "$dummy_levels" \
         --size 2 \
         --number-of-bootstrap-accounts 2 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --balance-of-bootstrap-accounts mav:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --add-bootstrap-account="$bob@2_000_000_000_000" \
         --no-daemons-for=alice \
@@ -165,7 +165,7 @@ start_upgrade_with_adaptive_issuance() {
     flextesa daemons-upgrade \
         --root "$root_path" --size 1 "$@" \
         --number-of-b 2 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --balance-of-bootstrap-accounts mav:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --add-bootstrap-account="$bob@2_000_000_000_000" \
         --no-daemons-for=alice \

@@ -558,26 +558,26 @@ let cli_term state =
                 [ "number-of-bootstrap-accounts" ]
                 ~docs ~doc:"Set the number of generated bootstrap accounts."))
       $ (pure (function
-           | `Tez, f -> f *. 1_000_000. |> Int64.of_float
-           | `Mutez, f -> f |> Int64.of_float)
+           | `Mav, f -> f *. 1_000_000. |> Int64.of_float
+           | `Mumav, f -> f |> Int64.of_float)
         $ value
             (opt
                (pair ~sep:':'
-                  (enum [ ("tz", `Tez); ("tez", `Tez); ("mutez", `Mutez) ])
+                  (enum [ ("tz", `Mav); ("mav", `Mav); ("mumav", `Mumav) ])
                   float)
-               (`Tez, 4_000_000.)
+               (`Mav, 4_000_000.)
                (info
                   [ "balance-of-bootstrap-accounts" ]
                   ~docv:"UNIT:FLOAT" ~docs
                   ~doc:
                     "Set the initial balance of bootstrap accounts, for \
                      instance: `tz:2_000_000.42` or \
-                     `mutez:42_000_000_000_000`.")))
+                     `mumav:42_000_000_000_000`.")))
       $ Arg.(
           pure (fun l ->
               List.map l
-                ~f:(fun ((name, pubkey, pubkey_hash, private_key), tez) ->
-                  (Account.key_pair name ~pubkey ~pubkey_hash ~private_key, tez)))
+                ~f:(fun ((name, pubkey, pubkey_hash, private_key), mav) ->
+                  (Account.key_pair name ~pubkey ~pubkey_hash ~private_key, mav)))
           $ value
               (opt_all
                  (pair ~sep:'@' (t4 ~sep:',' string string string string) int64)
@@ -585,13 +585,13 @@ let cli_term state =
                  (info
                     [ "add-bootstrap-account" ]
                     ~docs
-                    ~docv:"NAME,PUBKEY,PUBKEY-HASH,PRIVATE-URI@MUTEZ-AMOUNT"
+                    ~docv:"NAME,PUBKEY,PUBKEY-HASH,PRIVATE-URI@MUMAV-AMOUNT"
                     ~doc:
                       "Add a custom bootstrap account, e.g. \
                        `LedgerBaker,edpku...,mv1YPS...,ledger://crouching-tiger.../ed25519/0'/0'@20_000_000_000`. \
                        Note: that Atlas protocal starts bootstrap_accounts \
                        with portion of their balance already staked (minimum \
-                       mutez:6_000_000_000). The staked balance doesn't show \
+                       mumav:6_000_000_000). The staked balance doesn't show \
                        up as avaialbe balance until it is unstaked. "))))
   $ Arg.(
       pure (fun x -> `Blocks_per_voting_period x)
@@ -700,7 +700,7 @@ module Pretty_print = struct
                         let pp_op_long ppf js =
                           match field ~k:"kind" js |> get_string with
                           | "transaction" ->
-                              pf ppf "@,       * Mutez:%s: `%s` -> `%s`%s"
+                              pf ppf "@,       * Mumav:%s: `%s` -> `%s`%s"
                                 (field ~k:"amount" js |> get_string)
                                 (field ~k:"source" js |> get_string)
                                 (field ~k:"destination" js |> get_string)
@@ -710,7 +710,7 @@ module Pretty_print = struct
                                  with _ -> "")
                           | "origination" ->
                               pf ppf
-                                "@,       * Mutez:%s, source: `%s`, fee: `%s`"
+                                "@,       * Mumav:%s, source: `%s`, fee: `%s`"
                                 (field ~k:"balance" js |> get_string)
                                 (field ~k:"source" js |> get_string)
                                 (field ~k:"fee" js |> get_string)

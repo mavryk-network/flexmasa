@@ -418,7 +418,7 @@ module Commands = struct
             Tezos_client.Keyed.bake state client "Manual baking !"))
 
   let forge_template ~key_name ~counter ~branch ~fee ~src =
-    let fee_mutez = fee *. 1_000_000. |> Int.of_float in
+    let fee_mumav = fee *. 1_000_000. |> Int.of_float in
     Fmt.str
       {json|
 // This is a template of an operation to be forged-and-injected
@@ -459,7 +459,7 @@ module Commands = struct
   ]
 }
 |json}
-      branch src key_name fee_mutez counter
+      branch src key_name fee_mumav counter
 
   let forge_and_inject_piece_of_json state ~clients =
     Console.Prompt.unit_and_loop

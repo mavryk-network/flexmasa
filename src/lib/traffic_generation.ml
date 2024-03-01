@@ -168,7 +168,7 @@ module Multisig = struct
     "[{\"prim\":\"parameter\",\"args\":[{\"prim\":\"pair\",\"args\": \
      [{\"prim\":\"pair\",\"args\":[{\"prim\":\"nat\",\"annots\": \
      [\"%counter\"]},{\"prim\":\"or\",\"args\":[{\"prim\":\"pair\", \
-     \"args\":[{\"prim\":\"mutez\",\"annots\":[\"%amount\"]},{\"prim\": \
+     \"args\":[{\"prim\":\"mumav\",\"annots\":[\"%amount\"]},{\"prim\": \
      \"contract\",\"args\":[{\"prim\":\"unit\"}],\"annots\":[\"%dest\"]}], \
      \"annots\":[\":transfer\"]},{\"prim\":\"or\",\"args\":[{\"prim\": \
      \"option\",\"args\":[{\"prim\":\"key_hash\"}],\"annots\": \
@@ -307,16 +307,16 @@ module Multisig = struct
             ] );
       ]
 
-  let hash_multisig_data state client mutez ~chain_id ~contract_addr ~dest =
+  let hash_multisig_data state client mumav ~chain_id ~contract_addr ~dest =
     let data_type =
-      "(pair (pair address chain_id) (pair int (or (pair mutez (contract \
+      "(pair (pair address chain_id) (pair int (or (pair mumav (contract \
        unit)) unit)))"
     in
     Tezos_client.multisig_storage_counter state client contract_addr
     >>= fun contract_counter ->
     let data_to_hash =
       sprintf "(Pair (Pair \"%s\" \"%s\") (Pair %d (Left (Pair %d \"%s\"))))"
-        contract_addr chain_id contract_counter mutez dest
+        contract_addr chain_id contract_counter mumav dest
     in
     let gas = 1040000 in
     Tezos_client.hash_data state client ~data_to_hash ~data_type ~gas
