@@ -59,25 +59,19 @@ module Voting_period = struct
 end
 
 module Protocol_kind = struct
-  type t =
-    [ `Atlas
-    | `Alpha ]
+  type t = [ `Atlas | `Alpha ]
 
-  let names =
-    [
-      ("Atlas", `Atlas);
-      ("Alpha", `Alpha);
-    ]
+  let names = [ ("Atlas", `Atlas); ("Alpha", `Alpha) ]
 
   (* let ( < ) k1 k2 =
-    let rec aux = function
-      | [] -> assert false
-      | (_, k) :: rest ->
-          if Poly.equal k k2 then false
-          else if Poly.equal k k1 then true
-          else aux rest
-    in
-    aux names *)
+      let rec aux = function
+       | [] -> assert false
+       | (_, k) :: rest ->
+           if Poly.equal k k2 then false
+           else if Poly.equal k k1 then true
+           else aux rest
+     in
+     aux names *)
 
   let default = `Alpha
 
@@ -102,13 +96,8 @@ module Protocol_kind = struct
     | `Atlas -> "PtAtLas"
     | `Alpha -> "alpha"
 
-  let wants_contract_manager : t -> bool = function
-    | _ -> false
-
-  let wants_endorser_daemon : t -> bool = function
-    | `Atlas
-    | `Alpha ->
-        false
+  let wants_contract_manager : t -> bool = function _ -> false
+  let wants_endorser_daemon : t -> bool = function `Atlas | `Alpha -> false
 end
 
 type t = {
@@ -193,8 +182,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | Some s -> s
   | None ->
       let open Ezjsonm in
-      (match t.kind with
-      | `Atlas | `Alpha -> ());
+      (match t.kind with `Atlas | `Alpha -> ());
       let _unsupported_protocol where t =
         Fmt.failwith "BUG: %s -> Unsupported protocol: %a" where
           Protocol_kind.pp t
@@ -240,8 +228,7 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("blocks_per_epoch", int32 1l);
             ]
           in
-          match t.kind with
-          | `Atlas | `Alpha -> base
+          match t.kind with `Atlas | `Alpha -> base
         in
         [ ("dal_parametric", dict dal_parametric) ]
       in
@@ -309,8 +296,7 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("max_ticket_payload_size", int 2_048);
           ]
         in
-        match t.kind with
-        | `Atlas | `Alpha -> prefix_keys "zk_rollup" base
+        match t.kind with `Atlas | `Alpha -> prefix_keys "zk_rollup" base
       in
       let adaptive_issuance_specific_parameters =
         let adaptive_rewards =
@@ -446,8 +432,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         match t.kind with
         | `Atlas -> base
         | `Alpha ->
-            base
-            |> add_replace ("direct_ticket_spending_enable", bool false)
+            base |> add_replace ("direct_ticket_spending_enable", bool false)
       in
       dict
         (general_parameters @ tx_rollup_specific_parameters

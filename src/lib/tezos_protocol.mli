@@ -40,9 +40,7 @@ module Voting_period : sig
 end
 
 module Protocol_kind : sig
-  type t =
-    [ `Atlas
-    | `Alpha ]
+  type t = [ `Atlas | `Alpha ]
 
   val default : t
   val names : (string * t) list

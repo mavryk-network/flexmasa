@@ -67,8 +67,7 @@ module Michelson = struct
 end
 
 module Forge = struct
-  let batch_transfer
-      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Atlas)
+  let batch_transfer ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Atlas)
       ?(counter = 0)
       ?(dst =
         [ ("mv2Xe9KfSJPiVSbLN64bMzaTPtq5tQC52iNJ", Random.int_incl 1 1000) ])
@@ -281,8 +280,7 @@ module Multisig = struct
     in
     Ezjsonm.value_from_string multisig_params
 
-  let deploy_multisig
-      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Atlas)
+  let deploy_multisig ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Atlas)
       ?(counter = 0) sig_threshold ~branch ~signers ~src ~fee ~balance =
     let open Ezjsonm in
     ignore protocol_kind;
@@ -336,8 +334,8 @@ module Multisig = struct
     return cleaned
 
   let transfer_from_multisig
-      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Atlas)
-      ?(counter = 0) fee ~branch ~src ~destination ~contract ~amount
+      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Atlas) ?(counter = 0)
+      fee ~branch ~src ~destination ~contract ~amount
       ~signatures (* ~signature ~burn_cap *) =
     let open Ezjsonm in
     ignore protocol_kind;
