@@ -26,7 +26,7 @@ say () {
 }
 
 if ! [ -f src/scripts/build-doc.sh ] ; then
-    say "This script should run from the root of the flextesa tree."
+    say "This script should run from the root of the flexmasa tree."
     exit 1
 fi
 
@@ -56,7 +56,7 @@ lib_index_fragment=$(mktemp "/tmp/lib-index-XXXX.html")
 odoc html-frag src/doc/index.mld \
      -I _build/default/src/lib_base58_digest/.mavai_base58_digest.objs/byte/ \
      -I _build/default/src/lib_mv1_crypto/.mavai_mv1_crypto.objs/byte/ \
-     -I _build/default/src/lib/.flextesa.objs/byte/ -o "$lib_index_fragment"
+     -I _build/default/src/lib/.flexmasa.objs/byte/ -o "$lib_index_fragment"
 lib_index="$output_path/lib-index.html"
 
 main_index_fragment=$(mktemp "/tmp/main-index-XXXX.html")
@@ -66,7 +66,7 @@ head -n "$toc_spot" ./README.md  | omd > "$main_index_fragment"
 { echo '# Table of Contents' ; tail +$toc_spot  ./README.md ; } \
     | omd -otoc >> "$main_index_fragment"
 tail +$toc_spot  ./README.md \
-    | sed 's@https://tezos.gitlab.io/flextesa/lib-index.html@./lib-index.html@' \
+    | sed 's@https://tezos.gitlab.io/flexmasa/lib-index.html@./lib-index.html@' \
     | sed 's@./src/doc/mini-net.md@./mini-net.html@' \
     | sed 's@./src/doc/daemons-upgrade.md@./daemons-upgrade.html@' \
     | omd >> "$main_index_fragment"
@@ -80,11 +80,11 @@ mini_net_fragment=$(mktemp "/tmp/mini-net-XXXX.html")
 
 ## Manpage Of mini-net
 
-For convenience, here is the output of `flextesa mini-net --help`:
+For convenience, here is the output of `flexmasa mini-net --help`:
 
 EOF
     echo '``````'
-    ./flextesa mini-net --help=plain
+    ./flexmasa mini-net --help=plain
     echo '``````'
 } | omd >> "$mini_net_fragment"
 mini_net="$output_path/mini-net.html"
@@ -96,11 +96,11 @@ daemons_upgrade_fragment=$(mktemp "/tmp/daemons-upgrade-XXXX.html")
 
 ## Manpage Of daemons-upgrade
 
-For convenience, here is the output of `flextesa daemons-upgrade --help`:
+For convenience, here is the output of `flexmasa daemons-upgrade --help`:
 
 EOF
     echo '``````'
-    ./flextesa daemons-upgrade --help=plain
+    ./flexmasa daemons-upgrade --help=plain
     echo '``````'
 } | omd >> "$daemons_upgrade_fragment"
 daemons_upgrade="$output_path/daemons-upgrade.html"
@@ -129,15 +129,15 @@ cat >> "$output" <<'EOF'
 EOF
 }
 
-make_page "$lib_index_fragment" "$lib_index" "Flextesa: API"
-make_page "$main_index_fragment" "$main_index" "Flextesa: Home"
-make_page "$mini_net_fragment" "$mini_net" "Flextesa: Mini-net Command"
-make_page "$daemons_upgrade_fragment" "$daemons_upgrade" "Flextesa: daemons-upgrade Command"
+make_page "$lib_index_fragment" "$lib_index" "Flexmasa: API"
+make_page "$main_index_fragment" "$main_index" "Flexmasa: Home"
+make_page "$mini_net_fragment" "$mini_net" "Flexmasa: Mini-net Command"
+make_page "$daemons_upgrade_fragment" "$daemons_upgrade" "Flexmasa: daemons-upgrade Command"
 
 say "done: file://$PWD/$main_index"
 say "done: file://$PWD/$mini_net"
 say "done: file://$PWD/$daemons_upgrade"
 say "done: file://$PWD/$lib_index"
-say "done: file://$PWD/$output_path/flextesa/Flextesa/index.html"
+say "done: file://$PWD/$output_path/flexmasa/Flexmasa/index.html"
 
 

@@ -158,7 +158,7 @@ let protocol_parameters_json t : Ezjsonm.t =
      /src/proto_<proto>/lib_parameters/default_parameters.ml
      (The 'constants_sandbox' value is a good guide.)
 
-     Flextesa only supports the current, next and alpha protocols. Older
+     Flexmasa only supports the current, next and alpha protocols. Older
      protocols can be removed. Parameters are grouped by feature and the
      ordering tries to match 'default_parameters.ml'. Ensure that "base"
      parameter list remains up-to-date by adding new protocol parameters there

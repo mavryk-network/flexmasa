@@ -6,8 +6,8 @@ description: "Tezos Ed25519 Accounts Based on Mirage-Crypto."
 maintainer: ["seb@mondet.org"]
 authors: ["Seb Mondet <seb@mondet.org>" "Mark Nichols"]
 license: "MIT"
-homepage: "https://gitlab.com/mavryk-network/flextesa"
-bug-reports: "https://gitlab.com/mavryk-network/flextesa"
+homepage: "https://gitlab.com/mavryk-network/flexmasa"
+bug-reports: "https://gitlab.com/mavryk-network/flexmasa"
 depends: [
   "mavai-base58-digest"
   "mirage-crypto" {>= "0.11.0"}
@@ -30,4 +30,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://gitlab.com/mavryk-network/flextesa.git"
+dev-repo: "git+https://gitlab.com/mavryk-network/flexmasa.git"

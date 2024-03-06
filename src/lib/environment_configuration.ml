@@ -25,7 +25,7 @@ type t = {
 
 let default () =
   {
-    prefix = "flextesa_";
+    prefix = "flexmasa_";
     disabled = false;
     default_cors_origin =
       var "node_cors_origin"

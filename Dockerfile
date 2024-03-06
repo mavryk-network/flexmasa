@@ -5,9 +5,9 @@ RUN sudo apk update
 ADD  --chown=opam:opam . ./
 RUN opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
 RUN opam update
-RUN opam install --with-test --deps-only ./mavai-mv1-crypto.opam ./flextesa.opam
+RUN opam install --with-test --deps-only ./mavai-mv1-crypto.opam ./flexmasa.opam
 RUN opam exec -- dune build --profile=release src/app/main.exe
-RUN sudo cp _build/default/src/app/main.exe /usr/bin/flextesa
+RUN sudo cp _build/default/src/app/main.exe /usr/bin/flexmasa
 RUN sudo sh src/scripts/get-octez-static-binaries.sh /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
 RUN sudo sh src/scripts/get-octez-kernel-build.sh /usr/bin
@@ -32,11 +32,11 @@ COPY --from=0 /usr/bin/octez-proxy-server .
 COPY --from=0 /usr/bin/octez-signer .
 COPY --from=0 /usr/bin/octez-smart-rollup-node .
 COPY --from=0 /usr/bin/octez-smart-rollup-wasm-debugger .
-COPY --from=0 /usr/bin/flextesa .
+COPY --from=0 /usr/bin/flexmasa .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
 COPY --from=0 /usr/bin/smart-rollup-installer .
-RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flextesa \"\\\$@\"\n" > /usr/bin/flextesarl'
-RUN chmod a+rx /usr/bin/flextesarl
+RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flexmasa \"\\\$@\"\n" > /usr/bin/flexmasarl'
+RUN chmod a+rx /usr/bin/flexmasarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/atlasbox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
 RUN chmod a+rx /usr/bin/atlasbox

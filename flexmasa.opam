@@ -7,8 +7,8 @@ description:
 maintainer: ["seb@mondet.org"]
 authors: ["Seb Mondet <seb@mondet.org>" "Mark Nichols"]
 license: "MIT"
-homepage: "https://gitlab.com/mavryk-network/flextesa"
-bug-reports: "https://gitlab.com/mavryk-network/flextesa"
+homepage: "https://gitlab.com/mavryk-network/flexmasa"
+bug-reports: "https://gitlab.com/mavryk-network/flexmasa"
 depends: [
   "dune" {>= "2.8" & > "2.8"}
   "genspio" {= "0.0.2"}
@@ -39,4 +39,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://gitlab.com/mavryk-network/flextesa.git"
+dev-repo: "git+https://gitlab.com/mavryk-network/flexmasa.git"

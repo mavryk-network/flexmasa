@@ -95,7 +95,7 @@ let%expect_test _ =
     Format.printf "Seed: %S\nSK: %a\nPK: %a\nPKH: %a\n" seed Secret_key.pp sk
       Public_key.pp pk Public_key_hash.pp pkh
   in
-  (* The following were checked against ["flextesa key-of-name"] using
+  (* The following were checked against ["flexmasa key-of-name"] using
      ["tezos-crypto"]. *)
   show_of_seed "alice";
   [%expect

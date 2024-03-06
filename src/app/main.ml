@@ -1,11 +1,11 @@
-open Flextesa.Internal_pervasives
+open Flexmasa.Internal_pervasives
 
 module Small_utilities = struct
   let key_of_name_command () =
     let open Cmdliner in
     let open Term in
     ( (pure (fun n ->
-           let open Flextesa.Tezos_protocol.Account in
+           let open Flexmasa.Tezos_protocol.Account in
            let account = of_name n in
            Stdlib.Printf.printf "%s,%s,%s,%s\n%!" (name account)
              (pubkey account) (pubkey_hash account) (private_key account))
@@ -19,7 +19,7 @@ module Small_utilities = struct
         ~man:
           [
             `P
-              "`flextesa key-of-name hello-world` generates a key-pair of the \
+              "`flexmasa key-of-name hello-world` generates a key-pair of the \
                `unencrypted:..` kind and outputs it as a 4 values separated by \
                commas: `name,pub-key,pub-key-hash,private-uri` (hence \
                compatible with the `--add-bootstrap-account` option of some of \
@@ -30,9 +30,9 @@ module Small_utilities = struct
   let netstat_ports ~pp_error () =
     let open Cmdliner in
     let open Term in
-    Flextesa.Test_command_line.Run_command.make ~pp_error
+    Flexmasa.Test_command_line.Run_command.make ~pp_error
       (pure (fun state ->
-           Flextesa.
+           Flexmasa.
              ( state,
                fun () ->
                  Helpers.Netstat.used_listening_ports state >>= fun ports ->
@@ -52,7 +52,7 @@ module Small_utilities = struct
                                 sp ppf ())
                               (fun ppf p -> fmt "%d" ppf p))
                            ppf to_display)) ))
-      $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
+      $ Flexmasa.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"netstat-ports" ())
       (info "netstat-listening-ports"
          ~doc:"Like `netstat -nut | awk something-something` but glorified.")
@@ -61,9 +61,9 @@ module Small_utilities = struct
   let vanity_chain_id ~pp_error () =
     let open Cmdliner in
     let open Term in
-    Flextesa.Test_command_line.Run_command.make ~pp_error
+    Flexmasa.Test_command_line.Run_command.make ~pp_error
       (pure (fun state stop_at_first machine_readable seed attempts pattern ->
-           Flextesa.
+           Flexmasa.
              ( state,
                fun () ->
                  let sayf f =
@@ -119,7 +119,7 @@ module Small_utilities = struct
                                          "* Seed: %S@ → block: %S@ → chain-id: \
                                           %S"
                                          seed bh ci)))) ))
-      $ Flextesa.Test_command_line.cli_state ~disable_interactivity:true
+      $ Flexmasa.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"vanity-chain-id" ()
       $ Arg.(value (flag (info [ "first" ] ~doc:"Stop at the first result.")))
       $ Arg.(
@@ -133,7 +133,7 @@ module Small_utilities = struct
                   ~doc:"Print the results on stdout in a parsing friendly way.")))
       $ Arg.(
           value
-            (opt string "flextesa"
+            (opt string "flexmasa"
                (info [ "seed" ] ~doc:"The constant seed to use.")))
       $ Arg.(
           value
@@ -156,12 +156,12 @@ end
 
 let () =
   let open Cmdliner in
-  let pp_error = Flextesa.Test_command_line.Common_errors.pp in
-  let help = Term.(ret (pure (`Help (`Auto, None))), info "flextesa") in
+  let pp_error = Flexmasa.Test_command_line.Common_errors.pp in
+  let help = Term.(ret (pure (`Help (`Auto, None))), info "flexmasa") in
   Term.exit
     (Term.eval_choice
        (help : unit Term.t * _)
        (Small_utilities.all ~pp_error ()
-       @ [ Flextesa.Interactive_mini_network.cmd () ]
-       @ [ Flextesa.Command_daemons_protocol_change.cmd () ]))
+       @ [ Flexmasa.Interactive_mini_network.cmd () ]
+       @ [ Flexmasa.Command_daemons_protocol_change.cmd () ]))
   [@@warning "-3"]

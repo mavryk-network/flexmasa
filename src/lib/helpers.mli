@@ -62,7 +62,7 @@ val import_keys_from_seeds :
 (** Import keys from a list of name seeds *)
 
 (** Stateful “message × count” log, see its use in, e.g.,
-    ["./src/bin_flextesa/command_voting.ml"] where baked-levels are accumulated
+    ["./src/bin_flexmasa/command_voting.ml"] where baked-levels are accumulated
     and then displayed. . *)
 module Counter_log : sig
   type t

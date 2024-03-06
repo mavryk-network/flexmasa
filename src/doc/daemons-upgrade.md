@@ -1,10 +1,10 @@
 The Daemons Upgrade Command
 ===========================
 
-Flextesa ships with the `flextesa` command-line application. This document deals
-with the `./flextesa daemons-upgrade` sub-command.
+Flexmasa ships with the `flexmasa` command-line application. This document deals
+with the `./flexmasa daemons-upgrade` sub-command.
 
-One can use `./flextesa daemons-upgrade --help` to see all the available options.
+One can use `./flexmasa daemons-upgrade --help` to see all the available options.
 
 Accessing Tezos Software
 -------------------------------------------------------------------------------
@@ -14,18 +14,18 @@ Flexstesa needs access to the Tezos software. In particular, the
 `octez-baker-PtLimaPt`, `octez-baker-alpha`) depending on which protocol
 upgrade is being tested.
 
-An easy way to let Flextesa find them is to add them to the `PATH`. For instance,
+An easy way to let Flexmasa find them is to add them to the `PATH`. For instance,
 if all the Tezos utilities have been build at `/path/to/octez-repo/`:
 
 ```
     $ export PATH=/path/to/octez-repo/:$PATH
-    $ flextesa daemons-upgrade \
+    $ flexmasa daemons-upgrade \
         --protocol-kind Kathmandu \
         --next-protocol-kind Lima \
         --second-baker octez-baker-PtLimaPt
 ```
 
-Note: Flextesa will infer the executables needed based on the value passed to
+Note: Flexmasa will infer the executables needed based on the value passed to
 `--protocol-kind`. However, the option `--second-baker` is required to provide
 the baker executable for the next (upgrade) protocol.
 
@@ -33,7 +33,7 @@ As an alternative to adding the Tezos software to `PATH`, all  the executable
 paths can be passed with command line options:
 
 ```
-    $ flextesa daemons-upgrade  \
+    $ flexmasa daemons-upgrade  \
         --protocol-kind Kathmandu --next-protocol-kind Lima \
         --octez-node /path/to/octez-repo/octez-node \
         --octez-client /path/to/octez-repo/octez-client \
@@ -47,7 +47,7 @@ paths can be passed with command line options:
 
 Both examples above, activate the protocol `Kathmandu`, and propose the `Lima`
 upgrade. The sandbox network will do a full voting round followed by a protocol
-change. Finally, Flextesa will kill all processes once the daemon-upgrade test
+change. Finally, Flexmasa will kill all processes once the daemon-upgrade test
 is complete.
 
 * If you are using the docker image, valid `octez-*` executables are already in
@@ -56,7 +56,7 @@ is complete.
 ### Example:
 
 ```
-    $ flextesa daemons-upgrade  \
+    $ flexmasa daemons-upgrade  \
         --protocol-kind Lima \
         --size 2 \
         --number-of-bootstrap-accounts 2 \
@@ -100,28 +100,28 @@ Interactivity
 -------------------------------------------------------------------------------
 
 ```
-    $ flextesa daemons-upgrade \
+    $ flexmasa daemons-upgrade \
         --protocol-kind Lima --next-protocol Alpha \
         --second-baker octez-baker-PtLimaPt \
         --interactive true
 ```
 
-With the option `--interactive true`, Flextesa will pause twice during the test;
+With the option `--interactive true`, Flexmasa will pause twice during the test;
 once on the `Lima` network and once after the upgrade to `Alpha`.  This
 will allow you to interact with the network at different stages. Type `help`
 (or `h`) to see available commands, and `quit` (or `q`) to unpause and continue
 the upgrade.
 
 Similarly, the option `--pause-at-end` will allow you to interact with the
-network before Flextesa kills all processes and quits.
+network before Flexmasa kills all processes and quits.
 
 If one runs the `daemons-upgrade` interactively with the `--until-level` option,
-Flextesa will do the second (or final) pause after reaching the level set by the
+Flexmasa will do the second (or final) pause after reaching the level set by the
 user.
 
 For example:
 ```
-    $ flextesa daemons-upgrade \
+    $ flexmasa daemons-upgrade \
         --protocol-kind Lima --next-protocol Alpha \
         --second-baker octez-baker-aphla \
         --pause-at-end true \

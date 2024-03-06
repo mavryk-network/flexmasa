@@ -676,7 +676,7 @@ let cmdliner_term state () =
                   String.is_prefix ~prefix:e opt)
             then
               Fmt.failwith
-                "This option is set by Flextesa. It cannot be changed. %S" opt)
+                "This option is set by Flexmasa. It cannot be changed. %S" opt)
       in
       let make id kernel =
         check_options node_init_options;

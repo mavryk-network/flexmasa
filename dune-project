@@ -1,10 +1,10 @@
 (lang dune 2.8)
-(name flextesa)
+(name flexmasa)
 (generate_opam_files true)
 (license MIT)
-(source (uri git+https://gitlab.com/mavryk-network/flextesa.git))
-(homepage https://gitlab.com/mavryk-network/flextesa)
-(bug_reports https://gitlab.com/mavryk-network/flextesa)
+(source (uri git+https://gitlab.com/mavryk-network/flexmasa.git))
+(homepage https://gitlab.com/mavryk-network/flexmasa)
+(bug_reports https://gitlab.com/mavryk-network/flexmasa)
 (authors "Seb Mondet <seb@mondet.org>" "Mark Nichols")
 (maintainers "seb@mondet.org")
 
@@ -23,7 +23,7 @@
 )
 
 (package
- (name flextesa)
+ (name flexmasa)
  (synopsis "Flexible Tezos Sandboxes: A library to define sandboxed Tezos networks")
  (description "Flexible Tezos Sandboxes: A library to define sandboxed Tezos networks.")
  (depends
@@ -43,11 +43,11 @@
   ))
 
 (package
- (name flextesa-cli)
- (synopsis "A CLI application using Flextesa-lib to define a few scenarios")
- (description "A CLI application using Flextesa-lib to define a few scenarios.")
+ (name flexmasa-cli)
+ (synopsis "A CLI application using Flexmasa-lib to define a few scenarios")
+ (description "A CLI application using Flexmasa-lib to define a few scenarios.")
  (depends
   (dune (> 2.8))
-  flextesa
+  flexmasa
   )
   )

@@ -1,10 +1,10 @@
-Flextesa: Flexible Tezos Sandboxes
+Flexmasa: Flexible Tezos Sandboxes
 ==================================
 
-This repository contains the Flextesa library used in
+This repository contains the Flexmasa library used in
 [tezos/tezos](https://gitlab.com/tezos/tezos) to build the `tezos-sandbox`
-[tests](https://tezos.gitlab.io/developer/flextesa.html), as well as some extra
-testing utilities, such as the `flextesa` application, which may be useful to
+[tests](https://tezos.gitlab.io/developer/flexmasa.html), as well as some extra
+testing utilities, such as the `flexmasa` application, which may be useful to
 the greater community (e.g. to test third party tools against fully functional
 Tezos sandboxes).
 
@@ -14,15 +14,15 @@ Tezos sandboxes).
 
 ## Run With Docker
 
-The _dev_ image is `registry.gitlab.com/mavryk-network/flextesa:dev-run`
+The _dev_ image is `registry.gitlab.com/mavryk-network/flexmasa:dev-run`
 
-It is built top of the `flextesa` executable and Octez suite, for 2
+It is built top of the `flexmasa` executable and Octez suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
 also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
   
 ```sh
-image=mavrykdynamics/flextesa:latest
+image=mavrykdynamics/flexmasa:latest
 script=nairobibox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -58,7 +58,7 @@ Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
 ```
 
 The implementation for these scripts is `src/scripts/tutorial-box.sh`, they are
-just calls to `flextesa mini-net` (see its general
+just calls to `flexmasa mini-net` (see its general
 [documentation](./src/doc/mini-net.md)).
 
 The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
@@ -163,7 +163,7 @@ Notes:
 
 The `start_upgrade` command is included with the docker image.
 
-This implementation of `src/scripts/tutorial-box.sh` is a call to `flextesa
+This implementation of `src/scripts/tutorial-box.sh` is a call to `flexmasa
 daemons-upgrade` (see its general
 [daemons-upgrade](./src/doc/daemons-upgrade.md)).
 
@@ -279,7 +279,7 @@ sandbox:
 - [start_custom_smart_rollup](#staring-a-smart-rollup-sandbox-with-a-custom-kernel)
 - [start_evm_rollup](#startgin-the-evm-smart-rollup)
 
-Both are an implementation of the `flextesa mini-network` with the
+Both are an implementation of the `flexmasa mini-network` with the
 `--smart-rollup` option.
 
 #### Staring a Smart-Rollup Sandbox with a Custom Kernel
@@ -299,7 +299,7 @@ of your kernel inside the container. The published (`-p`) ports **20000** and
 **20002** will be the rpc_ports for the **tezos-node** and **smart-rollup-node**
 respectively.
 
-Flextesa has a few help options to use when testing your smart-rollup kernel.
+Flexmasa has a few help options to use when testing your smart-rollup kernel.
 This example uses the same `start_custom_rollup` command from above.
 
 ``` default
@@ -312,7 +312,7 @@ $ docker run --rm --detach -p 20000:20000 -p 20002:20002 --name my-sandbox \
         --smart-rollup-node-run-with="log-kernel-debug log-kernel-debug-file=/tmp/my-debug.log"
 ```
 
-If you have a kernel "set-up" file, Flextesa will pass it to the
+If you have a kernel "set-up" file, Flexmasa will pass it to the
 `smart-rollup-installer` when preparing the kernel preimage with the option
 `--kernel-setup-file=PATH`. The option `--smart-contract=PATH:TYPE` will
 originate the smart contract of TYPE at PATH. Both the smart contract and set-up
@@ -365,7 +365,7 @@ Added smart rollup custom: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
 ```
 #### Start the EVM Smart-Rollup
 
-Flextesa includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) developed by Nomadic Labs. See its documentation [here](https://docs.etherlink.com/get-started/connect-your-wallet-to-etherlink). To start this sandbox Use the `star_evm_smart_rollup` command form the included scripts. 
+Flexmasa includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) developed by Nomadic Labs. See its documentation [here](https://docs.etherlink.com/get-started/connect-your-wallet-to-etherlink). To start this sandbox Use the `star_evm_smart_rollup` command form the included scripts. 
 
 ``` default
 $ docker run --rm --detach -p 20000:20000 -p 20002:20002 -p 20004:20004 --name my-sandbox \
@@ -442,7 +442,7 @@ eval $(opam env)
 opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
 opam install --deps-only --with-test --with-doc \
      ./mavai-mv1-crypto.opam \
-     ./flextesa.opam ./flextesa-cli.opam # Most of this should be already done.
+     ./flexmasa.opam ./flexmasa-cli.opam # Most of this should be already done.
 opam install merlin ocamlformat.0.24.1    # For development.
 ```
 
@@ -450,8 +450,8 @@ Then:
 
     make
 
-The above builds the `flextesa` library, the `flextesa` command line application
-(see `./flextesa --help`) and the tests (in `src/test`).
+The above builds the `flexmasa` library, the `flexmasa` command line application
+(see `./flexmasa --help`) and the tests (in `src/test`).
 
 
 ## MacOSX Users
@@ -480,8 +480,8 @@ The `x86_64` images are built by the CI, see the job `docker:images:` in
 To build locally:
 
 ```sh
-docker build --target build_step -t flextesa-build .
-docker build --target run_image -t flextesa-run .
+docker build --target build_step -t flexmasa-build .
+docker build --target run_image -t flexmasa-run .
 ```
 
 Do not forget to test it: `docker run -it "$image" "$script" start`
@@ -510,10 +510,10 @@ sudo adduser ubuntu docker
 Build and push the image (you may need to `docker login`):
 
 ```sh
-base=mavrykdynamics/flextesa
+base=mavrykdynamics/flexmasa
 tag=20240228-rc
-docker build --target run_image -t flextesa-run .
-docker tag flextesa-run "$base:$tag-$(uname -p)"
+docker build --target run_image -t flexmasa-run .
+docker tag flexmasa-run "$base:$tag-$(uname -p)"
 docker push "$base:$tag-$(uname -p)"
 ```
 
@@ -545,24 +545,24 @@ docker manifest push $base:latest
 
 ## More Documentation
 
-The command `flextesa mini-net [...]` has a dedicated documentation page: [The
+The command `flexmasa mini-net [...]` has a dedicated documentation page: [The
 `mini-net` Command](./src/doc/mini-net.md).
 
-Documentation regarding `flextesa daemons-upgrade [...]` can be found here: [The
+Documentation regarding `flexmasa daemons-upgrade [...]` can be found here: [The
 `daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
 
-The API documentation of the Flextesa OCaml library starts here: [Flextesa:
-API](https://tezos.gitlab.io/flextesa/lib-index.html).
+The API documentation of the Flexmasa OCaml library starts here: [Flexmasa:
+API](https://tezos.gitlab.io/flexmasa/lib-index.html).
 
 Blog posts:
 
-- [2019-06-14](https://obsidian.systems/blog/introducing-flextesa-robust-testing-tools-for-tezos-and-its-applications)
-- [2021-10-14](https://medium.com/the-aleph/new-flextesa-docker-image-and-some-development-news-f0d5360f01bd)
-- [2021-11-29](https://medium.com/the-aleph/flextesa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
-- [2022-03-22](https://medium.com/the-aleph/flextesa-protocol-upgrades-3fdf2fae11e1):
-  Flextesa: Protocol Upgrades
-- [2022-11-30](https://medium.com/the-aleph/flextesa-toru-sandbox-78d7b166e06):
-  Flextesa TORU Sandbox
+- [2019-06-14](https://obsidian.systems/blog/introducing-flexmasa-robust-testing-tools-for-tezos-and-its-applications)
+- [2021-10-14](https://medium.com/the-aleph/new-flexmasa-docker-image-and-some-development-news-f0d5360f01bd)
+- [2021-11-29](https://medium.com/the-aleph/flexmasa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
+- [2022-03-22](https://medium.com/the-aleph/flexmasa-protocol-upgrades-3fdf2fae11e1):
+  Flexmasa: Protocol Upgrades
+- [2022-11-30](https://medium.com/the-aleph/flexmasa-toru-sandbox-78d7b166e06):
+  Flexmasa TORU Sandbox
 
 
 

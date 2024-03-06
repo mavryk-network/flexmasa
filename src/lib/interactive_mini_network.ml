@@ -14,16 +14,16 @@ module Genesis_block_hash = struct
 
   let of_protocol_kind : Tezos_protocol.Protocol_kind.t -> string =
     (*
-      $ flextesa van --first --seed atlasbox- --attempts 100_000_000  Box1
-     Flextesa.vanity-chain-id:  Looking for "Box1"
-     Flextesa.vanity-chain-id:
+      $ flexmasa van --first --seed atlasbox- --attempts 100_000_000  Box1
+     Flexmasa.vanity-chain-id:  Looking for "Box1"
+     Flexmasa.vanity-chain-id:
        Results:
          * Seed: "atlasbox-402009"
            → block: "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
            → chain-id: "NetXSq4NpQeBox1"
-     $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
-     Flextesa.vanity-chain-id:  Looking for "BoxA"
-     Flextesa.vanity-chain-id:
+     $ ./flexmasa van --first --seed alphabox- --attempts 100_000_000  BoxA
+     Flexmasa.vanity-chain-id:  Looking for "BoxA"
+     Flexmasa.vanity-chain-id:
        Results:
          * Seed: "alphabox-31164447"
            → block: "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
@@ -73,7 +73,7 @@ a "vanity-suffix-chain-id" which depends on the kind of protocol:
 `Box6` for Carthage
 and `Box7` for Delphi.
 The value "random" means to pick a random number.
-The value "legacy-default" picks the same default as older versions of Flextesa.
+The value "legacy-default" picks the same default as older versions of Flexmasa.
 Any other value is treated as a custom block hash.
 This option is ignored when the `--keep-root` option allows
 the chain to resume
@@ -350,7 +350,7 @@ let cmd () =
   let open Term in
   let pp_error = Test_command_line.Common_errors.pp in
   let base_state =
-    Test_command_line.Command_making_state.make ~application_name:"Flextesa"
+    Test_command_line.Command_making_state.make ~application_name:"Flexmasa"
       ~command_name:"mininet" ()
   in
   let docs = Manpage_builder.section_test_scenario base_state in

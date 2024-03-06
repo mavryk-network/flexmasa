@@ -189,7 +189,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
       @ [ secret_keys state ~protocol ]
       @ arbitrary_commands_for_each_and_all_clients state ~make_admin
           ~clients:(List.map nodes ~f:(Tezos_client.of_node ~exec:client_exec)));
-  (* Flextesa sandbox tests assume the node already knows about the protocol. We skip protocol injection. *)
+  (* Flexmasa sandbox tests assume the node already knows about the protocol. We skip protocol injection. *)
   return (Some Tezos_protocol.Protocol_kind.(canonical_hash next_protocol_kind))
   >>= fun prot_opt ->
   (match prot_opt with
@@ -352,7 +352,7 @@ let cmd () =
   let open Term in
   let pp_error = Test_command_line.Common_errors.pp in
   let base_state =
-    Test_command_line.Command_making_state.make ~application_name:"Flextesa"
+    Test_command_line.Command_making_state.make ~application_name:"Flexmasa"
       ~command_name:"daemons-upgrade" ()
   in
   let docs = Manpage_builder.section_test_scenario base_state in
