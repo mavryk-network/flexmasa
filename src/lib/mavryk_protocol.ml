@@ -89,7 +89,7 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
-    | `Atlas -> "PtAtLasjh71tv2N8SDMtjajR42wTSAd9xFTvXvhDuYfRJPRLSL2"
+    | `Atlas -> "PtAtLasomUEW99aVhVTrqjCHjJSpFUa8uHNEAEamx9v2SNeTaNp"
     | `Alpha -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
 
   let daemon_suffix_exn : t -> string = function
