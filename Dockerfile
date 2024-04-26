@@ -10,7 +10,7 @@ RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flexmasa
 RUN sudo sh src/scripts/get-mavkit-static-binaries.sh /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
-RUN sudo sh src/scripts/get-mavkit-kernel-build.sh /usr/bin
+RUN sudo sh src/scripts/get-octez-kernel-build.sh /usr/bin
 RUN sudo sh src/scripts/get-tx-client.sh /usr/bin
 FROM alpine:3.15 as run_image
 RUN apk update
