@@ -23,7 +23,7 @@ fi
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/scl/fi/u0tlxss0atbk46rstxm03/mavkit-static-binaries-x86_64.zip?rlkey=butcc098ek0kh4795k6dk52tj&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/th2ngpexjpxtafvhvbzi9/mavkit-static-binaries-x86_64.zip?rlkey=890142kcvza84m4o27avrkrdf&raw=1"
         directory_name=x86_64
         ;;
     aarch64)
