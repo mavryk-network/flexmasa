@@ -5,8 +5,8 @@ open Internal_pervasives
 module Inconsistency_error : sig
   type t =
     [ `Empty_protocol_list
-    | `Too_many_protocols of Tezos_protocol.t list
-    | `Too_many_timestamp_delays of Tezos_protocol.t list ]
+    | `Too_many_protocols of Mavryk_protocol.t list
+    | `Too_many_timestamp_delays of Mavryk_protocol.t list ]
 
   val should_be_one_protocol :
     'a list ->
@@ -24,9 +24,9 @@ module Inconsistency_error : sig
     unit
 end
 
-(** Build {i static} tezos network topologies. *)
+(** Build {i static} mavryk network topologies. *)
 module Topology : sig
-  type node = Tezos_node.t
+  type node = Mavryk_node.t
 
   type _ t = private
     | Mesh : { size : int } -> node list t
@@ -73,9 +73,9 @@ end
 
 (** Start networks from (and manipulate) {!Topology.t} values. *)
 module Network : sig
-  type t = private { nodes : Tezos_node.t list }
+  type t = private { nodes : Mavryk_node.t list }
 
-  val make : Tezos_node.t list -> t
+  val make : Mavryk_node.t list -> t
 
   val start_up :
     ?do_activation:bool ->
@@ -86,15 +86,15 @@ module Network : sig
     ; console : Console.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    client_exec:Tezos_executable.t ->
+    client_exec:Mavryk_executable.t ->
     t ->
     ( unit,
       [> `Empty_protocol_list
       | System_error.t
       | Process_result.Error.t
       | Process_result.Error.t
-      | `Too_many_protocols of Tezos_protocol.t list
-      | `Too_many_timestamp_delays of Tezos_protocol.t list
+      | `Too_many_protocols of Mavryk_protocol.t list
+      | `Too_many_timestamp_delays of Mavryk_protocol.t list
       | `Waiting_for of string * [ `Time_out ] ] )
     Asynchronous_result.t
   (** Start the nodes, bootstrap the client, and (potentially) activate the
@@ -108,7 +108,7 @@ end
 module Unix_port : sig
   type t = int
 
-  val next_port : Tezos_node.t list -> t
+  val next_port : Mavryk_node.t list -> t
   (** [next_port c nl] is the next highest availble rpc_port after comparing the
       current_port [c] and a list of nodes [nl]. *)
 end
@@ -119,27 +119,27 @@ val network_with_protocol :
   ?external_peer_ports:int list ->
   ?base_port:int ->
   ?size:int ->
-  ?protocol:Tezos_protocol.t ->
+  ?protocol:Mavryk_protocol.t ->
   ?nodes_history_mode_edits:
     ([> `Empty_protocol_list
      | System_error.t
      | Process_result.Error.t
      | Process_result.Error.t
-     | `Too_many_protocols of Tezos_protocol.t list
-     | `Too_many_timestamp_delays of Tezos_protocol.t list
+     | `Too_many_protocols of Mavryk_protocol.t list
+     | `Too_many_timestamp_delays of Mavryk_protocol.t list
      | `Waiting_for of string * [ `Time_out ] ]
      as
      'errors)
-    Tezos_node.History_modes.edit ->
+    Mavryk_node.History_modes.edit ->
   < env_config : Environment_configuration.t
   ; paths : Paths.t
   ; console : Console.t
   ; runner : Running_processes.State.t
   ; .. >
   Base_state.t ->
-  node_exec:Tezos_executable.t ->
-  client_exec:Tezos_executable.t ->
-  (Tezos_node.t list * Tezos_protocol.t, 'errors) Asynchronous_result.t
+  node_exec:Mavryk_executable.t ->
+  client_exec:Mavryk_executable.t ->
+  (Mavryk_node.t list * Mavryk_protocol.t, 'errors) Asynchronous_result.t
 (** [network_with_protocol] is a wrapper simply starting-up a {!Topology.mesh}.
     See {!Network.start_up} for details on some arguments. *)
 
@@ -152,7 +152,7 @@ module Queries : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    nodes:Tezos_node.t list ->
+    nodes:Mavryk_node.t list ->
     ( (string * [> `Failed | `Level of int | `Null | `Unknown of string ]) list,
       [> System_error.t ] )
     Asynchronous_result.t
@@ -175,20 +175,20 @@ module Queries : sig
         ([> System_error.t | `Waiting_for of string * [ `Time_out ] ] as 'errors)
       )
       Asynchronous_result.t) ->
-    Tezos_node.t list ->
+    Mavryk_node.t list ->
     [< `At_least of int | `Equal_to of int ] ->
     (unit, 'errors) Asynchronous_result.t
   (** Try-sleep-loop waiting for all given nodes to reach a given level. *)
 
   val run_wait_level :
-    Tezos_protocol.t ->
+    Mavryk_protocol.t ->
     < application_name : string
     ; console : Console.t
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. >
     Base_state.t ->
-    Tezos_node.t List.t ->
+    Mavryk_node.t List.t ->
     [< `At_least of int | `Equal_to of int ] ->
     int ->
     ( unit,
@@ -205,7 +205,7 @@ module Queries : sig
     ; env_config : Environment_configuration.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    nodes:Tezos_node.t list ->
+    nodes:Mavryk_node.t list ->
     ( unit,
       [> System_error.t | `Waiting_for of string * [ `Time_out ] ] )
     Asynchronous_result.t

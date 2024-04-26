@@ -1,7 +1,7 @@
-(** This module wraps the type ['kind t] around the notion of octez-executable:
-    a path to a binary with octez-specific properties. *)
+(** This module wraps the type ['kind t] around the notion of mavkit-executable:
+    a path to a binary with mavkit-specific properties. *)
 
-(** Helper functions to construct exec-style command lines for ["octez-*"]
+(** Helper functions to construct exec-style command lines for ["mavkit-*"]
     applications. *)
 module Make_cli : sig
   val flag : string -> string list
@@ -9,7 +9,7 @@ module Make_cli : sig
   val optf : string -> ('a, unit, string, string list) format4 -> 'a
 end
 
-(** Manipulate the ["TEZOS_EVENTS_CONFIG"] environment variable. *)
+(** Manipulate the ["MAVRYK_EVENTS_CONFIG"] environment variable. *)
 module Unix_files_sink : sig
   type t = private { matches : string list option; level_at_least : string }
 
@@ -35,7 +35,7 @@ type t = private {
   unix_files_sink : Unix_files_sink.t option;
   environment : (string * string) list;
 }
-(** The wrapper of the octez-executable. *)
+(** The wrapper of the mavkit-executable. *)
 
 val make :
   ?binary:string ->
@@ -43,19 +43,19 @@ val make :
   ?environment:(string * string) list ->
   kind ->
   t
-(** Create a ["octez-node"] executable. *)
+(** Create a ["mavkit-node"] executable. *)
 
-val get : ?protocol_kind:Tezos_protocol.Protocol_kind.t -> t -> string
+val get : ?protocol_kind:Mavryk_protocol.Protocol_kind.t -> t -> string
 (** The path to the executable. *)
 
 val call :
   < env_config : Environment_configuration.t ; .. > ->
   t ->
-  ?protocol_kind:Tezos_protocol.Protocol_kind.t ->
+  ?protocol_kind:Mavryk_protocol.Protocol_kind.t ->
   path:string ->
   string list ->
   unit Genspio.EDSL.t
-(** Build a [Genspio.EDSL.t] script to run a tezos command, the [~path] argument
+(** Build a [Genspio.EDSL.t] script to run a mavryk command, the [~path] argument
     is used as a toplevel path for the unix-files event-sink
     (event-logging-framework) and for other local logging files. *)
 
@@ -66,8 +66,8 @@ val cli_term :
   kind ->
   t Cmdliner.Term.t
 (** Build a [Cmdliner] term which creates executables, the second argument is a
-    prefix of option names (e.g. ["tezos"] for the option
-    ["--tezos-accuser-alpha-binary"]). *)
+    prefix of option names (e.g. ["mavryk"] for the option
+    ["--mavryk-accuser-alpha-binary"]). *)
 
 val kind_string : [< kind ] -> string
 (** The name of the executable. *)

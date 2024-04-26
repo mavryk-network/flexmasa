@@ -1,22 +1,22 @@
 open Internal_pervasives
 
-type t = { id : string; port : int; exec : Tezos_executable.t }
+type t = { id : string; port : int; exec : Mavryk_executable.t }
 
 let base_dir t ~state = Paths.root state // sprintf "Admin-client-base-%s" t.id
 
 let of_client ~exec n =
-  let id = sprintf "A-%s" n.Tezos_client.id in
-  let port = n.Tezos_client.port in
+  let id = sprintf "A-%s" n.Mavryk_client.id in
+  let port = n.Mavryk_client.port in
   { id; port; exec }
 
 let of_node ~exec n =
-  let id = sprintf "C-%s" n.Tezos_node.id in
-  let port = n.Tezos_node.rpc_port in
+  let id = sprintf "C-%s" n.Mavryk_node.id in
+  let port = n.Mavryk_node.rpc_port in
   { id; port; exec }
 
 let make_command state t args =
-  let open Tezos_executable.Make_cli in
-  Tezos_executable.call state t.exec
+  let open Mavryk_executable.Make_cli in
+  Mavryk_executable.call state t.exec
     ~path:(base_dir t ~state // "exec-admin")
     (optf "port" "%d" t.port @ opt "base-dir" (base_dir ~state t) @ args)
 

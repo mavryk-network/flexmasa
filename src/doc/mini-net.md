@@ -2,22 +2,22 @@ The mini-net Command
 ====================
 
 Flexmasa ships with the `flexmasa` command-line application; this document deals
-with the `./flexmasa mini-net` sub-command (also available in the Tezos
+with the `./flexmasa mini-net` sub-command (also available in the Mavryk
 [repository](https://tezos.gitlab.io/developer/flexmasa.html) as `tezos-sandbox
 mini-net`).
 
 One can use `./flexmasa mini-net --help` to see all the available options.
 
-Accessing Tezos Software
+Accessing Mavryk Software
 ------------------------
 
-Flexmasa needs to access `octez-node`, `octez-client`, and, depending on the
+Flexmasa needs to access `mavkit-node`, `mavkit-client`, and, depending on the
 options, all the “baker deamons.”
 
 An easy way to let flexmasa find them is to add them to the `PATH`, for instance
-if all the tezos utilities have been build at `/path/to/octez-repo/`:
+if all the tezos utilities have been build at `/path/to/mavkit-repo/`:
 
-    $ export PATH=/path/to/octez-repo/:$PATH
+    $ export PATH=/path/to/mavkit-repo/:$PATH
     $ flexmasa mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2
 
@@ -26,18 +26,18 @@ can be passed with command line options:
 
     $ flexmasa mini  \
                --size 3 --time-between-blocks 8 --number-of-boot 2 \
-               --octez-node /path/to/octez-repo/octez-node \
-               --octez-client /path/to/octez-repo/octez-client \
-               --octez-baker /path/to/octez-repo/octez-baker-alpha \
-               --octez-endorser /path/to/octez-repo/octez-endorser-alpha \
-               --octez-accuser /path/to/octez-repo/octez-accuser-alpha
+               --mavkit-node /path/to/mavkit-repo/mavkit-node \
+               --mavkit-client /path/to/mavkit-repo/mavkit-client \
+               --mavkit-baker /path/to/mavkit-repo/mavkit-baker-alpha \
+               --mavkit-endorser /path/to/mavkit-repo/mavkit-endorser-alpha \
+               --mavkit-accuser /path/to/mavkit-repo/mavkit-accuser-alpha
 
 The above command starts 3 nodes, activates the protocol `alpha` with a
 block-time of 8 seconds (`alpha` is the development protocol of the `master`
 branch; it *mimics* the `mainnet` one), and starts baking daemons for 2
 bootstrap-baker accounts.
 
-* If you are using the docker image, valid `octez-*` executables are already in
+* If you are using the docker image, valid `mavkit-*` executables are already in
   the `$PATH`.
 * The following sections assume you have these figured out (as additional
   arguments or in the `$PATH`).
@@ -67,8 +67,8 @@ to make faster and more reproducible tests for instance).
 
     $ flexmasa mini  \
                --size 1 --number-of-boot 1 --base-port 4000 \
-               --octez-node /path/to/octez-repo/octez-node \
-               --octez-client /path/to/octez-repo/octez-client \
+               --mavkit-node /path/to/mavkit-repo/mavkit-node \
+               --mavkit-client /path/to/mavkit-repo/mavkit-client \
                --no-baking
 
 By typing `help` we see we can use the command `bake` to make new blocks:
@@ -81,7 +81,7 @@ By typing `help` we see we can use the command `bake` to make new blocks:
 ...
 ```
 
-One can also use `octez-client -E http://localhost:4000 bake for ...` from
+One can also use `mavkit-client -E http://localhost:4000 bake for ...` from
 outside the sandbox.
 
 Luckily such a client has already been configured by Flexmasa; type `help-env`
@@ -135,9 +135,9 @@ For instance:
                --number-of-bootstrap-accounts 1 \
                --time-b 5 \
                --until-level 2_000_000 \
-               --octez-baker octez-baker-005-PsBabyM1 \
-               --octez-endor octez-endorser-005-PsBabyM1 \
-               --octez-accus octez-accuser-005-PsBabyM1 \
+               --mavkit-baker mavkit-baker-005-PsBabyM1 \
+               --mavkit-endor mavkit-endorser-005-PsBabyM1 \
+               --mavkit-accus mavkit-accuser-005-PsBabyM1 \
                --protocol-kind Babylon \
                --protocol-hash PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
 
@@ -176,7 +176,7 @@ baking. See the output of the key generation:
 alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 ```
 
-One can use simply `octez-client import secret key the-alice
+One can use simply `mavkit-client import secret key the-alice
 unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq` to interact
 with this account.
 
@@ -237,9 +237,9 @@ rollup](https://tezos.gitlab.io/alpha/smart_rollups.html). For a quick start,
 the command `flexmasa mini-network --smart-rollup` will start the mini-network
 sandbox with a default transaction smart rollup using the
 [tx-kernel](https://gitlab.com/tezos/kernel). A smart-rollup-node in
-**operator** mode will begin progressing the rollup. This assumes the octez
+**operator** mode will begin progressing the rollup. This assumes the mavkit
 binaries are in your `$PATH`. Otherwise, you'll need to pass the option
-`--octez-smart-rollup-node-binary`.
+`--mavkit-smart-rollup-node-binary`.
 
 You can use `/src/scripts/get-tx-client.sh` to get the tx-client binaries. The
 tx-client can be used to interact with the tx-rollup. See its
@@ -254,7 +254,7 @@ $ flexmasa mini-network \
             --smart-rollup \
             --custom-kernel wasm_2_0_0:bytes:path/to/my-kernel.wasm
             --smart-contract path/to/l1_contract.tz
-            --octez-smart-rollup-node /binaries/octez-smart-rollup-node-PtMumbai
+            --mavkit-smart-rollup-node /binaries/mavkit-smart-rollup-node-PtMumbai
 ```
 
 The arguments passed to `--custom-kernel`, `wasm_2_0_0` and `bytes` are the

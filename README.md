@@ -1,4 +1,4 @@
-Flexmasa: Flexible Tezos Sandboxes
+Flexmasa: Flexible Mavryk Sandboxes
 ==================================
 
 This repository contains the Flexmasa library used in
@@ -6,7 +6,7 @@ This repository contains the Flexmasa library used in
 [tests](https://tezos.gitlab.io/developer/flexmasa.html), as well as some extra
 testing utilities, such as the `flexmasa` application, which may be useful to
 the greater community (e.g. to test third party tools against fully functional
-Tezos sandboxes).
+Mavryk sandboxes).
 
 
 <!--TOC-->
@@ -16,7 +16,7 @@ Tezos sandboxes).
 
 The _dev_ image is `registry.gitlab.com/mavryk-network/flexmasa:dev-run`
 
-It is built top of the `flexmasa` executable and Octez suite, for 2
+It is built top of the `flexmasa` executable and Mavkit suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
 also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
@@ -35,7 +35,7 @@ baker advancing the blockchain):
 - `atlasbox`: Atlas protocol
 - `alphabox`: Alpha protocol, the development version of the `N` protocol at the
   time the docker-build was last updated.
-    - See also `docker run "$image" octez-node --version`.
+    - See also `docker run "$image" mavkit-node --version`.
 
 The default `block_time` is 5 seconds.
 
@@ -62,11 +62,11 @@ just calls to `flexmasa mini-net` (see its general
 [documentation](./src/doc/mini-net.md)).
 
 The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
-You can use any client, including the `octez-client` inside the docker
+You can use any client, including the `mavkit-client` inside the docker
 container, which happens to be already configured:
 
 ```default
-$ alias tcli='docker exec my-sandbox octez-client'
+$ alias tcli='docker exec my-sandbox mavkit-client'
 $ tcli get balance for alice
 2000000 ꜩ
 ```
@@ -119,7 +119,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
 
 Notes:
 
-- If you forget `--wait none`, `octez-client` waits for the operation to be
+- If you forget `--wait none`, `mavkit-client` waits for the operation to be
   included, so you will need to `bake` from another terminal.
 - `"$script" bake` is equivalent to `tcli bake for baker0 --minimal-timestamp`.
 
@@ -155,7 +155,7 @@ $ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
 Notes:
 
 - The default cycle length in the sandboxes is 8 blocks and switching protocols
-  before the end of the first cycle is not supported by Octez.
+  before the end of the first cycle is not supported by Mavkit.
 - The `atlasbox` script can also switch to `Alpha` (e.g. `--hard-fork
   16:Alpha:`).
 
@@ -321,12 +321,12 @@ to the container.
 
 The options `--smart-rollup-node-init-with=FLAG|OPTION=VALUE` and
 `--smart-rollup-node-run-with=FLAG|OPTION=VALUE` will allow you to pass
-additional options to the octez-smart-rollup-node binaries `init` and `run`
+additional options to the mavkit-smart-rollup-node binaries `init` and `run`
 command. The example above is equivalent to:
 
 ``` default
-$ octez-smart-rollup-node init --log-kernel-debug
-$ octez-smart-rollup-node run --log-kernel-debug --log-kernel-debug-file=/tmp/my-debug.log 
+$ mavkit-smart-rollup-node init --log-kernel-debug
+$ mavkit-smart-rollup-node run --log-kernel-debug --log-kernel-debug-file=/tmp/my-debug.log 
 ```
 
 You can confirm that the smart-rollup-node has been initialized and see relevant
@@ -352,14 +352,14 @@ $ docker exec my-sandbox "$script" smart_rollup_info
 ```
 
 For convenience, the included script contains the function
-`inticlient` to add smart contract and smart rollup addresses to the octez-client
+`inticlient` to add smart contract and smart rollup addresses to the mavkit-client
 data directory configured.
 
 ``` default
 $ docker exec my-sandbox "$script" initclient
-Tezos address added: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
-Tezos address added: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
-Tezos address added: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
+Mavryk address added: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
+Mavryk address added: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
+Mavryk address added: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
 Added contract my-contract: KT19Z5M5z9jBf1ikYABrbrCw3M2QLQLSV1KA
 Added smart rollup custom: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
 ```
@@ -371,25 +371,25 @@ Flexmasa includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) d
 $ docker run --rm --detach -p 20000:20000 -p 20002:20002 -p 20004:20004 --name my-sandbox \
         "$image" "$script" start_evm_smart_rollup 
 ```
-The published ports `20000`, `20002`and `20004` are for the `octez-node`, `octez-smart-rollup-node` and `octez-evm-node`, respectively. You can use Ethereum's rpc [api](https://ethereum.org/en/developers/docs/apis/json-rpc/) to interact with the `octez-evm-node` at port `20004`. For example, this call returns the Ethereum chain_id:
+The published ports `20000`, `20002`and `20004` are for the `mavkit-node`, `mavkit-smart-rollup-node` and `mavkit-evm-node`, respectively. You can use Ethereum's rpc [api](https://ethereum.org/en/developers/docs/apis/json-rpc/) to interact with the `mavkit-evm-node` at port `20004`. For example, this call returns the Ethereum chain_id:
 
 ``` sh
 $ curl -s -H "Content-Type: application/json" -X POST --data "{\"jsonrpc\":\"2.0\",\"method\":\"net_version\",\"params\":[]}" http://localhost:20004
 {"jsonrpc":"2.0","result":"123123","id":null}
 ```
 
-In addition to the EVM smart-rollup, this sandbox will originate two smart-contracts used for depositing tez to an account in the rollup. Use the 'initclient' function in the included scrips to setup the octez-client (included in the container). 
+In addition to the EVM smart-rollup, this sandbox will originate two smart-contracts used for depositing tez to an account in the rollup. Use the 'initclient' function in the included scrips to setup the mavkit-client (included in the container). 
 
 ``` sh
 $ docker exec my-sandbox "$script" initclient
-Tezos address added: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
-Tezos address added: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
-Tezos address added: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
+Mavryk address added: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
+Mavryk address added: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
+Mavryk address added: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
 Added contract evm-bridge: KT1Vq3vBnCNuds6YwjjcJeqBTaeqgTh52oQy
 Added contract exchanger: KT1D3VK3BQ2rbpufqwacJU97wgQst7NyuST3
 Added smart rollup evm: sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
 
-$ alias tcli='docker exec my-sandbox octez-client'
+$ alias tcli='docker exec my-sandbox mavkit-client'
 
 $ tcli list known contracts
 exchanger: KT1Ty6UAYMwV4bteh8oEM6XdUvXzvsUuk3fX
@@ -429,7 +429,7 @@ $ echo 'ibase=16; 8AC7230489E80000' | bc
 
 The Ethereum rpc api uses units of "wei", which isn't very meaningful in this case. Removing 18 zeros will give you 10 tez.
 
-From here you can connect an Ethereum client to the `octez-evm-node` at the localhost address and port `20004`. You'll also need the Ethereum chain_id or net_version which we fetch in the example above (123123).
+From here you can connect an Ethereum client to the `mavkit-evm-node` at the localhost address and port `20004`. You'll also need the Ethereum chain_id or net_version which we fetch in the example above (123123).
 
 ## Build
 
@@ -468,8 +468,8 @@ export PATH="/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/util-linux/b
 ## Build Of The Docker Image
 
 See `./Dockerfile`, it often requires modifications with each new version of
-Octez or for new protocols, the version of the Octez static binaries (`x86_64`
-and `arm64`) is set in `src/scripts/get-octez-static-binaries.sh`.
+Mavkit or for new protocols, the version of the Mavkit static binaries (`x86_64`
+and `arm64`) is set in `src/scripts/get-mavkit-static-binaries.sh`.
 
 There are 2 images: `-build` (all dependencies) and `-run` (stripped down image
 with only runtime requirements).

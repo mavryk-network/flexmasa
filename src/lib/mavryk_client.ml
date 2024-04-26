@@ -1,18 +1,18 @@
 open Internal_pervasives
 
-type t = { id : string; port : int; exec : Tezos_executable.t }
+type t = { id : string; port : int; exec : Mavryk_executable.t }
 type client = t
 
 let no_node_client ~exec = { id = "C-null"; port = 0; exec }
 
 let of_node ~exec n =
-  let id = sprintf "C-%s" n.Tezos_node.id in
-  let port = n.Tezos_node.rpc_port in
+  let id = sprintf "C-%s" n.Mavryk_node.id in
+  let port = n.Mavryk_node.rpc_port in
   { id; port; exec }
 
 let base_dir t ~state = Paths.root state // sprintf "Client-base-%s" t.id
 
-open Tezos_executable.Make_cli
+open Mavryk_executable.Make_cli
 
 let client_call ?(wait = "none") state t args =
   ("--wait" :: wait :: optf "endpoint" "http://localhost:%d" t.port)
@@ -20,7 +20,7 @@ let client_call ?(wait = "none") state t args =
   @ args
 
 let client_command ?wait state t args =
-  Tezos_executable.call state t.exec
+  Mavryk_executable.call state t.exec
     ~path:(base_dir t ~state // "exec-client")
     (client_call ?wait state t args)
 
@@ -125,7 +125,7 @@ let rpc state ~client meth ~path =
 
 let activate_protocol state client protocol =
   let timestamp =
-    match protocol.Tezos_protocol.timestamp_delay with
+    match protocol.Mavryk_protocol.timestamp_delay with
     | None -> []
     | Some delay -> (
         let now = Ptime_clock.now () in
@@ -135,41 +135,41 @@ let activate_protocol state client protocol =
         | Some x -> [ "--timestamp"; Ptime.to_rfc3339 x ])
   in
   Console.say state
-    EF.(wf "Activating protocol %s" protocol.Tezos_protocol.hash)
+    EF.(wf "Activating protocol %s" protocol.Mavryk_protocol.hash)
   >>= fun () ->
   import_secret_key state client
-    ~name:(Tezos_protocol.dictator_name protocol)
-    ~key:(Tezos_protocol.dictator_secret_key protocol)
+    ~name:(Mavryk_protocol.dictator_name protocol)
+    ~key:(Mavryk_protocol.dictator_secret_key protocol)
   >>= fun () ->
   successful_client_cmd state ~client
     (opt "block" "genesis"
     @ [
         "activate";
         "protocol";
-        protocol.Tezos_protocol.hash;
+        protocol.Mavryk_protocol.hash;
         "with";
         "fitness";
-        sprintf "%d" protocol.Tezos_protocol.expected_pow;
+        sprintf "%d" protocol.Mavryk_protocol.expected_pow;
         "and";
         "key";
-        Tezos_protocol.dictator_name protocol;
+        Mavryk_protocol.dictator_name protocol;
         "and";
         "parameters";
-        Tezos_protocol.protocol_parameters_path state protocol;
+        Mavryk_protocol.protocol_parameters_path state protocol;
       ]
     @ timestamp)
   >>= fun _ ->
   rpc state ~client `Get ~path:"/chains/main/blocks/head/metadata"
   >>= fun metadata_json ->
   (match Jqo.field metadata_json ~k:"next_protocol" with
-  | `String hash when String.equal hash protocol.Tezos_protocol.hash ->
+  | `String hash when String.equal hash protocol.Mavryk_protocol.hash ->
       return ()
   | exception e ->
       System_error.fail_fatalf "Error getting protocol metadata: %a" Exn.pp e
   | other_value ->
       System_error.fail_fatalf "Error activating protocol: %s Vs %s"
         (Ezjsonm.value_to_string other_value)
-        protocol.Tezos_protocol.hash)
+        protocol.Mavryk_protocol.hash)
   >>= fun () -> return ()
 
 let find_applied_in_mempool state ~client ~f =
@@ -270,7 +270,7 @@ let parse_account ~name ~lines =
     prefix_from_list ~prefix:"Public Key:" lines >>= fun pubkey ->
     prefix_from_list ~prefix:"Secret Key:" lines >>= fun private_key ->
     return
-      (Tezos_protocol.Account.key_pair name ~pubkey ~pubkey_hash ~private_key))
+      (Mavryk_protocol.Account.key_pair name ~pubkey ~pubkey_hash ~private_key))
 
 let get_account state ~client ~name =
   successful_client_cmd state ~client
@@ -474,7 +474,7 @@ module Ledger = struct
         | Some (alias, _) -> alias
       in
       return
-        (Tezos_protocol.Account.key_pair name ~pubkey ~pubkey_hash
+        (Mavryk_protocol.Account.key_pair name ~pubkey ~pubkey_hash
            ~private_key:uri)
     with e ->
       failf "Couldn't understand result of 'show ledger %S': error %S: from %S"
@@ -629,7 +629,7 @@ module Keyed = struct
     | None ->
         System_error.fail_fatalf "counter_from_chain - failed to parse account."
     | Some a ->
-        let src = Tezos_protocol.Account.pubkey_hash a in
+        let src = Mavryk_protocol.Account.pubkey_hash a in
         rpc state ~client:keyed_client.client `Get
           ~path:
             (Fmt.str "/chains/main/blocks/head/context/contracts/%s/counter" src)
@@ -646,7 +646,7 @@ module Keyed = struct
     rpc state ~client:client.client `Get
       ~path:"/chains/main/mempool/pending_operations"
     >>= fun json ->
-    let pubkey_hash = Tezos_protocol.Key.Of_name.pubkey_hash client.key_name in
+    let pubkey_hash = Mavryk_protocol.Key.Of_name.pubkey_hash client.key_name in
     let new_counter =
       try find_mempool_counter_exn json pubkey_hash with _ -> current_counter
     in

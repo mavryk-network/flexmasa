@@ -5,7 +5,7 @@ module Small_utilities = struct
     let open Cmdliner in
     let open Term in
     ( (pure (fun n ->
-           let open Flexmasa.Tezos_protocol.Account in
+           let open Flexmasa.Mavryk_protocol.Account in
            let account = of_name n in
            Stdlib.Printf.printf "%s,%s,%s,%s\n%!" (name account)
              (pubkey account) (pubkey_hash account) (private_key account))

@@ -15,7 +15,7 @@ module Key = struct
       let sk = Crypto.Secret_key.of_seed name in
       let pk = Crypto.Public_key.of_secret_key sk in
       let pkh = Crypto.Public_key_hash.of_public_key pk in
-      (* let pkh, pk, sk = Tezos_crypto.Ed25519.generate_key ~seed () in *)
+      (* let pkh, pk, sk = Mavryk_crypto.Ed25519.generate_key ~seed () in *)
       { (* name;  *) pkh; pk; sk }
 
     let pubkey n = Crypto.Public_key.to_base58 (make n).pk
@@ -154,7 +154,7 @@ let default () =
 let protocol_parameters_json t : Ezjsonm.t =
   (* Note on advancing the protocol parameters.
 
-     Get the values form the /tezos/tezos gitlab repo:
+     Get the values form the /mavryk/mavryk gitlab repo:
      /src/proto_<proto>/lib_parameters/default_parameters.ml
      (The 'constants_sandbox' value is a good guide.)
 
@@ -237,11 +237,11 @@ let protocol_parameters_json t : Ezjsonm.t =
           let base =
             let dal_activation_level =
               int32 Int32.(pred max_value)
-              (* from octez/src/proto_001_PtAtLas/lib_parameters/default_parameters.ml *)
+              (* from mavkit/src/proto_001_PtAtLas/lib_parameters/default_parameters.ml *)
               (* if default_dal.feature_enable then Raw_level.root *)
               (* else *)
               (*   (\* Deactivate the reveal if the dal is not enabled. *\) *)
-              (*   (\* https://gitlab.com/tezos/tezos/-/issues/5968 *)
+              (*   (\* https://gitlab.com/mavryk/mavryk/-/issues/5968 *)
               (*      Encoding error with Raw_level *)
 
               (*      We set the activation level to [pred max_int] to deactivate *)

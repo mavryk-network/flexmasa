@@ -23,11 +23,11 @@ fi
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/scl/fi/34pq9ty60l7bjf2pwypsu/octez-static-binaries-x86_64.zip?rlkey=ydl9hm356vyh3cnb7iywx9vvp&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/u0tlxss0atbk46rstxm03/mavkit-static-binaries-x86_64.zip?rlkey=butcc098ek0kh4795k6dk52tj&raw=1"
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/scl/fi/vh0gcwj3bygwkt0ccc2fe/octez-static-binaries-arm64.zip?rlkey=tyevb69px2aun8pm3tu4x3ukm&dl=0&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/vh0gcwj3bygwkt0ccc2fe/mavkit-static-binaries-arm64.zip?rlkey=tyevb69px2aun8pm3tu4x3ukm&dl=0&raw=1"
         directory_name=arm64
         ;;
     *)
@@ -40,7 +40,7 @@ esac
     curl -L "$download_uri" -o "$dest_dir/bins.zip" --http1.1
     cd "$dest_dir"
     unzip bins.zip
-    mv octez-binaries/$directory_name/* .
-    rm -fr bins.zip octez-binaries/
-    chmod a+rx octez-*
+    mv mavkit-binaries/$directory_name/* .
+    rm -fr bins.zip mavkit-binaries/
+    chmod a+rx mavkit-*
 )

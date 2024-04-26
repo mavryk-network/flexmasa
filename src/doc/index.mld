@@ -3,7 +3,7 @@
 
 See the toplevel module {!Flexmasa}.
 
-See also “Tezos Alternate Implementation” miniature libraries:
+See also “Mavryk Alternate Implementation” miniature libraries:
 
 - {!Mavai_base58_digest}
 - {!Mavai_mv1_crypto}

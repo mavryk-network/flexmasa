@@ -10,8 +10,8 @@
 
 (package
  (name mavai-mv1-crypto)
- (synopsis "Tezos Ed25519 Accounts Based on Mirage-Crypto")
- (description "Tezos Ed25519 Accounts Based on Mirage-Crypto.")
+ (synopsis "Mavryk Ed25519 Accounts Based on Mirage-Crypto")
+ (description "Mavryk Ed25519 Accounts Based on Mirage-Crypto.")
  (version 0.2)
  (depends
    "mavai-base58-digest"
@@ -24,8 +24,8 @@
 
 (package
  (name flexmasa)
- (synopsis "Flexible Tezos Sandboxes: A library to define sandboxed Tezos networks")
- (description "Flexible Tezos Sandboxes: A library to define sandboxed Tezos networks.")
+ (synopsis "Flexible Mavryk Sandboxes: A library to define sandboxed Mavryk networks")
+ (description "Flexible Mavryk Sandboxes: A library to define sandboxed Mavryk networks.")
  (depends
   (dune (> 2.8))
   ("genspio" (= "0.0.2"))

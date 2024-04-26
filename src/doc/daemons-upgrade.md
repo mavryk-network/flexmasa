@@ -6,43 +6,43 @@ with the `./flexmasa daemons-upgrade` sub-command.
 
 One can use `./flexmasa daemons-upgrade --help` to see all the available options.
 
-Accessing Tezos Software
+Accessing Mavryk Software
 -------------------------------------------------------------------------------
 
-Flexstesa needs access to the Tezos software. In particular, the
-`daemons-upgrade` command requires the baker daemons, (`octez-baker-PtKathma`,
-`octez-baker-PtLimaPt`, `octez-baker-alpha`) depending on which protocol
+Flexstesa needs access to the Mavryk software. In particular, the
+`daemons-upgrade` command requires the baker daemons, (`mavkit-baker-PtKathma`,
+`mavkit-baker-PtLimaPt`, `mavkit-baker-alpha`) depending on which protocol
 upgrade is being tested.
 
 An easy way to let Flexmasa find them is to add them to the `PATH`. For instance,
-if all the Tezos utilities have been build at `/path/to/octez-repo/`:
+if all the Mavryk utilities have been build at `/path/to/mavkit-repo/`:
 
 ```
-    $ export PATH=/path/to/octez-repo/:$PATH
+    $ export PATH=/path/to/mavkit-repo/:$PATH
     $ flexmasa daemons-upgrade \
         --protocol-kind Kathmandu \
         --next-protocol-kind Lima \
-        --second-baker octez-baker-PtLimaPt
+        --second-baker mavkit-baker-PtLimaPt
 ```
 
 Note: Flexmasa will infer the executables needed based on the value passed to
 `--protocol-kind`. However, the option `--second-baker` is required to provide
 the baker executable for the next (upgrade) protocol.
 
-As an alternative to adding the Tezos software to `PATH`, all  the executable
+As an alternative to adding the Mavryk software to `PATH`, all  the executable
 paths can be passed with command line options:
 
 ```
     $ flexmasa daemons-upgrade  \
         --protocol-kind Kathmandu --next-protocol-kind Lima \
-        --octez-node /path/to/octez-repo/octez-node \
-        --octez-client /path/to/octez-repo/octez-client \
-        --first-accuser /path/to/octez-repo/octez-accuser-PtKathma \
-        --first-endorser /path/to/octez-repo/octez-endorser-PtKathma \
-        --first-baker /path/to/octez-repo/octez-baker-PtKathma \
-        --second-accuser /path/to/octez-repo/octez-accuser-PtKathma \
-        --second-endorser /path/to/octez-repo/octez-endorser-PtKathma \
-        --second-baker /path/to/octez-repo/octez-baker-PtLimaPt
+        --mavkit-node /path/to/mavkit-repo/mavkit-node \
+        --mavkit-client /path/to/mavkit-repo/mavkit-client \
+        --first-accuser /path/to/mavkit-repo/mavkit-accuser-PtKathma \
+        --first-endorser /path/to/mavkit-repo/mavkit-endorser-PtKathma \
+        --first-baker /path/to/mavkit-repo/mavkit-baker-PtKathma \
+        --second-accuser /path/to/mavkit-repo/mavkit-accuser-PtKathma \
+        --second-endorser /path/to/mavkit-repo/mavkit-endorser-PtKathma \
+        --second-baker /path/to/mavkit-repo/mavkit-baker-PtLimaPt
 ```
 
 Both examples above, activate the protocol `Kathmandu`, and propose the `Lima`
@@ -50,7 +50,7 @@ upgrade. The sandbox network will do a full voting round followed by a protocol
 change. Finally, Flexmasa will kill all processes once the daemon-upgrade test
 is complete.
 
-* If you are using the docker image, valid `octez-*` executables are already in
+* If you are using the docker image, valid `mavkit-*` executables are already in
   the `$PATH`.
 
 ### Example:
@@ -63,7 +63,7 @@ is complete.
         --until-level 2_000_000 \
         --time-between-blocks 5 \
         --next-protocol-kind Alpha \
-        --second-baker octez-baker-alpha \
+        --second-baker mavkit-baker-alpha \
         --blocks-per-voting-period 14 \
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
@@ -102,7 +102,7 @@ Interactivity
 ```
     $ flexmasa daemons-upgrade \
         --protocol-kind Lima --next-protocol Alpha \
-        --second-baker octez-baker-PtLimaPt \
+        --second-baker mavkit-baker-PtLimaPt \
         --interactive true
 ```
 
@@ -123,7 +123,7 @@ For example:
 ```
     $ flexmasa daemons-upgrade \
         --protocol-kind Lima --next-protocol Alpha \
-        --second-baker octez-baker-aphla \
+        --second-baker mavkit-baker-aphla \
         --pause-at-end true \
         --until-level 200
 ```

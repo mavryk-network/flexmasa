@@ -14,7 +14,7 @@ let wait_for_voting_period ?level_within_period state ~protocol ~client
         | _ -> false)
     | _ -> false
   in
-  let period_name = Tezos_protocol.voting_period_to_string protocol period in
+  let period_name = Mavryk_protocol.voting_period_to_string protocol period in
   let message =
     sprintf "Waiting for voting period: `%s`%s" period_name
       (Option.value_map level_within_period ~default:""
@@ -25,7 +25,7 @@ let wait_for_voting_period ?level_within_period state ~protocol ~client
     ~seconds:(fun () -> return 10.)
     (fun nth ->
       Asynchronous_result.map_option level_within_period ~f:(fun lvl ->
-          Tezos_client.rpc state ~client `Get
+          Mavryk_client.rpc state ~client `Get
             ~path:"/chains/main/blocks/head/metadata"
           >>= fun json ->
           try
@@ -38,7 +38,7 @@ let wait_for_voting_period ?level_within_period state ~protocol ~client
             failf "Cannot get level.voting_period_position: %s"
               (Exn.to_string e))
       >>= fun lvl_ok ->
-      Tezos_client.rpc state ~client `Get
+      Mavryk_client.rpc state ~client `Get
         ~path:"/chains/main/blocks/head/votes/current_period"
       >>= function
       | `O voting_period
@@ -47,7 +47,7 @@ let wait_for_voting_period ?level_within_period state ~protocol ~client
              && Poly.(lvl_ok = None || lvl_ok = Some true) ->
           return (`Done (nth - 1))
       | _ ->
-          Tezos_client.successful_client_cmd state ~client
+          Mavryk_client.successful_client_cmd state ~client
             [ "show"; "voting"; "period" ]
           >>= fun res ->
           Console.say state
@@ -65,14 +65,14 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     ~adaptive_issuance_second_baker test_variant wait_level () =
   Helpers.clear_root state >>= fun () ->
   Helpers.System_dependencies.precheck state `Or_fail
-    ~protocol_kind:protocol.Tezos_protocol.kind
+    ~protocol_kind:protocol.Mavryk_protocol.kind
     ~executables:
       ([ node_exec; client_exec ]
       @
       if state#test_baking then
         if
-          Tezos_protocol.Protocol_kind.wants_endorser_daemon
-            protocol.Tezos_protocol.kind
+          Mavryk_protocol.Protocol_kind.wants_endorser_daemon
+            protocol.Mavryk_protocol.kind
         then
           [
             first_baker_exec;
@@ -96,30 +96,30 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
   >>= fun (nodes, protocol) ->
   let accusers =
     List.concat_map nodes ~f:(fun node ->
-        let client = Tezos_client.of_node node ~exec:client_exec in
+        let client = Mavryk_client.of_node node ~exec:client_exec in
         [
-          Tezos_daemon.accuser_of_node ~protocol_kind:protocol.kind
+          Mavryk_daemon.accuser_of_node ~protocol_kind:protocol.kind
             ~exec:first_accuser_exec ~client node ~name_tag:"first";
-          Tezos_daemon.accuser_of_node ~protocol_kind:protocol.kind
+          Mavryk_daemon.accuser_of_node ~protocol_kind:protocol.kind
             ~exec:second_accuser_exec ~client node ~name_tag:"second";
         ])
   in
   List_sequential.iter accusers ~f:(fun acc ->
-      Running_processes.start state (Tezos_daemon.process state acc)
+      Running_processes.start state (Mavryk_daemon.process state acc)
       >>= fun _ -> return ())
   >>= fun () ->
   let keys_and_daemons =
     let pick_a_node_and_client idx =
       match List.nth nodes ((1 + idx) % List.length nodes) with
-      | Some node -> (node, Tezos_client.of_node node ~exec:client_exec)
+      | Some node -> (node, Mavryk_client.of_node node ~exec:client_exec)
       | None -> assert false
     in
-    Tezos_protocol.bootstrap_accounts protocol
+    Mavryk_protocol.bootstrap_accounts protocol
     |> List.filter_mapi ~f:(fun idx acc ->
            let node, client = pick_a_node_and_client idx in
-           let key = Tezos_protocol.Account.name acc in
+           let key = Mavryk_protocol.Account.name acc in
            let if_proto_wants protokind f =
-             if Tezos_protocol.Protocol_kind.wants_endorser_daemon protokind
+             if Mavryk_protocol.Protocol_kind.wants_endorser_daemon protokind
              then [ f () ]
              else []
            in
@@ -129,68 +129,68 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
                ( acc,
                  client,
                  [
-                   Tezos_daemon.baker_of_node ~protocol_kind:protocol.kind
+                   Mavryk_daemon.baker_of_node ~protocol_kind:protocol.kind
                      ~exec:first_baker_exec ~client node ~key
                      ~name_tag:
-                       (Tezos_protocol.Protocol_kind.daemon_suffix_exn
+                       (Mavryk_protocol.Protocol_kind.daemon_suffix_exn
                           protocol.kind)
                      ~adaptive_issuance:adaptive_issuance_first_baker;
-                   Tezos_daemon.baker_of_node ~protocol_kind:next_protocol_kind
+                   Mavryk_daemon.baker_of_node ~protocol_kind:next_protocol_kind
                      ~exec:second_baker_exec ~client
                      ~name_tag:
-                       (Tezos_protocol.Protocol_kind.daemon_suffix_exn
+                       (Mavryk_protocol.Protocol_kind.daemon_suffix_exn
                           next_protocol_kind)
                      node ~key ~adaptive_issuance:adaptive_issuance_second_baker;
                  ]
                  @ if_proto_wants protocol.kind (fun () ->
-                       Tezos_daemon.endorser_of_node
+                       Mavryk_daemon.endorser_of_node
                          ~protocol_kind:protocol.kind ~exec:first_endorser_exec
                          ~name_tag:"first" ~client node ~key)
                  @ if_proto_wants next_protocol_kind (fun () ->
-                       Tezos_daemon.endorser_of_node
+                       Mavryk_daemon.endorser_of_node
                          ~protocol_kind:next_protocol_kind
                          ~exec:second_endorser_exec ~name_tag:"second" ~client
                          node ~key) ))
   in
   List_sequential.iter keys_and_daemons ~f:(fun (acc, client, daemons) ->
-      Tezos_client.wait_for_node_bootstrap state client >>= fun () ->
-      let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
-      Tezos_client.import_secret_key state client ~name:key ~key:priv
+      Mavryk_client.wait_for_node_bootstrap state client >>= fun () ->
+      let key, priv = Mavryk_protocol.Account.(name acc, private_key acc) in
+      Mavryk_client.import_secret_key state client ~name:key ~key:priv
       >>= fun () ->
       say state
         EF.(
           desc_list
             (haf "Registration-as-delegate:")
             [
-              desc (af "Client:") (af "%S" client.Tezos_client.id);
+              desc (af "Client:") (af "%S" client.Mavryk_client.id);
               desc (af "Key:") (af "%S" key);
             ])
       >>= fun () ->
-      Tezos_client.register_as_delegate state client ~key_name:key >>= fun () ->
+      Mavryk_client.register_as_delegate state client ~key_name:key >>= fun () ->
       say state
         EF.(
           desc_list (haf "Starting daemons:")
             [
-              desc (af "Client:") (af "%S" client.Tezos_client.id);
+              desc (af "Client:") (af "%S" client.Mavryk_client.id);
               desc (af "Key:") (af "%S" key);
             ])
       >>= fun () ->
       List_sequential.iter daemons ~f:(fun daemon ->
-          Running_processes.start state (Tezos_daemon.process state daemon)
+          Running_processes.start state (Mavryk_daemon.process state daemon)
           >>= fun _ -> return ()))
   >>= fun () ->
   let client_0 =
-    Tezos_client.of_node (List.nth_exn nodes 0) ~exec:client_exec
+    Mavryk_client.of_node (List.nth_exn nodes 0) ~exec:client_exec
   in
-  let make_admin = Tezos_admin_client.of_client ~exec:admin_exec in
+  let make_admin = Mavryk_admin_client.of_client ~exec:admin_exec in
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.(
       all_defaults state ~nodes
       @ [ secret_keys state ~protocol ]
       @ arbitrary_commands_for_each_and_all_clients state ~make_admin
-          ~clients:(List.map nodes ~f:(Tezos_client.of_node ~exec:client_exec)));
+          ~clients:(List.map nodes ~f:(Mavryk_client.of_node ~exec:client_exec)));
   (* Flexmasa sandbox tests assume the node already knows about the protocol. We skip protocol injection. *)
-  return (Some Tezos_protocol.Protocol_kind.(canonical_hash next_protocol_kind))
+  return (Some Mavryk_protocol.Protocol_kind.(canonical_hash next_protocol_kind))
   >>= fun prot_opt ->
   (match prot_opt with
   | Some s -> return s
@@ -202,7 +202,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     nodes
     (* TODO: wait for /chains/main/blocks/head/votes/listings to be
        non-empty instead of counting blocks *)
-    (`At_least protocol.Tezos_protocol.blocks_per_voting_period)
+    (`At_least protocol.Mavryk_protocol.blocks_per_voting_period)
   >>= fun () ->
   Interactive_test.Pauser.generic state
     EF.
@@ -215,12 +215,12 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     ~attempts:waiting_attempts `Proposal ~level_within_period:3
   >>= fun _ ->
   let submit_prop acc client hash =
-    Tezos_client.successful_client_cmd state ~client
+    Mavryk_client.successful_client_cmd state ~client
       [
         "submit";
         "proposals";
         "for";
-        Tezos_protocol.Account.name acc;
+        Mavryk_protocol.Account.name acc;
         hash;
         "--force";
       ]
@@ -228,7 +228,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     Console.sayf state
       Fmt.(
         fun ppf () ->
-          pf ppf "%s voted for %s" (Tezos_protocol.Account.name acc) hash)
+          pf ppf "%s voted for %s" (Mavryk_protocol.Account.name acc) hash)
   in
   List_sequential.iter keys_and_daemons ~f:(fun (acc, client, _) ->
       submit_prop acc client new_protocol_hash)
@@ -264,12 +264,12 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     ~attempts:waiting_attempts `Exploration
   >>= fun _ ->
   List_sequential.iter keys_and_daemons ~f:(fun (acc, client, _) ->
-      Tezos_client.successful_client_cmd state ~client
+      Mavryk_client.successful_client_cmd state ~client
         [
           "submit";
           "ballot";
           "for";
-          Tezos_protocol.Account.name acc;
+          Mavryk_protocol.Account.name acc;
           new_protocol_hash;
           "yea";
         ]
@@ -278,7 +278,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
         Fmt.(
           fun ppf () ->
             pf ppf "%s voted Yea to test %s"
-              (Tezos_protocol.Account.name acc)
+              (Mavryk_protocol.Account.name acc)
               new_protocol_hash))
   >>= fun () ->
   wait_for_voting_period state ~protocol ~client:client_0
@@ -290,12 +290,12 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
     | `Nay_for_promotion -> false
   in
   List_sequential.iter keys_and_daemons ~f:(fun (acc, client, _) ->
-      Tezos_client.successful_client_cmd state ~client
+      Mavryk_client.successful_client_cmd state ~client
         [
           "submit";
           "ballot";
           "for";
-          Tezos_protocol.Account.name acc;
+          Mavryk_protocol.Account.name acc;
           new_protocol_hash;
           (if protocol_switch_will_happen then "yea" else "nay");
         ]
@@ -304,25 +304,25 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
         Fmt.(
           fun ppf () ->
             pf ppf "%s voted Yea to promote %s"
-              (Tezos_protocol.Account.name acc)
+              (Mavryk_protocol.Account.name acc)
               new_protocol_hash))
   >>= fun () ->
   wait_for_voting_period state ~protocol ~client:client_0
     ~attempts:waiting_attempts `Proposal
   >>= fun _ ->
-  Tezos_client.successful_client_cmd state ~client:client_0
+  Mavryk_client.successful_client_cmd state ~client:client_0
     [ "show"; "voting"; "period" ]
   >>= fun res ->
   let protocol_to_wait_for =
     if protocol_switch_will_happen then new_protocol_hash
-    else protocol.Tezos_protocol.hash
+    else protocol.Mavryk_protocol.hash
   in
   Helpers.wait_for state ~attempts:waiting_attempts
     ~seconds:(fun () -> return 4.)
     (fun _ ->
       Console.say state EF.(wf "Checking actual protocol transition")
       >>= fun () ->
-      Tezos_client.rpc state ~client:client_0 `Get
+      Mavryk_client.rpc state ~client:client_0 `Get
         ~path:"/chains/main/blocks/head/metadata"
       >>= fun json ->
       (try Jqo.field ~k:"protocol" json |> Jqo.get_string |> return
@@ -432,20 +432,20 @@ let cmd () =
             (opt_all string []
                (info [ "no-daemons-for" ] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
-    $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node ~prefix:"octez"
-    $ Tezos_executable.cli_term base_state `Client ~prefix:"octez"
-    $ Tezos_executable.cli_term base_state `Admin ~prefix:"octez"
-    $ Tezos_executable.cli_term base_state `Baker ~prefix:"first"
-    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"first"
-    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"first"
-    $ Tezos_executable.cli_term base_state `Baker ~prefix:"second"
-    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"second"
-    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"second"
+    $ Mavryk_protocol.cli_term base_state
+    $ Mavryk_executable.cli_term base_state `Node ~prefix:"mavkit"
+    $ Mavryk_executable.cli_term base_state `Client ~prefix:"mavkit"
+    $ Mavryk_executable.cli_term base_state `Admin ~prefix:"mavkit"
+    $ Mavryk_executable.cli_term base_state `Baker ~prefix:"first"
+    $ Mavryk_executable.cli_term base_state `Endorser ~prefix:"first"
+    $ Mavryk_executable.cli_term base_state `Accuser ~prefix:"first"
+    $ Mavryk_executable.cli_term base_state `Baker ~prefix:"second"
+    $ Mavryk_executable.cli_term base_state `Endorser ~prefix:"second"
+    $ Mavryk_executable.cli_term base_state `Accuser ~prefix:"second"
     $ Arg.(
         const (fun p -> `Next_protocol p)
         $ value
-            Tezos_protocol.Protocol_kind.(
+            Mavryk_protocol.Protocol_kind.(
               opt (enum names) default
                 (info [ "next-protocol-kind" ] ~docs
                    ~doc:"The protocol to be injected.")))

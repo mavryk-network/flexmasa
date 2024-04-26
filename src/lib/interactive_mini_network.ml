@@ -8,11 +8,11 @@ module Genesis_block_hash = struct
   let to_json _state genesis =
     Ezjsonm.dict [ ("genesis-block-hash", `String genesis) ]
 
-  (** See implementation of {!Tezos_node}, this corresponds to the Chain-id
+  (** See implementation of {!Mavryk_node}, this corresponds to the Chain-id
       ["NetXKMbjQL2SBox"] *)
   let default = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf"
 
-  let of_protocol_kind : Tezos_protocol.Protocol_kind.t -> string =
+  let of_protocol_kind : Mavryk_protocol.Protocol_kind.t -> string =
     (*
       $ flexmasa van --first --seed atlasbox- --attempts 100_000_000  Box1
      Flexmasa.vanity-chain-id:  Looking for "Box1"
@@ -172,7 +172,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   else Console.say state EF.(wf "Keeping root: `%s`" (Paths.root state)))
   >>= fun () ->
   Genesis_block_hash.process_choice state
-    ~protocol_kind:protocol.Tezos_protocol.kind genesis_block_choice
+    ~protocol_kind:protocol.Mavryk_protocol.kind genesis_block_choice
   >>= fun genesis_block_hash ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~protocol_kind:protocol.kind
@@ -180,8 +180,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       ([ node_exec; client_exec ]
       @ (if state#test_baking then
          if
-           Tezos_protocol.Protocol_kind.wants_endorser_daemon
-             protocol.Tezos_protocol.kind
+           Mavryk_protocol.Protocol_kind.wants_endorser_daemon
+             protocol.Mavryk_protocol.kind
          then [ baker_exec; endorser_exec; accuser_exec ]
          else [ baker_exec; accuser_exec ]
         else [])
@@ -191,7 +191,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Console.say state EF.(wf "Starting up the network.") >>= fun () ->
   let node_custom_network =
     let base =
-      Tezos_node.Config_file.network ~genesis_hash:genesis_block_hash ()
+      Mavryk_node.Config_file.network ~genesis_hash:genesis_block_hash ()
     in
     `Json
       (Ezjsonm.dict
@@ -205,22 +205,22 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.") >>= fun () ->
   let to_keyed acc client =
-    let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
+    let key, priv = Mavryk_protocol.Account.(name acc, private_key acc) in
     let keyed_client =
-      Tezos_client.Keyed.make client ~key_name:key ~secret_key:priv
+      Mavryk_client.Keyed.make client ~key_name:key ~secret_key:priv
     in
     keyed_client
   in
   let keys_and_daemons =
     let pick_a_node_and_client idx =
       match List.nth nodes (Int.rem (1 + idx) (List.length nodes)) with
-      | Some node -> (node, Tezos_client.of_node node ~exec:client_exec)
+      | Some node -> (node, Mavryk_client.of_node node ~exec:client_exec)
       | None -> assert false
     in
-    Tezos_protocol.bootstrap_accounts protocol
+    Mavryk_protocol.bootstrap_accounts protocol
     |> List.filter_mapi ~f:(fun idx acc ->
            let node, client = pick_a_node_and_client idx in
-           let key = Tezos_protocol.Account.name acc in
+           let key = Mavryk_protocol.Account.name acc in
            if List.mem ~equal:String.equal no_daemons_for key then None
            else
              Some
@@ -233,14 +233,14 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                      (Hard_fork.keyed_daemons ~client ~node ~key
                         ~adaptive_issuance)
                  @ [
-                     Tezos_daemon.baker_of_node ~exec:baker_exec ~client node
+                     Mavryk_daemon.baker_of_node ~exec:baker_exec ~client node
                        ~key ~adaptive_issuance ~protocol_kind:protocol.kind;
-                     Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
+                     Mavryk_daemon.endorser_of_node ~exec:endorser_exec ~client
                        ~protocol_kind:protocol.kind node ~key;
                    ] ))
   in
   List_sequential.iter keys_and_daemons ~f:(fun (_, _, _, kc, _) ->
-      Tezos_client.Keyed.initialize state kc >>= fun _ -> return ())
+      Mavryk_client.Keyed.initialize state kc >>= fun _ -> return ())
   >>= fun () ->
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.
@@ -252,44 +252,44 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   (if state#test_baking then
    let accusers =
      List.map nodes ~f:(fun node ->
-         let client = Tezos_client.of_node node ~exec:client_exec in
-         Tezos_daemon.accuser_of_node ~exec:accuser_exec
+         let client = Mavryk_client.of_node node ~exec:client_exec in
+         Mavryk_daemon.accuser_of_node ~exec:accuser_exec
            ~protocol_kind:protocol.kind ~client node)
    in
    List_sequential.iter accusers ~f:(fun acc ->
-       Running_processes.start state (Tezos_daemon.process state acc)
+       Running_processes.start state (Mavryk_daemon.process state acc)
        >>= fun { process = _; lwt = _ } -> return ())
    >>= fun () ->
    List_sequential.iter keys_and_daemons
      ~f:(fun (_node, _acc, client, kc, daemons) ->
-       Tezos_client.wait_for_node_bootstrap state client >>= fun () ->
-       let key_name = kc.Tezos_client.Keyed.key_name in
+       Mavryk_client.wait_for_node_bootstrap state client >>= fun () ->
+       let key_name = kc.Mavryk_client.Keyed.key_name in
        say state
          EF.(
            desc_list
              (haf "Registration-as-delegate:")
              [
-               desc (af "Client:") (af "%S" client.Tezos_client.id);
+               desc (af "Client:") (af "%S" client.Mavryk_client.id);
                desc (af "Key:") (af "%S" key_name);
              ])
        >>= fun () ->
-       Tezos_client.register_as_delegate state client ~key_name >>= fun () ->
+       Mavryk_client.register_as_delegate state client ~key_name >>= fun () ->
        say state
          EF.(
            desc_list (haf "Starting daemons:")
              [
-               desc (af "Client:") (af "%S" client.Tezos_client.id);
+               desc (af "Client:") (af "%S" client.Mavryk_client.id);
                desc (af "Key:") (af "%S" key_name);
              ])
        >>= fun () ->
        List_sequential.iter daemons ~f:(fun daemon ->
-           Running_processes.start state (Tezos_daemon.process state daemon)
+           Running_processes.start state (Mavryk_daemon.process state daemon)
            >>= fun { process = _; lwt = _ } -> return ()))
   else
     List.fold ~init:(return []) keys_and_daemons
       ~f:(fun prev_m (_node, _acc, client, keyed, _) ->
         prev_m >>= fun prev ->
-        Tezos_client.wait_for_node_bootstrap state client >>= fun () ->
+        Mavryk_client.wait_for_node_bootstrap state client >>= fun () ->
         return (keyed :: prev))
     >>= fun clients ->
     Interactive_test.Pauser.add_commands state
@@ -459,15 +459,15 @@ let cmd () =
             (opt_all string []
                (info [ "no-daemons-for" ] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
-    $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Client ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Baker ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"tezos"
+    $ Mavryk_protocol.cli_term base_state
+    $ Mavryk_executable.cli_term base_state `Node ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Client ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Baker ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Endorser ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Accuser ~prefix:"mavryk"
     $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Genesis_block_hash.Choice.cmdliner_term ()
-    $ Tezos_node.History_modes.cmdliner_term base_state
+    $ Mavryk_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
     $ Smart_contract.cmdliner_term base_state ()

@@ -3,7 +3,7 @@ open Console
 
 let dump_connection =
   let open EF in
-  let open Tezos_node in
+  let open Mavryk_node in
   function
   | `Duplex (na, nb) -> af "%s:%d <-> %s:%d" na.id na.p2p_port nb.id nb.p2p_port
   | `From_to (na, nb) ->
@@ -12,7 +12,7 @@ let dump_connection =
       ksprintf shout "%s:%d --> ???:%d" na.id na.p2p_port int
 
 let dump_connections state nodes =
-  let conns = Tezos_node.connections nodes in
+  let conns = Mavryk_node.connections nodes in
   say state
     (let open EF in
     desc_list (haf "Connections:") (List.map conns ~f:dump_connection))
@@ -50,20 +50,20 @@ let wait_for ?(attempts_factor = 0.) ?(silent = false) state ~attempts ~seconds
 
 let kill_node state nod =
   Running_processes.find_process_by_id ~only_running:true state
-    ~f:(String.( = ) nod.Tezos_node.id)
+    ~f:(String.( = ) nod.Mavryk_node.id)
   >>= fun states ->
   (match states with
   | [ one ] -> return one
   | _ ->
       System_error.fail_fatalf "Expecting one state for node %s"
-        nod.Tezos_node.id)
+        nod.Mavryk_node.id)
   >>= fun node_state_0 -> Running_processes.kill state node_state_0
 
 let restart_node ~client_exec state nod =
-  Running_processes.start state (Tezos_node.process state nod) >>= fun _ ->
-  let client = Tezos_client.of_node nod ~exec:client_exec in
-  say state EF.(wf "Started node %s, waiting for bootstrap …" nod.Tezos_node.id)
-  >>= fun () -> Tezos_client.wait_for_node_bootstrap state client
+  Running_processes.start state (Mavryk_node.process state nod) >>= fun _ ->
+  let client = Mavryk_client.of_node nod ~exec:client_exec in
+  say state EF.(wf "Started node %s, waiting for bootstrap …" nod.Mavryk_node.id)
+  >>= fun () -> Mavryk_client.wait_for_node_bootstrap state client
 
 let import_keys_from_seeds state client ~seeds =
   Console.say state
@@ -74,14 +74,14 @@ let import_keys_from_seeds state client ~seeds =
   >>= fun () ->
   List.fold seeds ~init:(return "") ~f:(fun previous_m s ->
       previous_m >>= fun _ ->
-      let kp = Tezos_protocol.Account.of_name s in
-      Tezos_client.client_cmd state ~client
+      let kp = Mavryk_protocol.Account.of_name s in
+      Mavryk_client.client_cmd state ~client
         [
           "import";
           "secret";
           "key";
-          Tezos_protocol.Account.name kp;
-          Tezos_protocol.Account.private_key kp;
+          Mavryk_protocol.Account.name kp;
+          Mavryk_protocol.Account.private_key kp;
           "--force";
         ]
       >>= fun (_, sign_res) -> return (String.concat ~sep:"" sign_res#out))
@@ -173,12 +173,12 @@ module System_dependencies = struct
   open Error
 
   let precheck ?(using_docker = false) ?(protocol_paths = [])
-      ?(executables : Tezos_executable.t list = []) state ~protocol_kind
+      ?(executables : Mavryk_executable.t list = []) state ~protocol_kind
       how_to_react =
     let commands_to_check =
       (if using_docker then [ "docker" ] else [])
       @ [ "setsid"; "curl"; "netstat" ]
-      @ List.map executables ~f:(Tezos_executable.get ~protocol_kind)
+      @ List.map executables ~f:(Mavryk_executable.get ~protocol_kind)
     in
     List.fold ~init:(return []) commands_to_check ~f:(fun prev_m cmd ->
         prev_m >>= fun prev ->
@@ -195,7 +195,7 @@ module System_dependencies = struct
     List.fold protocol_paths ~init:(return errors_or_warnings)
       ~f:(fun prev_m path ->
         prev_m >>= fun prev ->
-        System_error.catch Lwt_unix.file_exists (path // "TEZOS_PROTOCOL")
+        System_error.catch Lwt_unix.file_exists (path // "MAVRYK_PROTOCOL")
         >>= function
         | true -> return prev
         | false -> return (`Not_a_protocol_path path :: prev))
@@ -246,8 +246,8 @@ module System_dependencies = struct
         >>= fun () ->
         (if
          List.exists more ~f:(function
-           | `Missing_exec ("octez-node", _)
-             when Stdlib.Sys.file_exists ("." // "octez-node") ->
+           | `Missing_exec ("mavkit-node", _)
+             when Stdlib.Sys.file_exists ("." // "mavkit-node") ->
                true
            | _ -> false)
         then
@@ -255,9 +255,9 @@ module System_dependencies = struct
            EF.(
              desc (prompt "Tip:")
                (wf
-                  "The `octez-node` executable is missing but there seems to \
+                  "The `mavkit-node` executable is missing but there seems to \
                    be one in the current directory, maybe you can pass \
-                   `./octez-node` with the right option (see `--help`) or \
+                   `./mavkit-node` with the right option (see `--help`) or \
                    simply add `export PATH=.:$PATH` to allow unix tools to \
                    find it."))
         else return ())
@@ -284,24 +284,24 @@ module Shell_environement = struct
       List.concat_mapi clients ~f:(fun i c ->
           let call =
             List.map ~f:Stdlib.Filename.quote
-              (Tezos_client.client_call state c [])
+              (Mavryk_client.client_call state c [])
           in
           let cmd exec = String.concat ~sep:" " (exec :: call) in
           let extra =
-            let help = "Call the octez-client used by the sandbox." in
+            let help = "Call the mavkit-client used by the sandbox." in
             match
-              Tezos_executable.get ~protocol_kind:protocol.Tezos_protocol.kind
-                c.Tezos_client.exec
+              Mavryk_executable.get ~protocol_kind:protocol.Mavryk_protocol.kind
+                c.Mavryk_client.exec
             with
-            | "octez-client" -> []
+            | "mavkit-client" -> []
             | f when Stdlib.Filename.is_relative f ->
                 [ (sprintf "c%d" i, cmd (Stdlib.Sys.getcwd () // f), help) ]
             | f -> [ (sprintf "c%d" i, cmd (Stdlib.Sys.getcwd () // f), help) ]
           in
           [
             ( sprintf "tc%d" i,
-              cmd "octez-client",
-              "Call the `octez-client` from the path." );
+              cmd "mavkit-client",
+              "Call the `mavkit-client` from the path." );
           ]
           @ extra)
     in

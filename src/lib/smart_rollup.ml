@@ -10,9 +10,9 @@ type t = {
   node_mode : mode;
   node_init_options : string list;
   node_run_options : string list;
-  node : Tezos_executable.t;
-  installer : Tezos_executable.t;
-  evm_node : Tezos_executable.t;
+  node : Mavryk_executable.t;
+  installer : Mavryk_executable.t;
+  evm_node : Mavryk_executable.t;
 }
 
 let make_path ~state p = Paths.root state // sprintf "smart-rollup" // p
@@ -38,9 +38,9 @@ module Node = struct
     rpc_addr : string option;
     rpc_port : int;
     endpoint : int option;
-    protocol : Tezos_protocol.Protocol_kind.t;
-    exec : Tezos_executable.t;
-    client : Tezos_client.t;
+    protocol : Mavryk_protocol.Protocol_kind.t;
+    exec : Mavryk_executable.t;
+    client : Mavryk_client.t;
     smart_rollup : t;
   }
 
@@ -70,20 +70,20 @@ module Node = struct
   let data_dir state node = node_dir state node "data-dir"
   let reveal_data_dir state node = data_dir state node // "wasm_2_0_0"
 
-  (* octez-smart-rollup node command.*)
+  (* mavkit-smart-rollup node command.*)
   let call state ~config command =
-    let open Tezos_executable.Make_cli in
-    let client_dir = Tezos_client.base_dir ~state config.client in
-    Tezos_executable.call state config.exec ~protocol_kind:config.protocol
+    let open Mavryk_executable.Make_cli in
+    let client_dir = Mavryk_client.base_dir ~state config.client in
+    Mavryk_executable.call state config.exec ~protocol_kind:config.protocol
       ~path:(node_dir state config "exec")
       (Option.value_map config.endpoint ~default:[] ~f:(fun e ->
            opt "endpoint" (sprintf "http://localhost:%d" e))
-      (* The base-dir is the octez_client directory. *)
+      (* The base-dir is the mavkit_client directory. *)
       @ opt "base-dir" client_dir
       @ command)
 
   let int_run_options state ~config =
-    let open Tezos_executable.Make_cli in
+    let open Mavryk_executable.Make_cli in
     (* The directory where the node config is stored. *)
     opt "data-dir" (data_dir state config)
     @ Option.value_map config.rpc_addr
@@ -92,7 +92,7 @@ module Node = struct
     @ opt "rpc-port" (Int.to_string config.rpc_port)
 
   let custom_opt options : string list =
-    let open Tezos_executable.Make_cli in
+    let open Mavryk_executable.Make_cli in
     List.concat_map options ~f:(fun s ->
         match String.lsplit2 ~on:'=' s with
         | None -> flag s
@@ -176,8 +176,8 @@ module Evm_node = struct
     rpc_addr : string;
     rpc_port : int;
     rollup_node_endpoint : string;
-    exec : Tezos_executable.t;
-    protocol : Tezos_protocol.Protocol_kind.t;
+    exec : Mavryk_executable.t;
+    protocol : Mavryk_protocol.Protocol_kind.t;
     smart_rollup : t;
   }
 
@@ -197,15 +197,15 @@ module Evm_node = struct
   let data_dir state config = server_dir state config.id "data-dir"
 
   let call state ~config ~command =
-    let open Tezos_executable.Make_cli in
-    Tezos_executable.call state config.exec ~protocol_kind:config.protocol
+    let open Mavryk_executable.Make_cli in
+    Mavryk_executable.call state config.exec ~protocol_kind:config.protocol
       ~path:(server_dir state config.id "exec")
       (command
       @ opt "rpc-addr" config.rpc_addr
       @ opt "rpc-port" (Int.to_string config.rpc_port)
       @ opt "data-dir" (data_dir state config))
 
-  (* Start a running octez-evm-node. *)
+  (* Start a running mavkit-evm-node. *)
   let run state config =
     make_dir state (data_dir state config) >>= fun _ ->
     Running_processes.Process.genspio config.id
@@ -231,7 +231,7 @@ module Kernel = struct
     installer_kernel : string;
     reveal_data_dir : string;
     setup_file : string option;
-    exec : Tezos_executable.t;
+    exec : Mavryk_executable.t;
     smart_rollup : t;
     node : Node.t;
   }
@@ -256,7 +256,7 @@ module Kernel = struct
       node;
     }
 
-  (* The cli arguments for the octez_client smart rollup origination. *)
+  (* The cli arguments for the mavkit_client smart rollup origination. *)
   type cli_args = {
     name : string;
     kind : string;
@@ -308,7 +308,7 @@ module Kernel = struct
   (* Build the installer_kernel and preimage with the smart_rollup_installer executable. *)
   let installer_create ?setup_file state ~exec ~path ~output ~preimages_dir =
     let options =
-      let open Tezos_executable.Make_cli in
+      let open Mavryk_executable.Make_cli in
       opt "upgrade-to" path @ opt "output" output
       @ opt "preimages-dir" preimages_dir
       @ Option.value_map setup_file ~default:[] ~f:(fun setup_file ->
@@ -316,7 +316,7 @@ module Kernel = struct
       |> String.concat ~sep:" "
     in
     Running_processes.run_successful_cmdf state "%s get-reveal-installer %s"
-      (Tezos_executable.kind_string exec)
+      (Mavryk_executable.kind_string exec)
       options
 
   (* Build the kernel with the smart_rollup_installer executable. *)
@@ -374,10 +374,10 @@ module Kernel = struct
           cli_args (return Hex.(was |> of_string |> show))
 end
 
-(* octez-client call to originate a smart-rollup. *)
+(* mavkit-client call to originate a smart-rollup. *)
 let originate state ~client ~account ~kernel () =
   let open Kernel in
-  Tezos_client.successful_client_cmd state ~client
+  Mavryk_client.successful_client_cmd state ~client
     [
       "originate";
       "smart";
@@ -398,9 +398,9 @@ let originate state ~client ~account ~kernel () =
       "999";
     ]
 
-(* octez-client call confirming an operation. *)
+(* mavkit-client call confirming an operation. *)
 let confirm state ~client ~confirmations ~operation_hash () =
-  Tezos_client.successful_client_cmd state ~client
+  Mavryk_client.successful_client_cmd state ~client
     [
       "wait";
       "for";
@@ -412,7 +412,7 @@ let confirm state ~client ~confirmations ~operation_hash () =
       Int.to_string confirmations;
     ]
 
-(* A type for octez client output from a smart-rollup origination. *)
+(* A type for mavkit client output from a smart-rollup origination. *)
 type origination_result = {
   operation_hash : string;
   address : string;
@@ -420,7 +420,7 @@ type origination_result = {
   out : string list;
 }
 
-(* Parse octez-client output of smart-rollup origination. *)
+(* Parse mavkit-client output of smart-rollup origination. *)
 let parse_origination ~lines =
   let rec prefix_from_list ~prefix = function
     | [] -> None
@@ -432,7 +432,7 @@ let parse_origination ~lines =
                (String.chop_prefix x ~prefix |> Option.value ~default:x))
   in
   let l = List.map lines ~f:String.lstrip in
-  (* This is parsing the unicode output from the octez-client *)
+  (* This is parsing the unicode output from the mavkit-client *)
   Option.(
     prefix_from_list ~prefix:"Operation hash is" l >>= fun op ->
     String.chop_prefix ~prefix:"'" op >>= fun suf ->
@@ -463,23 +463,23 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
       List.hd_exn keys_and_daemons |> return >>= fun (_, _, client, _, _) ->
       (* Create admin account for rollup operations *)
       let admin_name, admin_hash, admin_secret =
-        let acc = Tezos_protocol.Account.of_name "rollup-admin" in
-        Tezos_protocol.Account.(name acc, pubkey_hash acc, private_key acc)
+        let acc = Mavryk_protocol.Account.of_name "rollup-admin" in
+        Mavryk_protocol.Account.(name acc, pubkey_hash acc, private_key acc)
       in
       (* Import the rollup-admin to the client. *)
-      Tezos_client.Keyed.initialize state
+      Mavryk_client.Keyed.initialize state
         { client; key_name = admin_name; secret_key = admin_secret }
       >>= fun _ ->
       (* Import the dictator keys to the client. *)
-      Tezos_client.Keyed.initialize state
+      Mavryk_client.Keyed.initialize state
         {
           client;
-          key_name = Tezos_protocol.dictator_name protocol;
-          secret_key = Tezos_protocol.dictator_secret_key protocol;
+          key_name = Mavryk_protocol.dictator_name protocol;
+          secret_key = Mavryk_protocol.dictator_secret_key protocol;
         }
       >>= fun _ ->
       (* Fund the rollup-admi account. *)
-      Tezos_client.successful_client_cmd state ~wait:"1" ~client
+      Mavryk_client.successful_client_cmd state ~wait:"1" ~client
         [
           "transfer";
           Int.to_string 20_000;
@@ -500,7 +500,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
         Node.make_config ~smart_rollup:soru ~mode:soru.node_mode
           ~operator_addr:admin_hash ~rpc_addr:"0.0.0.0"
           ~rpc_port:rollup_node_port ~endpoint:base_port
-          ~protocol:protocol.Tezos_protocol.kind ~exec:soru.node ~client ()
+          ~protocol:protocol.Mavryk_protocol.kind ~exec:soru.node ~client ()
         |> return
       in
       (* Originate smart-rollup. *)
@@ -567,7 +567,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           start_rollup_node state soru_node origination_result >>= fun () ->
           (* Wait for the rollup node to bootstrap. *)
           Node.wait_for_responce state ~config:soru_node >>= fun () ->
-          (* Start the octez-evm-node. *)
+          (* Start the mavkit-evm-node. *)
           let evm_node_port = Test_scenario.Unix_port.(next_port nodes) in
           Evm_node.make_config ~smart_rollup:soru ~rpc_port:evm_node_port
             ~rollup_node_endpoint:
@@ -583,7 +583,7 @@ let run state ~smart_rollup ~protocol ~keys_and_daemons ~nodes ~base_port =
           EF.
             [
               desc
-                (af "octez-evm-node is listening on")
+                (af "mavkit-evm-node is listening on")
                 (af "rpc_port: `%d`" evm_node.rpc_port);
               desc
                 (af "Exchanger contract address:")
@@ -719,7 +719,7 @@ let cmdliner_term state () =
               ~doc:
                 "Start an optimistic smart rollup with one of the following \
                  options: `tx` starts a transaction smart rollup (tx_kernel). \
-                 `evm` starts an EVM smart rollup (Octez evem_kernel). \
+                 `evm` starts an EVM smart rollup (Mavkit evem_kernel). \
                  `custom:KIND:TYPE:PATH` starts an smart rollup with a user \
                  provided kernel. "
               ~docs ~docv:"OPTION")))
@@ -794,8 +794,8 @@ let cmdliner_term state () =
                  OPT2=VAL2\") The following options aren't available: \
                  data-dir, rpc-addr, rpc-port."
               ~docv:"FLAG|OPTION=VALUE")))
-  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_node
-      ~prefix:"octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Smart_rollup_installer
-      ~prefix:"octez"
-  $ Tezos_executable.cli_term ~extra_doc state `Evm_node ~prefix:"octez"
+  $ Mavryk_executable.cli_term ~extra_doc state `Smart_rollup_node
+      ~prefix:"mavkit"
+  $ Mavryk_executable.cli_term ~extra_doc state `Smart_rollup_installer
+      ~prefix:"mavkit"
+  $ Mavryk_executable.cli_term ~extra_doc state `Evm_node ~prefix:"mavkit"

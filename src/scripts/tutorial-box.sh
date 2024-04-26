@@ -27,7 +27,7 @@ usage() {
     cat >&2 <<EOF
 This script provides a Flexmasa “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
-wallet software like \`octez-client\`. This one uses the $default_protocol
+wallet software like \`mavkit-client\`. This one uses the $default_protocol
 protocol.
 
 usage: $0 <command>
@@ -69,7 +69,7 @@ start_manual() {
 all_commands="$all_commands
 * bake : Try to bake a block (to be used with 'start_manual' sandboxes)."
 bake() {
-    octez-client --endpoint http://localhost:20000 bake for bootacc-0 --minimal-timestamp
+    mavkit-client --endpoint http://localhost:20000 bake for bootacc-0 --minimal-timestamp
 }
 
 vote_period=${blocks_per_voting_period:-16}
@@ -95,7 +95,7 @@ start_upgrade() {
         --blocks-per-voting-period "$vote_period" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
-        --second-baker octez-baker-"$next_protocol_hash" \
+        --second-baker mavkit-baker-"$next_protocol_hash" \
         --test-variant full-upgrade \
         --until-level 200_000_000
 }
@@ -173,7 +173,7 @@ start_upgrade_with_adaptive_issuance() {
         --time-b "$time_bb" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
-        --second-baker octez-baker-"$next_protocol_hash" \
+        --second-baker mavkit-baker-"$next_protocol_hash" \
         --test-variant full-upgrade \
         --until-level 200_000_000 \
         --adaptive-issuance-vote-first-baker "pass" --adaptive-issuance-vote-second-baker "on"
@@ -193,7 +193,7 @@ EOF
 
 
 all_commands="$all_commands
-* client_remember_contracts : Add the contracts originated by flexmasa to the octez-client data-dir."
+* client_remember_contracts : Add the contracts originated by flexmasa to the mavkit-client data-dir."
 client_remember_contracts() {
     contracts="${root_path}/Client-base-C-N000/contracts"
 
@@ -205,7 +205,7 @@ client_remember_contracts() {
             contract_name=$(jq -r ".[$i].name" "$contracts")
             contract_value=$(jq -r ".[$i].value" "$contracts")
 
-            octez-client remember contract "$contract_name" "$contract_value"
+            mavkit-client remember contract "$contract_name" "$contract_value"
             echo "Added contract $contract_name: $contract_value"
 
             i=$((i + 1))
@@ -216,7 +216,7 @@ client_remember_contracts() {
 }
 
 all_commands="$all_commands
-* client_remember_rollups : Add smart-rollup address to the octez-client data-dir."
+* client_remember_rollups : Add smart-rollup address to the mavkit-client data-dir."
 client_remember_rollups() {
     rollups="${root_path}/Client-base-C-N000/smart_rollups"
 
@@ -228,7 +228,7 @@ client_remember_rollups() {
             rollup_name=$(jq -r ".[$i].name" "$rollups")
             rollup_value=$(jq -r ".[$i].value" "$rollups")
 
-            octez-client remember smart rollup "$rollup_name" "$rollup_value"
+            mavkit-client remember smart rollup "$rollup_name" "$rollup_value"
             echo "Added smart rollup $rollup_name: $rollup_value"
 
             i=$((i + 1))
@@ -239,12 +239,12 @@ client_remember_rollups() {
 }
 
 all_commands="$all_commands
-* initclient : Setup the local octez-client."
+* initclient : Setup the local mavkit-client."
 initclient() {
-    octez-client --endpoint http://localhost:20000 config update
-    octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
-    octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
+    mavkit-client --endpoint http://localhost:20000 config update
+    mavkit-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    mavkit-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    mavkit-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
     client_remember_contracts
     client_remember_rollups
 }

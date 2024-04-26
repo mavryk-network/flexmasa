@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # Those are tests that should succeed in a well configured environment:
-# - flexmasa command line app, and `octez-*` binaries available in PATH
+# - flexmasa command line app, and `mavkit-*` binaries available in PATH
 # - Alpha protocol is “similar enough” to the one pulled by the `Dockerfile`
 
 set -e
@@ -62,7 +62,7 @@ daem_c2n() {
     runone "dameons-upgrade-c2n" flexmasa daemons-upgrade \
         --protocol-kind "$current" \
         --next-protocol-kind "$next" \
-        --second-baker octez-baker-$next_suffix \
+        --second-baker mavkit-baker-$next_suffix \
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 --number-of-b 2 \
@@ -78,7 +78,7 @@ daem_c2n_nay() {
     runone "dameons-upgrade-c2n-nay" flexmasa daemons-upgrade \
         --protocol-kind "$current" \
         --next-protocol-kind "$next" \
-        --second-baker octez-baker-$next_suffix \
+        --second-baker mavkit-baker-$next_suffix \
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 \
@@ -94,7 +94,7 @@ daem_n2a() {
     runone "dameons-upgrade-n2a" flexmasa daemons-upgrade \
         --protocol-kind "$before_alpha" \
         --next-protocol-kind Alpha \
-        --second-baker octez-baker-alpha \
+        --second-baker mavkit-baker-alpha \
         --extra-dummy-proposals-batch-size 2 \
         --extra-dummy-proposals-batch-levels 3,5 \
         --size 2 \
@@ -126,7 +126,7 @@ daem_ai() {
     proto="$1"
     runone "daemon-upgrage-adaptive-issuance-$proto" flexmasa daemons-upgrade --protocol-kind "$proto" \
         --time-between-blocks 1 --number-of-boot 1 --size 1 \
-        --test-variant full-upgrade --next-protocol-kind "$next" --second-baker octez-baker-"$next_suffix" \
+        --test-variant full-upgrade --next-protocol-kind "$next" --second-baker mavkit-baker-"$next_suffix" \
         --adaptive-issuance-vote-first-baker "pass" --adaptive-issuance-vote-second-baker "on" \
         --waiting-attempts 30 $until_12
 

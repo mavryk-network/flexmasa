@@ -9,7 +9,7 @@ val branch :
   ; paths : Paths.t
   ; runner : Running_processes.State.t
   ; .. > ->
-  Tezos_client.Keyed.t ->
+  Mavryk_client.Keyed.t ->
   ( string,
     [> Process_result.Error.t
     | `System_error of [ `Fatal ] * System_error.static ] )
@@ -25,7 +25,7 @@ module Michelson : sig
     < application_name : string ; .. > ->
     name:string ->
     from:string ->
-    protocol_kind:Tezos_protocol.Protocol_kind.t ->
+    protocol_kind:Mavryk_protocol.Protocol_kind.t ->
     parameter:string ->
     init_storage:string ->
     (string list, [> System_error.t ]) Asynchronous_result.t
@@ -33,7 +33,7 @@ end
 
 module Forge : sig
   val batch_transfer :
-    ?protocol_kind:Tezos_protocol.Protocol_kind.t ->
+    ?protocol_kind:Mavryk_protocol.Protocol_kind.t ->
     ?counter:int ->
     ?dst:(string * int) list ->
     src:string ->
@@ -43,7 +43,7 @@ module Forge : sig
     Ezjsonm.value
 
   val endorsement :
-    ?protocol_kind:Tezos_protocol.Protocol_kind.t ->
+    ?protocol_kind:Mavryk_protocol.Protocol_kind.t ->
     branch:string ->
     int ->
     Ezjsonm.value
@@ -56,12 +56,12 @@ val get_chain_id :
   ; paths : Paths.t
   ; runner : Running_processes.State.t
   ; .. > ->
-  Tezos_client.Keyed.t ->
+  Mavryk_client.Keyed.t ->
   (string, [> Process_result.Error.t | System_error.t ]) Asynchronous_result.t
 
 module Multisig : sig
   val deploy_multisig :
-    ?protocol_kind:Tezos_protocol.Protocol_kind.t ->
+    ?protocol_kind:Mavryk_protocol.Protocol_kind.t ->
     ?counter:int ->
     int ->
     branch:string ->
@@ -80,7 +80,7 @@ module Multisig : sig
     ; env_config : Environment_configuration.t
     ; test_baking : bool
     ; .. > ->
-    Tezos_client.t ->
+    Mavryk_client.t ->
     int ->
     chain_id:string ->
     contract_addr:string ->
@@ -96,7 +96,7 @@ module Multisig : sig
     ; env_config : Environment_configuration.t
     ; test_baking : bool
     ; .. > ->
-    Tezos_client.Keyed.t ->
+    Mavryk_client.Keyed.t ->
     contract_addr:string ->
     amt:int ->
     to_acct:string ->
@@ -104,7 +104,7 @@ module Multisig : sig
     (string, [> Process_result.Error.t | System_error.t ]) Asynchronous_result.t
 
   val transfer_from_multisig :
-    ?protocol_kind:Tezos_protocol.Protocol_kind.t ->
+    ?protocol_kind:Mavryk_protocol.Protocol_kind.t ->
     ?counter:int ->
     float ->
     branch:string ->
@@ -125,8 +125,8 @@ module Multisig : sig
     ; env_config : Environment_configuration.t
     ; test_baking : bool
     ; .. > ->
-    Tezos_client.Keyed.t ->
-    Tezos_node.t list ->
+    Mavryk_client.Keyed.t ->
+    Mavryk_node.t list ->
     src:string ->
     fee:float ->
     num_signers:int ->
@@ -196,7 +196,7 @@ module Commands : sig
 
   val protect_with_keyed_client :
     string ->
-    client:Tezos_client.Keyed.t ->
+    client:Mavryk_client.Keyed.t ->
     f:
       (unit ->
       ( 'a,
@@ -290,7 +290,7 @@ module Commands : sig
     ; env_config : Environment_configuration.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
+    client:Mavryk_client.Keyed.t ->
     all_options ->
     Base.Sexp.t list ->
     ([> action ], [> `Command_line of string ]) Asynchronous_result.t
@@ -302,7 +302,7 @@ module Commands : sig
     ; env_config : Environment_configuration.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
+    client:Mavryk_client.Keyed.t ->
     all_options ->
     Base.Sexp.t list ->
     ( [> `Multisig_action of multisig_action ],
@@ -317,7 +317,7 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
+    client:Mavryk_client.Keyed.t ->
     all_options ->
     Base.Sexp.t ->
     ( [> action ],
@@ -337,7 +337,7 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
+    client:Mavryk_client.Keyed.t ->
     all_options ->
     Base.Sexp.t ->
     random_choice:bool ->
@@ -355,7 +355,7 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
+    client:Mavryk_client.Keyed.t ->
     batch_action ->
     ( unit,
       [> `Command_line of string | System_error.t | Process_result.Error.t ] )
@@ -370,8 +370,8 @@ module Commands : sig
     ; runner : Running_processes.State.t
     ; test_baking : bool
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
-    nodes:Tezos_node.t list ->
+    client:Mavryk_client.Keyed.t ->
+    nodes:Mavryk_node.t list ->
     multisig_action ->
     (unit, [> `Command_line of string | System_error.t ]) Asynchronous_result.t
 
@@ -384,8 +384,8 @@ module Commands : sig
     ; runner : Running_processes.State.t
     ; test_baking : bool
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
-    nodes:Tezos_node.t list ->
+    client:Mavryk_client.Keyed.t ->
+    nodes:Mavryk_node.t list ->
     actions:[< action ] list ->
     rep_counter:int ->
     ( unit,
@@ -403,9 +403,9 @@ module Random : sig
     ; runner : Running_processes.State.t
     ; test_baking : bool
     ; .. > ->
-    protocol:Tezos_protocol.t ->
-    nodes:Tezos_node.t list ->
-    clients:Tezos_client.Keyed.t list ->
+    protocol:Mavryk_protocol.t ->
+    nodes:Mavryk_node.t list ->
+    clients:Mavryk_client.Keyed.t list ->
     until_level:int ->
     [> `Any ] ->
     ( unit,
@@ -423,8 +423,8 @@ module Dsl : sig
     ; runner : Running_processes.State.t
     ; test_baking : bool
     ; .. > ->
-    client:Tezos_client.Keyed.t ->
-    nodes:Tezos_node.t list ->
+    client:Mavryk_client.Keyed.t ->
+    nodes:Mavryk_node.t list ->
     Commands.all_options ->
     Base.Sexp.t ->
     ( unit,
@@ -440,8 +440,8 @@ module Dsl : sig
     ; runner : Running_processes.State.t
     ; test_baking : bool
     ; .. > ->
-    nodes:Tezos_node.t list ->
-    clients:Tezos_client.Keyed.t list ->
+    nodes:Mavryk_node.t list ->
+    clients:Mavryk_client.Keyed.t list ->
     Sexp.t ->
     ( unit,
       [> Process_result.Error.t | System_error.t | `Command_line of string ] )

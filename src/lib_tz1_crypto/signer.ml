@@ -96,7 +96,7 @@ let%expect_test _ =
       Public_key.pp pk Public_key_hash.pp pkh
   in
   (* The following were checked against ["flexmasa key-of-name"] using
-     ["tezos-crypto"]. *)
+     ["mavryk-crypto"]. *)
   show_of_seed "alice";
   [%expect
     {|
