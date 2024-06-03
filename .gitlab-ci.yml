@@ -136,3 +136,4 @@ pages:
      - public
   only:
   - master
+  - atlas-update
