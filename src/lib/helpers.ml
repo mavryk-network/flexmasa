@@ -62,7 +62,8 @@ let kill_node state nod =
 let restart_node ~client_exec state nod =
   Running_processes.start state (Mavryk_node.process state nod) >>= fun _ ->
   let client = Mavryk_client.of_node nod ~exec:client_exec in
-  say state EF.(wf "Started node %s, waiting for bootstrap …" nod.Mavryk_node.id)
+  say state
+    EF.(wf "Started node %s, waiting for bootstrap …" nod.Mavryk_node.id)
   >>= fun () -> Mavryk_client.wait_for_node_bootstrap state client
 
 let import_keys_from_seeds state client ~seeds =

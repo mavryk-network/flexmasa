@@ -280,8 +280,9 @@ module Multisig = struct
     in
     Ezjsonm.value_from_string multisig_params
 
-  let deploy_multisig ?(protocol_kind : Mavryk_protocol.Protocol_kind.t = `Atlas)
-      ?(counter = 0) sig_threshold ~branch ~signers ~src ~fee ~balance =
+  let deploy_multisig
+      ?(protocol_kind : Mavryk_protocol.Protocol_kind.t = `Atlas) ?(counter = 0)
+      sig_threshold ~branch ~signers ~src ~fee ~balance =
     let open Ezjsonm in
     ignore protocol_kind;
     dict
@@ -395,7 +396,8 @@ module Multisig = struct
         >>= fun () ->
         (if is_baking state then
          Test_scenario.Queries.wait_for_bake state ~nodes
-        else Mavryk_client.Keyed.bake state client "Multisig deploy_and_transfer")
+        else
+          Mavryk_client.Keyed.bake state client "Multisig deploy_and_transfer")
         >>= fun () ->
         let _ = Mavryk_client.Keyed.operations_from_chain state client in
         Mavryk_client.Keyed.get_contract_id state client
@@ -929,8 +931,8 @@ module Random = struct
             | _ -> ("unit", "Unit")
           in
           Michelson.prepare_origination_of_id_script state ~name ~from
-            ~protocol_kind:protocol.Mavryk_protocol.kind ~parameter ~init_storage
-            ~push_drops
+            ~protocol_kind:protocol.Mavryk_protocol.kind ~parameter
+            ~init_storage ~push_drops
           >>= fun origination ->
           client_cmd (Fmt.str "originate-%s" name) origination
           >>= fun (success, _) ->
@@ -951,7 +953,8 @@ module Random = struct
       | Some `Multisig_contract ->
           Commands.protect_with_keyed_client "generate batch"
             ~client:keyed_client ~f:(fun () ->
-              Mavryk_client.get_account state ~client ~name:keyed_client.key_name
+              Mavryk_client.get_account state ~client
+                ~name:keyed_client.key_name
               >>= fun acct ->
               let src =
                 Commands.address_of_account acct "<Unable to parse account>"

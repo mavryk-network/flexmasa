@@ -94,12 +94,13 @@ docker:test:mini-net:
     - apk add bash
     - ./src/scripts/full-sandbox-tests.sh mini
 
-docker:test:governance:
-  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
-  stage: build
-  script:
-    - apk add bash
-    - ./src/scripts/full-sandbox-tests.sh gov
+# TODO: Atlas - Wait for B Update to reenable
+# docker:test:governance:
+#   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+#   stage: build
+#   script:
+#     - apk add bash
+#     - ./src/scripts/full-sandbox-tests.sh gov
 
 # TODO: Fix this test
 # docker:test:smart-rollups:
@@ -109,12 +110,13 @@ docker:test:governance:
 #     - apk add bash
 #     - ./src/scripts/full-sandbox-tests.sh rollup
 
-docker:test:adaptive-issuance:
-  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
-  stage: build
-  script:
-    - apk add bash
-    - ./src/scripts/full-sandbox-tests.sh adissu
+# TODO: Atlas - Wait for B Update to reenable
+# docker:test:adaptive-issuance:
+#   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+#   stage: build
+#   script:
+#     - apk add bash
+#     - ./src/scripts/full-sandbox-tests.sh adissu
 
 makewebsite:
   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"

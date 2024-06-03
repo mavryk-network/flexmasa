@@ -55,8 +55,8 @@ val call :
   path:string ->
   string list ->
   unit Genspio.EDSL.t
-(** Build a [Genspio.EDSL.t] script to run a mavryk command, the [~path] argument
-    is used as a toplevel path for the unix-files event-sink
+(** Build a [Genspio.EDSL.t] script to run a mavryk command, the [~path]
+    argument is used as a toplevel path for the unix-files event-sink
     (event-logging-framework) and for other local logging files. *)
 
 val cli_term :

@@ -166,7 +166,8 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
               desc (af "Key:") (af "%S" key);
             ])
       >>= fun () ->
-      Mavryk_client.register_as_delegate state client ~key_name:key >>= fun () ->
+      Mavryk_client.register_as_delegate state client ~key_name:key
+      >>= fun () ->
       say state
         EF.(
           desc_list (haf "Starting daemons:")
@@ -190,7 +191,8 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
       @ arbitrary_commands_for_each_and_all_clients state ~make_admin
           ~clients:(List.map nodes ~f:(Mavryk_client.of_node ~exec:client_exec)));
   (* Flexmasa sandbox tests assume the node already knows about the protocol. We skip protocol injection. *)
-  return (Some Mavryk_protocol.Protocol_kind.(canonical_hash next_protocol_kind))
+  return
+    (Some Mavryk_protocol.Protocol_kind.(canonical_hash next_protocol_kind))
   >>= fun prot_opt ->
   (match prot_opt with
   | Some s -> return s
