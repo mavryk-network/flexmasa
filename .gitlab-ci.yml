@@ -10,8 +10,8 @@ stages:
   - deploy
 
 variables:
-  dind_image: "docker:20.10.7"
-  dind_service: "docker:20.10.7-dind"
+  dind_image: "docker:27.0.3"
+  dind_service: "docker:27.0.3-dind"
   SHOW_INFO: >
     echo "=========== INFO: ============" &&
     opam exec -- ocamlc -version
@@ -33,9 +33,10 @@ docker:images:
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker pull ocaml/opam:ubuntu-21.04-ocaml-4.12
-    - docker build . --target build_step -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
+    - docker buildx create --use
+    - docker buildx build --target build_step -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build" --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
-    - docker build . --target run_image -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+    - docker buildx build --platform linux/arm/v7,linux/arm64/v8,linux/amd64 --target run_image -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" .
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
     - docker tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}-run"
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}-run"
