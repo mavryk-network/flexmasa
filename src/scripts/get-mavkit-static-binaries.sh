@@ -27,7 +27,7 @@ case $(uname -m) in
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/scl/fi/vh0gcwj3bygwkt0ccc2fe/mavkit-static-binaries-arm64.zip?rlkey=tyevb69px2aun8pm3tu4x3ukm&dl=0&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/xerpzdqq8k4di9rg7aqqv/mavkit-static-binaries-arm64.zip?rlkey=h9nkausn95o53knsduifjwjny&raw=1"
         directory_name=arm64
         ;;
     *)
