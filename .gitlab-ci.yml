@@ -34,9 +34,9 @@ docker:images:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker pull ocaml/opam:ubuntu-21.04-ocaml-4.12
     - docker buildx create --use
-    - docker buildx build --target build_step -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build" --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
+    - docker buildx build --target build_step -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build" --platform linux/arm64/v8,linux/amd64 .
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
-    - docker buildx build --platform linux/arm/v7,linux/arm64/v8,linux/amd64 --target run_image -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" .
+    - docker buildx build --target run_image -t "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" --platform linux/arm64/v8,linux/amd64 .
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
     - docker tag "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run" "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}-run"
     - docker push "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}-run"
