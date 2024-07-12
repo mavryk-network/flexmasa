@@ -10,7 +10,7 @@ val originate_smart_contract :
   ; paths : Paths.t
   ; runner : Running_processes.State.t
   ; .. > ->
-  client:Tezos_client.t ->
+  client:Mavryk_client.t ->
   account:string ->
   t ->
   ( string,
@@ -28,7 +28,7 @@ val run :
   ; runner : Running_processes.State.t
   ; .. > ->
   keys_and_daemons:
-    ('a * Tezos_protocol.Account.t * Tezos_client.t * 'b * 'c) list ->
+    ('a * Mavryk_protocol.Account.t * Mavryk_client.t * 'b * 'c) list ->
   smart_contracts:t list ->
   ( unit,
     [> `Process_error of Process_result.Error.error

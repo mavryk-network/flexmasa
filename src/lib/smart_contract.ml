@@ -17,7 +17,7 @@ let parse_origination ~lines name =
   | Some address -> return address
 
 let originate_smart_contract ?wait state ~client ~account t =
-  Tezos_client.successful_client_cmd state ~client ?wait
+  Mavryk_client.successful_client_cmd state ~client ?wait
     [
       "originate";
       "contract";
@@ -48,7 +48,7 @@ let run state ~keys_and_daemons ~smart_contracts =
               (ith % List.length accounts_and_clients)
           in
           originate_smart_contract state ~client
-            ~account:(Tezos_protocol.Account.name account)
+            ~account:(Mavryk_protocol.Account.name account)
             t
           >>= fun address ->
           Console.say state

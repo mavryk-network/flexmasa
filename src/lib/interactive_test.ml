@@ -88,7 +88,7 @@ module Commands = struct
   let curl_level state ~default_port =
     curl_unit_display state [ "l"; "level" ] ~default_port
       ~path:"/chains/main/blocks/head" ~doc:"Display current head block info."
-      ~pp_json:Tezos_protocol.Pretty_print.(verbatim_protection block_head_rpc)
+      ~pp_json:Mavryk_protocol.Pretty_print.(verbatim_protection block_head_rpc)
 
   let curl_baking_rights state ~default_port =
     curl_unit_display state [ "bk"; "baking-rights" ] ~default_port
@@ -116,7 +116,7 @@ module Commands = struct
       ~path:"/chains/main/mempool/pending_operations"
       ~doc:"Display the status of the mempool."
       ~pp_json:
-        Tezos_protocol.Pretty_print.(
+        Mavryk_protocol.Pretty_print.(
           verbatim_protection mempool_pending_operations_rpc)
 
   let show_process state =
@@ -159,9 +159,9 @@ module Commands = struct
             fun ppf () ->
               vertical_box ~indent:0 ppf (fun ppf ->
                   prompt ppf (fun ppf -> pf ppf "Bootstrap Accounts:");
-                  List.iter (Tezos_protocol.bootstrap_accounts protocol)
+                  List.iter (Mavryk_protocol.bootstrap_accounts protocol)
                     ~f:(fun acc ->
-                      let open Tezos_protocol.Account in
+                      let open Mavryk_protocol.Account in
                       cut ppf ();
                       pf ppf "* Account %S:@," (name acc);
                       pf ppf "  * Public Key Hash: %s@," (pubkey_hash acc);
@@ -287,13 +287,13 @@ module Commands = struct
     in
     Console.Prompt.unit_and_loop
       ~description:
-        (Fmt.str "Run a octez-client command on %s"
+        (Fmt.str "Run a mavkit-client command on %s"
            (match clients with
            | [] -> "NO CLIENT, so this is useless…"
-           | [ one ] -> sprintf "the %S client." one.Tezos_client.id
+           | [ one ] -> sprintf "the %S client." one.Mavryk_client.id
            | more ->
                sprintf "all the following clients: %s."
-                 (List.map more ~f:(fun c -> c.Tezos_client.id)
+                 (List.map more ~f:(fun c -> c.Mavryk_client.id)
                  |> String.concat ~sep:", ")))
       ?details command_names
       (fun sexps ->
@@ -317,7 +317,7 @@ module Commands = struct
           | None -> clients
           | Some more ->
               List.filter clients ~f:(fun c ->
-                  List.mem more c.Tezos_client.id ~equal:String.equal)
+                  List.mem more c.Mavryk_client.id ~equal:String.equal)
         in
         let use_admin =
           match make_admin with
@@ -335,9 +335,9 @@ module Commands = struct
             prevm >>= fun prev ->
             Running_processes.run_cmdf state "sh -c %s"
               ((match use_admin with
-               | `Client -> Tezos_client.client_command state client args
+               | `Client -> Mavryk_client.client_command state client args
                | `Admin mkadm ->
-                   Tezos_admin_client.make_command state (mkadm client) args)
+                   Mavryk_admin_client.make_command state (mkadm client) args)
               |> Genspio.Compile.to_one_liner |> Stdlib.Filename.quote)
             >>= fun res ->
             Console.display_errors_of_command state res >>= function
@@ -364,7 +364,7 @@ module Commands = struct
                           let clients =
                             List.filter_map results ~f:(function
                               | c, r when String.equal res r ->
-                                  Some c.Tezos_client.id
+                                  Some c.Mavryk_client.id
                               | _ -> None)
                           in
                           desc
@@ -392,11 +392,11 @@ module Commands = struct
   let client_list_in_help_messages clients =
     match clients with
     | [] -> "NO CLIENT, this is just wrong"
-    | [ one ] -> one.Tezos_client.Keyed.client.id
+    | [ one ] -> one.Mavryk_client.Keyed.client.id
     | m ->
         Fmt.str "one of %s"
           (List.mapi m ~f:(fun ith one ->
-               Fmt.str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+               Fmt.str "%d: %s" ith one.Mavryk_client.Keyed.client.id)
           |> String.concat ~sep:", ")
 
   let bake_command state ~clients =
@@ -415,10 +415,10 @@ module Commands = struct
           | _ -> Fmt.kstr failwith "Wrong command line: %a" pp (List sexps)
         in
         protect_with_keyed_client "manual-baking" ~client ~f:(fun () ->
-            Tezos_client.Keyed.bake state client "Manual baking !"))
+            Mavryk_client.Keyed.bake state client "Manual baking !"))
 
   let forge_template ~key_name ~counter ~branch ~fee ~src =
-    let fee_mutez = fee *. 1_000_000. |> Int.of_float in
+    let fee_mumav = fee *. 1_000_000. |> Int.of_float in
     Fmt.str
       {json|
 // This is a template of an operation to be forged-and-injected
@@ -429,7 +429,7 @@ module Commands = struct
     {  // Basic transaction:
       "kind": "transaction",
       "source": "%s",  // This is already the %s's PKH
-      "destination": "tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F",
+      "destination": "mv2Xe9KfSJPiVSbLN64bMzaTPtq5tQC52iNJ",
       "amount": "1",
       "fee": "%d",
       "counter": "%d",  // The counter was fetched from the RPC (not mempool yet)
@@ -438,14 +438,14 @@ module Commands = struct
     },
     {  // Key revelation
       "kind": "reveal",
-      "source": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb", // This is `alice`.
+      "source": "mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv", // This is `alice`.
       "fee": "1257", "counter": "3",
       "gas_limit": "10000", "storage_limit": "0",
       "public_key": "edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn"
     },
     {  // Contract origination
       "kind": "origination",
-      "source": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb", "fee": "1240",
+      "source": "mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv", "fee": "1240",
       "counter": "4", "gas_limit": "10744", "storage_limit": "309",
       "balance": "1000000",
       "script":
@@ -459,7 +459,7 @@ module Commands = struct
   ]
 }
 |json}
-      branch src key_name fee_mutez counter
+      branch src key_name fee_mumav counter
 
   let forge_and_inject_piece_of_json state ~clients =
     Console.Prompt.unit_and_loop
@@ -478,12 +478,12 @@ module Commands = struct
         in
         protect_with_keyed_client "manual-forge" ~client ~f:(fun () ->
             Traffic_generation.branch state client >>= fun branch ->
-            Tezos_client.get_account state ~client:client.client
+            Mavryk_client.get_account state ~client:client.client
               ~name:client.key_name
             >>= function
             | Some acct -> (
-                let src = Tezos_protocol.Account.pubkey_hash acct in
-                Tezos_client.rpc state ~client:client.client `Get
+                let src = Mavryk_protocol.Account.pubkey_hash acct in
+                Mavryk_client.rpc state ~client:client.client `Get
                   ~path:
                     (Fmt.str
                        "/chains/main/blocks/head/context/contracts/%s/counter"
@@ -496,7 +496,7 @@ module Commands = struct
                   forge_template ~key_name:client.key_name ~src ~counter ~fee:3.
                     ~branch
                 in
-                let tmp = Stdlib.Filename.temp_file "flextesa-forge" ".json" in
+                let tmp = Stdlib.Filename.temp_file "flexmasa-forge" ".json" in
                 System.write_file state tmp ~content:json_template >>= fun () ->
                 System.editor state >>= fun editor ->
                 Fmt.kstr (System.command state) "%s %s" editor tmp >>= function
@@ -511,7 +511,7 @@ module Commands = struct
                       |> String.concat ~sep:"\n"
                     in
                     let json = Ezjsonm.value_from_string cleaned_up in
-                    Tezos_client.Keyed.forge_and_inject state client ~json
+                    Mavryk_client.Keyed.forge_and_inject state client ~json
                     >>= fun res_json ->
                     Console.sayf state
                       Fmt.(
@@ -533,10 +533,10 @@ module Commands = struct
     >>= fun () ->
     List.fold names ~init:(return ()) ~f:(fun previous_m s ->
         previous_m >>= fun () ->
-        let kp = Tezos_protocol.Account.of_name s in
-        Tezos_client.import_secret_key state client
-          ~name:(Tezos_protocol.Account.name kp)
-          ~key:(Tezos_protocol.Account.private_key kp))
+        let kp = Mavryk_protocol.Account.of_name s in
+        Mavryk_client.import_secret_key state client
+          ~name:(Mavryk_protocol.Account.name kp)
+          ~key:(Mavryk_protocol.Account.private_key kp))
 
   let generate_traffic_command state ~clients ~nodes =
     Console.Prompt.unit_and_loop
@@ -545,11 +545,11 @@ module Commands = struct
           str "Generate traffic from a client (%s); try `gen help`."
             (match clients with
             | [] -> "NO CLIENT, this is just wrong"
-            | [ one ] -> one.Tezos_client.Keyed.client.id
+            | [ one ] -> one.Mavryk_client.Keyed.client.id
             | m ->
                 str "use option (client ..) with one of %s"
                   (List.mapi m ~f:(fun ith one ->
-                       str "%d: %s" ith one.Tezos_client.Keyed.client.id)
+                       str "%d: %s" ith one.Mavryk_client.Keyed.client.id)
                   |> String.concat ~sep:", ")))
       [ "generate"; "gen" ]
       (fun sexps ->
@@ -612,7 +612,7 @@ module Commands = struct
                   ~f:Sexp_options.get_int_exn ~default:(fun () -> return 42)
                 >>= fun level ->
                 let json = Traffic_generation.Forge.endorsement ~branch level in
-                Tezos_client.Keyed.forge_and_inject state client ~json
+                Mavryk_client.Keyed.forge_and_inject state client ~json
                 >>= fun json_result ->
                 Console.sayf state More_fmt.(fun ppf () -> json ppf json_result))
         | Atom "batch" :: more_args ->
@@ -628,7 +628,7 @@ module Commands = struct
             Fmt.kstr failwith "Wrong command line: %a" Sexp.pp (List other))
 
   let all_defaults state ~nodes =
-    let default_port = (List.hd_exn nodes).Tezos_node.rpc_port in
+    let default_port = (List.hd_exn nodes).Mavryk_node.rpc_port in
     [
       du_sh_root state;
       processes state;

@@ -1,20 +1,13 @@
 #! /bin/sh
 
-default_protocol=Nairobi
-next_protocol_name=Oxford
-next_protocol_hash=Proxford
+default_protocol=Atlas
+next_protocol_name=Alpha
+next_protocol_hash=alpha
 case "$(basename $0)" in
-    "nairobibox")
-        default_protocol=Nairobi
-        protocol_hash=PtNairob
-        binary_suffix=PtNairob
-        next_protocol_name=Oxford
-        next_protocol_hash=Proxford
-        ;;
-    "oxfordbox")
-        default_protocol=Oxford
-        protocol_hash=Proxford
-        binary_suffix=Proxford
+    "atlasbox")
+        default_protocol=Atlas
+        protocol_hash=PtAtLas
+        binary_suffix=PtAtLas
         next_protocol_name=Alpha
         next_protocol_hash=alpha
         ;;
@@ -32,9 +25,9 @@ all_commands="
 * usage | help | --help | -h: Display this help message."
 usage() {
     cat >&2 <<EOF
-This script provides a Flextesa “mini-net” sandbox with predefined
+This script provides a Flexmasa “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
-wallet software like \`octez-client\`. This one uses the $default_protocol
+wallet software like \`mavkit-client\`. This one uses the $default_protocol
 protocol.
 
 usage: $0 <command>
@@ -47,17 +40,17 @@ EOF
 time_bb=${block_time:-5}
 root_path=${root_path:-/tmp/mini-box}
 
-export alice="$(flextesa key alice)"
-export bob="$(flextesa key bob)"
-export b0="$(flextesa key bootacc-0)"
+export alice="$(flexmasa key alice)"
+export bob="$(flexmasa key bob)"
+export b0="$(flexmasa key bootacc-0)"
 all_commands="$all_commands
 * start : Start a sandbox with the $default_protocol protocol."
 start() {
-    flextesa mini-net \
+    flexmasa mini-net \
         --root "$root_path" --size 1 "$@" \
         --set-history-mode N000:archive \
         --number-of-b 1 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --balance-of-bootstrap-accounts mav:100_000_000 \
         --time-b "$time_bb" \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --add-bootstrap-account="$bob@2_000_000_000_000" \
@@ -76,7 +69,7 @@ start_manual() {
 all_commands="$all_commands
 * bake : Try to bake a block (to be used with 'start_manual' sandboxes)."
 bake() {
-    octez-client --endpoint http://localhost:20000 bake for bootacc-0 --minimal-timestamp
+    mavkit-client --endpoint http://localhost:20000 bake for bootacc-0 --minimal-timestamp
 }
 
 vote_period=${blocks_per_voting_period:-16}
@@ -86,14 +79,14 @@ dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
 all_commands="$all_commands
 * start_upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
 start_upgrade() {
-    flextesa daemons-upgrade \
+    flexmasa daemons-upgrade \
         --root-path "$root_path" "$@" \
         --next-protocol-kind "$next_protocol_name" \
         --extra-dummy-proposals-batch-size "$dummy_props" \
         --extra-dummy-proposals-batch-levels "$dummy_levels" \
         --size 2 \
         --number-of-bootstrap-accounts 2 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --balance-of-bootstrap-accounts mav:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --add-bootstrap-account="$bob@2_000_000_000_000" \
         --no-daemons-for=alice \
@@ -102,7 +95,7 @@ start_upgrade() {
         --blocks-per-voting-period "$vote_period" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
-        --second-baker octez-baker-"$next_protocol_hash" \
+        --second-baker mavkit-baker-"$next_protocol_hash" \
         --test-variant full-upgrade \
         --until-level 200_000_000
 }
@@ -169,10 +162,10 @@ start_adaptive_issuance() {
 all_commands="$all_commands
 * start_upgrade_with_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
 start_upgrade_with_adaptive_issuance() {
-    flextesa daemons-upgrade \
+    flexmasa daemons-upgrade \
         --root "$root_path" --size 1 "$@" \
         --number-of-b 2 \
-        --balance-of-bootstrap-accounts tez:100_000_000 \
+        --balance-of-bootstrap-accounts mav:100_000_000 \
         --add-bootstrap-account="$alice@2_000_000_000_000" \
         --add-bootstrap-account="$bob@2_000_000_000_000" \
         --no-daemons-for=alice \
@@ -180,7 +173,7 @@ start_upgrade_with_adaptive_issuance() {
         --time-b "$time_bb" \
         --with-timestamp \
         --protocol-kind "$default_protocol" \
-        --second-baker octez-baker-"$next_protocol_hash" \
+        --second-baker mavkit-baker-"$next_protocol_hash" \
         --test-variant full-upgrade \
         --until-level 200_000_000 \
         --adaptive-issuance-vote-first-baker "pass" --adaptive-issuance-vote-second-baker "on"
@@ -200,7 +193,7 @@ EOF
 
 
 all_commands="$all_commands
-* client_remember_contracts : Add the contracts originated by flextesa to the octez-client data-dir."
+* client_remember_contracts : Add the contracts originated by flexmasa to the mavkit-client data-dir."
 client_remember_contracts() {
     contracts="${root_path}/Client-base-C-N000/contracts"
 
@@ -212,7 +205,7 @@ client_remember_contracts() {
             contract_name=$(jq -r ".[$i].name" "$contracts")
             contract_value=$(jq -r ".[$i].value" "$contracts")
 
-            octez-client remember contract "$contract_name" "$contract_value"
+            mavkit-client remember contract "$contract_name" "$contract_value"
             echo "Added contract $contract_name: $contract_value"
 
             i=$((i + 1))
@@ -223,7 +216,7 @@ client_remember_contracts() {
 }
 
 all_commands="$all_commands
-* client_remember_rollups : Add smart-rollup address to the octez-client data-dir."
+* client_remember_rollups : Add smart-rollup address to the mavkit-client data-dir."
 client_remember_rollups() {
     rollups="${root_path}/Client-base-C-N000/smart_rollups"
 
@@ -235,7 +228,7 @@ client_remember_rollups() {
             rollup_name=$(jq -r ".[$i].name" "$rollups")
             rollup_value=$(jq -r ".[$i].value" "$rollups")
 
-            octez-client remember smart rollup "$rollup_name" "$rollup_value"
+            mavkit-client remember smart rollup "$rollup_name" "$rollup_value"
             echo "Added smart rollup $rollup_name: $rollup_value"
 
             i=$((i + 1))
@@ -246,12 +239,12 @@ client_remember_rollups() {
 }
 
 all_commands="$all_commands
-* initclient : Setup the local octez-client."
+* initclient : Setup the local mavkit-client."
 initclient() {
-    octez-client --endpoint http://localhost:20000 config update
-    octez-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
-    octez-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
-    octez-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
+    mavkit-client --endpoint http://localhost:20000 config update
+    mavkit-client --protocol "$protocol_hash" import secret key alice "$(echo $alice | cut -d, -f 4)" --force
+    mavkit-client --protocol "$protocol_hash" import secret key bob "$(echo $bob | cut -d, -f 4)" --force
+    mavkit-client --protocol "$protocol_hash" import secret key baker0 "$(echo $b0 | cut -d, -f 4)" --force
     client_remember_contracts
     client_remember_rollups
 }

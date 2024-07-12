@@ -1,10 +1,10 @@
 
-{1 The Flextesa Library }
+{1 The Flexmasa Library }
 
-See the toplevel module {!Flextesa}.
+See the toplevel module {!Flexmasa}.
 
-See also “Tezos Alternate Implementation” miniature libraries:
+See also “Mavryk Alternate Implementation” miniature libraries:
 
-- {!Tezai_base58_digest}
-- {!Tezai_tz1_crypto}
+- {!Mavai_base58_digest}
+- {!Mavai_mv1_crypto}
 

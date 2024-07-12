@@ -1,13 +1,13 @@
 open Internal_pervasives
-(** Wrapper around the main ["octez-client"] application. *)
+(** Wrapper around the main ["mavkit-client"] application. *)
 
-type t = { id : string; port : int; exec : Tezos_executable.t }
+type t = { id : string; port : int; exec : Mavryk_executable.t }
 type client = t
 
-val of_node : exec:Tezos_executable.t -> Tezos_node.t -> t
+val of_node : exec:Mavryk_executable.t -> Mavryk_node.t -> t
 (** Create a client which is meant to communicate with a given node. *)
 
-val no_node_client : exec:Tezos_executable.t -> t
+val no_node_client : exec:Mavryk_executable.t -> t
 (** Create a client not connected to a node (e.g. for ledger interaction). *)
 
 val base_dir : t -> state:< paths : Paths.t ; .. > -> string
@@ -21,7 +21,7 @@ val client_call :
   client ->
   string list ->
   string list
-(** Build the arguments for a given default octez-client (not including the
+(** Build the arguments for a given default mavkit-client (not including the
     executable). *)
 
 val client_command :
@@ -30,7 +30,7 @@ val client_command :
   client ->
   string list ->
   unit Genspio.Language.t
-(** Build a octez-client command, the default [?wait] is ["none"]. *)
+(** Build a mavkit-client command, the default [?wait] is ["none"]. *)
 
 (** {3 Run Specific Client Commands} *)
 
@@ -76,7 +76,7 @@ val activate_protocol :
   ; env_config : Environment_configuration.t
   ; .. > ->
   client ->
-  Tezos_protocol.t ->
+  Mavryk_protocol.t ->
   (unit, [> System_error.t | Process_result.Error.t ]) Asynchronous_result.t
 
 val client_cmd :
@@ -194,9 +194,9 @@ val list_known_addresses :
 val prefix_from_list : prefix:string -> string list -> string option
 
 val parse_account :
-  name:string -> lines:string list -> Tezos_protocol.Account.t option
+  name:string -> lines:string list -> Mavryk_protocol.Account.t option
 (** Parse Account from client output of the form: * Hash:
-    tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU * Public Key:
+    mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk * Public Key:
     edpkuTpUWcNgn4QYcBVGDLy6rmpJ3WSTSV2bdiJFwyoDk5fSwxyV5k * Secret Key:
     unencrypted:edsk3RFgDiCt7tWB2oe96w1eRw72iYiiqZPLu9nnEY23MYRp2d8Kkx *)
 
@@ -209,7 +209,7 @@ val get_account :
   ; .. > ->
   client:t ->
   name:string ->
-  ( Tezos_protocol.Account.t option,
+  ( Mavryk_protocol.Account.t option,
     [> Process_result.Error.t | System_error.t ] )
   Asynchronous_result.t
 
@@ -340,7 +340,7 @@ module Ledger : sig
     ; .. > ->
     client:t ->
     uri:string ->
-    ( Tezos_protocol.Account.t,
+    ( Mavryk_protocol.Account.t,
       [> Process_result.Error.t | System_error.t ] )
     Asynchronous_result.t
 

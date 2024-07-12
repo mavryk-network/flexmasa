@@ -50,20 +50,20 @@ let kind_string (kind : [< kind ]) =
 let default_binary ?protocol_kind t =
   let base_name kind = kind_string kind in
   let proto_suffix proto s =
-    Fmt.str "%s-%s" s (Tezos_protocol.Protocol_kind.daemon_suffix_exn proto)
+    Fmt.str "%s-%s" s (Mavryk_protocol.Protocol_kind.daemon_suffix_exn proto)
   in
-  let octez_prefix s = Fmt.str "octez-%s" s in
+  let mavkit_prefix s = Fmt.str "mavkit-%s" s in
   match (t.kind, protocol_kind) with
-  (* add octez prefix and protocol suffix *)
+  (* add mavkit prefix and protocol suffix *)
   | (`Accuser | `Baker | `Endorser), Some proto ->
-      base_name t.kind |> proto_suffix proto |> octez_prefix
-  (* add octez prefix *)
+      base_name t.kind |> proto_suffix proto |> mavkit_prefix
+  (* add mavkit prefix *)
   | (`Node | `Client | `Admin | `Evm_node | `Smart_rollup_node), _ ->
-      base_name t.kind |> octez_prefix
+      base_name t.kind |> mavkit_prefix
   (* no prefix or suffix*)
   | (`Accuser | `Baker | `Endorser), _ ->
       Fmt.failwith
-        "Called default_binary with octez-%s and protocol_kind = None"
+        "Called default_binary with mavkit-%s and protocol_kind = None"
         (kind_string t.kind)
   | `Smart_rollup_installer, _ -> base_name t.kind
 
@@ -84,7 +84,7 @@ let call state t ?protocol_kind ~path args =
        | { matches = None; level_at_least } ->
            [
              setenv
-               ~var:(str "TEZOS_EVENTS_CONFIG")
+               ~var:(str "MAVRYK_EVENTS_CONFIG")
                (ksprintf str "unix-files://%s?level-at-least=%s"
                   (path // "events") level_at_least);
            ]
@@ -110,6 +110,6 @@ let cli_term ?(extra_doc = "") ?prefix state kind =
       & info ~docs
           [ sprintf "%s%s-binary" pfx (kind_string kind) ]
           ~doc:
-            (sprintf "Binary for the `octez-%s` to use%s." (kind_string kind)
+            (sprintf "Binary for the `mavkit-%s` to use%s." (kind_string kind)
                extra_doc))
   [@@warning "-3"]

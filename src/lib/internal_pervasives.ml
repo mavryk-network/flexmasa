@@ -1,6 +1,6 @@
-(** Local “Pervasives” module for flextesa.
+(** Local “Pervasives” module for flexmasa.
 
-    See also ["docs/tutorials/flextesa.rst"]. *)
+    See also ["docs/tutorials/flexmasa.rst"]. *)
 
 include Base
 
@@ -67,7 +67,7 @@ module Dbg = struct
   let on = ref false
 
   let () =
-    Option.iter (Stdlib.Sys.getenv_opt "FLEXTESA_DEBUG") ~f:(function
+    Option.iter (Stdlib.Sys.getenv_opt "FLEXMASA_DEBUG") ~f:(function
       | "true" -> on := true
       | _ -> ())
 

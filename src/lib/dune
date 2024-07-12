@@ -1,6 +1,6 @@
 (library
- (name flextesa)
- (public_name flextesa)
+ (name flexmasa)
+ (public_name flexmasa)
  (flags
   (:standard -safe-string))
  (preprocess
@@ -15,8 +15,8 @@
   genspio
   ezjsonm
   ptime.clock.os
-  tezai-base58-digest
-  tezai-tz1-crypto))
+  mavai-base58-digest
+  mavai-mv1-crypto))
 
 (rule
  (target sandbox_smart_contracts.ml)

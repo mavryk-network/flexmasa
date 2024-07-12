@@ -8,10 +8,10 @@ type args =
 type ai_vote = [ `On | `Off | `Pass ]
 
 type t = {
-  node : Tezos_node.t;
-  client : Tezos_client.t;
-  exec : Tezos_executable.t;
-  protocol_kind : Tezos_protocol.Protocol_kind.t;
+  node : Mavryk_node.t;
+  client : Mavryk_client.t;
+  exec : Mavryk_executable.t;
+  protocol_kind : Mavryk_protocol.Protocol_kind.t;
   args : args;
   name_tag : string option;
   adaptive_issuance : ai_vote;
@@ -33,19 +33,19 @@ let arg_to_string = function
   | Accuser -> "accuser"
 
 let to_script state (t : t) =
-  let base_dir = Tezos_client.base_dir ~state t.client in
+  let base_dir = Mavryk_client.base_dir ~state t.client in
   let call t args =
-    Tezos_executable.call state t.exec ~protocol_kind:t.protocol_kind
+    Mavryk_executable.call state t.exec ~protocol_kind:t.protocol_kind
       ~path:
         (base_dir
         // sprintf "exec-%s-%d%s" (arg_to_string t.args)
-             t.node.Tezos_node.rpc_port
+             t.node.Mavryk_node.rpc_port
              (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")))
       args
   in
   match t.args with
   | Baker key ->
-      let node_path = Tezos_node.data_dir state t.node in
+      let node_path = Mavryk_node.data_dir state t.node in
       let ai =
         [
           "--adaptive-issuance-vote";
@@ -55,17 +55,12 @@ let to_script state (t : t) =
       in
       let lb = [ "--liquidity-baking-toggle-vote"; "pass" ] in
       let extra_options =
-        match t.protocol_kind with
-        | `Oxford | `Alpha -> ai @ lb
-        | `Jakarta | `Kathmandu | `Lima | `Mumbai | `Nairobi -> lb
-        | `Florence | `Carthage | `Delphi | `Ithaca | `Hangzhou | `Babylon
-        | `Edo | `Granada | `Athens ->
-            []
+        match t.protocol_kind with `Atlas | `Alpha -> ai @ lb
       in
       call t
         ([
            "--endpoint";
-           sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port;
+           sprintf "http://localhost:%d" t.node.Mavryk_node.rpc_port;
            "--base-dir";
            base_dir;
            "run";
@@ -80,7 +75,7 @@ let to_script state (t : t) =
       call t
         [
           "--endpoint";
-          sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port;
+          sprintf "http://localhost:%d" t.node.Mavryk_node.rpc_port;
           "--base-dir";
           base_dir;
           "run";
@@ -90,7 +85,7 @@ let to_script state (t : t) =
       call t
         [
           "--endpoint";
-          sprintf "http://localhost:%d" t.node.Tezos_node.rpc_port;
+          sprintf "http://localhost:%d" t.node.Mavryk_node.rpc_port;
           "--base-dir";
           base_dir;
           "run";
@@ -100,6 +95,6 @@ let to_script state (t : t) =
 
 let process state (t : t) =
   Running_processes.Process.genspio
-    (sprintf "%s-for-%s%s" (arg_to_string t.args) t.node.Tezos_node.id
+    (sprintf "%s-for-%s%s" (arg_to_string t.args) t.node.Mavryk_node.id
        (Option.value_map t.name_tag ~default:"" ~f:(sprintf "-%s")))
     (to_script state t)

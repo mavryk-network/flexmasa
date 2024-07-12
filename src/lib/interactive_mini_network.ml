@@ -8,127 +8,30 @@ module Genesis_block_hash = struct
   let to_json _state genesis =
     Ezjsonm.dict [ ("genesis-block-hash", `String genesis) ]
 
-  (** See implementation of {!Tezos_node}, this corresponds to the Chain-id
+  (** See implementation of {!Mavryk_node}, this corresponds to the Chain-id
       ["NetXKMbjQL2SBox"] *)
   let default = "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf"
 
-  let of_protocol_kind : Tezos_protocol.Protocol_kind.t -> string =
+  let of_protocol_kind : Mavryk_protocol.Protocol_kind.t -> string =
     (*
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box6
-     Flextesa.vanity-chain-id:  Looking for "Box6"
-     Flextesa.vanity-chain-id:
+      $ flexmasa van --first --seed atlasbox- --attempts 100_000_000  Box1
+     Flexmasa.vanity-chain-id:  Looking for "Box1"
+     Flexmasa.vanity-chain-id:
        Results:
-         * Seed: "tutobox-99116"
-           → block: "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
-           → chain-id: "NetXyJVJ3mkBox6"
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box7
-     Flextesa.vanity-chain-id:  Looking for "Box7"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox-21176358"
-           → block: "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
-           → chain-id: "NetXMFJWfpUBox7"
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box8
-     Flextesa.vanity-chain-id:  Looking for "Box8"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox-615179"
-           → block: "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
-           → chain-id: "NetXnuwTfg9Box8"
-      $ flextesa van --first --seed tutobox- --attempts 100_000_000  Box9
-     Flextesa.vanity-chain-id:  Looking for "Box9"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox-7157776"
-           → block: "BMJqwuTLa3aSi3KAg4XtvSdVe5r7RuoXh5n15DwEoivx2Ve3Wfk"
-           → chain-id: "NetXfpUfwJdBox9"
-      $ flextesa van --first --seed tutobox10- --attempts 100_000_000  BoxG
-     Flextesa.vanity-chain-id:  Looking for "BoxG"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox10-27980054"
-           → block: "BLCRemfAUthe9XSXuJmuH5PmwvQk55aZUwtCbGZdjLh2niWZSJZ"
-           → chain-id: "NetXzcB5DmnBoxG"
-      $ flextesa van --first --seed tutobox11- --attempts 100_000_000  BoxH
-     Flextesa.vanity-chain-id:  Looking for "BoxH"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox11-3307590"
-           → block: "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
-           → chain-id: "NetXgbFy27eBoxH"
-      $ ./flextesa van --first --seed tutobox12- --attempts 100_000_000  Boxi
-     Flextesa.vanity-chain-id:  Looking for "Boxi"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox12-10249265"
-           → block: "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
-           → chain-id: "NetXfHjxW3qBoxi"
-      $ ./flextesa van --first --seed tutobox13- --attempts 100_000_000  BoxJ
-     Flextesa.vanity-chain-id:  Looking for "BoxJ"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox13-9735310"
-           → block: "BLfSRBVkFEdfDEwU5NSqNWoDh2N5HCCvmzj4rS3sPPCt6jSvGJC"
-           → chain-id: "NetXq4AxoF7BoxJ"
-      $ ./flextesa van --first --seed tutobox15- --attempts 100_000_000  BoxK
-     Flextesa.vanity-chain-id:  Looking for "BoxK"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox15-8628610"
-           → block: "BMZd8EyX6m221RMzeP3Eu2f28vrhNfCsUkoMUwGXYWihTJ5aD9m"
-           → chain-id: "NetXj4nRMnbBoxK"
-      $ ./flextesa van --first --seed tutobox15- --attempts 100_000_000  BoxL
-     Flextesa.vanity-chain-id:  Looking for "BoxL"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox15-5141571"
-           → block: "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
-           → chain-id: "NetXPabwW4tBoxL"
-      $ ./flextesa van --first --seed tutobox16- --attempts 100_000_000  BoxM
-     Flextesa.vanity-chain-id:  Looking for "BoxM"
-     Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox16-106640"
-           → block: "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
-           → chain-id: "NetXo5iVw1vBoxM"
-     $ ./flextesa van --first --seed tutobox17- --attempts 100_000_000  BoxN
-    Flextesa.vanity-chain-id:  Looking for "BoxN"
-    Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox17-11111152"
-           → block: "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
-           → chain-id: "NetXNQiqPWDBoxN"
-     $ ./flextesa van --first --seed tutobox18- --attempts 100_000_000  Boxo
-    Flextesa.vanity-chain-id:  Looking for "Boxo"
-    Flextesa.vanity-chain-id:
-       Results:
-         * Seed: "tutobox18-1551632"
-           → block: "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
-           → chain-id: "NetXnofnLBXBoxo"
-     $ ./flextesa van --first --seed alphabox- --attempts 100_000_000  BoxA
-     Flextesa.vanity-chain-id:  Looking for "BoxA"
-     Flextesa.vanity-chain-id:
+         * Seed: "atlasbox-402009"
+           → block: "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
+           → chain-id: "NetXSq4NpQeBox1"
+     $ ./flexmasa van --first --seed alphabox- --attempts 100_000_000  BoxA
+     Flexmasa.vanity-chain-id:  Looking for "BoxA"
+     Flexmasa.vanity-chain-id:
        Results:
          * Seed: "alphabox-31164447"
            → block: "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
            → chain-id: "NetXmGq7LPFBoxA"
     *)
     function
-    | `Carthage -> "BLmtDwmAm1FS1Ak5E2UN5Qu7MGnbpzonCqDUfSj4iC8AT5fteWa"
-    | `Delphi -> "BLkENGLbHJ6ZL9vX7Kabb33yHsWL2z8bKzFFS3ntwTzz91YiTYb"
-    | `Edo -> "BKverc3LnaRdiXUe9ruHrKqejFB3t9ZXxrqeH1Cwtfnbf9HhJtk"
-    | `Florence -> "BMJqwuTLa3aSi3KAg4XtvSdVe5r7RuoXh5n15DwEoivx2Ve3Wfk"
-    | `Granada -> "BLCRemfAUthe9XSXuJmuH5PmwvQk55aZUwtCbGZdjLh2niWZSJZ"
-    | `Hangzhou -> "BLzMUYbk7sD6QG2H7tzLaJyU6dcN6ySE6dkVms49pY72DPN4Tfa"
-    | `Ithaca -> "BLWKVkKQv8tW2yYRteKd899kzeJFxa9CjvUrugmMf9zskWntSVd"
-    | `Jakarta -> "BLfSRBVkFEdfDEwU5NSqNWoDh2N5HCCvmzj4rS3sPPCt6jSvGJC"
-    | `Kathmandu -> "BMZd8EyX6m221RMzeP3Eu2f28vrhNfCsUkoMUwGXYWihTJ5aD9m"
-    | `Lima -> "BLAWtHme4DJ7rixND7cY5Bn5wug7YumpHNmhvVRCX22jitYKaHC"
-    | `Mumbai -> "BLtgVADBUk77Zeiegcj1rKUezYuWfhWpEhh3r5nbzqmgaAH17X1"
-    | `Nairobi -> "BMR6DRdVeoWJ9q1fbzquE7Rz6r29aJhFxythrfLABxbih5hob2t"
-    | `Oxford -> "BLum3xgQ1PxC5WoYMCGg8UHWwFCYkgqixuWsobvzK5uc25C1iUr"
+    | `Atlas -> "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
-    | `Babylon | `Athens -> (* legacy, nobody uses anymore *) default
 
   module Choice = struct
     type t = [ `Random | `Force of string | `Old_default | `From_protocol_kind ]
@@ -170,7 +73,7 @@ a "vanity-suffix-chain-id" which depends on the kind of protocol:
 `Box6` for Carthage
 and `Box7` for Delphi.
 The value "random" means to pick a random number.
-The value "legacy-default" picks the same default as older versions of Flextesa.
+The value "legacy-default" picks the same default as older versions of Flexmasa.
 Any other value is treated as a custom block hash.
 This option is ignored when the `--keep-root` option allows
 the chain to resume
@@ -185,7 +88,7 @@ the chain to resume
   end
 
   let chain_id_of_hash hash =
-    let open Tezai_base58_digest.Identifier in
+    let open Mavai_base58_digest.Identifier in
     Chain_id.of_base58_block_hash hash
 
   let process_choice state ~protocol_kind choice =
@@ -226,7 +129,7 @@ the chain to resume
               let seed =
                 Fmt.str "%d:%f" (Random.int 1_000_000) (Unix.gettimeofday ())
               in
-              let open Tezai_base58_digest.Identifier in
+              let open Mavai_base58_digest.Identifier in
               let block_hash = Block_hash.hash_string seed in
               Block_hash.encode block_hash
         in
@@ -269,7 +172,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   else Console.say state EF.(wf "Keeping root: `%s`" (Paths.root state)))
   >>= fun () ->
   Genesis_block_hash.process_choice state
-    ~protocol_kind:protocol.Tezos_protocol.kind genesis_block_choice
+    ~protocol_kind:protocol.Mavryk_protocol.kind genesis_block_choice
   >>= fun genesis_block_hash ->
   Helpers.System_dependencies.precheck state `Or_fail
     ~protocol_kind:protocol.kind
@@ -277,8 +180,8 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
       ([ node_exec; client_exec ]
       @ (if state#test_baking then
          if
-           Tezos_protocol.Protocol_kind.wants_endorser_daemon
-             protocol.Tezos_protocol.kind
+           Mavryk_protocol.Protocol_kind.wants_endorser_daemon
+             protocol.Mavryk_protocol.kind
          then [ baker_exec; endorser_exec; accuser_exec ]
          else [ baker_exec; accuser_exec ]
         else [])
@@ -288,7 +191,7 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   Console.say state EF.(wf "Starting up the network.") >>= fun () ->
   let node_custom_network =
     let base =
-      Tezos_node.Config_file.network ~genesis_hash:genesis_block_hash ()
+      Mavryk_node.Config_file.network ~genesis_hash:genesis_block_hash ()
     in
     `Json
       (Ezjsonm.dict
@@ -302,22 +205,22 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   >>= fun (nodes, protocol) ->
   Console.say state EF.(wf "Network started, preparing scenario.") >>= fun () ->
   let to_keyed acc client =
-    let key, priv = Tezos_protocol.Account.(name acc, private_key acc) in
+    let key, priv = Mavryk_protocol.Account.(name acc, private_key acc) in
     let keyed_client =
-      Tezos_client.Keyed.make client ~key_name:key ~secret_key:priv
+      Mavryk_client.Keyed.make client ~key_name:key ~secret_key:priv
     in
     keyed_client
   in
   let keys_and_daemons =
     let pick_a_node_and_client idx =
       match List.nth nodes (Int.rem (1 + idx) (List.length nodes)) with
-      | Some node -> (node, Tezos_client.of_node node ~exec:client_exec)
+      | Some node -> (node, Mavryk_client.of_node node ~exec:client_exec)
       | None -> assert false
     in
-    Tezos_protocol.bootstrap_accounts protocol
+    Mavryk_protocol.bootstrap_accounts protocol
     |> List.filter_mapi ~f:(fun idx acc ->
            let node, client = pick_a_node_and_client idx in
-           let key = Tezos_protocol.Account.name acc in
+           let key = Mavryk_protocol.Account.name acc in
            if List.mem ~equal:String.equal no_daemons_for key then None
            else
              Some
@@ -330,14 +233,14 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
                      (Hard_fork.keyed_daemons ~client ~node ~key
                         ~adaptive_issuance)
                  @ [
-                     Tezos_daemon.baker_of_node ~exec:baker_exec ~client node
+                     Mavryk_daemon.baker_of_node ~exec:baker_exec ~client node
                        ~key ~adaptive_issuance ~protocol_kind:protocol.kind;
-                     Tezos_daemon.endorser_of_node ~exec:endorser_exec ~client
+                     Mavryk_daemon.endorser_of_node ~exec:endorser_exec ~client
                        ~protocol_kind:protocol.kind node ~key;
                    ] ))
   in
   List_sequential.iter keys_and_daemons ~f:(fun (_, _, _, kc, _) ->
-      Tezos_client.Keyed.initialize state kc >>= fun _ -> return ())
+      Mavryk_client.Keyed.initialize state kc >>= fun _ -> return ())
   >>= fun () ->
   Interactive_test.Pauser.add_commands state
     Interactive_test.Commands.
@@ -349,44 +252,44 @@ let run state ~protocol ~size ~base_port ~clear_root ~no_daemons_for ?hard_fork
   (if state#test_baking then
    let accusers =
      List.map nodes ~f:(fun node ->
-         let client = Tezos_client.of_node node ~exec:client_exec in
-         Tezos_daemon.accuser_of_node ~exec:accuser_exec
+         let client = Mavryk_client.of_node node ~exec:client_exec in
+         Mavryk_daemon.accuser_of_node ~exec:accuser_exec
            ~protocol_kind:protocol.kind ~client node)
    in
    List_sequential.iter accusers ~f:(fun acc ->
-       Running_processes.start state (Tezos_daemon.process state acc)
+       Running_processes.start state (Mavryk_daemon.process state acc)
        >>= fun { process = _; lwt = _ } -> return ())
    >>= fun () ->
    List_sequential.iter keys_and_daemons
      ~f:(fun (_node, _acc, client, kc, daemons) ->
-       Tezos_client.wait_for_node_bootstrap state client >>= fun () ->
-       let key_name = kc.Tezos_client.Keyed.key_name in
+       Mavryk_client.wait_for_node_bootstrap state client >>= fun () ->
+       let key_name = kc.Mavryk_client.Keyed.key_name in
        say state
          EF.(
            desc_list
              (haf "Registration-as-delegate:")
              [
-               desc (af "Client:") (af "%S" client.Tezos_client.id);
+               desc (af "Client:") (af "%S" client.Mavryk_client.id);
                desc (af "Key:") (af "%S" key_name);
              ])
        >>= fun () ->
-       Tezos_client.register_as_delegate state client ~key_name >>= fun () ->
+       Mavryk_client.register_as_delegate state client ~key_name >>= fun () ->
        say state
          EF.(
            desc_list (haf "Starting daemons:")
              [
-               desc (af "Client:") (af "%S" client.Tezos_client.id);
+               desc (af "Client:") (af "%S" client.Mavryk_client.id);
                desc (af "Key:") (af "%S" key_name);
              ])
        >>= fun () ->
        List_sequential.iter daemons ~f:(fun daemon ->
-           Running_processes.start state (Tezos_daemon.process state daemon)
+           Running_processes.start state (Mavryk_daemon.process state daemon)
            >>= fun { process = _; lwt = _ } -> return ()))
   else
     List.fold ~init:(return []) keys_and_daemons
       ~f:(fun prev_m (_node, _acc, client, keyed, _) ->
         prev_m >>= fun prev ->
-        Tezos_client.wait_for_node_bootstrap state client >>= fun () ->
+        Mavryk_client.wait_for_node_bootstrap state client >>= fun () ->
         return (keyed :: prev))
     >>= fun clients ->
     Interactive_test.Pauser.add_commands state
@@ -447,7 +350,7 @@ let cmd () =
   let open Term in
   let pp_error = Test_command_line.Common_errors.pp in
   let base_state =
-    Test_command_line.Command_making_state.make ~application_name:"Flextesa"
+    Test_command_line.Command_making_state.make ~application_name:"Flexmasa"
       ~command_name:"mininet" ()
   in
   let docs = Manpage_builder.section_test_scenario base_state in
@@ -556,15 +459,15 @@ let cmd () =
             (opt_all string []
                (info [ "no-daemons-for" ] ~docv:"ACCOUNT-NAME" ~docs
                   ~doc:"Do not start daemons for $(docv).")))
-    $ Tezos_protocol.cli_term base_state
-    $ Tezos_executable.cli_term base_state `Node ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Client ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Baker ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Endorser ~prefix:"tezos"
-    $ Tezos_executable.cli_term base_state `Accuser ~prefix:"tezos"
+    $ Mavryk_protocol.cli_term base_state
+    $ Mavryk_executable.cli_term base_state `Node ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Client ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Baker ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Endorser ~prefix:"mavryk"
+    $ Mavryk_executable.cli_term base_state `Accuser ~prefix:"mavryk"
     $ Hard_fork.cmdliner_term ~docs base_state ()
     $ Genesis_block_hash.Choice.cmdliner_term ()
-    $ Tezos_node.History_modes.cmdliner_term base_state
+    $ Mavryk_node.History_modes.cmdliner_term base_state
     $ Test_command_line.Full_default_state.cmdliner_term base_state ()
     $ Smart_rollup.cmdliner_term base_state ()
     $ Smart_contract.cmdliner_term base_state ()

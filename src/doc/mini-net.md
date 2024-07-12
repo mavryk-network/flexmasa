@@ -1,43 +1,43 @@
 The mini-net Command
 ====================
 
-Flextesa ships with the `flextesa` command-line application; this document deals
-with the `./flextesa mini-net` sub-command (also available in the Tezos
-[repository](https://tezos.gitlab.io/developer/flextesa.html) as `tezos-sandbox
+Flexmasa ships with the `flexmasa` command-line application; this document deals
+with the `./flexmasa mini-net` sub-command (also available in the Mavryk
+[repository](https://protocol.mavryk.org/developer/flexmasa.html) as `tezos-sandbox
 mini-net`).
 
-One can use `./flextesa mini-net --help` to see all the available options.
+One can use `./flexmasa mini-net --help` to see all the available options.
 
-Accessing Tezos Software
+Accessing Mavryk Software
 ------------------------
 
-Flextesa needs to access `octez-node`, `octez-client`, and, depending on the
+Flexmasa needs to access `mavkit-node`, `mavkit-client`, and, depending on the
 options, all the “baker deamons.”
 
-An easy way to let flextesa find them is to add them to the `PATH`, for instance
-if all the tezos utilities have been build at `/path/to/octez-repo/`:
+An easy way to let flexmasa find them is to add them to the `PATH`, for instance
+if all the tezos utilities have been build at `/path/to/mavkit-repo/`:
 
-    $ export PATH=/path/to/octez-repo/:$PATH
-    $ flextesa mini  \
+    $ export PATH=/path/to/mavkit-repo/:$PATH
+    $ flexmasa mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2
 
 If one does not want to, or cannot, use this method, all the executable paths
 can be passed with command line options:
 
-    $ flextesa mini  \
+    $ flexmasa mini  \
                --size 3 --time-between-blocks 8 --number-of-boot 2 \
-               --octez-node /path/to/octez-repo/octez-node \
-               --octez-client /path/to/octez-repo/octez-client \
-               --octez-baker /path/to/octez-repo/octez-baker-alpha \
-               --octez-endorser /path/to/octez-repo/octez-endorser-alpha \
-               --octez-accuser /path/to/octez-repo/octez-accuser-alpha
+               --mavkit-node /path/to/mavkit-repo/mavkit-node \
+               --mavkit-client /path/to/mavkit-repo/mavkit-client \
+               --mavkit-baker /path/to/mavkit-repo/mavkit-baker-alpha \
+               --mavkit-endorser /path/to/mavkit-repo/mavkit-endorser-alpha \
+               --mavkit-accuser /path/to/mavkit-repo/mavkit-accuser-alpha
 
 The above command starts 3 nodes, activates the protocol `alpha` with a
 block-time of 8 seconds (`alpha` is the development protocol of the `master`
 branch; it *mimics* the `mainnet` one), and starts baking daemons for 2
 bootstrap-baker accounts.
 
-* If you are using the docker image, valid `octez-*` executables are already in
+* If you are using the docker image, valid `mavkit-*` executables are already in
   the `$PATH`.
 * The following sections assume you have these figured out (as additional
   arguments or in the `$PATH`).
@@ -45,14 +45,14 @@ bootstrap-baker accounts.
 A Note On Interactivity
 -----------------------
 
-Many sandbox setups in Flextesa, once the sandbox is ready, give the user an
+Many sandbox setups in Flexmasa, once the sandbox is ready, give the user an
 interactive command prompt.
 
 You can always type `help` (or `h`) to see available commands, and `quit` (or
 `q`) to leave the prompt.
 
 The improve user-experience on normal terminals (i.e. not Emacs …) it is
-recommended to wrap the `flextesa` command in command-line edition tool like
+recommended to wrap the `flexmasa` command in command-line edition tool like
 `rlfe`, `rlwrap` or `ledit`.
 
 More Examples
@@ -65,10 +65,10 @@ daemons, the client needs to manually bake blocks on demand (this is very useful
 to make faster and more reproducible tests for instance).
 
 
-    $ flextesa mini  \
+    $ flexmasa mini  \
                --size 1 --number-of-boot 1 --base-port 4000 \
-               --octez-node /path/to/octez-repo/octez-node \
-               --octez-client /path/to/octez-repo/octez-client \
+               --mavkit-node /path/to/mavkit-repo/mavkit-node \
+               --mavkit-client /path/to/mavkit-repo/mavkit-client \
                --no-baking
 
 By typing `help` we see we can use the command `bake` to make new blocks:
@@ -81,16 +81,16 @@ By typing `help` we see we can use the command `bake` to make new blocks:
 ...
 ```
 
-One can also use `octez-client -E http://localhost:4000 bake for ...` from
+One can also use `mavkit-client -E http://localhost:4000 bake for ...` from
 outside the sandbox.
 
-Luckily such a client has already been configured by Flextesa; type `help-env`
+Luckily such a client has already been configured by Flexmasa; type `help-env`
 on the prompt:
 
 ```
-Flextesa: Please enter command:
+Flexmasa: Please enter command:
   help-env
-Flextesa:
+Flexmasa:
   Shell Environment
     * A loadable shell environment is available at
     `/tmp/mininet-test/shell.env`.
@@ -107,7 +107,7 @@ And indeed we can use such a client to bake a new block:
 
 ```
  $ c0 list known addresses
-bootacc-0: tz1YPSCGWXwBdTncK2aCctSZAXWvGsGwVJqU (unencrypted sk known)
+bootacc-0: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk (unencrypted sk known)
 dictator-default: tz1aYQcaXmowUu59gAgMGdiX6ARR7gdmikZk (unencrypted sk known)
 
  $ c0 bake for bootacc-0
@@ -122,22 +122,22 @@ expected time between blocks.
 ### Running Another Protocol And History Modes
 
 The
-[`./src/scripts/tutorial-box.sh`](https://gitlab.com/tezos/flextesa/blob/master/src/scripts/tutorial-box.sh)
+[`./src/scripts/tutorial-box.sh`](https://gitlab.com/mavryk-network/flexmasa/blob/master/src/scripts/tutorial-box.sh)
 uses protocol-specific binaries (present in the default docker image) to run
 non-interactive sandboxes with the “real” Babylon or Carthage protocols.
 
 For instance:
 
-    $ flextesa mini-net \
+    $ flexmasa mini-net \
                --root /tmp/mini-box \
                --size 1 \
                --set-history-mode N000:archive
                --number-of-bootstrap-accounts 1 \
                --time-b 5 \
                --until-level 2_000_000 \
-               --octez-baker octez-baker-005-PsBabyM1 \
-               --octez-endor octez-endorser-005-PsBabyM1 \
-               --octez-accus octez-accuser-005-PsBabyM1 \
+               --mavkit-baker mavkit-baker-005-PsBabyM1 \
+               --mavkit-endor mavkit-endorser-005-PsBabyM1 \
+               --mavkit-accus mavkit-accuser-005-PsBabyM1 \
                --protocol-kind Babylon \
                --protocol-hash PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS
 
@@ -146,37 +146,37 @@ mainnet) but with a time-between-blocks of 5 seconds.
 
 Moreover, instead of becoming interactive, the sandbox will run for 2×10⁶ blocks
 and the node will be an `archive` node (see documentation on [history
-modes](https://tezos.gitlab.io/user/history_modes.html)).
+modes](https://protocol.mavryk.org/user/history_modes.html)).
 
 ### Adding Custom Bootstrap Accounts
 
-**Note on Oxford** Bootstrap accounts in Oxford protocol will start out
+**Note on Atlas** Bootstrap accounts in Atlas protocol will start out
 automatically staking. This stake is frozen and will not show up in the account
 balance until un-staked. The frozen balance is calculated by the protocol with a
-minimum of 6,000 ꜩ.
+minimum of 6,000 ṁ.
 
 The option `--add-bootstrap-account` adds arbitrary key-pairs as
-bootstrap-accounts with a given amount of μꜩ; the option `--no-daemons-for`
+bootstrap-accounts with a given amount of μṁ; the option `--no-daemons-for`
 prevents the sandbox from baking with a given bootstrap-account.
 
-More over flextesa provides a command to generate **deterministic** key-pairs
+More over flexmasa provides a command to generate **deterministic** key-pairs
 from any string.
 
-    $ alice=$(./flextesa key-of-name alice)
-    $ flextesa mini  \
+    $ alice=$(./flexmasa key-of-name alice)
+    $ flexmasa mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2 \
                --add-bootstrap-account "$alice@2_000_000_000_000 \
                --no-daemons-for=alice
 
-This sandbox has one more account with 2 million ꜩ, that account is not used for
+This sandbox has one more account with 2 million ṁ, that account is not used for
 baking. See the output of the key generation:
 
 ```
- $ flextesa key-of-name alice
-alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
+ $ flexmasa key-of-name alice
+alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 ```
 
-One can use simply `octez-client import secret key the-alice
+One can use simply `mavkit-client import secret key the-alice
 unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq` to interact
 with this account.
 
@@ -187,14 +187,14 @@ RPC `/chains/main/chain_id`), but one may want to use a different one.
 
 The chain-id is computed from the hash of the Genesis block, which can be forced
 with the `--genesis-block-hash`; and one can brute-force a block-hash to
-generate vanity chain-id with the `flextesa vanity-chain-id` command.
+generate vanity chain-id with the `flexmasa vanity-chain-id` command.
 
 ```
- $ flextesa vanity-chain-id Bob  \
+ $ flexmasa vanity-chain-id Bob  \
             --attempts 1_000_000 --first --seed my-seed-string
 
-Flextesa.vanity-chain-id:  Looking for "Bob"
-Flextesa.vanity-chain-id:
+Flexmasa.vanity-chain-id:  Looking for "Bob"
+Flexmasa.vanity-chain-id:
   Results:
     * Seed: "my-seed-string140396"
       → block: "BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q"
@@ -203,7 +203,7 @@ Flextesa.vanity-chain-id:
 
 One can use it like this:
 
-    $ flextesa mini  \
+    $ flexmasa mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2 \
                --genesis BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q
 
@@ -223,7 +223,7 @@ Restarting sandboxes is *not an exact science* because it is not how a
 blockchain is supposed to work, sometimes bakers and nodes fail while trying to
 catch-up, it is better to use “small” networks:
 
-    $ flextesa mini --root /tmp/longer-running-mini-net \
+    $ flexmasa mini --root /tmp/longer-running-mini-net \
                --size 1 --time-between-blocks 2 --number-of-boot 1 \
                --keep-root
 
@@ -232,14 +232,14 @@ later usually works.
 
 ## Smart Optimistic Rollups
 
-Flextesa automates several steps involved in originating a [smart optimistic
-rollup](https://tezos.gitlab.io/alpha/smart_rollups.html). For a quick start,
-the command `flextesa mini-network --smart-rollup` will start the mini-network
+Flexmasa automates several steps involved in originating a [smart optimistic
+rollup](https://protocol.mavryk.org/alpha/smart_rollups.html). For a quick start,
+the command `flexmasa mini-network --smart-rollup` will start the mini-network
 sandbox with a default transaction smart rollup using the
 [tx-kernel](https://gitlab.com/tezos/kernel). A smart-rollup-node in
-**operator** mode will begin progressing the rollup. This assumes the octez
+**operator** mode will begin progressing the rollup. This assumes the mavkit
 binaries are in your `$PATH`. Otherwise, you'll need to pass the option
-`--octez-smart-rollup-node-binary`.
+`--mavkit-smart-rollup-node-binary`.
 
 You can use `/src/scripts/get-tx-client.sh` to get the tx-client binaries. The
 tx-client can be used to interact with the tx-rollup. See its
@@ -249,12 +249,12 @@ In order to start a smart rollup sandbox with a custom kernel use the
 `--custom-kernel` option.
 
 ```
-$ flextesa mini-network \
+$ flexmasa mini-network \
             --protocol-kind Mumbai \
             --smart-rollup \
             --custom-kernel wasm_2_0_0:bytes:path/to/my-kernel.wasm
             --smart-contract path/to/l1_contract.tz
-            --octez-smart-rollup-node /binaries/octez-smart-rollup-node-PtMumbai
+            --mavkit-smart-rollup-node /binaries/mavkit-smart-rollup-node-PtMumbai
 ```
 
 The arguments passed to `--custom-kernel`, `wasm_2_0_0` and `bytes` are the
@@ -262,7 +262,7 @@ The arguments passed to `--custom-kernel`, `wasm_2_0_0` and `bytes` are the
 final argument is the path to the .wasm file for your kernel.
 
 Most kernels will be too large for an L1 operation. When this is the case,
-Flextesa will use the
+Flexmasa will use the
 [smart-rollup-installer](https://crates.io/crates/tezos-smart-rollup-installer)
 to create an installer kernel and originate the rollup.
 
@@ -270,12 +270,12 @@ The `--smart-contract PATH` option simply originates the layer one smart
 contract at `PATH`.
 
 There are two additional options that can be used with the smart rollup. With
-`--smart-rollup-start-level LEVEL` Flextesa will wait until `LEVEL` to originate
+`--smart-rollup-start-level LEVEL` Flexmasa will wait until `LEVEL` to originate
 the rollup. The default is level 5. `--smart-rollup-node-mode MODE` will set the
-[mode](https://tezos.gitlab.io/alpha/smart_rollups.html#deploying-a-rollup-node)
-of the smart-rollup-node initialized by Flextesa.
+[mode](https://protocol.mavryk.org/alpha/smart_rollups.html#deploying-a-rollup-node)
+of the smart-rollup-node initialized by Flexmasa.
 
-Once the rollup is originated, Flextesa will display the rollup address and
+Once the rollup is originated, Flexmasa will display the rollup address and
 rpc_port for the rollup node. This information can also be found in the rollup
 node's data directory at `.../data-dir/config.json`.
 

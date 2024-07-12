@@ -1,7 +1,7 @@
 open Internal_pervasives
 
 let branch state client =
-  Tezos_client.rpc state ~client:client.Tezos_client.Keyed.client `Get
+  Mavryk_client.rpc state ~client:client.Mavryk_client.Keyed.client `Get
     ~path:"/chains/main/blocks/head/hash"
   >>= fun br -> return (Jqo.get_string br)
 
@@ -39,7 +39,7 @@ module Michelson = struct
     let origination =
       let opt = Option.value_map ~default:[] in
       [ "--wait"; "none"; "originate"; "contract"; name ]
-      @ (if Tezos_protocol.Protocol_kind.wants_contract_manager protocol_kind
+      @ (if Mavryk_protocol.Protocol_kind.wants_contract_manager protocol_kind
         then [ "for"; from ]
         else [])
       @ [
@@ -67,11 +67,10 @@ module Michelson = struct
 end
 
 module Forge = struct
-  let batch_transfer
-      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
+  let batch_transfer ?(protocol_kind : Mavryk_protocol.Protocol_kind.t = `Atlas)
       ?(counter = 0)
       ?(dst =
-        [ ("tz2KZPgf2rshxNUBXFcTaCemik1LH1v9qz3F", Random.int_incl 1 1000) ])
+        [ ("mv2Xe9KfSJPiVSbLN64bMzaTPtq5tQC52iNJ", Random.int_incl 1 1000) ])
       ~src ~fee ~branch n : Ezjsonm.value =
     let open Ezjsonm in
     ignore protocol_kind;
@@ -97,7 +96,7 @@ module Forge = struct
                    ])) );
       ]
 
-  let endorsement ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
+  let endorsement ?(protocol_kind : Mavryk_protocol.Protocol_kind.t = `Atlas)
       ~branch level : Ezjsonm.value =
     let open Ezjsonm in
     ignore protocol_kind;
@@ -109,8 +108,8 @@ module Forge = struct
       ]
 end
 
-let get_chain_id state (client : Tezos_client.Keyed.t) =
-  Tezos_client.rpc state ~client:client.client `Get
+let get_chain_id state (client : Mavryk_client.Keyed.t) =
+  Mavryk_client.rpc state ~client:client.client `Get
     ~path:"/chains/main/chain_id"
   >>= fun chain_id_json ->
   try return (Jqo.get_string chain_id_json)
@@ -168,7 +167,7 @@ module Multisig = struct
     "[{\"prim\":\"parameter\",\"args\":[{\"prim\":\"pair\",\"args\": \
      [{\"prim\":\"pair\",\"args\":[{\"prim\":\"nat\",\"annots\": \
      [\"%counter\"]},{\"prim\":\"or\",\"args\":[{\"prim\":\"pair\", \
-     \"args\":[{\"prim\":\"mutez\",\"annots\":[\"%amount\"]},{\"prim\": \
+     \"args\":[{\"prim\":\"mumav\",\"annots\":[\"%amount\"]},{\"prim\": \
      \"contract\",\"args\":[{\"prim\":\"unit\"}],\"annots\":[\"%dest\"]}], \
      \"annots\":[\":transfer\"]},{\"prim\":\"or\",\"args\":[{\"prim\": \
      \"option\",\"args\":[{\"prim\":\"key_hash\"}],\"annots\": \
@@ -235,7 +234,7 @@ module Multisig = struct
     let pks =
       List.map
         ~f:(fun n ->
-          Tezos_protocol.Account.pubkey (Tezos_protocol.Account.of_name n))
+          Mavryk_protocol.Account.pubkey (Mavryk_protocol.Account.of_name n))
         signers
     in
     let folded =
@@ -282,8 +281,8 @@ module Multisig = struct
     Ezjsonm.value_from_string multisig_params
 
   let deploy_multisig
-      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
-      ?(counter = 0) sig_threshold ~branch ~signers ~src ~fee ~balance =
+      ?(protocol_kind : Mavryk_protocol.Protocol_kind.t = `Atlas) ?(counter = 0)
+      sig_threshold ~branch ~signers ~src ~fee ~balance =
     let open Ezjsonm in
     ignore protocol_kind;
     dict
@@ -307,26 +306,26 @@ module Multisig = struct
             ] );
       ]
 
-  let hash_multisig_data state client mutez ~chain_id ~contract_addr ~dest =
+  let hash_multisig_data state client mumav ~chain_id ~contract_addr ~dest =
     let data_type =
-      "(pair (pair address chain_id) (pair int (or (pair mutez (contract \
+      "(pair (pair address chain_id) (pair int (or (pair mumav (contract \
        unit)) unit)))"
     in
-    Tezos_client.multisig_storage_counter state client contract_addr
+    Mavryk_client.multisig_storage_counter state client contract_addr
     >>= fun contract_counter ->
     let data_to_hash =
       sprintf "(Pair (Pair \"%s\" \"%s\") (Pair %d (Left (Pair %d \"%s\"))))"
-        contract_addr chain_id contract_counter mutez dest
+        contract_addr chain_id contract_counter mumav dest
     in
     let gas = 1040000 in
-    Tezos_client.hash_data state client ~data_to_hash ~data_type ~gas
+    Mavryk_client.hash_data state client ~data_to_hash ~data_type ~gas
 
   let sign_multisig state client ~contract_addr ~amt ~to_acct ~signer_name =
     get_chain_id state client >>= fun chain_id ->
     hash_multisig_data state client.client amt ~chain_id ~contract_addr
       ~dest:to_acct
     >>= fun bytes ->
-    Tezos_client.Keyed.sign_bytes state client ~bytes ~key_name:signer_name
+    Mavryk_client.Keyed.sign_bytes state client ~bytes ~key_name:signer_name
     >>= fun ret ->
     let cleaned =
       match String.chop_prefix ret ~prefix:"Signature: " with
@@ -336,8 +335,8 @@ module Multisig = struct
     return cleaned
 
   let transfer_from_multisig
-      ?(protocol_kind : Tezos_protocol.Protocol_kind.t = `Babylon)
-      ?(counter = 0) fee ~branch ~src ~destination ~contract ~amount
+      ?(protocol_kind : Mavryk_protocol.Protocol_kind.t = `Atlas) ?(counter = 0)
+      fee ~branch ~src ~destination ~contract ~amount
       ~signatures (* ~signature ~burn_cap *) =
     let open Ezjsonm in
     ignore protocol_kind;
@@ -365,9 +364,9 @@ module Multisig = struct
       ]
 
   let deploy_and_transfer ?initial_counter_override state
-      (client : Tezos_client.Keyed.t) (nodes : Tezos_node.t list) ~src ~fee
+      (client : Mavryk_client.Keyed.t) (nodes : Mavryk_node.t list) ~src ~fee
       ~num_signers ~outer_repeat ~contract_repeat =
-    Tezos_client.Keyed.update_counter
+    Mavryk_client.Keyed.update_counter
       ?current_counter_override:initial_counter_override state client
       "deploy_and_transfer"
     >>= fun origination_ctr ->
@@ -382,8 +381,8 @@ module Multisig = struct
         Helpers.import_keys_from_seeds state client.client ~seeds:signer_names
         >>= fun _ ->
         let s = List.hd_exn signer_names in
-        let kp = Tezos_protocol.Account.of_name s in
-        let _destination = Tezos_protocol.Account.pubkey_hash kp in
+        let kp = Mavryk_protocol.Account.of_name s in
+        let _destination = Mavryk_protocol.Account.pubkey_hash kp in
         (* deploy the multisig contract *)
         branch state client >>= fun the_branch ->
         let json =
@@ -391,22 +390,23 @@ module Multisig = struct
             ~branch:the_branch ~signers:signer_names ~src ~fee:(fee *. 10.0)
             ~balance:(Random.int 10000 + 1)
         in
-        Tezos_client.Keyed.forge_and_inject state client ~json
+        Mavryk_client.Keyed.forge_and_inject state client ~json
         >>= fun deploy_result ->
         Console.sayf state More_fmt.(fun ppf () -> json ppf deploy_result)
         >>= fun () ->
         (if is_baking state then
          Test_scenario.Queries.wait_for_bake state ~nodes
-        else Tezos_client.Keyed.bake state client "Multisig deploy_and_transfer")
+        else
+          Mavryk_client.Keyed.bake state client "Multisig deploy_and_transfer")
         >>= fun () ->
-        let _ = Tezos_client.Keyed.operations_from_chain state client in
-        Tezos_client.Keyed.get_contract_id state client
+        let _ = Mavryk_client.Keyed.operations_from_chain state client in
+        Mavryk_client.Keyed.get_contract_id state client
           (Jqo.to_string_hum deploy_result)
         >>= fun contract_addr ->
         (* for each signer, sign the contract *)
         let to_acct =
-          Tezos_protocol.Account.pubkey_hash
-            (Tezos_protocol.Account.of_name "Bob")
+          Mavryk_protocol.Account.pubkey_hash
+            (Mavryk_protocol.Account.of_name "Bob")
         in
         let m_sigs =
           List.map
@@ -418,7 +418,7 @@ module Multisig = struct
         Asynchronous_result.all m_sigs >>= fun signatures ->
         (* submit the fully signed multisig contract *)
         Loop.n_times contract_repeat (fun k ->
-            Tezos_client.Keyed.update_counter state client
+            Mavryk_client.Keyed.update_counter state client
               (sprintf "Inner transfer_from_multisig loop with k:%d" k)
             >>= fun new_counter ->
             let xfer_json =
@@ -426,7 +426,7 @@ module Multisig = struct
                 ~src ~destination:contract_addr ~contract:contract_addr
                 ~amount:100 ~signatures
             in
-            Tezos_client.Keyed.forge_and_inject state client ~json:xfer_json
+            Mavryk_client.Keyed.forge_and_inject state client ~json:xfer_json
             >>= fun xfer_res ->
             Console.say state
               EF.(
@@ -435,7 +435,7 @@ module Multisig = struct
                   (af "Multisig transaction (%n) results: %s" k
                      (Jqo.to_string_hum xfer_res))))
         >>= fun () ->
-        Tezos_client.Keyed.update_counter state client
+        Mavryk_client.Keyed.update_counter state client
           "Bottom of outer multisig loop"
         >>= fun new_ctr -> return new_ctr)
 end
@@ -555,7 +555,7 @@ module Commands = struct
   let protect_with_keyed_client msg ~client ~f =
     let msg =
       Fmt.str "Command-line %s with client %s (account: %s)" msg
-        client.Tezos_client.Keyed.client.id client.Tezos_client.Keyed.key_name
+        client.Mavryk_client.Keyed.client.id client.Mavryk_client.Keyed.key_name
     in
     Asynchronous_result.bind_on_error (f ()) ~f:(fun ~result:_ -> function
       | #Process_result.Error.t as e ->
@@ -660,12 +660,12 @@ module Commands = struct
 
   let address_of_account acctOpt err_str =
     match acctOpt with
-    | Some a -> Tezos_protocol.Account.pubkey_hash a
+    | Some a -> Mavryk_protocol.Account.pubkey_hash a
     | None -> err_str
 
   let get_batch_args state ~client opts more_args =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
-        Tezos_client.get_account state ~client:client.client
+        Mavryk_client.get_account state ~client:client.client
           ~name:client.key_name
         >>= fun acct ->
         let src = address_of_account acct "<Unable to parse account>" in
@@ -682,7 +682,7 @@ module Commands = struct
 
   let get_multisig_args state ~client opts (more_args : Sexp.t list) =
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
-        Tezos_client.get_account state ~client:client.client
+        Mavryk_client.get_account state ~client:client.client
           ~name:client.key_name
         >>= fun acct ->
         let src = address_of_account acct "<Unable to parse account>" in
@@ -712,7 +712,7 @@ module Commands = struct
               contract_repeat;
             }))
 
-  let to_action state ~(client : Tezos_client.Keyed.t) opts sexp =
+  let to_action state ~(client : Mavryk_client.Keyed.t) opts sexp =
     match sexp with
     | Sexp.List (Atom "batch" :: more_args) ->
         get_batch_args state ~client opts more_args
@@ -793,7 +793,7 @@ module Commands = struct
     protect_with_keyed_client "generate batch" ~client ~f:(fun () ->
         Helpers.Timing.duration
           (fun aFee ->
-            Tezos_client.Keyed.update_counter
+            Mavryk_client.Keyed.update_counter
               ?current_counter_override:act.initial_counter_override state
               client "in process_gen_batch"
             >>= fun new_counter ->
@@ -802,7 +802,7 @@ module Commands = struct
               Forge.batch_transfer ~counter:new_counter ~src:act.src ~fee:aFee
                 ~branch:the_branch act.size
             in
-            Tezos_client.Keyed.forge_and_inject state client ~json
+            Mavryk_client.Keyed.forge_and_inject state client ~json
             >>= fun json_result ->
             Console.sayf state More_fmt.(fun ppf () -> json ppf json_result))
           act.fee
@@ -846,7 +846,7 @@ module Random = struct
   let run state ~protocol ~nodes ~clients ~until_level kind =
     assert (Poly.equal kind `Any);
     let tbb =
-      protocol.Tezos_protocol.time_between_blocks |> List.hd
+      protocol.Mavryk_protocol.time_between_blocks |> List.hd
       |> Option.value ~default:10
     in
     let info fmt =
@@ -857,7 +857,7 @@ module Random = struct
     in
     let from = "bootacc-0" in
     let keyed_client = List.hd_exn clients in
-    let client = keyed_client.Tezos_client.Keyed.client in
+    let client = keyed_client.Mavryk_client.Keyed.client in
     let pp_success ppf = function
       | true -> Fmt.pf ppf "Success"
       | false -> Fmt.pf ppf "Failure"
@@ -865,7 +865,7 @@ module Random = struct
     let valid_contracts = ref [] in
     let rec loop iteration =
       let client_cmd name l =
-        Tezos_client.client_cmd ~verbose:false state ~client
+        Mavryk_client.client_cmd ~verbose:false state ~client
           ~id_prefix:(Fmt.str "randomizer-%04d-%s" iteration name)
           l
       in
@@ -897,11 +897,11 @@ module Random = struct
           (match List.random_element !valid_contracts with
           | None -> info "No valid contracts to call."
           | Some (name, params) ->
-              Tezos_client.get_account state ~client ~name:from >>= fun acct ->
+              Mavryk_client.get_account state ~client ~name:from >>= fun acct ->
               let show_from =
                 Commands.address_of_account acct "Unable to parse account>"
               in
-              Tezos_client.show_known_contract state client ~name
+              Mavryk_client.show_known_contract state client ~name
               >>= fun show_to ->
               client_cmd
                 (Fmt.str "transfer-%s" name)
@@ -931,8 +931,8 @@ module Random = struct
             | _ -> ("unit", "Unit")
           in
           Michelson.prepare_origination_of_id_script state ~name ~from
-            ~protocol_kind:protocol.Tezos_protocol.kind ~parameter ~init_storage
-            ~push_drops
+            ~protocol_kind:protocol.Mavryk_protocol.kind ~parameter
+            ~init_storage ~push_drops
           >>= fun origination ->
           client_cmd (Fmt.str "originate-%s" name) origination
           >>= fun (success, _) ->
@@ -940,7 +940,7 @@ module Random = struct
            valid_contracts := (name, init_storage) :: !valid_contracts;
            info "Origination of `%s` (%s : %s): `%a`." name init_storage
              parameter pp_success success
-           >>= fun () -> Tezos_client.show_known_contract state client ~name)
+           >>= fun () -> Mavryk_client.show_known_contract state client ~name)
           else
             info "Failure during Origination of `%s` (%s : %s): `%a`." name
               init_storage parameter pp_success success
@@ -953,7 +953,8 @@ module Random = struct
       | Some `Multisig_contract ->
           Commands.protect_with_keyed_client "generate batch"
             ~client:keyed_client ~f:(fun () ->
-              Tezos_client.get_account state ~client ~name:keyed_client.key_name
+              Mavryk_client.get_account state ~client
+                ~name:keyed_client.key_name
               >>= fun acct ->
               let src =
                 Commands.address_of_account acct "<Unable to parse account>"
@@ -983,7 +984,7 @@ module Random = struct
 end
 
 module Dsl = struct
-  let process_dsl state ~(client : Tezos_client.Keyed.t) ~nodes opts sexp =
+  let process_dsl state ~(client : Mavryk_client.Keyed.t) ~nodes opts sexp =
     Commands.protect_with_keyed_client "process_dsl" ~client ~f:(fun () ->
         let n, sexp2 = Commands.process_repeat_action sexp in
         let b, sexp3 = Commands.process_random_choice sexp2 in

@@ -9,12 +9,12 @@ open Internal_pervasives
 
 type t = private {
   level : int;
-  protocol_kind : Tezos_protocol.Protocol_kind.t;
+  protocol_kind : Mavryk_protocol.Protocol_kind.t;
   protocol_hash : string;
   name : string;
-  baker : Tezos_executable.t;
-  endorser : Tezos_executable.t;
-  accuser : Tezos_executable.t;
+  baker : Mavryk_executable.t;
+  endorser : Mavryk_executable.t;
+  accuser : Mavryk_executable.t;
 }
 
 val cmdliner_term :
@@ -27,7 +27,7 @@ val cmdliner_term :
     ["--<prefix>*"] command-line options allowing to configure a
     user-activated-upgrade. *)
 
-val executables : t -> Tezos_executable.t list
+val executables : t -> Mavryk_executable.t list
 (** Get all the protocol-specific executable definitions (the “daemons”)
     involved in this hard-fork. *)
 
@@ -37,9 +37,9 @@ val node_network_config : t -> string * [> Ezjsonm.t ]
 
 val keyed_daemons :
   t ->
-  client:Tezos_client.t ->
+  client:Mavryk_client.t ->
   key:string ->
-  node:Tezos_node.t ->
-  adaptive_issuance:Tezos_daemon.ai_vote ->
-  Tezos_daemon.t list
+  node:Mavryk_node.t ->
+  adaptive_issuance:Mavryk_daemon.ai_vote ->
+  Mavryk_daemon.t list
 (** Prepare the baker and endorse daemons to secure the hard-fork. *)

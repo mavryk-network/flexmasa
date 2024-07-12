@@ -8,12 +8,12 @@ type t = {
   node_mode : [ `Accuser | `Batcher | `Maintenance | `Observer | `Operator ];
   node_init_options : string list;
   node_run_options : string list;
-  node : Tezos_executable.t;
-  installer : Tezos_executable.t;
-  evm_node : Tezos_executable.t;
+  node : Mavryk_executable.t;
+  installer : Mavryk_executable.t;
+  evm_node : Mavryk_executable.t;
 }
 
-val executables : t -> Tezos_executable.t list
+val executables : t -> Mavryk_executable.t list
 
 (* Originate a smart rollup with the kernel passed from the command line or the
    default tx-rollup *)
@@ -25,15 +25,15 @@ val run :
   ; runner : Running_processes.State.t
   ; .. > ->
   smart_rollup:t option ->
-  protocol:Tezos_protocol.t ->
+  protocol:Mavryk_protocol.t ->
   keys_and_daemons:
-    (Tezos_node.t
-    * Tezos_protocol.Account.t
-    * Tezos_client.t
-    * Tezos_client.Keyed.t
-    * Tezos_daemon.t list)
+    (Mavryk_node.t
+    * Mavryk_protocol.Account.t
+    * Mavryk_client.t
+    * Mavryk_client.Keyed.t
+    * Mavryk_daemon.t list)
     list ->
-  nodes:Tezos_node.t list ->
+  nodes:Mavryk_node.t list ->
   base_port:int ->
   ( unit,
     [> `Process_error of Process_result.Error.error

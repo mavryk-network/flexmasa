@@ -25,7 +25,7 @@ type t = {
 
 let default () =
   {
-    prefix = "flextesa_";
+    prefix = "flexmasa_";
     disabled = false;
     default_cors_origin =
       var "node_cors_origin"
@@ -45,7 +45,7 @@ let default () =
         ~doc:
           [
             "Set the minimum evenet-level for the event-logging of all \
-             octez-executables.";
+             mavkit-executables.";
             "The default is `warning`.";
             "The value `none` means: completely disable the event-logging.";
           ] ~transform:(function
