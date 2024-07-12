@@ -66,7 +66,7 @@ head -n "$toc_spot" ./README.md  | omd > "$main_index_fragment"
 { echo '# Table of Contents' ; tail +$toc_spot  ./README.md ; } \
     | omd -otoc >> "$main_index_fragment"
 tail +$toc_spot  ./README.md \
-    | sed 's@https://tezos.gitlab.io/flexmasa/lib-index.html@./lib-index.html@' \
+    | sed 's@https://protocol.mavryk.org/flexmasa/lib-index.html@./lib-index.html@' \
     | sed 's@./src/doc/mini-net.md@./mini-net.html@' \
     | sed 's@./src/doc/daemons-upgrade.md@./daemons-upgrade.html@' \
     | omd >> "$main_index_fragment"

@@ -3,7 +3,7 @@ The mini-net Command
 
 Flexmasa ships with the `flexmasa` command-line application; this document deals
 with the `./flexmasa mini-net` sub-command (also available in the Mavryk
-[repository](https://tezos.gitlab.io/developer/flexmasa.html) as `tezos-sandbox
+[repository](https://protocol.mavryk.org/developer/flexmasa.html) as `tezos-sandbox
 mini-net`).
 
 One can use `./flexmasa mini-net --help` to see all the available options.
@@ -146,17 +146,17 @@ mainnet) but with a time-between-blocks of 5 seconds.
 
 Moreover, instead of becoming interactive, the sandbox will run for 2×10⁶ blocks
 and the node will be an `archive` node (see documentation on [history
-modes](https://tezos.gitlab.io/user/history_modes.html)).
+modes](https://protocol.mavryk.org/user/history_modes.html)).
 
 ### Adding Custom Bootstrap Accounts
 
 **Note on Atlas** Bootstrap accounts in Atlas protocol will start out
 automatically staking. This stake is frozen and will not show up in the account
 balance until un-staked. The frozen balance is calculated by the protocol with a
-minimum of 6,000 ꜩ.
+minimum of 6,000 ṁ.
 
 The option `--add-bootstrap-account` adds arbitrary key-pairs as
-bootstrap-accounts with a given amount of μꜩ; the option `--no-daemons-for`
+bootstrap-accounts with a given amount of μṁ; the option `--no-daemons-for`
 prevents the sandbox from baking with a given bootstrap-account.
 
 More over flexmasa provides a command to generate **deterministic** key-pairs
@@ -168,7 +168,7 @@ from any string.
                --add-bootstrap-account "$alice@2_000_000_000_000 \
                --no-daemons-for=alice
 
-This sandbox has one more account with 2 million ꜩ, that account is not used for
+This sandbox has one more account with 2 million ṁ, that account is not used for
 baking. See the output of the key generation:
 
 ```
@@ -233,7 +233,7 @@ later usually works.
 ## Smart Optimistic Rollups
 
 Flexmasa automates several steps involved in originating a [smart optimistic
-rollup](https://tezos.gitlab.io/alpha/smart_rollups.html). For a quick start,
+rollup](https://protocol.mavryk.org/alpha/smart_rollups.html). For a quick start,
 the command `flexmasa mini-network --smart-rollup` will start the mini-network
 sandbox with a default transaction smart rollup using the
 [tx-kernel](https://gitlab.com/tezos/kernel). A smart-rollup-node in
@@ -272,7 +272,7 @@ contract at `PATH`.
 There are two additional options that can be used with the smart rollup. With
 `--smart-rollup-start-level LEVEL` Flexmasa will wait until `LEVEL` to originate
 the rollup. The default is level 5. `--smart-rollup-node-mode MODE` will set the
-[mode](https://tezos.gitlab.io/alpha/smart_rollups.html#deploying-a-rollup-node)
+[mode](https://protocol.mavryk.org/alpha/smart_rollups.html#deploying-a-rollup-node)
 of the smart-rollup-node initialized by Flexmasa.
 
 Once the rollup is originated, Flexmasa will display the rollup address and

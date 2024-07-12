@@ -10,8 +10,8 @@ stages:
   - deploy
 
 variables:
-  dind_image: "docker:27.0.3"
-  dind_service: "docker:27.0.3-dind"
+  dind_image: "docker:20.10.7"
+  dind_service: "docker:20.10.7-dind"
   SHOW_INFO: >
     echo "=========== INFO: ============" &&
     opam exec -- ocamlc -version

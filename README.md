@@ -2,8 +2,8 @@ Flexmasa: Flexible Mavryk Sandboxes
 ==================================
 
 This repository contains the Flexmasa library used in
-[tezos/tezos](https://gitlab.com/tezos/tezos) to build the `tezos-sandbox`
-[tests](https://tezos.gitlab.io/developer/flexmasa.html), as well as some extra
+[mavryk-network/mavryk-protocol](https://gitlab.com/mavryk-network/mavryk-protocol) to build the `mavryk-sandbox`
+[tests](https://protocol.mavryk.org/developer/flexmasa.html), as well as some extra
 testing utilities, such as the `flexmasa` application, which may be useful to
 the greater community (e.g. to test third party tools against fully functional
 Mavryk sandboxes).
@@ -23,7 +23,7 @@ parameters. For instance:
   
 ```sh
 image=mavrykdynamics/flexmasa:latest
-script=nairobibox
+script=atlasbox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
        "$image" "$script" start
@@ -66,9 +66,9 @@ You can use any client, including the `mavkit-client` inside the docker
 container, which happens to be already configured:
 
 ```default
-$ alias tcli='docker exec my-sandbox mavkit-client'
-$ tcli get balance for alice
-2000000 ꜩ
+$ alias mcli='docker exec my-sandbox mavkit-client'
+$ mcli get balance for alice
+2000000 ṁ
 ```
 
 **Note on Atlas** Bootstrap accounts in `atlasbox` will start out
@@ -95,25 +95,25 @@ Then every time one needs a block to be baked:
 $ docker exec my-sandbox "$script" bake
 ```
 
-Example (using the `tcli` alias above):
+Example (using the `mcli` alias above):
 
 
 ```default
-$ tcli get balance for alice
-1800000 ꜩ
-$ tcli --wait none transfer 10 from alice to bob   # Option `--wait` is IMPORTANT!
+$ mcli get balance for alice
+1800000 ṁ
+$ mcli --wait none transfer 10 from alice to bob   # Option `--wait` is IMPORTANT!
 ...
-$ tcli get balance for alice   # Alice's balance has not changed yet:
-1800000 ꜩ
+$ mcli get balance for alice   # Alice's balance has not changed yet:
+1800000 ṁ
 $ docker exec my-sandbox "$script" bake
 ...
-$ tcli get balance for alice   # The operation is now included:
-1799989.999648 ꜩ
-$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
+$ mcli get balance for alice   # The operation is now included:
+1799989.999648 ṁ
+$ mcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
 2
 $ docker exec my-sandbox "$script" bake
 ...
-$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
+$ mcli rpc get /chains/main/blocks/head/metadata | jq .level_info.level
 3
 ```
 
@@ -121,7 +121,7 @@ Notes:
 
 - If you forget `--wait none`, `mavkit-client` waits for the operation to be
   included, so you will need to `bake` from another terminal.
-- `"$script" bake` is equivalent to `tcli bake for baker0 --minimal-timestamp`.
+- `"$script" bake` is equivalent to `mcli bake for baker0 --minimal-timestamp`.
 
 
 ### User-Activated-Upgrades
@@ -134,14 +134,14 @@ a Nairobi sandbox which switches to Atlas at level 20:
 ```default
 $ docker run --rm --name my-sandbox --detach -p 20000:20000 \
          -e block_time=2 \
-         "$image" nairobibox start --hard-fork 20:Atlas:
+         "$image" atlasbox start --hard-fork 20:Atlas:
 ```
 
-With `tcli` above and `jq` you can keep checking the following to observe the
+With `mcli` above and `jq` you can keep checking the following to observe the
 protocol change:
 
 ```default
-$ tcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
+$ mcli rpc get /chains/main/blocks/head/metadata | jq .level_info,.protocol
 {
   "level": 24,
   "level_position": 23,
@@ -170,11 +170,11 @@ daemons-upgrade` (see its general
 ``` default
 $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
          -e block_time=2 \
-         "$image" nairobibox start_upgrade
+         "$image" atlasbox start_upgrade
 ```
 
 With `start_upgrade` the sandbox network will do a full voting round followed by
-a protocol change. The `nairobibox` script will start with the `Nairobi` protocol and
+a protocol change. The `atlasbox` script will start with the `Nairobi` protocol and
 upgrade to `Atlas`; the `atlasbox` upgrades to protocol `Alpha`.
 
 Voting occurs over five periods. You can adjust the length of the voting periods
@@ -220,13 +220,13 @@ $ docker run --rm --name my-sandbox -p 20000:20000 --detach \
 
 Once adaptive issuance is activated, it will launch after five cycles. Any
 changes in issuance will take effect a few cycles after the launch cycle. Using
-the `tcli` command (as aliased earlier), you can check the launch cycle and view
+the `mcli` command (as aliased earlier), you can check the launch cycle and view
 the expected issuance for the next few cycles.
 
 ``` default
-$ tcli rpc get /chains/main/blocks/head/context/adaptive_issuance_launch_cycle
+$ mcli rpc get /chains/main/blocks/head/context/adaptive_issuance_launch_cycle
 5
-$ tcli rpc get /chains/main/blocks/head/context/issuance/expected_issuance | jq .
+$ mcli rpc get /chains/main/blocks/head/context/issuance/expected_issuance | jq .
 [
   {
     "cycle": 1,
@@ -254,26 +254,26 @@ To expedite the activation of adaptive issuance, the protocol constant
 `adaptive_issuance_ema_threshold` is set to 1. This facilitates immediate
 activation in most tests, with a singular exception: it's not possible to adjust
 protocol constants for a future protocol. Thus, when using the command
-`start_upgrade_with_adaptive_issuance` combined with the nairobibox script,
+`start_upgrade_with_adaptive_issuance` combined with the atlasbox script,
 after upgrading to the Atlas protocol, the `adaptive_issuance_ema_threshold`
 will be determined by the protocol.
 
 You can verify its value using:
 
 ``` default
-$ tcli rpc get /chains/main/blocks/head/context/constants | jq .adaptive_issuance_launch_ema_threshold
+$ mcli rpc get /chains/main/blocks/head/context/constants | jq .adaptive_issuance_launch_ema_threshold
 100000000
 ```
 
 An EMA threshold of 100,000,000 signifies that, after upgrading to the Atlas
-protocol, nairobibox will require more than an hour (with block times set to
+protocol, atlasbox will require more than an hour (with block times set to
 one second) to activate adaptive issuance. For quicker activation, consider using
 `atlasbox start_upgrade_with_adaptive_issuance`.
 
 ### Smart Optimistic Rollups
 
 The released image [scripts](#run-with-docker) include two commands for starting
-a [Smart Optimistic Rollup](https://tezos.gitlab.io/alpha/smart_rollups.html)
+a [Smart Optimistic Rollup](https://protocol.mavryk.org/alpha/smart_rollups.html)
 sandbox:
 
 - [start_custom_smart_rollup](#staring-a-smart-rollup-sandbox-with-a-custom-kernel)
@@ -389,16 +389,16 @@ Added contract evm-bridge: KT1Vq3vBnCNuds6YwjjcJeqBTaeqgTh52oQy
 Added contract exchanger: KT1D3VK3BQ2rbpufqwacJU97wgQst7NyuST3
 Added smart rollup evm: sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
 
-$ alias tcli='docker exec my-sandbox mavkit-client'
+$ alias mcli='docker exec my-sandbox mavkit-client'
 
-$ tcli list known contracts
+$ mcli list known contracts
 exchanger: KT1Ty6UAYMwV4bteh8oEM6XdUvXzvsUuk3fX
 evm-bridge: KT1GC5oTZMP6Wi3V4cJq4uia9dEmNyWsmd3U
 baker0: mv1LkuVrpuEYCjZqTM93ri8aKYNtqFoYeACk
 bob: mv1NpEEq8FLgc2Yi4wNpEZ3pvc1kUZrp2JWU
 alice: mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv
 
-$ tcli list known smart rollups
+$ mcli list known smart rollups
 evm: sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
 ```
 
@@ -408,7 +408,7 @@ Record the evm smart rollup address. You will use it to transfer tez onto the ro
 $ sr_addr=sr1DRk5qfiziibipQBVYS7PPtt4Abk8k5bny
 $ example_ethacc=0x798e0be76b06De09b88534c56EDF7AF339447e02
 
-$ tcli transfer 10 from alice to evm-bridge --entrypoint "deposit" --arg "(Pair \"${sr_addr}\" ${example_ethacc})" --burn-cap 1
+$ mcli transfer 10 from alice to evm-bridge --entrypoint "deposit" --arg "(Pair \"${sr_addr}\" ${example_ethacc})" --burn-cap 1
 Node is bootstrapped.
 Estimated gas: 6019.859 units (will add 100 for safety)
 Estimated storage: 123 bytes added (will add 20 for safety)
@@ -552,7 +552,7 @@ Documentation regarding `flexmasa daemons-upgrade [...]` can be found here: [The
 `daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
 
 The API documentation of the Flexmasa OCaml library starts here: [Flexmasa:
-API](https://tezos.gitlab.io/flexmasa/lib-index.html).
+API](https://protocol.mavryk.org/flexmasa/lib-index.html).
 
 Blog posts:
 
