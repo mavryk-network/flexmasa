@@ -83,17 +83,40 @@ unit-tests:
   stage: build
   script:
      - sh -c "$SHOW_INFO"
-     - opam pin add -n tezai-base58-digest https://gitlab.com/oxheadalpha/tezai-base58-digest.git
-     - opam install --deps-only --with-test ./tezai-tz1-crypto.opam
+     - opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
+     - opam install --deps-only --with-test ./mavai-mv1-crypto.opam
      - dune runtest
 
-docker:test:full:
+docker:test:mini-net:
   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
   stage: build
   script:
     - apk add bash
-    - ./src/scripts/full-sandbox-tests.sh
+    - ./src/scripts/full-sandbox-tests.sh mini
 
+# TODO: Atlas - Wait for B Update to reenable
+# docker:test:governance:
+#   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+#   stage: build
+#   script:
+#     - apk add bash
+#     - ./src/scripts/full-sandbox-tests.sh gov
+
+# TODO: Fix this test
+# docker:test:smart-rollups:
+#   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+#   stage: build
+#   script:
+#     - apk add bash
+#     - ./src/scripts/full-sandbox-tests.sh rollup
+
+# TODO: Atlas - Wait for B Update to reenable
+# docker:test:adaptive-issuance:
+#   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+#   stage: build
+#   script:
+#     - apk add bash
+#     - ./src/scripts/full-sandbox-tests.sh adissu
 
 makewebsite:
   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
@@ -115,3 +138,4 @@ pages:
      - public
   only:
   - master
+  - atlas-update

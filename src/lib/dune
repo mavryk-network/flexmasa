@@ -1,6 +1,6 @@
 (library
- (name flextesa)
- (public_name flextesa)
+ (name flexmasa)
+ (public_name flexmasa)
  (flags
   (:standard -safe-string))
  (preprocess
@@ -15,47 +15,27 @@
   genspio
   ezjsonm
   ptime.clock.os
-  tezai-base58-digest
-  tezai-tz1-crypto))
+  mavai-base58-digest
+  mavai-mv1-crypto))
 
 (rule
- (target tx_installer.ml)
+ (target sandbox_smart_contracts.ml)
  (deps
-  (:installer ../smart-rollup-kernels/tx-kernel/tx-installer.hex))
+  (glob_files %{project_root}/src/smart-contracts/*.tz))
  (action
   (with-stdout-to
    %{target}
    (progn
-    (echo "let name = \"tx\"")
-    (echo "let kind = \"wasm_2_0_0\"")
-    (echo "let michelson_type = \"pair string (ticket string)\"")
-    (echo "let hex = \"")
-    (run cat %{installer})
-    (echo "\"")))))
-
-(rule
- (target preimages.ml)
- (deps
-  (source_tree ../smart-rollup-kernels/tx-kernel/wasm_2_0_0))
- (action
-  (with-stdout-to
-   %{target}
-   (progn
-    (echo "open !Base\n")
-    (echo "let tx_kernel = [")
     (bash
-     "for file in %{deps}; do echo -n '(\"'; basename \"${file}\" | tr -d '\\n'; echo -n '\", '; echo -n '{notwasmbyte|'; cat \"$file\"; echo -n '|notwasmbyte}); '; done")
-    (echo "]")))))
+     "for file in %{deps}; do echo -n 'let '; basename \"${file}\" .tz | tr -d '\\n'; echo -n ' = {nottz|'; cat \"$file\"; echo '|nottz}'; done")))))
 
 (rule
- (target default_contracts.ml)
+ (target smart_rollup_kernels.ml)
  (deps
-  (:tz
-   %{project_root}/src/smart-rollup-kernels/tx-kernel/mint_and_deposit_to_rollup.tz))
+  (glob_files %{project_root}/src/smart-rollup-kernels/*.wasm))
  (action
   (with-stdout-to
    %{target}
    (progn
-    (echo "let mint_and_deposit_to_rollup = {|")
-    (run cat %{tz})
-    (echo "|}")))))
+    (bash
+     "for file in %{deps}; do echo -n 'let '; basename \"${file}\" .wasm | tr -d '\\n'; echo -n ' = {notwasmbyte|'; cat \"$file\"; echo '|notwasmbyte}'; done")))))

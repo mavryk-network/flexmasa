@@ -4,10 +4,10 @@ open Internal_pervasives
 
 val dump_connections :
   < application_name : string ; console : Console.t ; .. > ->
-  Tezos_node.t list ->
+  Mavryk_node.t list ->
   (unit, [> System_error.t ]) Asynchronous_result.t
 (** Display all the P2P connections of a set of nodes, see
-    {!Tezos_node.connections}. *)
+    {!Mavryk_node.connections}. *)
 
 val clear_root :
   < paths : Paths.t ; .. > -> (unit, [> System_error.t ]) Asynchronous_result.t
@@ -33,19 +33,19 @@ val wait_for :
 
 val kill_node :
   < runner : Running_processes.State.t ; .. > ->
-  Tezos_node.t ->
+  Mavryk_node.t ->
   (unit, [> System_error.t ]) Asynchronous_result.t
 (** Kill a node's process. *)
 
 val restart_node :
-  client_exec:Tezos_executable.t ->
+  client_exec:Mavryk_executable.t ->
   < application_name : string
   ; console : Console.t
   ; env_config : Environment_configuration.t
   ; paths : Paths.t
   ; runner : Running_processes.State.t
   ; .. > ->
-  Tezos_node.t ->
+  Mavryk_node.t ->
   (unit, [> System_error.t | Process_result.Error.t ]) Asynchronous_result.t
 (** Restart a killed node. *)
 
@@ -56,13 +56,13 @@ val import_keys_from_seeds :
   ; runner : Running_processes.State.t
   ; env_config : Environment_configuration.t
   ; .. > ->
-  Tezos_client.t ->
+  Mavryk_client.t ->
   seeds:string list ->
   (string, [> System_error.t ]) Asynchronous_result.t
 (** Import keys from a list of name seeds *)
 
 (** Stateful “message × count” log, see its use in, e.g.,
-    ["./src/bin_flextesa/command_voting.ml"] where baked-levels are accumulated
+    ["./src/bin_flexmasa/command_voting.ml"] where baked-levels are accumulated
     and then displayed. . *)
 module Counter_log : sig
   type t
@@ -97,13 +97,13 @@ module System_dependencies : sig
   val precheck :
     ?using_docker:bool ->
     ?protocol_paths:string list ->
-    ?executables:Tezos_executable.t list ->
+    ?executables:Mavryk_executable.t list ->
     < application_name : string
     ; console : Console.t
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    protocol_kind:Tezos_protocol.Protocol_kind.t ->
+    protocol_kind:Mavryk_protocol.Protocol_kind.t ->
     [< `Or_fail ] ->
     (unit, [> System_error.t | Error.t ]) Asynchronous_result.t
 end
@@ -116,8 +116,8 @@ module Shell_environement : sig
 
   val build :
     < paths : Paths.t ; .. > ->
-    protocol:Tezos_protocol.t ->
-    clients:Tezos_client.t list ->
+    protocol:Mavryk_protocol.t ->
+    clients:Mavryk_client.t list ->
     t
 
   val write :

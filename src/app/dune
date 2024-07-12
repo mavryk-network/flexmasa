@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries flextesa tezai-base58-digest))
+ (libraries flexmasa mavai-base58-digest))
 
 ;;(alias
 ;; (name runtest)

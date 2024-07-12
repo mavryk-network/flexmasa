@@ -9,18 +9,20 @@ if ! [ -d "$dest_dir" ]; then
     exit 3
 fi
 
+# Use this scrpcipt to get the smart-rollup-installer and octez smart-rollup kernel binaries.
+#
 # - Go to https://gitlab.com/tezos/tezos/
 # - Find a successful master-branch pipeline.
 # - Get the job build_kerenls
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time:https://gitlab.com/tezos/tezos/-/pipelines/837598628
-# (from 2023-04-14)
-# corresponding to
-# https://gitlab.com/tezos/tezos/-/commit/ad473c9195b10b82968d10c96aa72b080e4dd846
+# This time: https://gitlab.com/tezos/tezos/-/pipelines/1114693893
+# (from 2023-09-27)
+# corresponding to:
+# https://gitlab.com/tezos/tezos/-/commit/50ce0bb6453cfa56cd62a417eba3454dd05d863e
 
-download_uri="https://www.dropbox.com/s/7j2wscs0qvv3ixw/octez-kernel-build-20230414-ac4a09f720.zip?raw=1"
+download_uri="https://www.dropbox.com/scl/fi/qj8cjro7nipn47rxrw5sa/octez-kernel-build-20231220-50ce0bb6.zip?rlkey=nez38t9bdtw2xnl1c1iwo4q8q&dl&raw=1"
 
 (
     curl -L "$download_uri" -o "$dest_dir/bins.zip"

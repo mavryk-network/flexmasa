@@ -1,4 +1,4 @@
-open Flextesa
+open Flexmasa
 open Internal_pervasives
 module MFmt = More_fmt
 

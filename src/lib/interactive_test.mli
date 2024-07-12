@@ -91,7 +91,7 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    nodes:Tezos_node.t list ->
+    nodes:Mavryk_node.t list ->
     Console.Prompt.item
 
   val show_process :
@@ -107,7 +107,7 @@ module Commands : sig
 
   val secret_keys :
     < application_name : string ; console : Console.t ; .. > ->
-    protocol:Tezos_protocol.t ->
+    protocol:Mavryk_protocol.t ->
     Console.Prompt.item
 
   val better_call_dev :
@@ -121,7 +121,7 @@ module Commands : sig
     Console.Prompt.item
 
   val arbitrary_command_on_all_clients :
-    ?make_admin:(Tezos_client.t -> Tezos_admin_client.t) ->
+    ?make_admin:(Mavryk_client.t -> Mavryk_admin_client.t) ->
     ?command_names:string list ->
     < application_name : string
     ; console : Console.t
@@ -129,11 +129,11 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    clients:Tezos_client.t list ->
+    clients:Mavryk_client.t list ->
     Console.Prompt.item
 
   val arbitrary_commands_for_each_client :
-    ?make_admin:(Tezos_client.t -> Tezos_admin_client.t) ->
+    ?make_admin:(Mavryk_client.t -> Mavryk_admin_client.t) ->
     ?make_command_names:(int -> string list) ->
     < application_name : string
     ; console : Console.t
@@ -141,11 +141,11 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    clients:Tezos_client.t list ->
+    clients:Mavryk_client.t list ->
     Console.Prompt.item list
 
   val arbitrary_commands_for_each_and_all_clients :
-    ?make_admin:(Tezos_client.t -> Tezos_admin_client.t) ->
+    ?make_admin:(Mavryk_client.t -> Mavryk_admin_client.t) ->
     ?make_individual_command_names:(int -> string list) ->
     ?all_clients_command_names:string list ->
     < application_name : string
@@ -154,7 +154,7 @@ module Commands : sig
     ; env_config : Environment_configuration.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    clients:Tezos_client.t list ->
+    clients:Mavryk_client.t list ->
     Console.Prompt.item list
 
   val bake_command :
@@ -165,7 +165,7 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    clients:Tezos_client.Keyed.t list ->
+    clients:Mavryk_client.Keyed.t list ->
     Console.Prompt.item
 
   val forge_and_inject_piece_of_json :
@@ -175,7 +175,7 @@ module Commands : sig
     ; paths : Paths.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    clients:Tezos_client.Keyed.t list ->
+    clients:Mavryk_client.Keyed.t list ->
     Console.Prompt.item
 
   val generate_and_import_keys :
@@ -185,7 +185,7 @@ module Commands : sig
     ; runner : Running_processes.State.t
     ; env_config : Environment_configuration.t
     ; .. > ->
-    Tezos_client.t ->
+    Mavryk_client.t ->
     string list ->
     (unit, [> System_error.t | Process_result.Error.t ]) Asynchronous_result.t
 
@@ -198,8 +198,8 @@ module Commands : sig
     ; runner : Running_processes.State.t
     ; test_baking : bool
     ; .. > ->
-    clients:Tezos_client.Keyed.t list ->
-    nodes:Tezos_node.t list ->
+    clients:Mavryk_client.Keyed.t list ->
+    nodes:Mavryk_node.t list ->
     Console.Prompt.item
 
   val all_defaults :
@@ -210,7 +210,7 @@ module Commands : sig
     ; env_config : Environment_configuration.t
     ; runner : Running_processes.State.t
     ; .. > ->
-    nodes:Tezos_node.t list ->
+    nodes:Mavryk_node.t list ->
     Console.Prompt.item list
 end
 
