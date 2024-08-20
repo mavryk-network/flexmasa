@@ -94,13 +94,12 @@ docker:test:mini-net:
     - apk add bash
     - ./src/scripts/full-sandbox-tests.sh mini
 
-# TODO: Atlas - Wait for B Update to reenable
-# docker:test:governance:
-#   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
-#   stage: build
-#   script:
-#     - apk add bash
-#     - ./src/scripts/full-sandbox-tests.sh gov
+docker:test:governance:
+  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+  stage: build
+  script:
+    - apk add bash
+    - ./src/scripts/full-sandbox-tests.sh gov
 
 # TODO: Fix this test
 # docker:test:smart-rollups:
@@ -110,13 +109,12 @@ docker:test:mini-net:
 #     - apk add bash
 #     - ./src/scripts/full-sandbox-tests.sh rollup
 
-# TODO: Atlas - Wait for B Update to reenable
-# docker:test:adaptive-issuance:
-#   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
-#   stage: build
-#   script:
-#     - apk add bash
-#     - ./src/scripts/full-sandbox-tests.sh adissu
+docker:test:adaptive-issuance:
+  image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-run"
+  stage: build
+  script:
+    - apk add bash
+    - ./src/scripts/full-sandbox-tests.sh adissu
 
 makewebsite:
   image: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-build"
@@ -138,4 +136,4 @@ pages:
      - public
   only:
   - master
-  - atlas-update
+  - boreas-update

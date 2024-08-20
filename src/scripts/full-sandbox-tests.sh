@@ -32,8 +32,8 @@ runone() {
 }
 
 current=Atlas
-next=Alpha
-next_suffix=alpha
+next=Boreas
+next_suffix=PtBoreas
 before_alpha=$next
 
 quickmini() {
