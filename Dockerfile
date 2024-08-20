@@ -11,7 +11,7 @@ RUN sudo cp _build/default/src/app/main.exe /usr/bin/flexmasa
 RUN sudo sh src/scripts/get-mavkit-static-binaries.sh /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
 RUN sudo sh src/scripts/get-mavkit-kernel-build.sh /usr/bin
-RUN sudo sh src/scripts/get-tx-client.sh /usr/bin
+# RUN sudo sh src/scripts/get-tx-client.sh /usr/bin
 FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap jq hidapi-dev libstdc++
@@ -48,4 +48,4 @@ RUN chmod a+rx /usr/bin/alphabox
 RUN /usr/bin/alphabox initclient
 RUN ln -s /usr/bin/mavkit-client /usr/bin/mavryk-client
 ENV MAVRYK_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
-COPY --from=0 /usr/bin/tx-client .
+# COPY --from=0 /usr/bin/tx-client .
