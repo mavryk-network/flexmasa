@@ -260,8 +260,7 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("raw_data", dict [ ("Blake2B", int 0) ]);
               ("metadata", int 0);
               ("dal_page", dal_activation_level);
-              ("dal_attested_slots_validity_lag", int 241_920);
-              ("private_enable", bool false);
+              ("dal_parameters", dal_activation_level);
             ]
           in
           let base =
