@@ -263,9 +263,10 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("dal_attested_slots_validity_lag", int 241_920);
             ]
           in
-          match t.kind with 
+          match t.kind with
           | `Atlas -> base
-          | `Boreas | `Alpha -> base |> add_replace ("private_enable", bool false)
+          | `Boreas | `Alpha ->
+              base |> add_replace ("private_enable", bool false)
         in
         let base =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
@@ -478,7 +479,8 @@ let protocol_parameters_json t : Ezjsonm.t =
             base
             |> add_replace ("consensus_rights_delay", int t.preserved_cycles)
             |> add_replace ("blocks_preservation_cycles", int 1)
-            |> add_replace ("liquidity_baking_subsidy", string (Int.to_string 5_000_000))
+            |> add_replace
+                 ("liquidity_baking_subsidy", string (Int.to_string 5_000_000))
             |> add_replace ("max_slashing_threshold", int 86)
             |> add_replace ("max_slashing_per_block", int 10000)
             |> add_replace ("direct_ticket_spending_enable", bool false)
