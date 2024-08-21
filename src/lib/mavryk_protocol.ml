@@ -264,9 +264,9 @@ let protocol_parameters_json t : Ezjsonm.t =
             ]
           in
           match t.kind with
-          | `Atlas -> base
+          | `Atlas -> base |> add_replace ("private_enable", bool false)
           | `Boreas | `Alpha ->
-              base |> add_replace ("private_enable", bool false)
+              base |> add_replace ("dal_parameters", dal_activation_level)
         in
         let base =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
