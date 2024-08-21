@@ -394,12 +394,16 @@ let protocol_parameters_json t : Ezjsonm.t =
                   (if bonus_committee_size <= 0 then 0
                   else reward_parts_quarter) );
               ("attesting_reward_weight", int reward_parts_half);
-              ("liquidity_baking_subsidy_weight", int reward_parts_16th);
               ("seed_nonce_revelation_tip_weight", int 1);
               ("vdf_revelation_tip_weight", int 1);
             ]
           in
-          match t.kind with `Atlas | `Boreas | `Alpha -> base
+          match t.kind with
+          | `Atlas ->
+              base
+              |> add_replace
+                   ("liquidity_baking_subsidy_weight", int reward_parts_16th)
+          | `Boreas | `Alpha -> base
         in
         let base =
           [
