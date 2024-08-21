@@ -386,9 +386,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         | `Atlas -> base
         | `Boreas | `Alpha ->
             base
-            |> add_replace ("launch_ema_threshold", int 01)
-            |> add_replace ("activation_vote_enable", bool true)
-            |> add_replace ("force_activation", bool false)
+            |> add_replace ("adaptive_issuance_force_activation", bool false)
             |> add_replace ("ns_enable", bool true)
       in
       let general_parameters =
