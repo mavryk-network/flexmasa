@@ -260,10 +260,12 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("raw_data", dict [ ("Blake2B", int 0) ]);
               ("metadata", int 0);
               ("dal_page", dal_activation_level);
-              ("dal_parameters", dal_activation_level);
+              ("dal_attested_slots_validity_lag", int 241_920);
             ]
           in
-          match t.kind with `Atlas | `Boreas | `Alpha -> base
+          match t.kind with 
+          | `Atlas -> base
+          | `Boreas | `Alpha -> base |> add_replace ("private_enable", bool false)
         in
         let base =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
