@@ -37,9 +37,9 @@ module Genesis_block_hash = struct
            → chain-id: "NetXmGq7LPFBoxA"
     *)
     function
-    | `Atlas  -> "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
+    | `Atlas -> "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
     | `Boreas -> "BMAtb1zRJ15eUj29je4rMTpHfzT7xvGmGRdDxied2uKQW8nk4RJ"
-    | `Alpha  -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
+    | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
 
   module Choice = struct
     type t = [ `Random | `Force of string | `Old_default | `From_protocol_kind ]

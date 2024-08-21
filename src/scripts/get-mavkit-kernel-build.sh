@@ -22,7 +22,6 @@ fi
 # corresponding to:
 # https://gitlab.com/mavryk-network/mavryk-protocol/-/commit/e072107c2d273332fd02a50d5c0eb7f88600efce
 
-# download_uri="https://www.dropbox.com/scl/fi/qj8cjro7nipn47rxrw5sa/octez-kernel-build-20231220-50ce0bb6.zip?rlkey=nez38t9bdtw2xnl1c1iwo4q8q&dl&raw=1"
 download_uri="https://www.dropbox.com/scl/fi/cneoz3uwz772xeofef52a/mavkit-kernel-build-20240816-e072107c.zip?rlkey=kmct1txzf5sh36a75qmec90sp&raw=1"
 
 (

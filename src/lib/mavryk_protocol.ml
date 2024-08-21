@@ -89,17 +89,19 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
-    | `Atlas  -> "PtAtLasomUEW99aVhVTrqjCHjJSpFUa8uHNEAEamx9v2SNeTaNp"
+    | `Atlas -> "PtAtLasomUEW99aVhVTrqjCHjJSpFUa8uHNEAEamx9v2SNeTaNp"
     | `Boreas -> "Pt8h9rz3r9F3Yx3wzJqF42sxsyVoo6kL4FBoJSWRzKmDvjXjHwV"
-    | `Alpha  -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
+    | `Alpha -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
 
   let daemon_suffix_exn : t -> string = function
-    | `Atlas  -> "PtAtLas"
+    | `Atlas -> "PtAtLas"
     | `Boreas -> "PtBoreas"
-    | `Alpha  -> "alpha"
+    | `Alpha -> "alpha"
 
   let wants_contract_manager : t -> bool = function _ -> false
-  let wants_endorser_daemon : t -> bool = function `Atlas | `Boreas | `Alpha -> false
+
+  let wants_endorser_daemon : t -> bool = function
+    | `Atlas | `Boreas | `Alpha -> false
 end
 
 type t = {
@@ -227,10 +229,12 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("number_of_slots", int 16);
               ("attestation_lag", int 4);
               ("attestation_threshold", int 50);
-              ("blocks_per_epoch", int32 1l);
             ]
           in
-          match t.kind with `Atlas | `Boreas | `Alpha -> base
+          match t.kind with
+          | `Atlas -> base |> add_replace ("blocks_per_epoch", int32 1l)
+          | `Boreas | `Alpha ->
+              base |> add_replace ("incentives_enable", bool false)
         in
         [ ("dal_parametric", dict dal_parametric) ]
       in
@@ -298,11 +302,12 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("max_ticket_payload_size", int 2_048);
           ]
         in
-        match t.kind with `Atlas | `Boreas | `Alpha -> prefix_keys "zk_rollup" base
+        match t.kind with
+        | `Atlas | `Boreas | `Alpha -> prefix_keys "zk_rollup" base
       in
       let adaptive_issuance_specific_parameters =
         let adaptive_rewards =
-          let base =
+          let base_previous =
             let rat x y =
               dict
                 [
@@ -316,10 +321,31 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("growth_rate", rat 1 100);
               ("center_dz", rat 1 2);
               ("radius_dz", rat 1 50);
+              ("max_bonus", string "1");
             ]
           in
-          match t.kind with
-          | `Atlas | `Boreas | `Alpha -> base |> add_replace ("max_bonus", string "1")
+          let base =
+            let rat x y =
+              dict
+                [
+                  ("numerator", string (Int.to_string x));
+                  ("denominator", string (Int.to_string y));
+                ]
+            in
+            [
+              ("issuance_ratio_final_min", rat 0_25 100);
+              ("issuance_ratio_final_max", rat 10 100);
+              ("issuance_ratio_initial_min", rat 45 1000);
+              ("issuance_ratio_initial_max", rat 55 1000);
+              ("initial_period", int 10);
+              ("transition_period", int 50);
+              ("growth_rate", rat 1 100);
+              ("center_dz", rat 1 2);
+              ("radius_dz", rat 1 50);
+              ("max_bonus", string "1");
+            ]
+          in
+          match t.kind with `Atlas -> base_previous | `Boreas | `Alpha -> base
         in
         let base =
           [
@@ -332,7 +358,14 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("autostaking_enable", bool true);
           ]
         in
-        match t.kind with `Atlas | `Boreas | `Alpha -> base
+        match t.kind with
+        | `Atlas -> base
+        | `Boreas | `Alpha ->
+            base
+            |> add_replace ("launch_ema_threshold", int 01)
+            |> add_replace ("activation_vote_enable", bool true)
+            |> add_replace ("force_activation", bool false)
+            |> add_replace ("ns_enable", bool true)
       in
       let general_parameters =
         let consensus_committee_size =
@@ -373,11 +406,9 @@ let protocol_parameters_json t : Ezjsonm.t =
             ( "bootstrap_accounts",
               list make_account
                 (t.bootstrap_accounts @ [ (t.dictator, 27_000_000_000L) ]) );
-            ("preserved_cycles", int t.preserved_cycles);
             ("blocks_per_cycle", int t.blocks_per_cycle);
             ("blocks_per_commitment", int 4 (* From constants_sandbox *));
             ("nonce_revelation_threshold", int 4 (* From constants_sandbox *));
-            ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot);
             ( "cycles_per_voting_period",
               int
                 ( t.blocks_per_voting_period / t.blocks_per_cycle |> fun c ->
@@ -432,9 +463,21 @@ let protocol_parameters_json t : Ezjsonm.t =
           ]
         in
         match t.kind with
-        | `Atlas -> base
+        | `Atlas ->
+            base
+            |> add_replace
+                 ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot)
+            |> add_replace ("preserved_cycles", int t.preserved_cycles)
         | `Alpha | `Boreas ->
-            base |> add_replace ("direct_ticket_spending_enable", bool false)
+            base
+            |> add_replace ("consensus_rights_delay", int t.preserved_cycles)
+            |> add_replace ("blocks_preservation_cycles", int 1)
+            |> add_replace ("liquidity_baking_subsidy", int 5000000)
+            |> add_replace ("max_slashing_threshold", int 86)
+            |> add_replace ("max_slashing_per_block", int 10000)
+            |> add_replace ("direct_ticket_spending_enable", bool false)
+            |> add_replace
+                 ("delegate_parameters_activation_delay", int t.preserved_cycles)
       in
       dict
         (general_parameters @ tx_rollup_specific_parameters
