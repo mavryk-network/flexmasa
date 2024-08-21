@@ -240,6 +240,30 @@ let protocol_parameters_json t : Ezjsonm.t =
       in
       let smart_rollup_specific_parameters =
         let reveal_activation_level =
+          let previous_base =
+            let dal_activation_level =
+              int32 Int32.(pred max_value)
+              (* from mavkit/src/proto_001_PtAtLas/lib_parameters/default_parameters.ml *)
+              (* if default_dal.feature_enable then Raw_level.root *)
+              (* else *)
+              (*   (\* Deactivate the reveal if the dal is not enabled. *\) *)
+              (*   (\* https://gitlab.com/mavryk/mavryk/-/issues/5968 *)
+              (*      Encoding error with Raw_level *)
+
+              (*      We set the activation level to [pred max_int] to deactivate *)
+              (*      the feature. The [pred] is needed to not trigger an encoding *)
+              (*      exception with the value [Int32.int_min] (see tezt/tests/mockup.ml). *\) *)
+              (* Raw_level.of_int32_exn Int32.(pred max_int) *)
+            in
+
+            [
+              ("raw_data", dict [ ("Blake2B", int 0) ]);
+              ("metadata", int 0);
+              ("dal_page", dal_activation_level);
+              ("dal_attested_slots_validity_lag", int 241_920);
+              ("private_enable", bool false);
+            ]
+          in
           let base =
             let dal_activation_level =
               int32 Int32.(pred max_value)
@@ -261,12 +285,10 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("metadata", int 0);
               ("dal_page", dal_activation_level);
               ("dal_attested_slots_validity_lag", int 241_920);
+              ("dal_parameters", dal_activation_level);
             ]
           in
-          match t.kind with
-          | `Atlas -> base |> add_replace ("private_enable", bool false)
-          | `Boreas | `Alpha ->
-              base |> add_replace ("dal_parameters", dal_activation_level)
+          match t.kind with `Atlas -> previous_base | `Boreas | `Alpha -> base
         in
         let base =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
