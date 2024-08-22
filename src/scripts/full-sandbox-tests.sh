@@ -176,7 +176,7 @@ adissu() {
     ai "$current"
     ai "$next"
     daem_ai "$current"
-    daem_ai "$next"
+    # daem_ai "$next"
 
 }
 
