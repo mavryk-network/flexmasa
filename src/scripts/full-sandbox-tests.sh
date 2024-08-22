@@ -138,9 +138,9 @@ all() {
     quickmini Alpha
     c2n
     # n2a
-    daem_c2n
-    daem_c2n_nay
-    daem_n2a
+    # daem_c2n
+    # daem_c2n_nay
+    # daem_n2a
     tx_smart_rollup
     evm_smart_rollup
     ai "$current"
@@ -160,9 +160,9 @@ mini() {
 gov() {
     c2n
     # n2a
-    daem_c2n
-    daem_c2n_nay
-    daem_n2a
+    # daem_c2n
+    # daem_c2n_nay
+    # daem_n2a
 
 }
 
