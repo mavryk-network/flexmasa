@@ -137,7 +137,7 @@ all() {
     quickmini "$next"
     quickmini Alpha
     c2n
-    n2a
+    # n2a
     daem_c2n
     daem_c2n_nay
     daem_n2a
