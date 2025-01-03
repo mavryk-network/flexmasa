@@ -17,12 +17,12 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/mavryk-network/mavryk-protocol/-/pipelines/1416147077
-# (from 2024-08-16)
+# This time: https://gitlab.com/mavryk-network/mavryk-protocol/-/pipelines/1606209115
+# (from 2024-12-31)
 # corresponding to:
-# https://gitlab.com/mavryk-network/mavryk-protocol/-/commit/e072107c2d273332fd02a50d5c0eb7f88600efce
+# https://gitlab.com/mavryk-network/mavryk-protocol/-/commit/0dffc5348a478c7a7df7f7802dd4dd90c71a93f3
 
-download_uri="https://www.dropbox.com/scl/fi/cneoz3uwz772xeofef52a/mavkit-kernel-build-20240816-e072107c.zip?rlkey=kmct1txzf5sh36a75qmec90sp&raw=1"
+download_uri="https://www.dropbox.com/scl/fi/50f8fgokziat22uc3elgd/mavkit-kernel-build-20250301-0dffc534.zip?rlkey=p16byef4n2hjp7z0tnq3q709f&st=4e68x3qg&raw=1"
 
 (
     curl -L "$download_uri" -o "$dest_dir/bins.zip"
