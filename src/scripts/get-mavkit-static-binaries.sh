@@ -15,19 +15,19 @@ fi
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/mavryk-network/mavryk-protocol/-/pipelines/1608813286
+# This time: https://gitlab.com/mavryk-network/mavryk-protocol/-/pipelines/2036864015
 # (from 2025-01-02)
 # corresponding to:
-# https://gitlab.com/mavryk-network/mavryk-protocol/-/commit/e072107c2d273332fd02a50d5c0eb7f88600efce
+# https://gitlab.com/mavryk-network/mavryk-protocol/-/commit/9b9b3c10bf5b685a667eef6800b018a800971134
 
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/scl/fi/it3q7muv5ttdvaee5e6ie/mavkit-static-binaries-x86_64.zip?rlkey=0s9hrhu4zon56ehm8uf4cm6b8&st=bvwlrpfl&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/s6l8bfivdmlsaivjqynzs/mavkit-static-binaries-x86_64.zip?rlkey=dy7mub5ttuoizmfulcaowdf93&st=ug5z4f39&raw=1"
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/scl/fi/49fs95dxdq2xzrh4axivt/mavkit-static-binaries-arm64.zip?rlkey=9jjlqh90m4uibmotlzsqim61i&st=ffwjw2kb&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/i7vn1czmg7v1p3sprj6z4/mavkit-static-binaries-arm64.zip?rlkey=ic938xtynviblliat6to4bpuz&st=vj54zdju&raw=1"
         directory_name=arm64
         ;;
     *)
