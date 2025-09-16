@@ -83,13 +83,12 @@ module Config_file = struct
       ( "genesis",
         dict
           [
-            ("timestamp", string "2018-06-30T16:07:32Z");
+            ("timestamp", string "2025-08-14T11:18:23Z");
             ("block", string genesis_hash);
             ( "protocol",
-              string "Ps9mPmXaRzmzk35gbAYNCAw6UXdE2qoABTHbN2oEEc1qM7CwT9P" );
+              string "PsUCFkqUrQ614xKsFEAf4AamoUXTAG4ygjMpFzsgEdKr3PGYreP" );
           ] );
       ("chain_name", string "MAVRYK_MAINNET");
-      ("old_chain_name", string "MAVRYK_BETANET_2018-06-30T16:07:32Z");
       ("incompatible_chain_name", string "INCOMPATIBLE");
       ("sandboxed_chain_name", string "SANDBOXED_MAVRYK_MAINNET");
     ]
