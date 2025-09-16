@@ -1,13 +1,20 @@
 #! /bin/sh
 
 default_protocol=Atlas
-next_protocol_name=Alpha
-next_protocol_hash=alpha
+next_protocol_name=Boreas
+next_protocol_hash=PtBoreas
 case "$(basename $0)" in
     "atlasbox")
         default_protocol=Atlas
         protocol_hash=PtAtLas
         binary_suffix=PtAtLas
+        next_protocol_name=Boreas
+        next_protocol_hash=PtBoreas
+        ;;
+    "boreasbox")
+        default_protocol=Boreas
+        protocol_hash=PtBoreas
+        binary_suffix=PtBoreas
         next_protocol_name=Alpha
         next_protocol_hash=alpha
         ;;

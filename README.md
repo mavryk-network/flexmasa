@@ -33,6 +33,7 @@ All the available scripts start single-node full-sandboxes (i.e. there is a
 baker advancing the blockchain):
 
 - `atlasbox`: Atlas protocol
+- `boreasbox`: Boreas protocol
 - `alphabox`: Alpha protocol, the development version of the `N` protocol at the
   time the docker-build was last updated.
     - See also `docker run "$image" mavkit-node --version`.

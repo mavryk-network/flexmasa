@@ -55,7 +55,7 @@ let to_script state (t : t) =
       in
       let lb = [ "--liquidity-baking-toggle-vote"; "pass" ] in
       let extra_options =
-        match t.protocol_kind with `Atlas | `Alpha -> ai @ lb
+        match t.protocol_kind with `Atlas | `Boreas | `Alpha -> ai @ lb
       in
       call t
         ([
