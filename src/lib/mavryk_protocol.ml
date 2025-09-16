@@ -59,9 +59,9 @@ module Voting_period = struct
 end
 
 module Protocol_kind = struct
-  type t = [ `Atlas | `Alpha ]
+  type t = [ `Atlas | `Boreas | `Alpha ]
 
-  let names = [ ("Atlas", `Atlas); ("Alpha", `Alpha) ]
+  let names = [ ("Atlas", `Atlas); ("Boreas", `Boreas); ("Alpha", `Alpha) ]
 
   (* let ( < ) k1 k2 =
       let rec aux = function
@@ -89,15 +89,19 @@ module Protocol_kind = struct
         | _ -> None))
 
   let canonical_hash : t -> string = function
-    | `Atlas -> "PtAtLasomUEW99aVhVTrqjCHjJSpFUa8uHNEAEamx9v2SNeTaNp"
+    | `Atlas -> "PtAtLasdzXg4XxeVNtWheo13nG4wHXP22qYMqFcT3fyBpWkFero"
+    | `Boreas -> "PtBoreasK2KPuKbeYtXeEdudEHS7YcMFHE9amwheUc4kejTxgRi"
     | `Alpha -> "ProtoALphaALphaALphaALphaALphaALphaALphaALphaDdp3zK"
 
   let daemon_suffix_exn : t -> string = function
     | `Atlas -> "PtAtLas"
+    | `Boreas -> "PtBoreas"
     | `Alpha -> "alpha"
 
   let wants_contract_manager : t -> bool = function _ -> false
-  let wants_endorser_daemon : t -> bool = function `Atlas | `Alpha -> false
+
+  let wants_endorser_daemon : t -> bool = function
+    | `Atlas | `Boreas | `Alpha -> false
 end
 
 type t = {
@@ -182,7 +186,7 @@ let protocol_parameters_json t : Ezjsonm.t =
   | Some s -> s
   | None ->
       let open Ezjsonm in
-      (match t.kind with `Atlas | `Alpha -> ());
+      (match t.kind with `Atlas | `Boreas | `Alpha -> ());
       let _unsupported_protocol where t =
         Fmt.failwith "BUG: %s -> Unsupported protocol: %a" where
           Protocol_kind.pp t
@@ -225,16 +229,18 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("number_of_slots", int 16);
               ("attestation_lag", int 4);
               ("attestation_threshold", int 50);
-              ("blocks_per_epoch", int32 1l);
             ]
           in
-          match t.kind with `Atlas | `Alpha -> base
+          match t.kind with
+          | `Atlas -> base |> add_replace ("blocks_per_epoch", int32 1l)
+          | `Boreas | `Alpha ->
+              base |> add_replace ("incentives_enable", bool false)
         in
         [ ("dal_parametric", dict dal_parametric) ]
       in
       let smart_rollup_specific_parameters =
         let reveal_activation_level =
-          let base =
+          let previous_base =
             let dal_activation_level =
               int32 Int32.(pred max_value)
               (* from mavkit/src/proto_001_PtAtLas/lib_parameters/default_parameters.ml *)
@@ -257,7 +263,31 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("dal_parameters", dal_activation_level);
             ]
           in
-          match t.kind with `Atlas | `Alpha -> base
+          let base =
+            let dal_activation_level =
+              int32 Int32.(pred max_value)
+              (* from mavkit/src/proto_001_PtAtLas/lib_parameters/default_parameters.ml *)
+              (* if default_dal.feature_enable then Raw_level.root *)
+              (* else *)
+              (*   (\* Deactivate the reveal if the dal is not enabled. *\) *)
+              (*   (\* https://gitlab.com/mavryk/mavryk/-/issues/5968 *)
+              (*      Encoding error with Raw_level *)
+
+              (*      We set the activation level to [pred max_int] to deactivate *)
+              (*      the feature. The [pred] is needed to not trigger an encoding *)
+              (*      exception with the value [Int32.int_min] (see tezt/tests/mockup.ml). *\) *)
+              (* Raw_level.of_int32_exn Int32.(pred max_int) *)
+            in
+
+            [
+              ("raw_data", dict [ ("Blake2B", int 0) ]);
+              ("metadata", int 0);
+              ("dal_page", dal_activation_level);
+              ("dal_attested_slots_validity_lag", int 241_920);
+              ("dal_parameters", dal_activation_level);
+            ]
+          in
+          match t.kind with `Atlas -> previous_base | `Boreas | `Alpha -> base
         in
         let base =
           (* challenge_window_in_blocks is reduce to minimized the time required to cement commitments. *)
@@ -283,7 +313,7 @@ let protocol_parameters_json t : Ezjsonm.t =
         in
         match t.kind with
         | `Atlas -> prefix_keys "smart_rollup" base
-        | `Alpha ->
+        | `Alpha | `Boreas ->
             prefix_keys "smart_rollup"
               (base |> add_replace ("private_enable", bool false))
       in
@@ -296,11 +326,12 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("max_ticket_payload_size", int 2_048);
           ]
         in
-        match t.kind with `Atlas | `Alpha -> prefix_keys "zk_rollup" base
+        match t.kind with
+        | `Atlas | `Boreas | `Alpha -> prefix_keys "zk_rollup" base
       in
       let adaptive_issuance_specific_parameters =
         let adaptive_rewards =
-          let base =
+          let base_previous =
             let rat x y =
               dict
                 [
@@ -314,10 +345,31 @@ let protocol_parameters_json t : Ezjsonm.t =
               ("growth_rate", rat 1 100);
               ("center_dz", rat 1 2);
               ("radius_dz", rat 1 50);
+              ("max_bonus", string "1");
             ]
           in
-          match t.kind with
-          | `Atlas | `Alpha -> base |> add_replace ("max_bonus", string "1")
+          let base =
+            let rat x y =
+              dict
+                [
+                  ("numerator", string (Int.to_string x));
+                  ("denominator", string (Int.to_string y));
+                ]
+            in
+            [
+              ("issuance_ratio_final_min", rat 0_25 100);
+              ("issuance_ratio_final_max", rat 10 100);
+              ("issuance_ratio_initial_min", rat 45 1000);
+              ("issuance_ratio_initial_max", rat 55 1000);
+              ("initial_period", int 10);
+              ("transition_period", int 50);
+              ("growth_rate", rat 1 100);
+              ("center_dz", rat 1 2);
+              ("radius_dz", rat 1 50);
+              ("max_bonus", string "1");
+            ]
+          in
+          match t.kind with `Atlas -> base_previous | `Boreas | `Alpha -> base
         in
         let base =
           [
@@ -330,7 +382,12 @@ let protocol_parameters_json t : Ezjsonm.t =
             ("autostaking_enable", bool true);
           ]
         in
-        match t.kind with `Atlas | `Alpha -> base
+        match t.kind with
+        | `Atlas -> base
+        | `Boreas | `Alpha ->
+            base
+            |> add_replace ("adaptive_issuance_force_activation", bool false)
+            |> add_replace ("ns_enable", bool true)
       in
       let general_parameters =
         let consensus_committee_size =
@@ -359,23 +416,25 @@ let protocol_parameters_json t : Ezjsonm.t =
                   (if bonus_committee_size <= 0 then 0
                   else reward_parts_quarter) );
               ("attesting_reward_weight", int reward_parts_half);
-              ("liquidity_baking_subsidy_weight", int reward_parts_16th);
               ("seed_nonce_revelation_tip_weight", int 1);
               ("vdf_revelation_tip_weight", int 1);
             ]
           in
-          match t.kind with `Atlas | `Alpha -> base
+          match t.kind with
+          | `Atlas ->
+              base
+              |> add_replace
+                   ("liquidity_baking_subsidy_weight", int reward_parts_16th)
+          | `Boreas | `Alpha -> base
         in
         let base =
           [
             ( "bootstrap_accounts",
               list make_account
                 (t.bootstrap_accounts @ [ (t.dictator, 27_000_000_000L) ]) );
-            ("preserved_cycles", int t.preserved_cycles);
             ("blocks_per_cycle", int t.blocks_per_cycle);
             ("blocks_per_commitment", int 4 (* From constants_sandbox *));
             ("nonce_revelation_threshold", int 4 (* From constants_sandbox *));
-            ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot);
             ( "cycles_per_voting_period",
               int
                 ( t.blocks_per_voting_period / t.blocks_per_cycle |> fun c ->
@@ -430,9 +489,22 @@ let protocol_parameters_json t : Ezjsonm.t =
           ]
         in
         match t.kind with
-        | `Atlas -> base
-        | `Alpha ->
-            base |> add_replace ("direct_ticket_spending_enable", bool false)
+        | `Atlas ->
+            base
+            |> add_replace
+                 ("blocks_per_stake_snapshot", int t.blocks_per_roll_snapshot)
+            |> add_replace ("preserved_cycles", int t.preserved_cycles)
+        | `Alpha | `Boreas ->
+            base
+            |> add_replace ("consensus_rights_delay", int t.preserved_cycles)
+            |> add_replace ("blocks_preservation_cycles", int 1)
+            |> add_replace
+                 ("liquidity_baking_subsidy", string (Int.to_string 5_000_000))
+            |> add_replace ("max_slashing_threshold", int 86)
+            |> add_replace ("max_slashing_per_block", int 10000)
+            |> add_replace ("direct_ticket_spending_enable", bool false)
+            |> add_replace
+                 ("delegate_parameters_activation_delay", int t.preserved_cycles)
       in
       dict
         (general_parameters @ tx_rollup_specific_parameters

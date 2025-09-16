@@ -10,16 +10,18 @@ RUN opam exec -- dune build --profile=release src/app/main.exe
 RUN sudo cp _build/default/src/app/main.exe /usr/bin/flexmasa
 RUN sudo sh src/scripts/get-mavkit-static-binaries.sh /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
-RUN sudo sh src/scripts/get-octez-kernel-build.sh /usr/bin
-RUN sudo sh src/scripts/get-tx-client.sh /usr/bin
+RUN sudo sh src/scripts/get-mavkit-kernel-build.sh /usr/bin
+# RUN sudo sh src/scripts/get-tx-client.sh /usr/bin
 FROM alpine:3.15 as run_image
 RUN apk update
 RUN apk add curl libev libffi unzip gmp rlwrap jq hidapi-dev libstdc++
 WORKDIR /usr/bin
 COPY --from=0 /usr/bin/mavkit-accuser-PtAtLas .
+COPY --from=0 /usr/bin/mavkit-accuser-PtBoreas .
 COPY --from=0 /usr/bin/mavkit-accuser-alpha .
 COPY --from=0 /usr/bin/mavkit-admin-client .
 COPY --from=0 /usr/bin/mavkit-baker-PtAtLas .
+COPY --from=0 /usr/bin/mavkit-baker-PtBoreas .
 COPY --from=0 /usr/bin/mavkit-baker-alpha .
 COPY --from=0 /usr/bin/mavkit-client .
 COPY --from=0 /usr/bin/mavkit-codec .
@@ -38,10 +40,12 @@ COPY --from=0 /usr/bin/smart-rollup-installer .
 RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flexmasa \"\\\$@\"\n" > /usr/bin/flexmasarl'
 RUN chmod a+rx /usr/bin/flexmasarl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/atlasbox
+COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/boreasbox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox
 RUN chmod a+rx /usr/bin/atlasbox
+RUN chmod a+rx /usr/bin/boreasbox
 RUN chmod a+rx /usr/bin/alphabox
 RUN /usr/bin/alphabox initclient
 RUN ln -s /usr/bin/mavkit-client /usr/bin/mavryk-client
 ENV MAVRYK_CLIENT_UNSAFE_DISABLE_DISCLAIMER=Y
-COPY --from=0 /usr/bin/tx-client .
+# COPY --from=0 /usr/bin/tx-client .

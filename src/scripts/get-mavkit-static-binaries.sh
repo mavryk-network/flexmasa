@@ -9,25 +9,25 @@ if ! [ -d "$dest_dir" ]; then
     exit 3
 fi
 
-# - Go to https://gitlab.com/tezos/tezos/
+# - Go to https://gitlab.com/mavryk-network/mavryk-protocol/
 # - Find a successful master-branch pipeline.
 # - Get the 2 jobs making x86_64 and arm64 static binaries.
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/1114692838
-# (from 2023-08-21)
+# This time: https://gitlab.com/mavryk-network/mavryk-protocol/-/pipelines/2036864015
+# (from 2025-01-02)
 # corresponding to:
-# https://gitlab.com/tezos/tezos/-/commit/3e6ec4792f706670615cd565014228641aafd0f5
+# https://gitlab.com/mavryk-network/mavryk-protocol/-/commit/9b9b3c10bf5b685a667eef6800b018a800971134
 
 directory_name=
 case $(uname -m) in
     x86_64)
-        download_uri="https://www.dropbox.com/scl/fi/th2ngpexjpxtafvhvbzi9/mavkit-static-binaries-x86_64.zip?rlkey=890142kcvza84m4o27avrkrdf&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/s6l8bfivdmlsaivjqynzs/mavkit-static-binaries-x86_64.zip?rlkey=dy7mub5ttuoizmfulcaowdf93&st=ug5z4f39&raw=1"
         directory_name=x86_64
         ;;
     aarch64)
-        download_uri="https://www.dropbox.com/scl/fi/xerpzdqq8k4di9rg7aqqv/mavkit-static-binaries-arm64.zip?rlkey=h9nkausn95o53knsduifjwjny&raw=1"
+        download_uri="https://www.dropbox.com/scl/fi/i7vn1czmg7v1p3sprj6z4/mavkit-static-binaries-arm64.zip?rlkey=ic938xtynviblliat6to4bpuz&st=vj54zdju&raw=1"
         directory_name=arm64
         ;;
     *)

@@ -32,8 +32,8 @@ runone() {
 }
 
 current=Atlas
-next=Alpha
-next_suffix=alpha
+next=Boreas
+next_suffix=PtBoreas
 before_alpha=$next
 
 quickmini() {
@@ -137,10 +137,10 @@ all() {
     quickmini "$next"
     quickmini Alpha
     c2n
-    n2a
-    daem_c2n
-    daem_c2n_nay
-    daem_n2a
+    # n2a
+    # daem_c2n
+    # daem_c2n_nay
+    # daem_n2a
     tx_smart_rollup
     evm_smart_rollup
     ai "$current"
@@ -159,10 +159,10 @@ mini() {
 
 gov() {
     c2n
-    n2a
-    daem_c2n
-    daem_c2n_nay
-    daem_n2a
+    # n2a
+    # daem_c2n
+    # daem_c2n_nay
+    # daem_n2a
 
 }
 
@@ -176,7 +176,7 @@ adissu() {
     ai "$current"
     ai "$next"
     daem_ai "$current"
-    daem_ai "$next"
+    # daem_ai "$next"
 
 }
 

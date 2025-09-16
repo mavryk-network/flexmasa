@@ -21,6 +21,13 @@ module Genesis_block_hash = struct
          * Seed: "atlasbox-402009"
            → block: "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
            → chain-id: "NetXSq4NpQeBox1"
+      $ flexmasa van --first --seed boreasbox- --attempts 100_000_000  Box2
+     Flexmasa.vanity-chain-id:  Looking for "Box2"
+     Flexmasa.vanity-chain-id:
+       Results:
+         * Seed: "atlasbox-402009"
+           → block: "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
+           → chain-id: "NetXSq4NpQeBox1"
      $ ./flexmasa van --first --seed alphabox- --attempts 100_000_000  BoxA
      Flexmasa.vanity-chain-id:  Looking for "BoxA"
      Flexmasa.vanity-chain-id:
@@ -31,6 +38,7 @@ module Genesis_block_hash = struct
     *)
     function
     | `Atlas -> "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
+    | `Boreas -> "BMAtb1zRJ15eUj29je4rMTpHfzT7xvGmGRdDxied2uKQW8nk4RJ"
     | `Alpha -> "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
 
   module Choice = struct
@@ -70,8 +78,8 @@ module Genesis_block_hash = struct
                 {md|Set the genesis block hash (from which the chain-id is derived).
 The default behavior (or the values "default" or "from-protocol-kind") is to pick
 a "vanity-suffix-chain-id" which depends on the kind of protocol:
-`Box6` for Carthage
-and `Box7` for Delphi.
+`Box1` for Atlas
+and `Box2` for Boreas.
 The value "random" means to pick a random number.
 The value "legacy-default" picks the same default as older versions of Flexmasa.
 Any other value is treated as a custom block hash.

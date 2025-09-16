@@ -460,8 +460,8 @@ let cmd () =
                   ~docv:"NUMBER"
                   ~doc:
                     "Submit $(docv) extra proposals per batch. $(docv) \
-                     shouldn't exeed the nubmer of bootstrap-accounts. (See \
-                     Protocol Options: --number-of-boot-strap-accounts)")))
+                     shouldn't exeed the number of bootstrap-accounts. (See \
+                     Protocol Options: --number-of-bootstrap-accounts)")))
     $ Arg.(
         const (fun x -> `Extra_dummy_proposals_batch_levels x)
         $ value

@@ -11,18 +11,18 @@ fi
 
 # Use this scrpcipt to get the smart-rollup-installer and octez smart-rollup kernel binaries.
 #
-# - Go to https://gitlab.com/tezos/tezos/
+# - Go to https://gitlab.com/mavryk-network/mavryk-protocol/
 # - Find a successful master-branch pipeline.
-# - Get the job build_kerenls
+# - Get the job build_kernels
 # - Download the artifacts and put them in a more durable place.
 # - Put those durable URLs down there, as `download_uri`:
 #
-# This time: https://gitlab.com/tezos/tezos/-/pipelines/1114693893
-# (from 2023-09-27)
+# This time: https://gitlab.com/mavryk-network/mavryk-protocol/-/pipelines/1606209115
+# (from 2024-12-31)
 # corresponding to:
-# https://gitlab.com/tezos/tezos/-/commit/50ce0bb6453cfa56cd62a417eba3454dd05d863e
+# https://gitlab.com/mavryk-network/mavryk-protocol/-/commit/0dffc5348a478c7a7df7f7802dd4dd90c71a93f3
 
-download_uri="https://www.dropbox.com/scl/fi/qj8cjro7nipn47rxrw5sa/octez-kernel-build-20231220-50ce0bb6.zip?rlkey=nez38t9bdtw2xnl1c1iwo4q8q&dl&raw=1"
+download_uri="https://www.dropbox.com/scl/fi/50f8fgokziat22uc3elgd/mavkit-kernel-build-20250301-0dffc534.zip?rlkey=p16byef4n2hjp7z0tnq3q709f&st=4e68x3qg&raw=1"
 
 (
     curl -L "$download_uri" -o "$dest_dir/bins.zip"
