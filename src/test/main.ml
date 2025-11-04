@@ -1,4 +1,4 @@
-open MavBox
+open Mavbox
 open Internal_pervasives
 module MFmt = More_fmt
 

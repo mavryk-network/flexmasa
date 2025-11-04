@@ -44,8 +44,8 @@
 
 (package
  (name mavbox-cli)
- (synopsis "A CLI application using MavBox-lib to define a few scenarios")
- (description "A CLI application using MavBox-lib to define a few scenarios.")
+ (synopsis "A CLI application using Mavbox-lib to define a few scenarios")
+ (description "A CLI application using Mavbox-lib to define a few scenarios.")
  (depends
   (dune (> 2.8))
   mavbox

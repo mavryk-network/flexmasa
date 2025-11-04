@@ -1,7 +1,7 @@
 The Daemons Upgrade Command
 ===========================
 
-MavBox ships with the `mavbox` command-line application. This document deals
+Mavbox ships with the `mavbox` command-line application. This document deals
 with the `./mavbox daemons-upgrade` sub-command.
 
 One can use `./mavbox daemons-upgrade --help` to see all the available options.
@@ -9,12 +9,12 @@ One can use `./mavbox daemons-upgrade --help` to see all the available options.
 Accessing Mavryk Software
 -------------------------------------------------------------------------------
 
-MavBox needs access to the Mavryk software. In particular, the
+Mavbox needs access to the Mavryk software. In particular, the
 `daemons-upgrade` command requires the baker daemons, (`mavkit-baker-PtKathma`,
 `mavkit-baker-PtLimaPt`, `mavkit-baker-alpha`) depending on which protocol
 upgrade is being tested.
 
-An easy way to let MavBox find them is to add them to the `PATH`. For instance,
+An easy way to let Mavbox find them is to add them to the `PATH`. For instance,
 if all the Mavryk utilities have been build at `/path/to/mavkit-repo/`:
 
 ```
@@ -25,7 +25,7 @@ if all the Mavryk utilities have been build at `/path/to/mavkit-repo/`:
         --second-baker mavkit-baker-PtLimaPt
 ```
 
-Note: MavBox will infer the executables needed based on the value passed to
+Note: Mavbox will infer the executables needed based on the value passed to
 `--protocol-kind`. However, the option `--second-baker` is required to provide
 the baker executable for the next (upgrade) protocol.
 
@@ -47,7 +47,7 @@ paths can be passed with command line options:
 
 Both examples above, activate the protocol `Kathmandu`, and propose the `Lima`
 upgrade. The sandbox network will do a full voting round followed by a protocol
-change. Finally, MavBox will kill all processes once the daemon-upgrade test
+change. Finally, Mavbox will kill all processes once the daemon-upgrade test
 is complete.
 
 * If you are using the docker image, valid `mavkit-*` executables are already in
@@ -106,17 +106,17 @@ Interactivity
         --interactive true
 ```
 
-With the option `--interactive true`, MavBox will pause twice during the test;
+With the option `--interactive true`, Mavbox will pause twice during the test;
 once on the `Lima` network and once after the upgrade to `Alpha`.  This
 will allow you to interact with the network at different stages. Type `help`
 (or `h`) to see available commands, and `quit` (or `q`) to unpause and continue
 the upgrade.
 
 Similarly, the option `--pause-at-end` will allow you to interact with the
-network before MavBox kills all processes and quits.
+network before Mavbox kills all processes and quits.
 
 If one runs the `daemons-upgrade` interactively with the `--until-level` option,
-MavBox will do the second (or final) pause after reaching the level set by the
+Mavbox will do the second (or final) pause after reaching the level set by the
 user.
 
 For example:

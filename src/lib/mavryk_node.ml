@@ -67,8 +67,8 @@ module Config_file = struct
      Choosing the default hash:
 
       $ ./mavbox vani SBox --att 10_000_000
-     MavBox.vanity-chain-id:  Looking for "SBox"
-     MavBox.vanity-chain-id:
+     Mavbox.vanity-chain-id:  Looking for "SBox"
+     Mavbox.vanity-chain-id:
        Results:
          * Seed: "mavbox5316422" → block: "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf" → chain-id: "NetXKMbjQL2SBox"
 

@@ -129,15 +129,15 @@ cat >> "$output" <<'EOF'
 EOF
 }
 
-make_page "$lib_index_fragment" "$lib_index" "MavBox: API"
-make_page "$main_index_fragment" "$main_index" "MavBox: Home"
-make_page "$mini_net_fragment" "$mini_net" "MavBox: Mini-net Command"
-make_page "$daemons_upgrade_fragment" "$daemons_upgrade" "MavBox: daemons-upgrade Command"
+make_page "$lib_index_fragment" "$lib_index" "Mavbox: API"
+make_page "$main_index_fragment" "$main_index" "Mavbox: Home"
+make_page "$mini_net_fragment" "$mini_net" "Mavbox: Mini-net Command"
+make_page "$daemons_upgrade_fragment" "$daemons_upgrade" "Mavbox: daemons-upgrade Command"
 
 say "done: file://$PWD/$main_index"
 say "done: file://$PWD/$mini_net"
 say "done: file://$PWD/$daemons_upgrade"
 say "done: file://$PWD/$lib_index"
-say "done: file://$PWD/$output_path/mavbox/MavBox/index.html"
+say "done: file://$PWD/$output_path/mavbox/Mavbox/index.html"
 
 

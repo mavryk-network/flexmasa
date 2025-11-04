@@ -1,11 +1,11 @@
-open MavBox.Internal_pervasives
+open Mavbox.Internal_pervasives
 
 module Small_utilities = struct
   let key_of_name_command () =
     let open Cmdliner in
     let open Term in
     ( (pure (fun n ->
-           let open MavBox.Mavryk_protocol.Account in
+           let open Mavbox.Mavryk_protocol.Account in
            let account = of_name n in
            Stdlib.Printf.printf "%s,%s,%s,%s\n%!" (name account)
              (pubkey account) (pubkey_hash account) (private_key account))
@@ -30,9 +30,9 @@ module Small_utilities = struct
   let netstat_ports ~pp_error () =
     let open Cmdliner in
     let open Term in
-    MavBox.Test_command_line.Run_command.make ~pp_error
+    Mavbox.Test_command_line.Run_command.make ~pp_error
       (pure (fun state ->
-           MavBox.
+           Mavbox.
              ( state,
                fun () ->
                  Helpers.Netstat.used_listening_ports state >>= fun ports ->
@@ -52,7 +52,7 @@ module Small_utilities = struct
                                 sp ppf ())
                               (fun ppf p -> fmt "%d" ppf p))
                            ppf to_display)) ))
-      $ MavBox.Test_command_line.cli_state ~disable_interactivity:true
+      $ Mavbox.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"netstat-ports" ())
       (info "netstat-listening-ports"
          ~doc:"Like `netstat -nut | awk something-something` but glorified.")
@@ -61,9 +61,9 @@ module Small_utilities = struct
   let vanity_chain_id ~pp_error () =
     let open Cmdliner in
     let open Term in
-    MavBox.Test_command_line.Run_command.make ~pp_error
+    Mavbox.Test_command_line.Run_command.make ~pp_error
       (pure (fun state stop_at_first machine_readable seed attempts pattern ->
-           MavBox.
+           Mavbox.
              ( state,
                fun () ->
                  let sayf f =
@@ -119,7 +119,7 @@ module Small_utilities = struct
                                          "* Seed: %S@ → block: %S@ → chain-id: \
                                           %S"
                                          seed bh ci)))) ))
-      $ MavBox.Test_command_line.cli_state ~disable_interactivity:true
+      $ Mavbox.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"vanity-chain-id" ()
       $ Arg.(value (flag (info [ "first" ] ~doc:"Stop at the first result.")))
       $ Arg.(
@@ -156,12 +156,12 @@ end
 
 let () =
   let open Cmdliner in
-  let pp_error = MavBox.Test_command_line.Common_errors.pp in
+  let pp_error = Mavbox.Test_command_line.Common_errors.pp in
   let help = Term.(ret (pure (`Help (`Auto, None))), info "mavbox") in
   Term.exit
     (Term.eval_choice
        (help : unit Term.t * _)
        (Small_utilities.all ~pp_error ()
-       @ [ MavBox.Interactive_mini_network.cmd () ]
-       @ [ MavBox.Command_daemons_protocol_change.cmd () ]))
+       @ [ Mavbox.Interactive_mini_network.cmd () ]
+       @ [ Mavbox.Command_daemons_protocol_change.cmd () ]))
   [@@warning "-3"]

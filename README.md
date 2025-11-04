@@ -1,7 +1,7 @@
-MavBox: Mavryk Sandboxes
+Mavbox: Mavryk Sandboxes
 ==================================
 
-This repository contains the MavBox library used in
+This repository contains the Mavbox library used in
 [mavryk-network/mavryk-protocol](https://gitlab.com/mavryk-network/mavryk-protocol) to build the `mavryk-sandbox`
 [tests](https://protocol.mavryk.org/developer/mavbox.html), as well as some extra
 testing utilities, such as the `mavbox` application, which may be useful to
@@ -300,7 +300,7 @@ of your kernel inside the container. The published (`-p`) ports **20000** and
 **20002** will be the rpc_ports for the **tezos-node** and **smart-rollup-node**
 respectively.
 
-MavBox has a few help options to use when testing your smart-rollup kernel.
+Mavbox has a few help options to use when testing your smart-rollup kernel.
 This example uses the same `start_custom_rollup` command from above.
 
 ``` default
@@ -313,7 +313,7 @@ $ docker run --rm --detach -p 20000:20000 -p 20002:20002 --name my-sandbox \
         --smart-rollup-node-run-with="log-kernel-debug log-kernel-debug-file=/tmp/my-debug.log"
 ```
 
-If you have a kernel "set-up" file, MavBox will pass it to the
+If you have a kernel "set-up" file, Mavbox will pass it to the
 `smart-rollup-installer` when preparing the kernel preimage with the option
 `--kernel-setup-file=PATH`. The option `--smart-contract=PATH:TYPE` will
 originate the smart contract of TYPE at PATH. Both the smart contract and set-up
@@ -366,7 +366,7 @@ Added smart rollup custom: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
 ```
 #### Start the EVM Smart-Rollup
 
-MavBox includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) developed by Nomadic Labs. See its documentation [here](https://docs.etherlink.com/get-started/connect-your-wallet-to-etherlink). To start this sandbox Use the `star_evm_smart_rollup` command form the included scripts. 
+Mavbox includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) developed by Nomadic Labs. See its documentation [here](https://docs.etherlink.com/get-started/connect-your-wallet-to-etherlink). To start this sandbox Use the `star_evm_smart_rollup` command form the included scripts. 
 
 ``` default
 $ docker run --rm --detach -p 20000:20000 -p 20002:20002 -p 20004:20004 --name my-sandbox \
@@ -552,7 +552,7 @@ The command `mavbox mini-net [...]` has a dedicated documentation page: [The
 Documentation regarding `mavbox daemons-upgrade [...]` can be found here: [The
 `daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
 
-The API documentation of the MavBox OCaml library starts here: [MavBox:
+The API documentation of the Mavbox OCaml library starts here: [Mavbox:
 API](https://protocol.mavryk.org/mavbox/lib-index.html).
 
 Blog posts:
@@ -561,9 +561,9 @@ Blog posts:
 - [2021-10-14](https://medium.com/the-aleph/new-mavbox-docker-image-and-some-development-news-f0d5360f01bd)
 - [2021-11-29](https://medium.com/the-aleph/mavbox-new-image-user-activated-upgrades-tenderbake-cc7602781879)
 - [2022-03-22](https://medium.com/the-aleph/mavbox-protocol-upgrades-3fdf2fae11e1):
-  MavBox: Protocol Upgrades
+  Mavbox: Protocol Upgrades
 - [2022-11-30](https://medium.com/the-aleph/mavbox-toru-sandbox-78d7b166e06):
-  MavBox TORU Sandbox
+  Mavbox TORU Sandbox
 
 
 

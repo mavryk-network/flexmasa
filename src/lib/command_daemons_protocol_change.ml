@@ -190,7 +190,7 @@ let run state ~protocol ~next_protocol_kind ~size ~base_port ~no_daemons_for
       @ [ secret_keys state ~protocol ]
       @ arbitrary_commands_for_each_and_all_clients state ~make_admin
           ~clients:(List.map nodes ~f:(Mavryk_client.of_node ~exec:client_exec)));
-  (* MavBox sandbox tests assume the node already knows about the protocol. We skip protocol injection. *)
+  (* Mavbox sandbox tests assume the node already knows about the protocol. We skip protocol injection. *)
   return
     (Some Mavryk_protocol.Protocol_kind.(canonical_hash next_protocol_kind))
   >>= fun prot_opt ->
@@ -354,7 +354,7 @@ let cmd () =
   let open Term in
   let pp_error = Test_command_line.Common_errors.pp in
   let base_state =
-    Test_command_line.Command_making_state.make ~application_name:"MavBox"
+    Test_command_line.Command_making_state.make ~application_name:"Mavbox"
       ~command_name:"daemons-upgrade" ()
   in
   let docs = Manpage_builder.section_test_scenario base_state in

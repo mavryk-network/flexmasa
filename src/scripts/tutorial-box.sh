@@ -32,7 +32,7 @@ all_commands="
 * usage | help | --help | -h: Display this help message."
 usage() {
     cat >&2 <<EOF
-This script provides a MavBox “mini-net” sandbox with predefined
+This script provides a Mavbox “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
 wallet software like \`mavkit-client\`. This one uses the $default_protocol
 protocol.

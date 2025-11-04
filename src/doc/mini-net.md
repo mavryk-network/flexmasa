@@ -1,7 +1,7 @@
 The mini-net Command
 ====================
 
-MavBox ships with the `mavbox` command-line application; this document deals
+Mavbox ships with the `mavbox` command-line application; this document deals
 with the `./mavbox mini-net` sub-command (also available in the Mavryk
 [repository](https://protocol.mavryk.org/developer/mavbox.html) as `tezos-sandbox
 mini-net`).
@@ -11,7 +11,7 @@ One can use `./mavbox mini-net --help` to see all the available options.
 Accessing Mavryk Software
 ------------------------
 
-MavBox needs to access `mavkit-node`, `mavkit-client`, and, depending on the
+Mavbox needs to access `mavkit-node`, `mavkit-client`, and, depending on the
 options, all the “baker deamons.”
 
 An easy way to let mavbox find them is to add them to the `PATH`, for instance
@@ -45,7 +45,7 @@ bootstrap-baker accounts.
 A Note On Interactivity
 -----------------------
 
-Many sandbox setups in MavBox, once the sandbox is ready, give the user an
+Many sandbox setups in Mavbox, once the sandbox is ready, give the user an
 interactive command prompt.
 
 You can always type `help` (or `h`) to see available commands, and `quit` (or
@@ -84,13 +84,13 @@ By typing `help` we see we can use the command `bake` to make new blocks:
 One can also use `mavkit-client -E http://localhost:4000 bake for ...` from
 outside the sandbox.
 
-Luckily such a client has already been configured by MavBox; type `help-env`
+Luckily such a client has already been configured by Mavbox; type `help-env`
 on the prompt:
 
 ```
-MavBox: Please enter command:
+Mavbox: Please enter command:
   help-env
-MavBox:
+Mavbox:
   Shell Environment
     * A loadable shell environment is available at
     `/tmp/mininet-test/shell.env`.
@@ -193,8 +193,8 @@ generate vanity chain-id with the `mavbox vanity-chain-id` command.
  $ mavbox vanity-chain-id Bob  \
             --attempts 1_000_000 --first --seed my-seed-string
 
-MavBox.vanity-chain-id:  Looking for "Bob"
-MavBox.vanity-chain-id:
+Mavbox.vanity-chain-id:  Looking for "Bob"
+Mavbox.vanity-chain-id:
   Results:
     * Seed: "my-seed-string140396"
       → block: "BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q"
@@ -232,7 +232,7 @@ later usually works.
 
 ## Smart Optimistic Rollups
 
-MavBox automates several steps involved in originating a [smart optimistic
+Mavbox automates several steps involved in originating a [smart optimistic
 rollup](https://protocol.mavryk.org/alpha/smart_rollups.html). For a quick start,
 the command `mavbox mini-network --smart-rollup` will start the mini-network
 sandbox with a default transaction smart rollup using the
@@ -262,7 +262,7 @@ The arguments passed to `--custom-kernel`, `wasm_2_0_0` and `bytes` are the
 final argument is the path to the .wasm file for your kernel.
 
 Most kernels will be too large for an L1 operation. When this is the case,
-MavBox will use the
+Mavbox will use the
 [smart-rollup-installer](https://crates.io/crates/tezos-smart-rollup-installer)
 to create an installer kernel and originate the rollup.
 
@@ -270,12 +270,12 @@ The `--smart-contract PATH` option simply originates the layer one smart
 contract at `PATH`.
 
 There are two additional options that can be used with the smart rollup. With
-`--smart-rollup-start-level LEVEL` MavBox will wait until `LEVEL` to originate
+`--smart-rollup-start-level LEVEL` Mavbox will wait until `LEVEL` to originate
 the rollup. The default is level 5. `--smart-rollup-node-mode MODE` will set the
 [mode](https://protocol.mavryk.org/alpha/smart_rollups.html#deploying-a-rollup-node)
-of the smart-rollup-node initialized by MavBox.
+of the smart-rollup-node initialized by Mavbox.
 
-Once the rollup is originated, MavBox will display the rollup address and
+Once the rollup is originated, Mavbox will display the rollup address and
 rpc_port for the rollup node. This information can also be found in the rollup
 node's data directory at `.../data-dir/config.json`.
 
