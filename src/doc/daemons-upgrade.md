@@ -1,10 +1,10 @@
 The Daemons Upgrade Command
 ===========================
 
-Flexmasa ships with the `flexmasa` command-line application. This document deals
-with the `./flexmasa daemons-upgrade` sub-command.
+MavBox ships with the `mavbox` command-line application. This document deals
+with the `./mavbox daemons-upgrade` sub-command.
 
-One can use `./flexmasa daemons-upgrade --help` to see all the available options.
+One can use `./mavbox daemons-upgrade --help` to see all the available options.
 
 Accessing Mavryk Software
 -------------------------------------------------------------------------------
@@ -14,18 +14,18 @@ Flexstesa needs access to the Mavryk software. In particular, the
 `mavkit-baker-PtLimaPt`, `mavkit-baker-alpha`) depending on which protocol
 upgrade is being tested.
 
-An easy way to let Flexmasa find them is to add them to the `PATH`. For instance,
+An easy way to let MavBox find them is to add them to the `PATH`. For instance,
 if all the Mavryk utilities have been build at `/path/to/mavkit-repo/`:
 
 ```
     $ export PATH=/path/to/mavkit-repo/:$PATH
-    $ flexmasa daemons-upgrade \
+    $ mavbox daemons-upgrade \
         --protocol-kind Kathmandu \
         --next-protocol-kind Lima \
         --second-baker mavkit-baker-PtLimaPt
 ```
 
-Note: Flexmasa will infer the executables needed based on the value passed to
+Note: MavBox will infer the executables needed based on the value passed to
 `--protocol-kind`. However, the option `--second-baker` is required to provide
 the baker executable for the next (upgrade) protocol.
 
@@ -33,7 +33,7 @@ As an alternative to adding the Mavryk software to `PATH`, all  the executable
 paths can be passed with command line options:
 
 ```
-    $ flexmasa daemons-upgrade  \
+    $ mavbox daemons-upgrade  \
         --protocol-kind Kathmandu --next-protocol-kind Lima \
         --mavkit-node /path/to/mavkit-repo/mavkit-node \
         --mavkit-client /path/to/mavkit-repo/mavkit-client \
@@ -47,7 +47,7 @@ paths can be passed with command line options:
 
 Both examples above, activate the protocol `Kathmandu`, and propose the `Lima`
 upgrade. The sandbox network will do a full voting round followed by a protocol
-change. Finally, Flexmasa will kill all processes once the daemon-upgrade test
+change. Finally, MavBox will kill all processes once the daemon-upgrade test
 is complete.
 
 * If you are using the docker image, valid `mavkit-*` executables are already in
@@ -56,7 +56,7 @@ is complete.
 ### Example:
 
 ```
-    $ flexmasa daemons-upgrade  \
+    $ mavbox daemons-upgrade  \
         --protocol-kind Lima \
         --size 2 \
         --number-of-bootstrap-accounts 2 \
@@ -100,28 +100,28 @@ Interactivity
 -------------------------------------------------------------------------------
 
 ```
-    $ flexmasa daemons-upgrade \
+    $ mavbox daemons-upgrade \
         --protocol-kind Lima --next-protocol Alpha \
         --second-baker mavkit-baker-PtLimaPt \
         --interactive true
 ```
 
-With the option `--interactive true`, Flexmasa will pause twice during the test;
+With the option `--interactive true`, MavBox will pause twice during the test;
 once on the `Lima` network and once after the upgrade to `Alpha`.  This
 will allow you to interact with the network at different stages. Type `help`
 (or `h`) to see available commands, and `quit` (or `q`) to unpause and continue
 the upgrade.
 
 Similarly, the option `--pause-at-end` will allow you to interact with the
-network before Flexmasa kills all processes and quits.
+network before MavBox kills all processes and quits.
 
 If one runs the `daemons-upgrade` interactively with the `--until-level` option,
-Flexmasa will do the second (or final) pause after reaching the level set by the
+MavBox will do the second (or final) pause after reaching the level set by the
 user.
 
 For example:
 ```
-    $ flexmasa daemons-upgrade \
+    $ mavbox daemons-upgrade \
         --protocol-kind Lima --next-protocol Alpha \
         --second-baker mavkit-baker-aphla \
         --pause-at-end true \

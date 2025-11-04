@@ -3,11 +3,11 @@ FROM ocaml/opam:alpine-3.16-ocaml-4.14 as build_step
 RUN sudo cp /usr/bin/opam-2.1 /usr/bin/opam
 RUN sudo apk update
 ADD  --chown=opam:opam . ./
-RUN opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
+RUN opam pin add -n mavryk-base58-digest https://gitlab.com/mavryk-network/mavryk-base-58-digest.git
 RUN opam update
-RUN opam install --with-test --deps-only ./mavai-mv1-crypto.opam ./flexmasa.opam
+RUN opam install --with-test --deps-only ./mavryk-mv1-crypto.opam ./mavbox.opam
 RUN opam exec -- dune build --profile=release src/app/main.exe
-RUN sudo cp _build/default/src/app/main.exe /usr/bin/flexmasa
+RUN sudo cp _build/default/src/app/main.exe /usr/bin/mavbox
 RUN sudo sh src/scripts/get-mavkit-static-binaries.sh /usr/bin
 RUN sudo sh src/scripts/get-zcash-params.sh /usr/share/zcash-params
 RUN sudo sh src/scripts/get-mavkit-kernel-build.sh /usr/bin
@@ -34,11 +34,11 @@ COPY --from=0 /usr/bin/mavkit-proxy-server .
 COPY --from=0 /usr/bin/mavkit-signer .
 COPY --from=0 /usr/bin/mavkit-smart-rollup-node .
 COPY --from=0 /usr/bin/mavkit-smart-rollup-wasm-debugger .
-COPY --from=0 /usr/bin/flexmasa .
+COPY --from=0 /usr/bin/mavbox .
 COPY --from=0 /usr/share/zcash-params/* /usr/share/zcash-params/
 COPY --from=0 /usr/bin/smart-rollup-installer .
-RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap flexmasa \"\\\$@\"\n" > /usr/bin/flexmasarl'
-RUN chmod a+rx /usr/bin/flexmasarl
+RUN sh -c 'printf "#!/bin/sh\nsleep 1\nrlwrap mavbox \"\\\$@\"\n" > /usr/bin/mavboxrl'
+RUN chmod a+rx /usr/bin/mavboxrl
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/atlasbox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/boreasbox
 COPY --from=0 /home/opam/src/scripts/tutorial-box.sh /usr/bin/alphabox

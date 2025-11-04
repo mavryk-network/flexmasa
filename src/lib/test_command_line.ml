@@ -121,7 +121,7 @@ module Full_default_state = struct
 end
 
 let cli_state ?default_interactivity ?disable_interactivity ~name () =
-  let application_name = Fmt.str "Flexmasa.%s" name in
+  let application_name = Fmt.str "MavBox.%s" name in
   let command_name = name in
   let base_state =
     Command_making_state.make ~application_name ~command_name ()

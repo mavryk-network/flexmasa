@@ -83,8 +83,8 @@ unit-tests:
   stage: build
   script:
      - sh -c "$SHOW_INFO"
-     - opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
-     - opam install --deps-only --with-test ./mavai-mv1-crypto.opam
+     - opam pin add -n mavryk-base58-digest https://gitlab.com/mavryk-network/mavryk-base-58-digest.git
+     - opam install --deps-only --with-test ./mavryk-mv1-crypto.opam
      - dune runtest
 
 docker:test:mini-net:

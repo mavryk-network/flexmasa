@@ -2,8 +2,8 @@ module String = StringLabels
 module List = ListLabels
 
 module Make_with_id (Id : sig
-  val encode : string -> Mavai_base58_digest__Raw.base58
-  val decode : Mavai_base58_digest__Raw.base58 -> string
+  val encode : string -> Mavryk_base58_digest__Raw.base58
+  val decode : Mavryk_base58_digest__Raw.base58 -> string
 end) =
 struct
   type t = Bytes of string
@@ -16,7 +16,7 @@ struct
 end
 
 module Secret_key = struct
-  include Make_with_id (Mavai_base58_digest.Identifier.Ed25519.Secret_key)
+  include Make_with_id (Mavryk_base58_digest.Identifier.Ed25519.Secret_key)
 
   (* type t = Bytes of string *)
 
@@ -25,7 +25,7 @@ module Secret_key = struct
     | str ->
         let seed =
           if String.length str < 32 then str
-          else Mavai_base58_digest.Crypto_hash.String.sha256 str
+          else Mavryk_base58_digest.Crypto_hash.String.sha256 str
         in
         let alices =
           List.init ~len:32 ~f:(fun _ -> seed)
@@ -62,7 +62,7 @@ module Secret_key = struct
 end
 
 module Public_key = struct
-  include Make_with_id (Mavai_base58_digest.Identifier.Ed25519.Public_key)
+  include Make_with_id (Mavryk_base58_digest.Identifier.Ed25519.Public_key)
 
   let of_secret_key (Secret_key.Bytes s) =
     (* Bytes (String.sub s ~pos:0 ~len:32) *)
@@ -78,7 +78,7 @@ module Public_key = struct
 end
 
 module Public_key_hash = struct
-  module Mv1 = Mavai_base58_digest.Identifier.Ed25519.Public_key_hash
+  module Mv1 = Mavryk_base58_digest.Identifier.Ed25519.Public_key_hash
   include Make_with_id (Mv1)
 
   let of_public_key pk = Bytes (Public_key.to_string pk |> Mv1.hash_string)
@@ -95,7 +95,7 @@ let%expect_test _ =
     Format.printf "Seed: %S\nSK: %a\nPK: %a\nPKH: %a\n" seed Secret_key.pp sk
       Public_key.pp pk Public_key_hash.pp pkh
   in
-  (* The following were checked against ["flexmasa key-of-name"] using
+  (* The following were checked against ["mavbox key-of-name"] using
      ["mavryk-crypto"]. *)
   show_of_seed "alice";
   [%expect

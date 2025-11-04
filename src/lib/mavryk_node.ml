@@ -66,11 +66,11 @@ module Config_file = struct
 
      Choosing the default hash:
 
-      $ ./flexmasa vani SBox --att 10_000_000
-     Flexmasa.vanity-chain-id:  Looking for "SBox"
-     Flexmasa.vanity-chain-id:
+      $ ./mavbox vani SBox --att 10_000_000
+     MavBox.vanity-chain-id:  Looking for "SBox"
+     MavBox.vanity-chain-id:
        Results:
-         * Seed: "flexmasa5316422" → block: "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf" → chain-id: "NetXKMbjQL2SBox"
+         * Seed: "mavbox5316422" → block: "BLdZYwNF8Rn6zrTWkuRRNyrj6bQWPkfBog2YKhWhn5z3ApmpzBf" → chain-id: "NetXKMbjQL2SBox"
 
 
    *)

@@ -1,10 +1,10 @@
-Flexmasa: Flexible Mavryk Sandboxes
+MavBox: Mavryk Sandboxes
 ==================================
 
-This repository contains the Flexmasa library used in
+This repository contains the MavBox library used in
 [mavryk-network/mavryk-protocol](https://gitlab.com/mavryk-network/mavryk-protocol) to build the `mavryk-sandbox`
-[tests](https://protocol.mavryk.org/developer/flexmasa.html), as well as some extra
-testing utilities, such as the `flexmasa` application, which may be useful to
+[tests](https://protocol.mavryk.org/developer/mavbox.html), as well as some extra
+testing utilities, such as the `mavbox` application, which may be useful to
 the greater community (e.g. to test third party tools against fully functional
 Mavryk sandboxes).
 
@@ -14,15 +14,15 @@ Mavryk sandboxes).
 
 ## Run With Docker
 
-The _dev_ image is `registry.gitlab.com/mavryk-network/flexmasa:dev-run`
+The _dev_ image is `registry.gitlab.com/mavryk-network/mavbox:dev-run`
 
-It is built top of the `flexmasa` executable and Mavkit suite, for 2
+It is built top of the `mavbox` executable and Mavkit suite, for 2
 architectures: `linux/amd64` and `linux/arm64/v8` (tested on Apple Silicon); it
 also contains the `*box` scripts to quickly start networks with predefined
 parameters. For instance:
   
 ```sh
-image=mavrykdynamics/flexmasa:latest
+image=mavrykdynamics/mavbox:latest
 script=atlasbox
 docker run --rm --name my-sandbox --detach -p 20000:20000 \
        -e block_time=3 \
@@ -59,7 +59,7 @@ Root path (logs, chain data, etc.): /tmp/mini-box (inside container).
 ```
 
 The implementation for these scripts is `src/scripts/tutorial-box.sh`, they are
-just calls to `flexmasa mini-net` (see its general
+just calls to `mavbox mini-net` (see its general
 [documentation](./src/doc/mini-net.md)).
 
 The scripts run sandboxes with archive nodes for which the RPC port is `20 000`.
@@ -164,7 +164,7 @@ Notes:
 
 The `start_upgrade` command is included with the docker image.
 
-This implementation of `src/scripts/tutorial-box.sh` is a call to `flexmasa
+This implementation of `src/scripts/tutorial-box.sh` is a call to `mavbox
 daemons-upgrade` (see its general
 [daemons-upgrade](./src/doc/daemons-upgrade.md)).
 
@@ -280,7 +280,7 @@ sandbox:
 - [start_custom_smart_rollup](#staring-a-smart-rollup-sandbox-with-a-custom-kernel)
 - [start_evm_rollup](#startgin-the-evm-smart-rollup)
 
-Both are an implementation of the `flexmasa mini-network` with the
+Both are an implementation of the `mavbox mini-network` with the
 `--smart-rollup` option.
 
 #### Staring a Smart-Rollup Sandbox with a Custom Kernel
@@ -300,7 +300,7 @@ of your kernel inside the container. The published (`-p`) ports **20000** and
 **20002** will be the rpc_ports for the **tezos-node** and **smart-rollup-node**
 respectively.
 
-Flexmasa has a few help options to use when testing your smart-rollup kernel.
+MavBox has a few help options to use when testing your smart-rollup kernel.
 This example uses the same `start_custom_rollup` command from above.
 
 ``` default
@@ -313,7 +313,7 @@ $ docker run --rm --detach -p 20000:20000 -p 20002:20002 --name my-sandbox \
         --smart-rollup-node-run-with="log-kernel-debug log-kernel-debug-file=/tmp/my-debug.log"
 ```
 
-If you have a kernel "set-up" file, Flexmasa will pass it to the
+If you have a kernel "set-up" file, MavBox will pass it to the
 `smart-rollup-installer` when preparing the kernel preimage with the option
 `--kernel-setup-file=PATH`. The option `--smart-contract=PATH:TYPE` will
 originate the smart contract of TYPE at PATH. Both the smart contract and set-up
@@ -366,7 +366,7 @@ Added smart rollup custom: sr1KVTPm3NLuetrrPLGYnQrzMpoSmXFsNXwp
 ```
 #### Start the EVM Smart-Rollup
 
-Flexmasa includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) developed by Nomadic Labs. See its documentation [here](https://docs.etherlink.com/get-started/connect-your-wallet-to-etherlink). To start this sandbox Use the `star_evm_smart_rollup` command form the included scripts. 
+MavBox includes an implementation of the EVM Smart-Rollup (a.k.a. Etherlink) developed by Nomadic Labs. See its documentation [here](https://docs.etherlink.com/get-started/connect-your-wallet-to-etherlink). To start this sandbox Use the `star_evm_smart_rollup` command form the included scripts. 
 
 ``` default
 $ docker run --rm --detach -p 20000:20000 -p 20002:20002 -p 20004:20004 --name my-sandbox \
@@ -440,10 +440,10 @@ With Opam ≥ 2.1:
 opam switch create . --deps-only \
      --formula='"ocaml-base-compiler" {>= "4.13" & < "4.14"}'
 eval $(opam env)
-opam pin add -n mavai-base58-digest https://gitlab.com/mavryk-network/mavai-base-58-digest.git
+opam pin add -n mavryk-base58-digest https://gitlab.com/mavryk-network/mavryk-base-58-digest.git
 opam install --deps-only --with-test --with-doc \
-     ./mavai-mv1-crypto.opam \
-     ./flexmasa.opam ./flexmasa-cli.opam # Most of this should be already done.
+     ./mavryk-mv1-crypto.opam \
+     ./mavbox.opam ./mavbox-cli.opam # Most of this should be already done.
 opam install merlin ocamlformat.0.24.1    # For development.
 ```
 
@@ -451,8 +451,8 @@ Then:
 
     make
 
-The above builds the `flexmasa` library, the `flexmasa` command line application
-(see `./flexmasa --help`) and the tests (in `src/test`).
+The above builds the `mavbox` library, the `mavbox` command line application
+(see `./mavbox --help`) and the tests (in `src/test`).
 
 
 ## MacOSX Users
@@ -481,8 +481,8 @@ The `x86_64` images are built by the CI, see the job `docker:images:` in
 To build locally:
 
 ```sh
-docker build --target build_step -t flexmasa-build .
-docker build --target run_image -t flexmasa-run .
+docker build --target build_step -t mavbox-build .
+docker build --target run_image -t mavbox-run .
 ```
 
 Do not forget to test it: `docker run -it "$image" "$script" start`
@@ -511,10 +511,10 @@ sudo adduser ubuntu docker
 Build and push the image (you may need to `docker login`):
 
 ```sh
-base=mavrykdynamics/flexmasa
+base=mavrykdynamics/mavbox
 tag=20240228-rc
-docker build --target run_image -t flexmasa-run .
-docker tag flexmasa-run "$base:$tag-$(uname -p)"
+docker build --target run_image -t mavbox-run .
+docker tag mavbox-run "$base:$tag-$(uname -p)"
 docker push "$base:$tag-$(uname -p)"
 ```
 
@@ -546,24 +546,24 @@ docker manifest push $base:latest
 
 ## More Documentation
 
-The command `flexmasa mini-net [...]` has a dedicated documentation page: [The
+The command `mavbox mini-net [...]` has a dedicated documentation page: [The
 `mini-net` Command](./src/doc/mini-net.md).
 
-Documentation regarding `flexmasa daemons-upgrade [...]` can be found here: [The
+Documentation regarding `mavbox daemons-upgrade [...]` can be found here: [The
 `daemons-upgrade` Command](./src/doc/daemons-upgrade.md).
 
-The API documentation of the Flexmasa OCaml library starts here: [Flexmasa:
-API](https://protocol.mavryk.org/flexmasa/lib-index.html).
+The API documentation of the MavBox OCaml library starts here: [MavBox:
+API](https://protocol.mavryk.org/mavbox/lib-index.html).
 
 Blog posts:
 
-- [2019-06-14](https://obsidian.systems/blog/introducing-flexmasa-robust-testing-tools-for-tezos-and-its-applications)
-- [2021-10-14](https://medium.com/the-aleph/new-flexmasa-docker-image-and-some-development-news-f0d5360f01bd)
-- [2021-11-29](https://medium.com/the-aleph/flexmasa-new-image-user-activated-upgrades-tenderbake-cc7602781879)
-- [2022-03-22](https://medium.com/the-aleph/flexmasa-protocol-upgrades-3fdf2fae11e1):
-  Flexmasa: Protocol Upgrades
-- [2022-11-30](https://medium.com/the-aleph/flexmasa-toru-sandbox-78d7b166e06):
-  Flexmasa TORU Sandbox
+- [2019-06-14](https://obsidian.systems/blog/introducing-mavbox-robust-testing-tools-for-tezos-and-its-applications)
+- [2021-10-14](https://medium.com/the-aleph/new-mavbox-docker-image-and-some-development-news-f0d5360f01bd)
+- [2021-11-29](https://medium.com/the-aleph/mavbox-new-image-user-activated-upgrades-tenderbake-cc7602781879)
+- [2022-03-22](https://medium.com/the-aleph/mavbox-protocol-upgrades-3fdf2fae11e1):
+  MavBox: Protocol Upgrades
+- [2022-11-30](https://medium.com/the-aleph/mavbox-toru-sandbox-78d7b166e06):
+  MavBox TORU Sandbox
 
 
 

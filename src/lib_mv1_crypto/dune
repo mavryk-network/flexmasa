@@ -1,7 +1,7 @@
 (library
- (name mavai_mv1_crypto)
- (public_name mavai-mv1-crypto)
+ (name mavryk_mv1_crypto)
+ (public_name mavryk-mv1-crypto)
  (inline_tests)
  (preprocess
   (pps ppx_inline_test ppx_expect))
- (libraries mavai-base58-digest mirage-crypto-ec mirage-crypto-rng.unix))
+ (libraries mavryk-base58-digest mirage-crypto-ec mirage-crypto-rng.unix))

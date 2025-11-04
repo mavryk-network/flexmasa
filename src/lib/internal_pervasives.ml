@@ -1,6 +1,6 @@
-(** Local “Pervasives” module for flexmasa.
+(** Local “Pervasives” module for mavbox.
 
-    See also ["docs/tutorials/flexmasa.rst"]. *)
+    See also ["docs/tutorials/mavbox.rst"]. *)
 
 include Base
 
@@ -67,7 +67,7 @@ module Dbg = struct
   let on = ref false
 
   let () =
-    Option.iter (Stdlib.Sys.getenv_opt "FLEXMASA_DEBUG") ~f:(function
+    Option.iter (Stdlib.Sys.getenv_opt "MAVBOX_DEBUG") ~f:(function
       | "true" -> on := true
       | _ -> ())
 

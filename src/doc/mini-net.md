@@ -1,30 +1,30 @@
 The mini-net Command
 ====================
 
-Flexmasa ships with the `flexmasa` command-line application; this document deals
-with the `./flexmasa mini-net` sub-command (also available in the Mavryk
-[repository](https://protocol.mavryk.org/developer/flexmasa.html) as `tezos-sandbox
+MavBox ships with the `mavbox` command-line application; this document deals
+with the `./mavbox mini-net` sub-command (also available in the Mavryk
+[repository](https://protocol.mavryk.org/developer/mavbox.html) as `tezos-sandbox
 mini-net`).
 
-One can use `./flexmasa mini-net --help` to see all the available options.
+One can use `./mavbox mini-net --help` to see all the available options.
 
 Accessing Mavryk Software
 ------------------------
 
-Flexmasa needs to access `mavkit-node`, `mavkit-client`, and, depending on the
+MavBox needs to access `mavkit-node`, `mavkit-client`, and, depending on the
 options, all the “baker deamons.”
 
-An easy way to let flexmasa find them is to add them to the `PATH`, for instance
+An easy way to let mavbox find them is to add them to the `PATH`, for instance
 if all the tezos utilities have been build at `/path/to/mavkit-repo/`:
 
     $ export PATH=/path/to/mavkit-repo/:$PATH
-    $ flexmasa mini  \
+    $ mavbox mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2
 
 If one does not want to, or cannot, use this method, all the executable paths
 can be passed with command line options:
 
-    $ flexmasa mini  \
+    $ mavbox mini  \
                --size 3 --time-between-blocks 8 --number-of-boot 2 \
                --mavkit-node /path/to/mavkit-repo/mavkit-node \
                --mavkit-client /path/to/mavkit-repo/mavkit-client \
@@ -45,14 +45,14 @@ bootstrap-baker accounts.
 A Note On Interactivity
 -----------------------
 
-Many sandbox setups in Flexmasa, once the sandbox is ready, give the user an
+Many sandbox setups in MavBox, once the sandbox is ready, give the user an
 interactive command prompt.
 
 You can always type `help` (or `h`) to see available commands, and `quit` (or
 `q`) to leave the prompt.
 
 The improve user-experience on normal terminals (i.e. not Emacs …) it is
-recommended to wrap the `flexmasa` command in command-line edition tool like
+recommended to wrap the `mavbox` command in command-line edition tool like
 `rlfe`, `rlwrap` or `ledit`.
 
 More Examples
@@ -65,7 +65,7 @@ daemons, the client needs to manually bake blocks on demand (this is very useful
 to make faster and more reproducible tests for instance).
 
 
-    $ flexmasa mini  \
+    $ mavbox mini  \
                --size 1 --number-of-boot 1 --base-port 4000 \
                --mavkit-node /path/to/mavkit-repo/mavkit-node \
                --mavkit-client /path/to/mavkit-repo/mavkit-client \
@@ -84,13 +84,13 @@ By typing `help` we see we can use the command `bake` to make new blocks:
 One can also use `mavkit-client -E http://localhost:4000 bake for ...` from
 outside the sandbox.
 
-Luckily such a client has already been configured by Flexmasa; type `help-env`
+Luckily such a client has already been configured by MavBox; type `help-env`
 on the prompt:
 
 ```
-Flexmasa: Please enter command:
+MavBox: Please enter command:
   help-env
-Flexmasa:
+MavBox:
   Shell Environment
     * A loadable shell environment is available at
     `/tmp/mininet-test/shell.env`.
@@ -122,13 +122,13 @@ expected time between blocks.
 ### Running Another Protocol And History Modes
 
 The
-[`./src/scripts/tutorial-box.sh`](https://gitlab.com/mavryk-network/flexmasa/blob/master/src/scripts/tutorial-box.sh)
+[`./src/scripts/tutorial-box.sh`](https://gitlab.com/mavryk-network/mavbox/blob/master/src/scripts/tutorial-box.sh)
 uses protocol-specific binaries (present in the default docker image) to run
 non-interactive sandboxes with the “real” Babylon or Carthage protocols.
 
 For instance:
 
-    $ flexmasa mini-net \
+    $ mavbox mini-net \
                --root /tmp/mini-box \
                --size 1 \
                --set-history-mode N000:archive
@@ -159,11 +159,11 @@ The option `--add-bootstrap-account` adds arbitrary key-pairs as
 bootstrap-accounts with a given amount of μṁ; the option `--no-daemons-for`
 prevents the sandbox from baking with a given bootstrap-account.
 
-More over flexmasa provides a command to generate **deterministic** key-pairs
+More over mavbox provides a command to generate **deterministic** key-pairs
 from any string.
 
-    $ alice=$(./flexmasa key-of-name alice)
-    $ flexmasa mini  \
+    $ alice=$(./mavbox key-of-name alice)
+    $ mavbox mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2 \
                --add-bootstrap-account "$alice@2_000_000_000_000 \
                --no-daemons-for=alice
@@ -172,7 +172,7 @@ This sandbox has one more account with 2 million ṁ, that account is not used f
 baking. See the output of the key generation:
 
 ```
- $ flexmasa key-of-name alice
+ $ mavbox key-of-name alice
 alice,edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn,mv1Hox9jGJg3uSmsv9NTvuK7rMHh25cq44nv,unencrypted:edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq
 ```
 
@@ -187,14 +187,14 @@ RPC `/chains/main/chain_id`), but one may want to use a different one.
 
 The chain-id is computed from the hash of the Genesis block, which can be forced
 with the `--genesis-block-hash`; and one can brute-force a block-hash to
-generate vanity chain-id with the `flexmasa vanity-chain-id` command.
+generate vanity chain-id with the `mavbox vanity-chain-id` command.
 
 ```
- $ flexmasa vanity-chain-id Bob  \
+ $ mavbox vanity-chain-id Bob  \
             --attempts 1_000_000 --first --seed my-seed-string
 
-Flexmasa.vanity-chain-id:  Looking for "Bob"
-Flexmasa.vanity-chain-id:
+MavBox.vanity-chain-id:  Looking for "Bob"
+MavBox.vanity-chain-id:
   Results:
     * Seed: "my-seed-string140396"
       → block: "BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q"
@@ -203,7 +203,7 @@ Flexmasa.vanity-chain-id:
 
 One can use it like this:
 
-    $ flexmasa mini  \
+    $ mavbox mini  \
                --size 2 --time-between-blocks 10 --number-of-boot 2 \
                --genesis BMKZs8QDZ9NmVJqvTeVimXCtKmRiYoASzx4N3gMPv6yqGiuTw2q
 
@@ -223,7 +223,7 @@ Restarting sandboxes is *not an exact science* because it is not how a
 blockchain is supposed to work, sometimes bakers and nodes fail while trying to
 catch-up, it is better to use “small” networks:
 
-    $ flexmasa mini --root /tmp/longer-running-mini-net \
+    $ mavbox mini --root /tmp/longer-running-mini-net \
                --size 1 --time-between-blocks 2 --number-of-boot 1 \
                --keep-root
 
@@ -232,9 +232,9 @@ later usually works.
 
 ## Smart Optimistic Rollups
 
-Flexmasa automates several steps involved in originating a [smart optimistic
+MavBox automates several steps involved in originating a [smart optimistic
 rollup](https://protocol.mavryk.org/alpha/smart_rollups.html). For a quick start,
-the command `flexmasa mini-network --smart-rollup` will start the mini-network
+the command `mavbox mini-network --smart-rollup` will start the mini-network
 sandbox with a default transaction smart rollup using the
 [tx-kernel](https://gitlab.com/tezos/kernel). A smart-rollup-node in
 **operator** mode will begin progressing the rollup. This assumes the mavkit
@@ -249,7 +249,7 @@ In order to start a smart rollup sandbox with a custom kernel use the
 `--custom-kernel` option.
 
 ```
-$ flexmasa mini-network \
+$ mavbox mini-network \
             --protocol-kind Mumbai \
             --smart-rollup \
             --custom-kernel wasm_2_0_0:bytes:path/to/my-kernel.wasm
@@ -262,7 +262,7 @@ The arguments passed to `--custom-kernel`, `wasm_2_0_0` and `bytes` are the
 final argument is the path to the .wasm file for your kernel.
 
 Most kernels will be too large for an L1 operation. When this is the case,
-Flexmasa will use the
+MavBox will use the
 [smart-rollup-installer](https://crates.io/crates/tezos-smart-rollup-installer)
 to create an installer kernel and originate the rollup.
 
@@ -270,12 +270,12 @@ The `--smart-contract PATH` option simply originates the layer one smart
 contract at `PATH`.
 
 There are two additional options that can be used with the smart rollup. With
-`--smart-rollup-start-level LEVEL` Flexmasa will wait until `LEVEL` to originate
+`--smart-rollup-start-level LEVEL` MavBox will wait until `LEVEL` to originate
 the rollup. The default is level 5. `--smart-rollup-node-mode MODE` will set the
 [mode](https://protocol.mavryk.org/alpha/smart_rollups.html#deploying-a-rollup-node)
-of the smart-rollup-node initialized by Flexmasa.
+of the smart-rollup-node initialized by MavBox.
 
-Once the rollup is originated, Flexmasa will display the rollup address and
+Once the rollup is originated, MavBox will display the rollup address and
 rpc_port for the rollup node. This information can also be found in the rollup
 node's data directory at `.../data-dir/config.json`.
 

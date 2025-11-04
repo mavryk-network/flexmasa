@@ -32,7 +32,7 @@ all_commands="
 * usage | help | --help | -h: Display this help message."
 usage() {
     cat >&2 <<EOF
-This script provides a Flexmasa “mini-net” sandbox with predefined
+This script provides a MavBox “mini-net” sandbox with predefined
 parameters useful for tutorials and basic exploration with
 wallet software like \`mavkit-client\`. This one uses the $default_protocol
 protocol.
@@ -47,13 +47,13 @@ EOF
 time_bb=${block_time:-5}
 root_path=${root_path:-/tmp/mini-box}
 
-export alice="$(flexmasa key alice)"
-export bob="$(flexmasa key bob)"
-export b0="$(flexmasa key bootacc-0)"
+export alice="$(mavbox key alice)"
+export bob="$(mavbox key bob)"
+export b0="$(mavbox key bootacc-0)"
 all_commands="$all_commands
 * start : Start a sandbox with the $default_protocol protocol."
 start() {
-    flexmasa mini-net \
+    mavbox mini-net \
         --root "$root_path" --size 1 "$@" \
         --set-history-mode N000:archive \
         --number-of-b 1 \
@@ -86,7 +86,7 @@ dummy_levels=${extra_dummy_proposals_batch_levels:-3,5}
 all_commands="$all_commands
 * start_upgrade : Start a full-upgrade sandbox ($default_protocol -> $next_protocol_name)."
 start_upgrade() {
-    flexmasa daemons-upgrade \
+    mavbox daemons-upgrade \
         --root-path "$root_path" "$@" \
         --next-protocol-kind "$next_protocol_name" \
         --extra-dummy-proposals-batch-size "$dummy_props" \
@@ -169,7 +169,7 @@ start_adaptive_issuance() {
 all_commands="$all_commands
 * start_upgrade_with_adaptive_issuanced : Start a $default_protocol protocol sandbox with all bakers voting \"on\" for addative issuance."
 start_upgrade_with_adaptive_issuance() {
-    flexmasa daemons-upgrade \
+    mavbox daemons-upgrade \
         --root "$root_path" --size 1 "$@" \
         --number-of-b 2 \
         --balance-of-bootstrap-accounts mav:100_000_000 \
@@ -200,7 +200,7 @@ EOF
 
 
 all_commands="$all_commands
-* client_remember_contracts : Add the contracts originated by flexmasa to the mavkit-client data-dir."
+* client_remember_contracts : Add the contracts originated by mavbox to the mavkit-client data-dir."
 client_remember_contracts() {
     contracts="${root_path}/Client-base-C-N000/contracts"
 

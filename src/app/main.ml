@@ -1,11 +1,11 @@
-open Flexmasa.Internal_pervasives
+open MavBox.Internal_pervasives
 
 module Small_utilities = struct
   let key_of_name_command () =
     let open Cmdliner in
     let open Term in
     ( (pure (fun n ->
-           let open Flexmasa.Mavryk_protocol.Account in
+           let open MavBox.Mavryk_protocol.Account in
            let account = of_name n in
            Stdlib.Printf.printf "%s,%s,%s,%s\n%!" (name account)
              (pubkey account) (pubkey_hash account) (private_key account))
@@ -19,7 +19,7 @@ module Small_utilities = struct
         ~man:
           [
             `P
-              "`flexmasa key-of-name hello-world` generates a key-pair of the \
+              "`mavbox key-of-name hello-world` generates a key-pair of the \
                `unencrypted:..` kind and outputs it as a 4 values separated by \
                commas: `name,pub-key,pub-key-hash,private-uri` (hence \
                compatible with the `--add-bootstrap-account` option of some of \
@@ -30,9 +30,9 @@ module Small_utilities = struct
   let netstat_ports ~pp_error () =
     let open Cmdliner in
     let open Term in
-    Flexmasa.Test_command_line.Run_command.make ~pp_error
+    MavBox.Test_command_line.Run_command.make ~pp_error
       (pure (fun state ->
-           Flexmasa.
+           MavBox.
              ( state,
                fun () ->
                  Helpers.Netstat.used_listening_ports state >>= fun ports ->
@@ -52,7 +52,7 @@ module Small_utilities = struct
                                 sp ppf ())
                               (fun ppf p -> fmt "%d" ppf p))
                            ppf to_display)) ))
-      $ Flexmasa.Test_command_line.cli_state ~disable_interactivity:true
+      $ MavBox.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"netstat-ports" ())
       (info "netstat-listening-ports"
          ~doc:"Like `netstat -nut | awk something-something` but glorified.")
@@ -61,9 +61,9 @@ module Small_utilities = struct
   let vanity_chain_id ~pp_error () =
     let open Cmdliner in
     let open Term in
-    Flexmasa.Test_command_line.Run_command.make ~pp_error
+    MavBox.Test_command_line.Run_command.make ~pp_error
       (pure (fun state stop_at_first machine_readable seed attempts pattern ->
-           Flexmasa.
+           MavBox.
              ( state,
                fun () ->
                  let sayf f =
@@ -78,7 +78,7 @@ module Small_utilities = struct
                    then res
                    else
                      let seed = seed ^ Int.to_string count in
-                     let open Mavai_base58_digest.Identifier in
+                     let open Mavryk_base58_digest.Identifier in
                      let block_hash = Block_hash.(hash_string seed |> encode) in
                      let chain_id = Chain_id.of_base58_block_hash block_hash in
                      let acc =
@@ -119,7 +119,7 @@ module Small_utilities = struct
                                          "* Seed: %S@ → block: %S@ → chain-id: \
                                           %S"
                                          seed bh ci)))) ))
-      $ Flexmasa.Test_command_line.cli_state ~disable_interactivity:true
+      $ MavBox.Test_command_line.cli_state ~disable_interactivity:true
           ~name:"vanity-chain-id" ()
       $ Arg.(value (flag (info [ "first" ] ~doc:"Stop at the first result.")))
       $ Arg.(
@@ -133,7 +133,7 @@ module Small_utilities = struct
                   ~doc:"Print the results on stdout in a parsing friendly way.")))
       $ Arg.(
           value
-            (opt string "flexmasa"
+            (opt string "mavbox"
                (info [ "seed" ] ~doc:"The constant seed to use.")))
       $ Arg.(
           value
@@ -156,12 +156,12 @@ end
 
 let () =
   let open Cmdliner in
-  let pp_error = Flexmasa.Test_command_line.Common_errors.pp in
-  let help = Term.(ret (pure (`Help (`Auto, None))), info "flexmasa") in
+  let pp_error = MavBox.Test_command_line.Common_errors.pp in
+  let help = Term.(ret (pure (`Help (`Auto, None))), info "mavbox") in
   Term.exit
     (Term.eval_choice
        (help : unit Term.t * _)
        (Small_utilities.all ~pp_error ()
-       @ [ Flexmasa.Interactive_mini_network.cmd () ]
-       @ [ Flexmasa.Command_daemons_protocol_change.cmd () ]))
+       @ [ MavBox.Interactive_mini_network.cmd () ]
+       @ [ MavBox.Command_daemons_protocol_change.cmd () ]))
   [@@warning "-3"]

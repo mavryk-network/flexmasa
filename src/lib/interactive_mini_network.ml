@@ -14,23 +14,23 @@ module Genesis_block_hash = struct
 
   let of_protocol_kind : Mavryk_protocol.Protocol_kind.t -> string =
     (*
-      $ flexmasa van --first --seed atlasbox- --attempts 100_000_000  Box1
-     Flexmasa.vanity-chain-id:  Looking for "Box1"
-     Flexmasa.vanity-chain-id:
+      $ mavbox van --first --seed atlasbox- --attempts 100_000_000  Box1
+     MavBox.vanity-chain-id:  Looking for "Box1"
+     MavBox.vanity-chain-id:
        Results:
          * Seed: "atlasbox-402009"
            → block: "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
            → chain-id: "NetXSq4NpQeBox1"
-      $ flexmasa van --first --seed boreasbox- --attempts 100_000_000  Box2
-     Flexmasa.vanity-chain-id:  Looking for "Box2"
-     Flexmasa.vanity-chain-id:
+      $ mavbox van --first --seed boreasbox- --attempts 100_000_000  Box2
+     MavBox.vanity-chain-id:  Looking for "Box2"
+     MavBox.vanity-chain-id:
        Results:
          * Seed: "atlasbox-402009"
            → block: "BMWbP36nAMgD7LT4aT8LXXiAzMyzNSBeS1R9Tpz1N6RrNPSPepQ"
            → chain-id: "NetXSq4NpQeBox1"
-     $ ./flexmasa van --first --seed alphabox- --attempts 100_000_000  BoxA
-     Flexmasa.vanity-chain-id:  Looking for "BoxA"
-     Flexmasa.vanity-chain-id:
+     $ ./mavbox van --first --seed alphabox- --attempts 100_000_000  BoxA
+     MavBox.vanity-chain-id:  Looking for "BoxA"
+     MavBox.vanity-chain-id:
        Results:
          * Seed: "alphabox-31164447"
            → block: "BKzFLDivozSLzqkZsRMpovuiiT53LzaJQP78ZujEXhmwCrb3qMi"
@@ -81,7 +81,7 @@ a "vanity-suffix-chain-id" which depends on the kind of protocol:
 `Box1` for Atlas
 and `Box2` for Boreas.
 The value "random" means to pick a random number.
-The value "legacy-default" picks the same default as older versions of Flexmasa.
+The value "legacy-default" picks the same default as older versions of MavBox.
 Any other value is treated as a custom block hash.
 This option is ignored when the `--keep-root` option allows
 the chain to resume
@@ -96,7 +96,7 @@ the chain to resume
   end
 
   let chain_id_of_hash hash =
-    let open Mavai_base58_digest.Identifier in
+    let open Mavryk_base58_digest.Identifier in
     Chain_id.of_base58_block_hash hash
 
   let process_choice state ~protocol_kind choice =
@@ -137,7 +137,7 @@ the chain to resume
               let seed =
                 Fmt.str "%d:%f" (Random.int 1_000_000) (Unix.gettimeofday ())
               in
-              let open Mavai_base58_digest.Identifier in
+              let open Mavryk_base58_digest.Identifier in
               let block_hash = Block_hash.hash_string seed in
               Block_hash.encode block_hash
         in
@@ -358,7 +358,7 @@ let cmd () =
   let open Term in
   let pp_error = Test_command_line.Common_errors.pp in
   let base_state =
-    Test_command_line.Command_making_state.make ~application_name:"Flexmasa"
+    Test_command_line.Command_making_state.make ~application_name:"MavBox"
       ~command_name:"mininet" ()
   in
   let docs = Manpage_builder.section_test_scenario base_state in

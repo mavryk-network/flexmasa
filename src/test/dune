@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries flexmasa))
+ (libraries mavbox))
 
 (rule
  (alias runtest)

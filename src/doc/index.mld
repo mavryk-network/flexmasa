@@ -1,10 +1,10 @@
 
-{1 The Flexmasa Library }
+{1 The MavBox Library }
 
-See the toplevel module {!Flexmasa}.
+See the toplevel module {!MavBox}.
 
 See also “Mavryk Alternate Implementation” miniature libraries:
 
-- {!Mavai_base58_digest}
-- {!Mavai_mv1_crypto}
+- {!Mavryk_base58_digest}
+- {!Mavryk_mv1_crypto}
 

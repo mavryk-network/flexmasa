@@ -9,7 +9,7 @@ if ! [ -d "$dest_dir" ]; then
     exit 3
 fi
 
-# Use this scrpcipt to get the smart-rollup-installer and octez smart-rollup kernel binaries.
+# Use this scrpcipt to get the smart-rollup-installer and mavkit smart-rollup kernel binaries.
 #
 # - Go to https://gitlab.com/mavryk-network/mavryk-protocol/
 # - Find a successful master-branch pipeline.

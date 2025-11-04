@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries flexmasa mavai-base58-digest))
+ (libraries mavbox mavryk-base58-digest))
 
 ;;(alias
 ;; (name runtest)

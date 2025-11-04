@@ -1,7 +1,7 @@
 open Internal_pervasives
 
 module Key = struct
-  module Crypto = Mavai_mv1_crypto.Signer
+  module Crypto = Mavryk_mv1_crypto.Signer
 
   module Of_name = struct
     type t = {
@@ -162,7 +162,7 @@ let protocol_parameters_json t : Ezjsonm.t =
      /src/proto_<proto>/lib_parameters/default_parameters.ml
      (The 'constants_sandbox' value is a good guide.)
 
-     Flexmasa only supports the current, next and alpha protocols. Older
+     MavBox only supports the current, next and alpha protocols. Older
      protocols can be removed. Parameters are grouped by feature and the
      ordering tries to match 'default_parameters.ml'. Ensure that "base"
      parameter list remains up-to-date by adding new protocol parameters there

@@ -1,6 +1,6 @@
 (library
- (name flexmasa)
- (public_name flexmasa)
+ (name mavbox)
+ (public_name mavbox)
  (flags
   (:standard -safe-string))
  (preprocess
@@ -15,8 +15,8 @@
   genspio
   ezjsonm
   ptime.clock.os
-  mavai-base58-digest
-  mavai-mv1-crypto))
+  mavryk-base58-digest
+  mavryk-mv1-crypto))
 
 (rule
  (target sandbox_smart_contracts.ml)

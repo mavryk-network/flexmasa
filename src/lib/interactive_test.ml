@@ -496,7 +496,7 @@ module Commands = struct
                   forge_template ~key_name:client.key_name ~src ~counter ~fee:3.
                     ~branch
                 in
-                let tmp = Stdlib.Filename.temp_file "flexmasa-forge" ".json" in
+                let tmp = Stdlib.Filename.temp_file "mavbox-forge" ".json" in
                 System.write_file state tmp ~content:json_template >>= fun () ->
                 System.editor state >>= fun editor ->
                 Fmt.kstr (System.command state) "%s %s" editor tmp >>= function

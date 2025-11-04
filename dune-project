@@ -1,20 +1,20 @@
 (lang dune 2.8)
-(name flexmasa)
+(name mavbox)
 (generate_opam_files true)
 (license MIT)
-(source (uri git+https://gitlab.com/mavryk-network/flexmasa.git))
-(homepage https://gitlab.com/mavryk-network/flexmasa)
-(bug_reports https://gitlab.com/mavryk-network/flexmasa)
-(authors "Seb Mondet <seb@mondet.org>" "Mark Nichols")
-(maintainers "seb@mondet.org")
+(source (uri git+https://gitlab.com/mavryk-network/mavbox.git))
+(homepage https://gitlab.com/mavryk-network/mavbox)
+(bug_reports https://gitlab.com/mavryk-network/mavbox)
+(authors "Seb Mondet <seb@mondet.org>" "Mark Nichols" "Tristan Allaire <tristan@mavryk.io>")
+(maintainers "seb@mondet.org" "tristan@mavryk.io")
 
 (package
- (name mavai-mv1-crypto)
+ (name mavryk-mv1-crypto)
  (synopsis "Mavryk Ed25519 Accounts Based on Mirage-Crypto")
  (description "Mavryk Ed25519 Accounts Based on Mirage-Crypto.")
  (version 0.2)
  (depends
-   "mavai-base58-digest"
+   "mavryk-base58-digest"
   (mirage-crypto (>= "0.11.0"))
   (dune (>= "2.9"))
   (ppx_inline_test ( >= "0.14.0"))
@@ -23,9 +23,9 @@
 )
 
 (package
- (name flexmasa)
- (synopsis "Flexible Mavryk Sandboxes: A library to define sandboxed Mavryk networks")
- (description "Flexible Mavryk Sandboxes: A library to define sandboxed Mavryk networks.")
+ (name mavbox)
+ (synopsis "Mavryk Sandboxes: A library to define sandboxed Mavryk networks")
+ (description "Mavryk Sandboxes: A library to define sandboxed Mavryk networks.")
  (depends
   (dune (> 2.8))
   ("genspio" (= "0.0.2"))
@@ -38,16 +38,16 @@
   tls
   cohttp-lwt-unix
   (pp (>= 1.1.2))
-  mavai-base58-digest
-  mavai-mv1-crypto
+  mavryk-base58-digest
+  mavryk-mv1-crypto
   ))
 
 (package
- (name flexmasa-cli)
- (synopsis "A CLI application using Flexmasa-lib to define a few scenarios")
- (description "A CLI application using Flexmasa-lib to define a few scenarios.")
+ (name mavbox-cli)
+ (synopsis "A CLI application using MavBox-lib to define a few scenarios")
+ (description "A CLI application using MavBox-lib to define a few scenarios.")
  (depends
   (dune (> 2.8))
-  flexmasa
+  mavbox
   )
   )

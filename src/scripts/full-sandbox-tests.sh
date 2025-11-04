@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # Those are tests that should succeed in a well configured environment:
-# - flexmasa command line app, and `mavkit-*` binaries available in PATH
+# - mavbox command line app, and `mavkit-*` binaries available in PATH
 # - Alpha protocol is “similar enough” to the one pulled by the `Dockerfile`
 
 set -e
@@ -23,7 +23,7 @@ fi
 runone() {
     name="$1"
     shift
-    rootroot="/tmp/flexmasa-full-sandbox-tests/$name"
+    rootroot="/tmp/mavbox-full-sandbox-tests/$name"
     root="$rootroot/root"
     log="$rootroot/log.txt"
     say "Running $name ($rootroot)"
@@ -38,20 +38,20 @@ before_alpha=$next
 
 quickmini() {
     proto="$1"
-    runone "mini-$proto" flexmasa mini --protocol-kind "$proto" \
+    runone "mini-$proto" mavbox mini --protocol-kind "$proto" \
         --time-between-blocks 1 $until_4 \
         --number-of-boot 1 --size 1
 }
 
 c2n() {
-    runone "${current}2${next}" flexmasa mini \
+    runone "${current}2${next}" mavbox mini \
         --protocol-kind "$current" \
         --hard-fork 10:$next: \
         --time-between-blocks 1,3 --number-of-boot 2 --size 2 \
         $until_12
 }
 n2a() {
-    runone "${before_alpha}2alpha" flexmasa mini \
+    runone "${before_alpha}2alpha" mavbox mini \
         --protocol-kind "$before_alpha" \
         --hard-fork 10:Alpha: \
         --time-between-blocks 1,3 --number-of-boot 2 --size 2 \
@@ -59,7 +59,7 @@ n2a() {
 }
 
 daem_c2n() {
-    runone "dameons-upgrade-c2n" flexmasa daemons-upgrade \
+    runone "dameons-upgrade-c2n" mavbox daemons-upgrade \
         --protocol-kind "$current" \
         --next-protocol-kind "$next" \
         --second-baker mavkit-baker-$next_suffix \
@@ -75,7 +75,7 @@ daem_c2n() {
 }
 
 daem_c2n_nay() {
-    runone "dameons-upgrade-c2n-nay" flexmasa daemons-upgrade \
+    runone "dameons-upgrade-c2n-nay" mavbox daemons-upgrade \
         --protocol-kind "$current" \
         --next-protocol-kind "$next" \
         --second-baker mavkit-baker-$next_suffix \
@@ -91,7 +91,7 @@ daem_c2n_nay() {
 }
 
 daem_n2a() {
-    runone "dameons-upgrade-n2a" flexmasa daemons-upgrade \
+    runone "dameons-upgrade-n2a" mavbox daemons-upgrade \
         --protocol-kind "$before_alpha" \
         --next-protocol-kind Alpha \
         --second-baker mavkit-baker-alpha \
@@ -108,7 +108,7 @@ daem_n2a() {
 
 evm_smart_rollup () {
     proto="$1"
-    runone "evm-smart-rollup" flexmasa mini --protocol-kind "$proto" \
+    runone "evm-smart-rollup" mavbox mini --protocol-kind "$proto" \
            --time-between-blocks 1 $until_8 \
            --number-of-boot 1 --size 1 \
            --start-smart-rollup evm
@@ -116,7 +116,7 @@ evm_smart_rollup () {
 
 ai() {
     proto="$1"
-    runone "adaptive-issuance-$proto" flexmasa mini --protocol-kind "$proto" \
+    runone "adaptive-issuance-$proto" mavbox mini --protocol-kind "$proto" \
         --time-between-blocks 1 --number-of-boot 1 --size 1 \
         --adaptive-issuance-vote "on" --until-level 48
 
@@ -124,7 +124,7 @@ ai() {
 
 daem_ai() {
     proto="$1"
-    runone "daemon-upgrage-adaptive-issuance-$proto" flexmasa daemons-upgrade --protocol-kind "$proto" \
+    runone "daemon-upgrage-adaptive-issuance-$proto" mavbox daemons-upgrade --protocol-kind "$proto" \
         --time-between-blocks 1 --number-of-boot 1 --size 1 \
         --test-variant full-upgrade --next-protocol-kind "$next" --second-baker mavkit-baker-"$next_suffix" \
         --adaptive-issuance-vote-first-baker "pass" --adaptive-issuance-vote-second-baker "on" \
