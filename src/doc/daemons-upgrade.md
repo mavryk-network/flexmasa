@@ -9,7 +9,7 @@ One can use `./mavbox daemons-upgrade --help` to see all the available options.
 Accessing Mavryk Software
 -------------------------------------------------------------------------------
 
-Flexstesa needs access to the Mavryk software. In particular, the
+MavBox needs access to the Mavryk software. In particular, the
 `daemons-upgrade` command requires the baker daemons, (`mavkit-baker-PtKathma`,
 `mavkit-baker-PtLimaPt`, `mavkit-baker-alpha`) depending on which protocol
 upgrade is being tested.
