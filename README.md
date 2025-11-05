@@ -554,17 +554,3 @@ Documentation regarding `mavbox daemons-upgrade [...]` can be found here: [The
 
 The API documentation of the Mavbox OCaml library starts here: [Mavbox:
 API](https://protocol.mavryk.org/mavbox/lib-index.html).
-
-Blog posts:
-
-- [2019-06-14](https://obsidian.systems/blog/introducing-mavbox-robust-testing-tools-for-tezos-and-its-applications)
-- [2021-10-14](https://medium.com/the-aleph/new-mavbox-docker-image-and-some-development-news-f0d5360f01bd)
-- [2021-11-29](https://medium.com/the-aleph/mavbox-new-image-user-activated-upgrades-tenderbake-cc7602781879)
-- [2022-03-22](https://medium.com/the-aleph/mavbox-protocol-upgrades-3fdf2fae11e1):
-  Mavbox: Protocol Upgrades
-- [2022-11-30](https://medium.com/the-aleph/mavbox-toru-sandbox-78d7b166e06):
-  Mavbox TORU Sandbox
-
-
-
-
